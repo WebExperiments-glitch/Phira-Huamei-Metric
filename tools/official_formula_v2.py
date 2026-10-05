@@ -37,12 +37,17 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(BASE, ".."))
 sys.path.insert(0, os.path.join(ROOT, "phm"))
 
-# ★ 单一真源：档位定义与最小样本数一律取自交付引擎 phm/core.py。
-#   历史教训：本脚本曾自带 NPS_EDGES=[0,1.5,2.5,…,10,100]（9 档），
-#   而 core.py 用 [0,2.5,4.5,6.5,10,100]（5 档）—— 于是这里公布的 LOO
-#   精度描述的是「另一个没上线的模型」。任何档位改动都必须只改 core.py。
-from core import NPS_EDGES, HOLD_EDGES, MIN_N, norm_level  # noqa: E402
+# ⚠️ 这是【历史方法】的评估脚本：v2「分层查表」。
+#    现行交付引擎已改为 k-NN 点估计（phm/core.py），精度更好：
+#      查表  中位误差 0.600  ≤1.0 命中 74.5%
+#      k-NN  中位误差 0.500  ≤1.0 命中 80.8%   ← 现行
+#    保留本脚本是为了让「旧方法精度」可复现、可对比（见 tools/exp_point_estimate.py）。
+#    档位常量在此就地冻结，不再从 core 导入 —— core 已不含查表机制。
+from core import norm_level  # noqa: E402
 
+NPS_EDGES = [0, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 8, 10, 100]
+HOLD_EDGES = [0.0, 0.12, 0.25, 0.40, 0.55, 1.01]
+MIN_N = 4
 LEVELS = ["EZ", "HD", "IN", "AT"]
 
 

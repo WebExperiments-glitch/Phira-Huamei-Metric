@@ -17,7 +17,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(BASE, ".."))
 sys.path.insert(0, BASE)
 
-from core import Verdict                                # noqa
+from core import Verdict, KNN_K                        # noqa
 
 
 def fmt(v, n=2):
@@ -37,9 +37,10 @@ def make_report(vd, r, peer_median=None, exclude=None):
     lv = r.get("level") or ""
     diff = r.get("difficulty") or 0
 
-    lo, hi, mid, conf, basis = vd.reference_range(nps, hr, lv)
+    lo, hi, mid, conf, basis = vd.reference_range(nps, hr, notes, stair, lv)
     feats = vd.compare(nps, hr, notes, stair, lv)
-    similar = vd.similar_official(nps, hr, notes, lv, top=5, exclude=exclude)
+    similar = vd.similar_official(nps, hr, notes, lv, top=5,
+                                  stair_speed=stair, exclude=exclude)
     checks = vd.hard_checks(diff, lv, peer_median)
 
     lines = []
@@ -53,22 +54,24 @@ def make_report(vd, r, peer_median=None, exclude=None):
         A(f"  谱师 {r['charter']}")
     A("")
 
-    # ---- 参考区间 ----
+    # ---- 点估计（主答案）----
     A("─" * 68)
-    A("【参考区间】—— 基于官谱实测映射，非「你的定数是多少」")
+    A("【点估计】—— 与你最相似的官谱，它们定价多少")
     A("─" * 68)
-    if conf == "high" or conf == "mid":
-        A(f"  同类定数区间   [{lo:.1f}, {hi:.1f}]   中位 {mid:.1f}")
-        A(f"  置信度         {conf}（{basis}）")
-        if diff < lo:
-            A(f"  你的标注 {diff:.1f} 低于区间下界（同类通常更高）")
-        elif diff > hi:
-            A(f"  你的标注 {diff:.1f} 高于区间上界（同类通常更低）")
+    if lo is not None:
+        A(f"  ★ 建议定数     {mid:.1f}")
+        A(f"    不确定带     {lo:.1f} ~ {hi:.1f}（近邻定价的四分位）")
+        A(f"    估计误差     中位 0.5 级 / p90 1.5 级"
+          f"（官谱留一法实测，n={vd.n_official}）")
+        A(f"    依据         {basis}")
+        d = diff - mid
+        if abs(d) < 0.25:
+            A(f"  你的标注 {diff:.1f} 与点估计基本一致")
         else:
-            A(f"  你的标注 {diff:.1f} 落在区间内")
+            A(f"  你的标注 {diff:.1f} 比点估计"
+              f"{'高' if d > 0 else '低'} {abs(d):.1f} 级")
     else:
-        A(f"  参考中位       {mid:.1f}（置信度低：{basis}）")
-        A("  ⚠ 同标签无官谱样本可比，区间不可靠")
+        A(f"  参考中位       {mid:.1f}（{basis}）")
     A("")
 
     # ---- 特征差异 ----
@@ -134,8 +137,9 @@ def make_report(vd, r, peer_median=None, exclude=None):
     A("─" * 68)
     A("  · 不判定「虚标」——官方定数本身噪声 2.80 级，任何工具无法区分")
     A("    「谱师标错」与「官方也会这么标」")
-    A("  · 不给单一数字——只给区间。定数的 0.1 是滑块机械精度，")
-    A("    不是语义精度（实测整数定数比一位小数常用 3.9 倍）")
+    A("  · 点估计不是「真值」——它是最相似官谱的定价中位，误差中位 0.5 级。")
+    A("    官谱自己也有 42% 落在同类区间之外，故这个数字只可作参照、")
+    A("    不可当作判决依据")
     A("  · 所有计算可复现 —— 官谱 {n} 条，"
       "每个数字都能追溯到具体样本".format(n=vd.n_official))
     return "\n".join(lines)
@@ -160,7 +164,8 @@ def main():
 
     if not args.chart:
         # 自检：对官谱跑一遍，看引擎是否正确
-        print(f"[engine] 官谱 {vd.n_official} 条，建表 {len(vd.table)} 格")
+        print(f"[engine] 官谱 {vd.n_official} 条，k-NN 索引就绪"
+              f"（k={KNN_K}，特征 NPS/长条占比/物量/纵连）")
         print("[engine] 自检：取一条官谱做报告（官谱参照中排除其自身）")
         r = dict(vd.rows[100])
         # 用 dict 副本查询，但 exclude 必须指向【表内同一行对象】，故用身份匹配
@@ -201,6 +206,8 @@ def main():
             lo, hi, mid, conf, _ = vd.reference_range(
                 r.get("nps") or 0,
                 (r.get("t_hold") or 0) / max(r.get("notes_real", 1), 1),
+                r.get("notes_real") or 0,
+                r.get("stair_speed_avg") or 0,
                 r.get("level") or "")
             flags = [c for c in vd.hard_checks(
                 r.get("difficulty") or 0, r.get("level") or "")

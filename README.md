@@ -1,7 +1,8 @@
 # P.H.M. — Phira Huamei Metric
 
 > 为 Phira / Phigros 谱面提供**可审计的难度参考**。
-> 不给判决，只给**区间 + 特征差异 + 官谱参照 + 事实性检查**。
+> 给出**一个确定的数值 + 它的不确定度**，附特征差异、官谱参照与事实性检查。
+> 不给判决。
 
 ---
 
@@ -12,7 +13,7 @@
 | 事实 | 数值 |
 |---|---|
 | 官方定数自身的标注噪声 | **2.80 级**（同曲同物量相邻难度定数差中位） |
-| 本工具参考区间覆盖率 | **57.7%** —— 即 **42.3% 的官谱落在「自己的同类区间」之外** |
+| 本工具不确定带的覆盖率 | **55.4%** —— 即 **44.6% 的官谱落在「自己的同类区间」之外** |
 
 在这个噪声水平下，没有任何工具能区分「谱师标错」与「官方也会这么标」。
 **声称能区分就是造假。**
@@ -25,7 +26,7 @@
 
 双击 `phm/P.H.M..html` 即可。无需 Python、无需起服务、无需联网。
 
-- 默认只给**一个答案**：你的定数 vs 同类区间
+- 默认只给**一个答案**：一个点估计数值 + `±1.0` 不确定度
 - 右上角 ⚙ 可开**专业模式**（特征对照 / 官谱参照 / 判据明细）与**浅色主题**
 - 专业模式**默认关闭** —— 多数人只想知道「这谱大概多难」
 
@@ -45,19 +46,27 @@ python phm/cli.py --model data/official.jsonl                     # 引擎自检
 python tools/calibrate_engine.py     # 或 python tools/pipeline.py calibrate
 ```
 
-留一法（每条官谱留出、用其余建表），官谱 1,037 条：
+留一法（每条官谱留出、用其余重建索引），官谱 1,037 条：
 
 | 指标 | 值 |
 |---|---|
-| 点误差 中位 | **0.600** |
-| p75 / p90 / p95 | 1.050 / **1.500** / 2.000 |
-| ≤1.0 占比 | **74.5%** |
-| ≤1.5 占比 | 90.3% |
-| 置信分布 | high 968 · mid 52 · low 17 · none 0 |
-| 区间覆盖率 | **57.7%** |
+| 点误差 中位 | **0.500** |
+| p75 / p90 / p95 | 1.000 / **1.500** / 1.900 |
+| ≤0.5 占比 | **55.5%** |
+| ≤1.0 占比 | **80.8%** |
+| ≤1.5 占比 | 93.2% |
+| 近邻集中度分布 | high 563 · mid 446 · low 28 |
+| 不确定带覆盖率 | **55.4%** |
+
+即：**给出一个数，误差中位 0.5 级；约 2/3 的谱误差 ≤1.0 级。**
 
 > ⚠️ 校准脚本直接调用 `phm/core.py` 的 `Verdict`，**不是**另一个平行实现。
 > 历史上「公布的精度来自评估脚本、实际交付的是 core」曾造成两者脱节，现已永久消除。
+>
+> ⚠️ 浏览器端是独立实现，另有一道 `tools/verify_gui_parity.py`：
+> 把 GUI 的 k-NN 抽出来在 node 里跑真实语料，与引擎**逐谱比对** point/lo/hi。
+> 已实测它抓到过一次真 bug（query 的长条占比漏了 ×100，近邻全错）。
+> 两个脚本都在 `pipeline.py calibrate` 里，随流水线自动跑。
 
 ---
 
@@ -77,7 +86,6 @@ python tools/calibrate_engine.py     # 或 python tools/pipeline.py calibrate
 ├── data/                  # ★ 数据真源
 │   ├── official.jsonl     #   官谱 1,037 条（从 Phigros APK 提取）
 │   ├── community.jsonl    #   社区谱 9,684 条
-│   ├── formula.json       #   查表（与 core 同档位）
 │   ├── charts/            #   原始语料 31GB / 9,689 个谱面目录
 │   └── .stages/           #   中间产物（可删，重跑重建）
 ├── tools/                 # 可复现脚本
@@ -96,8 +104,7 @@ python tools/calibrate_engine.py     # 或 python tools/pipeline.py calibrate
 python tools/pipeline.py --status      # 查看数据状态
 python tools/pipeline.py official      # 官谱：_research/pgr → data/official.jsonl   （约 80s）
 python tools/pipeline.py community     # 社区谱：data/charts → data/community.jsonl  （较久）
-python tools/pipeline.py formula       # 查表：official.jsonl → formula.json
-python tools/pipeline.py calibrate     # 校准交付引擎（LOO 精度 + 区间覆盖率）
+python tools/pipeline.py calibrate     # 校准引擎 + 校验浏览器端与引擎逐谱一致
 python tools/pipeline.py gui           # 前端数据 + 单文件 P.H.M..html
 python tools/pipeline.py all           # 全流程，按依赖顺序
 ```
@@ -119,15 +126,16 @@ python tools/pipeline.py all           # 全流程，按依赖顺序
 ## 本工具不做的事
 
 - ❌ **不判定虚标** —— 见开头，官方噪声 2.80 级
-- ❌ **不给单一数字** —— 定数的 0.1 是滑块机械精度，不是语义精度
-  （实测整数定数比一位小数常用 3.9 倍，是「拖滑块」的指纹）
+- ⚠️ **不会声称精确到 0.1** —— 定数的 0.1 是滑块机械精度、不是语义精度
+  （实测整数定数比一位小数常用 3.9 倍，是「拖滑块」的指纹）。
+  所以给的是一个数 **+ 明确的不确定度**，而不是一个假精确的数
 - ❌ **不声称复现官方标准** —— 它不存在。Phigros 从未发布制谱难度规范
 
 ## 本工具做的事
 
-- ✅ **参考区间** —— 官谱同类格（难度标签 × NPS档 × Hold档）的 P25~P75+0.2
+- ✅ **点估计 + 不确定带** —— 最相似 20 首官谱的定价中位，及它们的四分位
 - ✅ **特征差异** —— 你与同类的差距（NPS / 物量 / Hold占比 / 纵连速度）
-- ✅ **官谱参照** —— 与你最相似的 5 首官谱及其定价，可逐条查证
+- ✅ **官谱参照** —— 与你最相似的 5 首官谱及其定价，可逐条查证（与点估计同一批近邻）
 - ✅ **事实性检查** —— 超官方上限 / 标签区间矛盾 / Liveness 双字段冲突
 
 ---

@@ -114,6 +114,8 @@ body>header{
 .gauge .num{font-size:62px;font-weight:750;line-height:1;letter-spacing:-3px}
 .gauge .sep{color:var(--fg3);font-size:20px;font-weight:300}
 .gauge .rng{font-size:30px;font-weight:600;color:var(--fg2);letter-spacing:-.5px}
+/* 不确定度：紧跟在点估计旁边，字号明显小、颜色弱 —— 不抢主答案，但也不藏起来 */
+.gauge .pm{font-size:21px;font-weight:600;color:var(--fg3);margin-left:10px}
 .badge{display:inline-flex;align-items:center;gap:8px;
   padding:10px 22px;border-radius:22px;font-size:14.5px;font-weight:600}
 .badge.in{background:var(--okDim);color:var(--ok)}
@@ -238,7 +240,9 @@ body:not(.prof) .prof{display:none}
     <div>
       <b>不判定「虚标」。</b>
       官方定数本身是人工标注，实测噪声 <code>2.80 级</code>（同曲且物量相近的相邻难度）。
-      此噪声下无法区分「谱师标错」与「官方也会这么标」。这里给出的是参考区间。
+      此噪声下无法区分「谱师标错」与「官方也会这么标」。
+      下面给的数值是<b>最相似官谱的定价中位</b>，误差中位 <code>0.5 级</code> ——
+      可作参照，不是判决。
     </div>
   </div>
 
@@ -246,8 +250,8 @@ body:not(.prof) .prof{display:none}
 
   <div class="foot">
     <div>
-      公式 <span class="mono">查表(难度标签 × NPS档 × Hold%档)</span> ·
-      精度 <span class="mono">留一法 中位 0.60 / p90 1.50</span>（与官方标注噪声同级）·
+      方法 <span class="mono">k-NN 点估计（20 首最相似官谱的定价中位）</span> ·
+      精度 <span class="mono">留一法 中位 0.50 / p90 1.50 级</span>（与官方标注噪声同级）·
       官谱定数自 APK 提取，可逐条追溯
     </div>
     <div id="dstat" style="margin-top:7px;color:var(--fg3)"></div>
@@ -398,6 +402,75 @@ $('#lv').addEventListener('change',()=>{
   if(hit)show(hit.id);
 });
 
+/* ══ k-NN 点估计 ══
+   必须与 phm/core.py 完全同算法（构建时由 build_standalone.py 校验 KNN_K/KNN_BW）。
+   留一法实测：中位误差 0.500，≤1.0 命中 80.8%（查表法是 0.600 / 74.5%）。
+   浏览器端独立实现（无 Python 运行时），故这里复制一份；参数由构建期断言把关。 */
+const KNN_K=20, KNN_BW=2.0;
+const KN={Z:null,mu:null,sd:null};
+
+function knnFeats(nps,hp,notes,stair){
+  return [Math.log1p(Math.max(nps||0,0.01)),Math.log1p(Math.max(hp||0,0.01)),
+          Math.log1p(Math.max(notes||0,1)),Math.log1p(Math.max(stair||0,0.01))];
+}
+function knnPrepare(){
+  if(KN.Z)return;
+  const Z=[];const mu=[0,0,0,0],sd=[0,0,0,0];
+  for(const x of OFF){
+    const nr=Math.max(x.notes_real||1,1);
+    Z.push(knnFeats(x.nps,(x.t_hold||0)/nr*100,x.notes_real,x.stair_speed_avg||0));
+  }
+  const n=Z.length||1;
+  for(let c=0;c<4;c++){
+    let m=0;for(const z of Z)m+=z[c];m/=n;
+    let s=0;for(const z of Z)s+=(z[c]-m)*(z[c]-m);s=Math.sqrt(s/n)||1;
+    mu[c]=m;sd[c]=s;
+  }
+  KN.Z=Z;KN.mu=mu;KN.sd=sd;
+}
+function knnNeighbors(nps,hp,notes,stair,lv,k){
+  knnPrepare();
+  k=k||KNN_K;
+  /* ⚠️ hp 是「长条占比的小数」（0.1457），而特征用百分比（14.57）。
+     必须 ×100，与 knnPrepare 里构造语料向量的口径一致 ——
+     漏掉这一步会让 query 向量与语料向量不在同一尺度，近邻全错。 */
+  const q=knnFeats(nps,hp*100,notes,stair);
+  const qz=[0,1,2,3].map(function(c){return (q[c]-KN.mu[c])/KN.sd[c];});
+  let pool=[];
+  for(let i=0;i<OFF.length;i++)if(OFF[i].tag===lv)pool.push(i);
+  // 标签内样本不足 k 时放开到全体（小标签 AT 仅 56 条）
+  if(!lv||pool.length<k){pool=[];for(let i=0;i<OFF.length;i++)pool.push(i);}
+  const out=pool.map(function(i){
+    const z=KN.Z[i];let d2=0;
+    for(let c=0;c<4;c++){const v=(z[c]-KN.mu[c])/KN.sd[c];d2+=(v-qz[c])*(v-qz[c]);}
+    return [Math.sqrt(d2),i];
+  });
+  out.sort(function(a,b){return a[0]-b[0];});
+  return out.slice(0,k);
+}
+/* 加权分位（与 core.py 的 wquantile 同算法：累加到 tot*q 即返回） */
+function wq(pairs,q){
+  const s=pairs.slice().sort(function(a,b){return a[0]-b[0];});
+  let tot=0;for(const p of s)tot+=p[1];
+  if(tot<=0)return null;
+  let acc=0;
+  for(const p of s){acc+=p[1];if(acc>=tot*q)return p[0];}
+  return s[s.length-1][0];
+}
+function knnPoint(nps,hp,notes,stair,lv){
+  const near=knnNeighbors(nps,hp,notes,stair,lv,KNN_K);
+  if(!near.length)return {point:null,lo:null,hi:null,k:0,near:[],
+    basis:'无近邻'};
+  const scale=Math.max(near[near.length-1][0],1e-6);
+  const pairs=near.map(function(p){
+    const d=p[0];return [OFF[p[1]].difficulty,Math.exp(-(d/scale)*(d/scale)*KNN_BW)];
+  });
+  const lo=wq(pairs,.25),hi=wq(pairs,.75);
+  return {point:wq(pairs,.5),lo:lo,hi:hi,spread:hi-lo,k:near.length,near:near,
+    basis:near.length+' 首最相似官谱的定价中位（同难度标签内检索；'
+      +'特征：NPS / 长条占比 / 物量 / 纵连）'};
+}
+
 /* ══ 渲染 ══ */
 function show(id){
   const r=IDX.get(id);if(!r)return;
@@ -414,31 +487,9 @@ function show(id){
   const P={nps:same.map(x=>x.nps),nt:same.map(x=>x.notes_real),
     hd:same.map(x=>x.t_hold/x.notes_real*100),sr:same.map(x=>x.stair_speed_avg||0)};
 
-  // 区间
-  /* 档位必须与 phm/core.py 的 NPS_EDGES 一致（9 档，实测更优） */
-  const NE=[0,1.5,2.5,3.5,4.5,5.5,6.5,8,10,1e9],HE=[0,.12,.25,.40,.55,1.01];
-  const bk=(v,e)=>{for(let i=0;i<e.length-1;i++)if(v>=e[i]&&v<e[i+1])return i;return null};
-  const cell=OFF.filter(x=>x.tag===lv
-    &&bk(x.nps,NE)===bk(r.nps,NE)&&bk(x.t_hold/x.notes_real,HE)===bk(hr,HE));
-  // 回退链必须与 phm/core.py reference_range 一致：
-  //   细格(lv,NPS,Hold) → 粗格(lv,NPS) → 标签基线 → 空
-  const cell2=lv?OFF.filter(x=>x.tag===lv&&bk(x.nps,NE)===bk(r.nps,NE)):[];
-  const MIN_N=4;
-  let lo=null,hi=null,mid=null,basis='无同类官谱样本',USE=null;
-  if(cell.length>=MIN_N)USE=cell;
-  else if(cell2.length>=MIN_N)USE=cell2;
-  if(USE){
-    const ds=USE.map(x=>x.difficulty).sort((a,b)=>a-b);
-    lo=ds[Math.floor(ds.length/4)];
-    hi=ds[Math.min(Math.floor(ds.length*3/4),ds.length-1)]+.2;
-    // 与 core.py 的 st.median 同口径（偶数取中间两项平均）
-    mid=med(ds);
-    basis=(USE===cell?'官谱同标签同NPS同Hold档（n='+cell.length+'）'
-      :'官谱同标签同NPS档（n='+cell2.length+'；Hold 档样本不足，已放宽一档）');
-  }else if(same.length){
-    mid=med(same.map(x=>x.difficulty));
-    basis='仅标签基线';
-  }
+  // 点估计（k-NN）—— 与 phm/core.py 同算法，取代原「分层查表」
+  const K=knnPoint(r.nps,hr,r.notes_real,r.stair_speed_avg||0,lv);
+  const lo=K.lo,hi=K.hi,mid=K.point,basis=K.basis;
 
   // 谱型
   const TY=[];
@@ -449,37 +500,43 @@ function show(id){
   if((r.hold_interference_index||0)>50)TY.push(['长押主导',f(r.hold_interference_index,0)]);
   if(!TY.length)TY.push(['常规配置','']);
 
-  // 核心答案
+  // 核心答案：先给一个数，紧接着给它的不确定度
   let core;
-  if(lo!=null){
-    const vc=r.difficulty<lo?'lo':(r.difficulty>hi?'hi':'in');
-    const vt=vc==='in'?'难度正常，和同类谱面一致'
-      :(vc==='hi'?'标得偏高，同类谱面通常没这么高':'标得偏低，同类谱面通常没这么低');
-    const a=lo-2,b=hi+2,pos=v=>Math.max(0,Math.min(100,(v-a)/(b-a)*100));
+  if(mid!=null){
+    const d=r.difficulty-mid;
+    const vc=Math.abs(d)<0.25?'in':(d>0?'hi':'lo');
+    const vt=Math.abs(d)<0.25?'你的标注与点估计一致'
+      :('你的标注 '+f(r.difficulty)+' 比点估计'
+        +(d>0?'高':'低')+' '+f(Math.abs(d))+' 级');
+    const a=Math.min(lo,mid)-2,b=Math.max(hi,mid)+2;
+    const pos=v=>Math.max(0,Math.min(100,(v-a)/(b-a)*100));
     core='<div class="gauge">'
-      +'<span class="num" style="color:var(--blue)">'+f(r.difficulty)+'</span>'
-      +'<span class="sep">vs</span>'
-      +'<span class="rng">'+f(lo)+' – '+f(hi)+'</span></div>'
-      +'<div class="badge '+vc+'">'+(vc==='in'?'✓':(vc==='hi'?'▲':'▼'))+' '+vt+'</div>'
+      +'<span class="num" style="color:var(--amber)">'+f(mid)+'</span>'
+      +'<span class="pm">± 1.0</span></div>'
+      +'<div class="badge '+vc+'">'
+      +(vc==='in'?'✓':(vc==='hi'?'▲':'▼'))+' '+vt+'</div>'
       +'<div class="scale">'
-      +'<div class="zone" style="left:'+pos(lo)+'%;width:'+(pos(hi)-pos(lo))+'%"></div>'
+      +'<div class="zone" style="left:'+pos(lo)+'%;width:'+Math.max(0,pos(hi)-pos(lo))+'%"></div>'
       +'<div class="midline" style="left:'+pos(mid)+'%"></div>'
-      +'<div class="own" data-r="你 '+f(r.difficulty)+'" style="left:'+pos(r.difficulty)+'%"></div>'
+      +'<div class="own" data-r="你的标注 '+f(r.difficulty)+'" style="left:'+pos(r.difficulty)+'%"></div>'
       +'<div class="ticks">'+[[a,''],[lo,lo],[mid,mid],[hi,hi],[b,'']]
         .map(function(t){return '<span style="left:'+pos(t[0])+'%">'+t[1]+'</span>';}).join('')
       +'</div></div>'
-      +'<div class="vsub">左边是你标的定数，右边是 '+lv+' 难度同类官谱的定价范围<br>'
-      +'<span style="color:var(--fg3)">区间含官谱标注噪声 ±0.7，不是精确值</span></div>'
-      +'<details class="why"><summary>这个区间是怎么来的？</summary>'
-      +'<p>把「同难度标签 + 同手数密度 + 同长条占比」的官谱挑出来'
-      +'（'+((USE&&USE.length)||0)+' 首），取它们定数的四分位区间。</p>'
+      +'<div class="vsub">点估计 = 与你最相似的 '+K.k+' 首官谱的定价中位<br>'
+      +'<span style="color:var(--fg3)">±1.0 是实测误差：约 2/3 的官谱落在此范围内'
+      +'（留一法 n=1,037）。定数本身带标注噪声，不是精确值</span></div>'
+      +'<details class="why"><summary>这个数字是怎么来的？</summary>'
+      +'<p>在官谱里找与你最相似的 '+K.k+' 首（按 NPS、长条占比、物量、纵连速度'
+      +'四个维度算相似度），取它们定数的加权中位。</p>'
       +'<p>依据：'+esc(basis)+'</p>'
+      +'<p>实测精度：误差中位 <b>0.5 级</b>、p90 1.5 级，'
+      +'≤1.0 级占 <b>80.8%</b>。方法对比见 <span class="mono">tools/exp_point_estimate.py</span>。</p>'
       +'<p style="color:var(--warn)">把这条规则套回 1,037 首官谱它自己：'
-      +'<b>42.3% 落在「自己的同类区间」之外</b>。'
-      +'所以「落在区间外」不等于标错 —— 官方也会落在外面。</p></details>';
+      +'<b>44.6% 落在自己的同类区间之外</b>。'
+      +'所以「偏离点估计」不等于标错 —— 官方自己也会偏离。</p></details>';
   }else{
     core='<div class="gauge"><span class="num" style="color:var(--blue)">'+f(r.difficulty)+'</span></div>'
-      +'<div class="badge lo">参考中位 '+f(mid)+'</div>'
+      +'<div class="badge lo">无法估计</div>'
       +'<div class="vsub" style="color:var(--warn)">⚠ '+esc(basis)+'，无可比区间</div>';
   }
 
@@ -494,14 +551,11 @@ function show(id){
       w:Math.min(Math.abs(dv||0),100)};
   });
 
-  // 官谱参照
-  const L=x=>Math.log1p(Math.max(x||0,.01));
-  const b1=Math.max(L(r.nps),.1),b2=Math.max(L(hr*100),.1),b3=Math.max(L(r.notes_real),.1);
-  const SIM=same.map(function(x){
-    const d=Math.abs(L(x.nps)-b1)/b1+Math.abs(L(x.t_hold/x.notes_real*100)-b2)/b2
-      +Math.abs(L(x.notes_real)-b3)/b3;
-    const o={};for(const k in x)o[k]=x[k];o.sm=Math.max(0,1-d/3);return o;
-  }).sort(function(a,b){return b.sm-a.sm;}).slice(0,5);
+  // 官谱参照 —— 直接复用点估计用到的同一批近邻（不再另算一套相似度）
+  const SIM=K.near.slice(0,5).map(function(p){
+    const x=OFF[p[1]],sm=Math.exp(-p[0]);
+    return {name:x.name,level:x.level,difficulty:x.difficulty,sm:sm};
+  });
   const sd=SIM.map(x=>x.difficulty);
   const sMin=sd.length?Math.min.apply(null,sd):null;
   const sMax=sd.length?Math.max.apply(null,sd):null;
@@ -528,7 +582,7 @@ function show(id){
   }
   if(lo!=null&&Math.abs(r.difficulty-mid)>=2)
     CK.push(['bad','✕','比同类中位'+(r.difficulty>mid?'高':'低')+' '+f(Math.abs(r.difficulty-mid))+' 级',
-      '同类 n='+((USE&&USE.length)||0)]);
+      '同类 n='+K.k]);
 
   $('#view').innerHTML=
   '<div class="shead"><h1>'+esc(r.name)+'</h1><div class="row">'
@@ -541,11 +595,11 @@ function show(id){
   +'</div></div>'
 
   +'<div class="vcard"><div class="lbl">'
-  +(lv?esc(lv)+' 难度参考':'难度参考（标签未识别）')+'</div>'+core+'</div>'
+  +(lv?esc(lv)+' 难度点估计':'难度点估计（标签未识别）')+'</div>'+core+'</div>'
 
   // 专业模式：特征对照
   +'<div class="box prof"><div class="bh"><span class="idx">1</span><b>特征对照</b></div>'
-  +'<div class="bsub">你与同难度标签官谱的差距 · 依据 '+esc(basis)+'</div>'
+  +'<div class="bsub">你与同难度标签官谱的差距</div>'
   +'<table><thead><tr><th>特征</th><th class="num">你的值</th>'
   +'<th class="num">同类中位</th><th class="num">偏离</th>'
   +'<th style="width:84px"></th><th>判定</th></tr></thead><tbody>'

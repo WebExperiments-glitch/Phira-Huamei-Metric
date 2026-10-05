@@ -34,12 +34,35 @@ def _find_node():
     return shutil.which("node")
 
 
-def check_gui_core_parity(html):
-    """断言浏览器端常量与交付引擎 phm/core.py 一致，不一致即失败。
+def _extract_js_fn(html, name):
+    """从 HTML 里按大括号配平抽出 `function name(...){...}` 的完整源码"""
+    head = "function " + name + "("
+    i = html.find(head)
+    if i < 0:
+        return None
+    j = html.find("{", i)
+    if j < 0:
+        return None
+    depth, k = 1, j + 1
+    while depth > 0 and k < len(html):
+        c = html[k]
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+        k += 1
+    return html[i:k]
 
-    背景：GUI 是浏览器端独立实现（无 Python 运行时），档位与区间表只能复制一份。
-    复制必然漂移 —— 实际发生过「core 已改 9 档 NPS，GUI 仍写 5 档」，
-    导致同一张谱在 CLI 与 GUI 上算出不同区间。构建期断言是唯一可靠的防线。
+
+def check_gui_core_parity(html):
+    """断言浏览器端 k-NN 与交付引擎 phm/core.py 完全一致，不一致即失败。
+
+    背景：GUI 是浏览器端独立实现（无 Python 运行时），算法只能复制一份。
+    复制必然漂移 —— 实际发生过「core 已改 9 档 NPS，GUI 仍写 5 档」。
+    这里做三层校验：
+      1) 参数一致：KNN_K / KNN_BW 与 core 相同
+      2) 公式一致：用 node 跑 GUI 的 knnFeats，与 core.knn_feats 逐值比对
+      3) 结构齐全：关键函数存在
     """
     import re
     root = os.path.abspath(os.path.join(BASE, "..", ".."))
@@ -47,45 +70,67 @@ def check_gui_core_parity(html):
         sys.path.insert(0, os.path.join(root, "phm"))
     import core
 
-    def arr(pat, what):
-        m = re.search(pat, html)
-        if not m:
-            raise AssertionError(f"index.html 里找不到 {what}（正则 {pat}）")
-        return [float(x) for x in m.group(1).split(",") if x.strip()]
-
-    ne = arr(r"const NE=\[([^\]]+)\]", "NPS 档 NE")
-    he = arr(r"HE=\[([^\]]+)\]", "Hold 档 HE")
-    m = re.search(r"const MIN_N=(\d+)", html)
-    if not m:
-        raise AssertionError("index.html 里找不到 MIN_N")
-    min_n = int(m.group(1))
-
     problems = []
-    # 末位是「∞」哨兵，两侧写法不同（1e9 vs 100），只比较倒数第二及之前
-    if ne[:-1] != [float(v) for v in core.NPS_EDGES[:-1]]:
-        problems.append(f"NPS 档不一致：GUI {ne} vs core {core.NPS_EDGES}")
-    if ne[-1] < 100 or core.NPS_EDGES[-1] < 100:
-        problems.append(f"NPS 档末位不是 ∞ 哨兵：GUI {ne[-1]} vs core {core.NPS_EDGES[-1]}")
-    if [round(v, 4) for v in he] != [round(float(v), 4) for v in core.HOLD_EDGES]:
-        problems.append(f"Hold 档不一致：GUI {he} vs core {core.HOLD_EDGES}")
-    if min_n != int(core.MIN_N):
-        problems.append(f"MIN_N 不一致：GUI {min_n} vs core {core.MIN_N}")
 
-    for lv, m2 in re.findall(r"([A-Z]{2}):\[([^\]]+)\]", html):
-        if lv not in core.LEVEL_RANGE or core.LEVEL_RANGE[lv] is None:
-            continue
-        gui = tuple(float(x) for x in m2.split(","))
-        ref = tuple(float(x) for x in core.LEVEL_RANGE[lv])
-        if gui != ref:
-            problems.append(f"LEVEL_RANGE[{lv}] 不一致：GUI {gui} vs core {ref}")
+    m = re.search(r"const KNN_K=(\d+)", html)
+    if not m:
+        problems.append("index.html 里找不到 KNN_K")
+    elif int(m.group(1)) != int(core.KNN_K):
+        problems.append(f"KNN_K 不一致：GUI {m.group(1)} vs core {core.KNN_K}")
+
+    m = re.search(r"KNN_BW=([\d.]+)", html)
+    if not m:
+        problems.append("index.html 里找不到 KNN_BW")
+    elif abs(float(m.group(1)) - float(core.KNN_BW)) > 1e-9:
+        problems.append(f"KNN_BW 不一致：GUI {m.group(1)} vs core {core.KNN_BW}")
+
+    for fn in ("knnFeats", "knnNeighbors", "knnPoint", "wq"):
+        if ("function " + fn + "(") not in html:
+            problems.append(f"index.html 缺少函数 {fn}()")
 
     if problems:
         print("[FAIL] 浏览器端与 core.py 口径不一致：", file=sys.stderr)
         for p in problems:
             print("       · " + p, file=sys.stderr)
         return 1
-    print("[check] 浏览器端常量与 core.py 一致 "
-          f"(NPS {len(ne)-1} 档 / Hold {len(he)-1} 档 / MIN_N {min_n})")
+
+    # ---- 跨语言数值校验：同一个公式必须算出同一个数 ----
+    fn = _extract_js_fn(html, "knnFeats")
+    node = _find_node()
+    # 测试样本必须覆盖 max() 守卫的边界，否则公式改了也测不出来
+    # （教训：最初 4 组样本物量都 ≥2，把 log1p(max(n,1))→log1p(max(n,2)) 的
+    #  改动放过去了 —— 边界值必须进用例）
+    cases = [(8.86, 14.57, 1702, 0.0), (1.2, 60.0, 300, 5.0),
+             (15.0, 0.0, 2330, 40.0), (0.19, 100.0, 4, 0.0),
+             (0.0, 0.0, 0, 0.0), (0.005, 0.5, 1, 0.5), (10.0, 50.0, 100, 10.0)]
+    if node and fn:
+        import json as _json
+        import subprocess
+        import tempfile
+        js = (fn + "\nconsole.log(JSON.stringify(["
+              + ",".join(f"[{a},{b},{c},{d}]" for a, b, c, d in cases)
+              + "].map(function(t){return knnFeats(t[0],t[1],t[2],t[3]);})));\n")
+        fd, tmp = tempfile.mkstemp(suffix=".js")
+        os.close(fd)
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(js)
+        r = subprocess.run([node, tmp], capture_output=True, text=True)
+        os.remove(tmp)
+        if r.returncode != 0:
+            print("[FAIL] 无法在 node 里执行 GUI 的 knnFeats：\n"
+                  + r.stderr[:400], file=sys.stderr)
+            return 1
+        got = _json.loads(r.stdout.strip())
+        for t, g in zip(cases, got):
+            py = list(core.knn_feats(*t))
+            if any(abs(a - b) > 1e-6 for a, b in zip(py, g)):
+                print(f"[FAIL] knnFeats 与 core 不等价：输入 {t}\n"
+                      f"       GUI {g}\n       core {py}", file=sys.stderr)
+                return 1
+        print(f"[check] k-NN 一致（K={core.KNN_K} BW={core.KNN_BW}，"
+              f"公式 {len(cases)} 组样本与 core 逐值相同）")
+    else:
+        print("[warn] 未找到 node，跳过 knnFeats 数值校验", file=sys.stderr)
     return 0
 
 

@@ -13,21 +13,18 @@ P.H.M. 流水线统一入口
     │   ├── community_base.jsonl
     │   └── community_dims.jsonl
     ├── official.jsonl            ★  官谱真源（全部特征）
-    ├── community.jsonl           ★  社区谱真源（全部特征）
-    └── formula.json              ★  公式查表
+    └── community.jsonl           ★  社区谱真源（全部特征）
 
 阶段：
     official    官谱：APK → 谱面/定数 → 基础特征 → 18 维    需要 APK
     community   社区谱：下载 → 基础特征 → 18 维 → 合并       需要网络
-    formula     公式：官谱真源 → 查表
-    calibrate   校准：对交付引擎 core.Verdict 做留一法，输出精度与区间覆盖率
+    calibrate   校准：对交付引擎做留一法 + 校验浏览器端与引擎逐谱一致
     gui         前端数据：由真源裁剪派生（含单文件版）
     all         以上全部（按依赖顺序）
 
 用法：
     python tools/pipeline.py official      # 官谱（需先有 _research/pgr/）
     python tools/pipeline.py community
-    python tools/pipeline.py formula
     python tools/pipeline.py gui
     python tools/pipeline.py all
 
@@ -102,16 +99,6 @@ def stage_community(args):
     print(f"\n[stage] 社区谱真源 → data/community.jsonl")
 
 
-def stage_formula(args):
-    """公式：官谱真源 → 查表"""
-    src = os.path.join(DATA, "official.jsonl")
-    if not exists(src):
-        print(f"[abort] 未找到 {src}，先跑 pipeline.py official", file=sys.stderr)
-        sys.exit(1)
-    run("official_formula_v2.py", "--data", src,
-        "--out", os.path.join(DATA, "formula.json"), "--eval")
-
-
 def stage_gui(args):
     """前端数据 + 单文件产物：由真源裁剪派生"""
     for p in ("official.jsonl", "community.jsonl"):
@@ -125,18 +112,19 @@ def stage_gui(args):
 
 
 def stage_calibrate(args):
-    """校准交付引擎：对 phm/core.py 直接做留一法，产出可引用的精度与区间覆盖率"""
+    """校准交付引擎 + 校验前后端一致"""
     src = os.path.join(DATA, "official.jsonl")
     if not exists(src):
         print(f"[abort] 未找到 {src}，先跑 pipeline.py official", file=sys.stderr)
         sys.exit(1)
     run("calibrate_engine.py", "--data", src)
+    # 浏览器端是独立实现，必须证明它与引擎输出逐谱相同（防止悄悄漂移）
+    run("verify_gui_parity.py")
 
 
 STAGES_MAP = {
     "official": stage_official,
     "community": stage_community,
-    "formula": stage_formula,
     "calibrate": stage_calibrate,
     "gui": stage_gui,
 }
@@ -150,7 +138,6 @@ def status():
         ("原始语料", os.path.join(DATA, "charts", "manifest.jsonl")),
         ("官谱真源", os.path.join(DATA, "official.jsonl")),
         ("社区谱真源", os.path.join(DATA, "community.jsonl")),
-        ("公式查表", os.path.join(DATA, "formula.json")),
         ("前端数据", os.path.join(ROOT, "phm", "gui", "data", "community.jsonl")),
         ("前端产物", os.path.join(ROOT, "phm", "P.H.M..html")),
     ]
@@ -191,7 +178,7 @@ def main():
     if args.status or not args.stage:
         return status()
 
-    order = ["official", "community", "formula", "calibrate", "gui"]
+    order = ["official", "community", "calibrate", "gui"]
     targets = order if args.stage == "all" else [args.stage]
     print("=" * 66)
     print(f"P.H.M. 流水线：{' → '.join(targets)}")

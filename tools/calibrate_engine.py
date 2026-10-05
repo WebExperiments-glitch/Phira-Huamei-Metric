@@ -22,7 +22,6 @@ CLI / GUI 的是 phm/core.py —— 两者档位不同（9 档 vs 5 档），等
 """
 import argparse
 import os
-import statistics as st
 import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -59,8 +58,9 @@ def main():
         vd = Verdict(rows=sub)          # 直接传行，避免磁盘 IO
         r = rows[i]
         hr = r["t_hold"] / r["notes_real"]
-        lo, hi, mid, conf, _ = vd.reference_range(r["nps"], hr,
-                                                  r.get("level"))
+        lo, hi, mid, conf, _ = vd.reference_range(
+            r["nps"], hr, r["notes_real"],
+            r.get("stair_speed_avg") or 0, r.get("level"))
         errs.append(abs(mid - r["difficulty"]))
         band[conf] = band.get(conf, 0) + 1
         if lo is not None:

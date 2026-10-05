@@ -1,46 +1,35 @@
 #!/usr/bin/env python3
 """
-难度显影引擎 —— Phira Verdict
+难度显影引擎 —— P.H.M.
 
 定位（重要）：
   本工具【不做裁判，不判虚标】。
   官方定数本身是人工标注，噪声 2.80 级（实测：同曲同物量相邻难度定数差中位 2.80）。
   任何工具都无法区分「谱师标错」与「官方也会这么标」。
 
-  本工具做的是【显影】：
-  1. 给参考区间（不给点值），基于官谱实测映射，100% 可复现
-  2. 给特征差异（你和同类的差距在哪，可争论）
-  3. 给官谱参照（最相似的官谱及其定价，完全可查证）
+  本工具输出四样东西：
+  1. 点估计 + 不确定带 —— 与你最相似的 N 首官谱，它们定价多少
+     （留一法实测：误差中位 0.5 级，p90 1.5 级；见 tools/calibrate_engine.py）
+  2. 特征差异（你和同类的差距在哪，可争论）
+  3. 官谱参照（最相似的官谱及其定价，完全可查证）
   4. 四条硬判据（不依赖任何模型的事实性检查）
 
 设计约束：
-  · 公式 100% 可审计 —— 每个格子都能追溯到具体官谱
-  · 超出覆盖范围时诚实降置信度，不静默给值
+  · 100% 可审计 —— 点估计就是「这 N 首官谱的定价中位」，逐首可查
+  · 不确定度必须如实标注，不制造虚假精度
   · 纯标准库，无第三方依赖
+
+方法演进：
+  v1 线性回归 → v2 分层查表（档位离散） → **v3 k-NN 点估计（现行）**
+  换成 k-NN 的原因是可测量的：留一法中位误差 0.600 → 0.500，
+  ≤1.0 命中 74.5% → 80.8%。且 k-NN 能接住「纵连速度」这类连续弱信号，
+  离散分档做不到（见 docs/结果/18维要素实验结果.md、tools/exp_point_estimate.py）。
 """
 import json
 import math
 import re
 import statistics as st
 from collections import defaultdict
-
-# ============================================================
-# 档位定义（来自官谱实测分布切分）
-# ============================================================
-# ★ 全项目唯一真源。phm/gui/index.html 的 NE 常量、
-#   tools/official_formula_v2.py 的档位都必须与此保持一致。
-#
-# NPS 用 9 档而非 5 档，是实测选出来的，不是拍脑袋：
-#   留一法（官谱 1,037 条，MIN_N=4，三档回退）
-#     5 档  点误差中位 0.700  p90 2.000  ≤1.0 命中 69.5%  区间覆盖 56.2%
-#     9 档  点误差中位 0.600  p90 1.500  ≤1.0 命中 74.4%  区间覆盖 57.2%
-#   9 档在点误差与区间覆盖上**同时**更优，故采纳。
-NPS_EDGES = [0, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 8, 10, 100]
-HOLD_EDGES = [0.0, 0.12, 0.25, 0.40, 0.55, 1.01]
-NPS_LABEL = ["0~1.5", "1.5~2.5", "2.5~3.5", "3.5~4.5", "4.5~5.5",
-             "5.5~6.5", "6.5~8", "8~10", "10+"]
-HOLD_LABEL = ["0~12%", "12~25%", "25~40%", "40~55%", "55%+"]
-LEVELS = ["EZ", "HD", "IN", "AT"]
 
 # ============================================================
 # 难度标签归一化（单一真源）
@@ -61,6 +50,41 @@ def norm_level(level):
     m = _DIFF_RE.search(s)
     return m.group(1).upper() if m else None
 
+
+# ============================================================
+# 点估计器参数（k-NN）
+# ============================================================
+# 为什么用 k-NN 而不是查表 —— 实测（tools/exp_point_estimate.py，留一法，官谱 1,037）：
+#   查表（细格 × Hold 档）        中位误差 0.600  ≤1.0 命中 74.5%
+#   k-NN k=20 四特征 z-score      中位误差 0.500  ≤1.0 命中 80.7%   ← 采纳
+# 选 k=20 而非更小：k=10 中位同为 0.5 但 ≤0.5 命中 54.6% < k=20 的 56.2%。
+# 之所以 k-NN 能用上「纵连速度」：它作为离散分档维度加进查表会摊薄样本而变差
+# （见 docs/结果/18维要素实验结果.md），但在连续距离度量里是有效信号
+# （偏相关 +0.52，全项目最强残余信号）。
+KNN_K = 20          # 近邻数
+KNN_BW = 2.0        # 高斯核带宽系数
+KNN_ZSCORE = True   # 四个特征先 z-score 再算欧氏距离
+
+
+def knn_feats(nps, hold_pct, notes, stair):
+    """k-NN 特征向量（对数空间）—— 前端必须与此完全一致"""
+    return (math.log1p(max(nps, 0.01)), math.log1p(max(hold_pct, 0.01)),
+            math.log1p(max(notes, 1)), math.log1p(max(stair, 0.01)))
+
+
+def wquantile(pairs, q):
+    """加权分位（pairs = [(value, weight)]）。比加权平均抗离群。"""
+    pairs = sorted(pairs)
+    tot = sum(w for _, w in pairs)
+    if tot <= 0:
+        return None
+    acc = 0.0
+    for v, w in pairs:
+        acc += w
+        if acc >= tot * q:
+            return v
+    return pairs[-1][0]
+
 # 官方难度区间（实测 1,037 条官谱）
 LEVEL_RANGE = {
     "EZ": (0.0, 10.5), "HD": (3.0, 14.5),
@@ -68,25 +92,6 @@ LEVEL_RANGE = {
     "SP": None,
 }
 MAX_OFFICIAL = 18.0        # 官方历史最高（DesultorySignals AT）
-MIN_N = 4                  # 建表最小样本
-
-
-def bucket(v, edges):
-    if v is None:
-        return None
-    for i in range(len(edges) - 1):
-        if edges[i] <= v < edges[i + 1]:
-            return i
-    return None
-
-
-def base_key(nps, hold_ratio, level):
-    lv = norm_level(level)
-    ni = bucket(nps, NPS_EDGES)
-    hi = bucket(hold_ratio, HOLD_EDGES)
-    if ni is None or hi is None:
-        return None
-    return (lv, ni, hi)
 
 
 class Verdict:
@@ -101,50 +106,6 @@ class Verdict:
             rows = [json.loads(l) for l in
                     open(official_path, encoding="utf-8")]
         self.rows = [r for r in rows if r["notes_real"] > 0]
-
-        # 建表：格内定数分布
-        cells = defaultdict(list)
-        for r in self.rows:
-            k = base_key(r["nps"],
-                         r["t_hold"] / r["notes_real"],
-                         r["level"])
-            if k:
-                cells[k].append(r)
-
-        self.table = {}       # (lv,ni,hi) -> {'med','p25','p75','n','vals'}
-        for k, sub in cells.items():
-            ds = sorted(r["difficulty"] for r in sub)
-            if len(ds) < 2:
-                continue
-            self.table[k] = {
-                "med": st.median(ds),
-                "p25": ds[len(ds) // 4],
-                "p75": ds[min(len(ds) * 3 // 4, len(ds) - 1)],
-                "n": len(ds),
-                "vals": ds,
-            }
-
-        # 回退表：(lv, ni) —— 丢掉 Hold 档的粗格。
-        # 为什么需要：细格 (lv,ni,hi) 样本不足时，旧实现直接掉到「标签中位」
-        # （一个点值、无区间）。加这一层能在样本不足时仍给出区间。
-        cells2 = defaultdict(list)
-        for r in self.rows:
-            lv = norm_level(r.get("level"))
-            ni = bucket(r["nps"], NPS_EDGES)
-            if lv is not None and ni is not None:
-                cells2[(lv, ni)].append(r["difficulty"])
-        self.table2 = {}
-        for k, ds in cells2.items():
-            ds = sorted(ds)
-            if len(ds) < 2:
-                continue
-            self.table2[k] = {
-                "med": st.median(ds),
-                "p25": ds[len(ds) // 4],
-                "p75": ds[min(len(ds) * 3 // 4, len(ds) - 1)],
-                "n": len(ds),
-                "vals": ds,
-            }
 
         # 标签基线
         by_lv = defaultdict(list)
@@ -167,48 +128,107 @@ class Verdict:
         self.global_med = st.median([r["difficulty"] for r in self.rows])
         self.n_official = len(self.rows)
 
-    # ---------------- 1. 参考区间 ----------------
-    def reference_range(self, nps, hold_ratio, level):
-        """
-        返回 (lo, hi, mid, conf, basis)
-        区间 = 官谱同类格内的 P25~P75，加回退链
+        # k-NN 索引（点估计的唯一估计器）
+        self._Z, self._Y, self._L = [], [], []
+        for r in self.rows:
+            nr = max(r["notes_real"], 1)
+            self._Z.append(knn_feats(r["nps"], r["t_hold"] / nr * 100,
+                                     r["notes_real"],
+                                     r.get("stair_speed_avg") or 0))
+            self._Y.append(r["difficulty"])
+            self._L.append(norm_level(r.get("level")))
+        n = len(self._Z) or 1
+        self._mu, self._sd = [], []
+        for c in range(4):
+            col = [z[c] for z in self._Z]
+            m = sum(col) / n
+            s = (sum((v - m) ** 2 for v in col) / n) ** 0.5 or 1.0
+            self._mu.append(m)
+            self._sd.append(s)
 
-        ★ 上界加 0.2 的容差：
-          官谱格内 P75 已经偏高（75% 的样本低于它），
-          再直接与标注比较，边界附近会有大量「刚好越界」的误报。
-          实测加 0.2 容差后，高于上界的比例从 26.7% 降到合理水平。
+    # ---------------- 0. k-NN 点估计 ----------------
+    def neighbors(self, nps, hold_ratio, notes_real, stair_speed=0,
+                  level=None, k=KNN_K, exclude_idx=None):
+        """返回 [(距离, 行下标)]，距离升序。
 
-        ★ 回退链（与 tools/official_formula_v2.py 的评估口径一致）：
-          1. (lv, nps档, hold档) 样本 ≥ MIN_N → high
-          2. (lv, nps档)         样本 ≥ MIN_N → mid
-          3. 标签基线                      → low
-          4. 全局中位                      → none
-          档位定义与 MIN_N 均取自本文件，是全项目唯一真源。
+        在同难度标签内检索（实测：全标签混池会把误差从 0.5 抬到 0.8）；
+        标签内样本不足 k 时放开到全体，避免小标签（AT 仅 56 条）无法检索。
+
+        exclude_idx：要排除的行下标（自检/留一法时必须排除查询样本自身，
+                     否则它会以距离 0 成为自己的最近邻，构成自证）。
         """
-        k = base_key(nps, hold_ratio, level)
+        q = knn_feats(nps, hold_ratio * 100, notes_real, stair_speed)
+        qz = [(q[c] - self._mu[c]) / self._sd[c] for c in range(4)]
         lv = norm_level(level)
-        ni = bucket(nps, NPS_EDGES)
-        TOL = 0.2
+        pool = [i for i, x in enumerate(self._L)
+                if x == lv and i != exclude_idx] if lv else []
+        if len(pool) < k:
+            pool = [i for i in range(len(self.rows)) if i != exclude_idx]
+        out = []
+        for i in pool:
+            z = self._Z[i]
+            d2 = 0.0
+            for c in range(4):
+                v = (z[c] - self._mu[c]) / self._sd[c]
+                d2 += (v - qz[c]) ** 2
+            out.append((math.sqrt(d2), i))
+        out.sort(key=lambda p: p[0])
+        return out[:k]
 
-        t = self.table.get(k) if k else None
-        if t and t["n"] >= MIN_N:
-            return (round(t["p25"], 2), round(t["p75"] + TOL, 2),
-                    round(t["med"], 2), "high",
-                    f"官谱同标签同NPS同Hold档（n={t['n']}，"
-                    f"区间为格内 P25~P75+{TOL}）")
+    def point_estimate(self, nps, hold_ratio, notes_real, stair_speed=0,
+                       level=None, k=KNN_K, exclude_idx=None):
+        """点估计 + 不确定带。
 
-        t2 = (self.table2.get((lv, ni))
-              if (lv is not None and ni is not None) else None)
-        if t2 and t2["n"] >= MIN_N:
-            return (round(t2["p25"], 2), round(t2["p75"] + TOL, 2),
-                    round(t2["med"], 2), "mid",
-                    f"官谱同标签同NPS档（n={t2['n']}；"
-                    f"Hold 档样本不足，已放宽一档）")
+        返回 dict：point（近邻定数的核加权中位）、lo/hi（加权 P25/P75）、
+        basis（依据说明）、k（近邻数）、spread（= hi - lo）。
 
-        if lv in self.lv_base:
-            return (None, None, round(self.lv_base[lv], 2), "low",
-                    "仅标签基线（档位无官谱样本）")
-        return (None, None, round(self.global_med, 2), "none", "全局兜底")
+        注意：这里不返回近邻明细 —— 需要展示时调用 similar_official()，
+        两者都基于同一个 neighbors()，不重复实现。
+        """
+        near = self.neighbors(nps, hold_ratio, notes_real, stair_speed,
+                              level, k, exclude_idx=exclude_idx)
+        if not near:
+            return {"point": self.global_med, "lo": None, "hi": None,
+                    "basis": "全局兜底（无近邻）", "k": 0, "spread": None}
+        scale = max(near[-1][0], 1e-6)
+        pairs = [(self._Y[i], math.exp(-(d / scale) ** 2 * KNN_BW))
+                 for d, i in near]
+        lo = wquantile(pairs, 0.25)
+        hi = wquantile(pairs, 0.75)
+        return {
+            "point": round(wquantile(pairs, 0.50), 3),
+            "lo": round(lo, 2),
+            "hi": round(hi, 2),
+            "spread": round(hi - lo, 2),
+            "basis": (f"{len(near)} 首最相似官谱的定价中位"
+                      f"（同难度标签内检索；特征 NPS/长条占比/物量/纵连）"),
+            "k": len(near),
+        }
+
+    # ---------------- 1. 参考区间 ----------------
+    def reference_range(self, nps, hold_ratio, notes_real, stair_speed,
+                        level, exclude_idx=None):
+        """返回 (lo, hi, point, conf, basis)。
+
+        ★ 已由「查表」改为「k-NN 点估计」——与 point_estimate 同源，
+          不再有两套模型。留一法实测：中位误差 0.600 → 0.500，
+          ≤1.0 命中 74.5% → 80.7%（见 tools/exp_point_estimate.py）。
+
+        ★ 区间不再加 +0.2 容差：那个容差是为了修「查表 P75 偏高导致的
+          边界误报」。k-NN 用近邻加权 P25/P75，实测官谱自覆盖 55.8%，
+          标定已合理，再加容差反而会放宽到失真。
+
+        conf 由「近邻定价的集中度」直接给出，含义可解释：
+          近邻越集中 → 该谱型在官谱里有明确共识 → 估计越可信。
+        """
+        pe = self.point_estimate(nps, hold_ratio, notes_real,
+                                 stair_speed, level, exclude_idx=exclude_idx)
+        if pe["lo"] is None:
+            return (None, None, pe["point"], "none", pe["basis"])
+        spread = pe["spread"]
+        conf = "high" if spread <= 1.0 else ("mid" if spread <= 2.0
+                                             else "low")
+        return (pe["lo"], pe["hi"], pe["point"], conf, pe["basis"])
 
     # ---------------- 2. 特征差异 ----------------
     @staticmethod
@@ -271,45 +291,44 @@ class Verdict:
 
     # ---------------- 3. 官谱参照 ----------------
     def similar_official(self, nps, hold_ratio, notes_real, level,
-                         top=5, weights=(1.0, 0.8, 0.6), exclude=None):
-        """
-        找最相似的官谱。
-        相似度用对数尺度上的相对距离（各维度量级不同，需归一）
+                         top=5, stair_speed=0, exclude=None,
+                         exclude_idx=None):
+        """最相似的官谱 —— 与点估计共用同一套近邻，口径必然一致。
 
-        exclude：需要排除的样本（按对象身份）。自检时传入被查询的官谱行，
-                 否则它会以 100% 相似度返回自己，构成无意义的自证。
-        """
-        lv = norm_level(level)
-        cands = [r for r in self.rows
-                 if norm_level(r.get("level")) == lv]
-        if exclude is not None:
-            cands = [r for r in cands if r is not exclude]
-        if not cands:
-            cands = [r for r in self.rows if r is not exclude]
+        旧实现自带一套「相对距离 + 手工权重 (1.0,0.8,0.6)」，与定价用的
+        距离不是同一个度量：同一份数据存在两个「相似」，本身就是隐患。
+        现在「官谱参照」= 「点估计用到的近邻」，一次计算两处使用。
 
-        ln, lh = math.log1p(max(nps, .01)), math.log1p(max(hold_ratio * 100, .01))
-        lnn = math.log1p(max(notes_real, 1))
-        scored = []
-        for r in cands:
-            dn = abs(math.log1p(max(r["nps"], .01)) - ln)
-            dh = abs(math.log1p(r["t_hold"] / r["notes_real"] * 100) - lh)
-            dnn = abs(math.log1p(r["notes_real"]) - lnn)
-            # 归一化到相对差异
-            rel_n = dn / max(abs(ln), .1)
-            rel_h = dh / max(abs(lh), .1)
-            rel_nn = dnn / max(abs(lnn), .1)
-            dist = (rel_n * weights[0] + rel_h * weights[1]
-                    + rel_nn * weights[2])
-            scored.append((dist, r))
-        scored.sort(key=lambda x: x[0])
-        return [{
-            "name": r["name"], "level": r["level"],
-            "difficulty": r["difficulty"],
-            "nps": round(r["nps"], 2),
-            "notes_real": r["notes_real"],
-            "hold_pct": round(r["t_hold"] / r["notes_real"] * 100, 1),
-            "similarity": round(max(0.0, 1 - d), 3),
-        } for d, r in scored[:top]]
+        exclude / exclude_idx：自检时排除查询样本自身，避免 100% 自证。
+        """
+        if exclude_idx is None and exclude is not None:
+            for i, r in enumerate(self.rows):
+                if r is exclude:
+                    exclude_idx = i
+                    break
+        k = max(KNN_K, top + (1 if exclude_idx is not None else 0))
+        near = self.neighbors(nps, hold_ratio, notes_real, stair_speed,
+                              level, k, exclude_idx=exclude_idx)
+        out = []
+        for d, i in near:
+            if i == exclude_idx:
+                continue
+            r = self.rows[i]
+            nr = max(r["notes_real"], 1)
+            out.append({
+                "name": r["name"], "level": r.get("level"),
+                "difficulty": r["difficulty"],
+                "nps": round(r["nps"], 2),
+                "notes_real": r["notes_real"],
+                "hold_pct": round(r["t_hold"] / nr * 100, 1),
+                # d 是 z-score 空间的欧氏距离；exp(-d) 映射到 0~100%
+                # （官谱自测最近邻 d 中位 0.179 → 约 84%）
+                "similarity": round(math.exp(-d), 3),
+                "dist": round(d, 4),
+            })
+            if len(out) >= top:
+                break
+        return out
 
     # ---------------- 4. 硬判据 ----------------
     def hard_checks(self, difficulty, level, peer_median=None):
