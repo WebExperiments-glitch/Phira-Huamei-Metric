@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-"""单文件版 JS 语法体检：定位语法错误与括号失衡"""
+"""单文件版 JS 语法体检：定位语法错误与括号失衡
+
+（构建脚本 build_standalone.py 已在构建时做语法自检；
+  本脚本用于产物出错后做逐行定位，故保留。）
+"""
 import os
 import re
 import subprocess
 import sys
 
-NODE = "C:/Users/30500/.workbuddy/binaries/node/versions/22.22.2-3/node.exe"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from build_standalone import _find_node   # noqa: E402
+
+NODE = _find_node()
 HTML = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                     "..", "P.H.M..html")
 
 
 def main():
+    if not NODE:
+        print("[abort] 未找到 node")
+        return 1
     p = os.path.abspath(HTML)
     h = open(p, encoding="utf-8").read()
     m = re.search(r"<script>([\s\S]*?)</script>", h)

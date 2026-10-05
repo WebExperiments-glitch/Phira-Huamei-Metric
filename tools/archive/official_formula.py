@@ -99,7 +99,7 @@ def predict(r, table, default_pool):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default=os.path.join(
-        BASE, "..", "data", "official", "manifest_enhanced.jsonl"))
+        BASE, "..", "data", "official.jsonl"))
     ap.add_argument("--out", default=os.path.join(
         BASE, "..", "data", "official", "formula.json"))
     ap.add_argument("--eval", action="store_true", help="在官谱上评估精度")

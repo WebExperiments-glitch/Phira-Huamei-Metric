@@ -1,198 +1,151 @@
-# Phira 客观定数计算器（暂定名：Phira Verdict）
+# P.H.M. — Phira Huamei Metric
 
-> 用**可审计的公开规则**，为 Phigros/Phira 谱面提供客观难度参考与标注合规性检查。
-
----
-
-## ⚠️ 定位声明（必读，不可改）
-
-❌ 不能说「复现 Phigros 官方定级标准」—— **它不存在**
-❌ 不能说「Phigros 官方定数规则」—— 那条精度规则是**社区观测**，非官方发布
-✅ 只说「用可审计的公开规则提供客观难度参考与合规检查」
-
-**深度调研见 `调研报告2-定数由谁定.md`**
+> 为 Phira / Phigros 谱面提供**可审计的难度参考**。
+> 不给判决，只给**区间 + 特征差异 + 官谱参照 + 事实性检查**。
 
 ---
 
-## 核心发现：定数到底是谁定的
+## 一句话定位
 
-**没有人凭感觉写，但也没有人按标准写。**
+**本工具不判定「虚标」。** 这不是谦辞，是可测量的结论：
 
-| 主体 | 实际情况 |
+| 事实 | 数值 |
 |---|---|
-| **Phigros 官方** | 从未发布制谱难度设计规范。定数人工指派，流程不公开。官方 Wiki 其实是虚构世界观设定集 |
-| **Phira 官方** | 明说「别乱来哈」。官方文档中「定数」出现 **0 次**。522 条 issue 中讨论定数 **0 条** |
-| **实际约束** | 仅一条：phira.moe 前端写死「`level` 的 Lv 数字与 `difficulty` 之差必须 < 1」 |
+| 官方定数自身的标注噪声 | **2.80 级**（同曲同物量相邻难度定数差中位） |
+| 本工具参考区间覆盖率 | **57.7%** —— 即 **42.3% 的官谱落在「自己的同类区间」之外** |
 
-**结论：不存在可对标的「真值」。任何客观模型都是社区外生规则。**
-
----
-
-## 仓库结构
-
-```
-D:\自研AI 生成谱面\
-├── 调研报告.md                 # 第一版：竞品/格式/官方规范
-├── 调研报告2-定数由谁定.md       # ★ 深度调研：定数由谁定、社区方法论
-├── README.md                   # 本文件
-├── Windows\                    # 优先：Windows 桌面版
-├── IOS\                        # 后续：iOS 版
-├── 第三方参考\Phira源码分析\      # 归档的 rpe.rs / info.rs
-├── tools\                      # 调研脚本（可复现，数据可重跑）
-│   ├── crawl_difficulty_meta.py   # 全量爬取 Phira 谱面元数据
-│   ├── validate_web_rule.py       # 复现 phira.moe 前端校验规则
-│   └── analyze_*.py / sample_*.py
-└── _research\                  # 调研素材，不参与构建
-    ├── phira-main\                # TeamFlos/phira v0.8.2 源码
-    └── meta\                      # 13,879 张谱面元数据缓存
-```
+在这个噪声水平下，没有任何工具能区分「谱师标错」与「官方也会这么标」。
+**声称能区分就是造假。**
 
 ---
 
-## 技术栈（已敲定）
+## 快速开始
 
-- **语言**：Rust
-- **核心原则**：可审计、可复现、逐项可追溯
-- **优先平台**：Windows
+### 方式一：单文件 GUI（推荐，零依赖）
+
+双击 `phm/P.H.M..html` 即可。无需 Python、无需起服务、无需联网。
+
+- 默认只给**一个答案**：你的定数 vs 同类区间
+- 右上角 ⚙ 可开**专业模式**（特征对照 / 官谱参照 / 判据明细）与**浅色主题**
+- 专业模式**默认关闭** —— 多数人只想知道「这谱大概多难」
+
+### 方式二：命令行报告
+
+```bash
+python phm/cli.py --model data/official.jsonl --chart data/community.jsonl --id 22681
+python phm/cli.py --model data/official.jsonl --chart data/community.jsonl --name Pandemic
+python phm/cli.py --model data/official.jsonl                     # 引擎自检
+```
 
 ---
 
-## 目标
+## 精度（对交付引擎实测，可一键复现）
 
-### 主功能
-1. 读取 `.pez` → 解析 RPE `chart.json` + `info.yml`
-2. 提取音符级特征（密度/配置/位移/耐力/读谱 五大类）
-3. 计算峰值 strain（借鉴 osu! rosu-pp 思路）
-4. 输出客观难度参考值 + 每一项特征的贡献度明细
-5. **合规性检查**：
-   - Liveness 双字段校验（`level` vs `difficulty`，官方前端同款规则）
-   - Phigros 精度规范校验（社区观测的 2.5.0 规则）
-   - 异常值检测（0 值、超界值、f32 伪影）
-
-### 方法论对标：namu.wiki 难度记号法
-这是社区唯一写成规范的定级方法，五条原则直接可用：
-1. **以 FC（蓝V）难度为基准**，而非 AP
-2. **EZ/HD 改用物量密度**判定，等级记号无意义
-3. **显式建模五维度**：虚谱/水谱/个体差/配置集中/判定注意
-4. **只记录有共鸣的案例**，不写个人印象
-5. **警惕反模式**：不能因为同级偏难就无条件降号
-
-### 明确不做
-- 不声称复现任何官方标准
-- 不用不可解释的黑箱权重做最终输出
-- 不用玩家评分交叉验证（实测 r = −0.07，定数与评分无关）
-
----
-
-## 关键技术事实
-
-### 1. 官方唯一硬规则：Liveness 双字段校验
-
-phira.moe 前端源码反压缩（我已本地核实并复现全量验证）：
-
-```js
-function lx(n){
-  if (/^uk\b/i.test(n.level.trim())) return null;
-  const r = /Lv\.\s*(\d+(?:\.\d+)?)/i.exec(n.level);
-  return r && Math.abs(parseFloat(r[1]) - n.difficulty) >= 1
-    ? {key:"levelDifficultyMismatch", level:"warning"} : null;
-}
+```bash
+python tools/calibrate_engine.py     # 或 python tools/pipeline.py calibrate
 ```
 
-官方提示文案原话：**「等级文字与难度数值不符」**
+留一法（每条官谱留出、用其余建表），官谱 1,037 条：
 
-阈值是 `>= 1` 而非 `>= 0.5` —— 意味着 `difficulty=15.9` + `IN Lv.15` **合法**（社区「压线」惯例被官方默许）。
-
-**全量实测结果**：
-
-| 分区 | 谱数 | 告警 | 告警率 |
-|---|---|---|---|
-| stable（已上架） | 631 | 8 | **1.27%** |
-| 未上架 | 9,058 | 299 | 3.30% |
-
-→ 上架谱自洽率显著更高，说明约束**靠人工审核把关在起作用**。
-
-### 2. 定数渲染四条路径（已从源码逐条核实）
-
-| 场景 | 位置 | 行为 |
-|---|---|---|
-| 游玩 HUD | `prpr/src/scene/game.rs:535` | **只显示 `level`**，不显示 `difficulty` |
-| 选曲列表页 | `phira/src/charts_view.rs:535` | `level` 缺 "Lv." 时 `write!(" Lv.{}", difficulty as i32)` → **截断** |
-| 信息面板 | `phira/src/scene/song.rs:1302` | `format!("{} ({:.1})", level, difficulty)` → **四舍五入** |
-| 网页 | 前端 JS | `${level} (${difficulty.toFixed(1)})` |
-
-**`level` 和 `difficulty` 是两个独立字段，无换算关系。** 唯一耦合是列表页的单向自动补全。
-
-编辑器（`prpr/src/ui/chart_info.rs:102,107`）：
-```rust
-ui.input(tl!("level-displayed"), &mut info.level, …)              // 自由文本
-ui.slider(tl!("diff"), 0.0..20.0, 0.1, &mut info.difficulty, …)   // 0~20 步进 0.1
-```
-**滑块范围是唯一官方量化约束，但它约束的是输入范围，不是难度语义。**
-
-### 3. Phigros 精度规则（社区观测，非官方发布）
-
-> 2.5.0 起，7 级及以下只有 `x.0`/`x.5`；7 级以上有 `x.1`~`x.9`，**无 `x.0`**
-
-⚠️ **无官方出处**，来自 Phigros Fandom Wiki。仍有价值（可硬判），但措辞必须准确。
-
-另有旧版「+」号规则：「+」= 定数小数部分 ≥ 0.6。与上条冲突，以新版为准。
-
-难度标签区间（历代有变动）：EZ 1-8 / HD 3-13 / IN 7-16 / AT 13-17 / SP 无 / Legacy 11-15
-
-### 4. beat ↔ 秒换算（最容易错的地方）
-```
-beat    = a + b/c          ← 注意 b 这一项，不是 a/c
-seconds = 60 / (BPM / bpmfactor) * beat
-```
-竞品项目漏掉 `b` 项，导致 280BPM 谱时长少算 131 秒、定数偏差 0.56。
-
-### 5. 定数字段位置
-- `info.yml` 的 `difficulty` (f32) —— **定数本体**
-- RPE `chart.json` **没有**浮点定数字段，只有 `META.level`（**字符串**）
-- PEC 格式**不保存元信息**
-
-### 6. 实现要点清单
-
-| 要点 | 说明 |
+| 指标 | 值 |
 |---|---|
-| **f32 归一化** | `round(x*10)/10`，约 1.1% 的谱有伪影值（如 `17.500006`） |
-| **分位数截断** | 过滤 `difficulty=0`（103 张）、`>20`（plain 504 张）；troll/visual 均值不可用（800/1533） |
-| **支持十分位** | 71.4% 的谱用小数定数 |
-| **`as i32` 是截断** | `15.9 → Lv.15`，不是四舍五入 |
-| **15.4% 不写 "Lv."** | 需从 `difficulty as i32` 补全 |
-| **前缀才是难度语义** | 一张 `IN Lv.15` 和 `AT Lv.15` 的 difficulty 相同 → 建模应「前缀 × 小数」，不直接回归 difficulty |
-| **数据漂移** | 定数可被社区反馈修正（谱 22681 案例），静态数据集需定期刷新 |
+| 点误差 中位 | **0.600** |
+| p75 / p90 / p95 | 1.050 / **1.500** / 2.000 |
+| ≤1.0 占比 | **74.5%** |
+| ≤1.5 占比 | 90.3% |
+| 置信分布 | high 968 · mid 52 · low 17 · none 0 |
+| 区间覆盖率 | **57.7%** |
 
-### 7. 必须剔除的数据
-- `isFake == 1` 的假音符
-- 父判定线需递归展开（`father` 字段）
-- `above != 1` 的背面音符单独统计
+> ⚠️ 校准脚本直接调用 `phm/core.py` 的 `Verdict`，**不是**另一个平行实现。
+> 历史上「公布的精度来自评估脚本、实际交付的是 core」曾造成两者脱节，现已永久消除。
 
 ---
 
-## 开发阶段规划
+## 目录结构
 
-| 阶段 | 内容 | 状态 |
-|---|---|---|
-| 0 | 调研 + 源码分析 | ✅ 完成（两份报告） |
-| 1 | **合规校验器**（Liveness + 精度规范 + 异常值，零建模成本） | 待启动 |
-| 2 | RPE 解析器 + beat 换算（带单元测试） | 待启动 |
-| 3 | 特征提取（五大类） | 待启动 |
-| 4 | 峰值 strain 计算引擎 | 待启动 |
-| 5 | 难度模型 + 社区共识表校准 | 待启动 |
-| 6 | 报告输出（逐项贡献度可追溯） | 待启动 |
-| 7 | Windows GUI 打包 | 待启动 |
+```
+自研AI 生成谱面/
+├── README.md              # 本文件（唯一入口）
+├── phm/                   # ★ 交付物
+│   ├── core.py            #   难度显影引擎（唯一真源：档位定义 / 归一化 / 回退链）
+│   ├── cli.py             #   命令行报告
+│   ├── P.H.M..html        #   单文件 GUI（3.9MB，双击即开）
+│   └── gui/
+│       ├── index.html     #   GUI 源码（含 fetch，供本地服务调试）
+│       ├── build_standalone.py  # 打包单文件（含三重产物自检）
+│       └── data/          #   裁剪后的前端数据
+├── data/                  # ★ 数据真源
+│   ├── official.jsonl     #   官谱 1,037 条（从 Phigros APK 提取）
+│   ├── community.jsonl    #   社区谱 9,684 条
+│   ├── formula.json       #   查表（与 core 同档位）
+│   ├── charts/            #   原始语料 31GB / 9,689 个谱面目录
+│   └── .stages/           #   中间产物（可删，重跑重建）
+├── tools/                 # 可复现脚本
+│   ├── pipeline.py        #   ★ 流水线统一入口
+│   ├── calibrate_engine.py#   交付引擎留一法校准
+│   └── archive/           #   已归档的一次性脚本（23 个）
+├── docs/                  # 文档（索引见 docs/README.md）
+└── _research/             # 调研素材与 APK 提取产物（不入版本控制）
+```
 
 ---
 
-## 数据源
+## 流水线（可复现）
 
-| 用途 | 来源 | 状态 |
+```bash
+python tools/pipeline.py --status      # 查看数据状态
+python tools/pipeline.py official      # 官谱：_research/pgr → data/official.jsonl   （约 80s）
+python tools/pipeline.py community     # 社区谱：data/charts → data/community.jsonl  （较久）
+python tools/pipeline.py formula       # 查表：official.jsonl → formula.json
+python tools/pipeline.py calibrate     # 校准交付引擎（LOO 精度 + 区间覆盖率）
+python tools/pipeline.py gui           # 前端数据 + 单文件 P.H.M..html
+python tools/pipeline.py all           # 全流程，按依赖顺序
+```
+
+---
+
+## 数据真源
+
+| 文件 | 条数 | 来源 |
 |---|---|---|
-| Phira 全量谱面元数据 | `api.phira.cn` | ✅ 已爬 13,879 张 |
-| 官谱全量 | `7aGiven/Phigros_Resource` ★228 | 待下载 |
-| 社区共识定数表 | Namu Wiki 定数表、B站 cv15135961 | 待整理 |
-| 谱面/物量/BPM | 萌百 Phigros/谱面信息 | 待整理 |
+| `data/official.jsonl` | 1,037 | Phigros APK（MuMu 模拟器 ADB 提取，EZ/HD/IN 各 327 + AT 56） |
+| `data/community.jsonl` | 9,684 | Phira 公开 API 全量下载 |
+| `data/charts/` | 9,689 目录 | 31GB 原始谱面语料 |
 
-⚠️ Phira API 的 `rating` 字段是社区投票评分，**不是难度**（实测与定数 r = −0.07），勿用于校准。
+**一切以官方为基线**：定数与谱面特征均来自游戏本体提取，非第三方转录。
+
+---
+
+## 本工具不做的事
+
+- ❌ **不判定虚标** —— 见开头，官方噪声 2.80 级
+- ❌ **不给单一数字** —— 定数的 0.1 是滑块机械精度，不是语义精度
+  （实测整数定数比一位小数常用 3.9 倍，是「拖滑块」的指纹）
+- ❌ **不声称复现官方标准** —— 它不存在。Phigros 从未发布制谱难度规范
+
+## 本工具做的事
+
+- ✅ **参考区间** —— 官谱同类格（难度标签 × NPS档 × Hold档）的 P25~P75+0.2
+- ✅ **特征差异** —— 你与同类的差距（NPS / 物量 / Hold占比 / 纵连速度）
+- ✅ **官谱参照** —— 与你最相似的 5 首官谱及其定价，可逐条查证
+- ✅ **事实性检查** —— 超官方上限 / 标签区间矛盾 / Liveness 双字段冲突
+
+---
+
+## 文档
+
+完整索引见 [`docs/README.md`](docs/README.md)。必读三篇：
+
+| 文档 | 内容 |
+|---|---|
+| [调研报告2-定数由谁定](docs/调研/调研报告2-定数由谁定.md) | 定数到底谁定（**结论：没人按标准写**） |
+| [定数公式v2](docs/结果/定数公式v2.md) | 现行公式与精度 |
+| [18维要素实验结果](docs/结果/18维要素实验结果.md) | **负面结果**：加维度反而变差 |
+
+---
+
+## 技术栈说明
+
+原计划用 Rust 分 `Windows/` `IOS/` 两个平台目录。实际落地为
+**Python（纯标准库）+ 单文件 HTML GUI** —— 零依赖、零服务、双击即开，
+在 Windows 上直接可用。空目录 `Windows/` `IOS/` 已移除。

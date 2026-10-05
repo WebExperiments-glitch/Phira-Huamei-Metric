@@ -122,7 +122,7 @@ def loo_eval(rows, kf, min_n, label):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default=os.path.join(
-        BASE, "..", "data", "official", "manifest_v3.jsonl"))
+        BASE, "..", "data", "official.jsonl"))
     ap.add_argument("--out", default=os.path.join(
         BASE, "..", "data", "official", "formula_v3.json"))
     ap.add_argument("--min-n", type=int, default=4)

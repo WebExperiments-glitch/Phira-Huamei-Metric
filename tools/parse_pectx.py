@@ -25,8 +25,6 @@ PECTX 解析器 —— 严格按 Phira 源码 prpr/src/parse/pec.rs 实现
 import argparse
 import json
 import os
-import re
-import statistics as st
 import sys
 from collections import Counter
 

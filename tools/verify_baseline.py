@@ -19,7 +19,7 @@ import statistics as st
 import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-OFFICIAL = os.path.abspath(os.path.join(BASE, "..", "data", "official", "manifest.jsonl"))
+OFFICIAL = os.path.abspath(os.path.join(BASE, "..", "data", "official.jsonl"))
 COMMUNITY = os.path.abspath(os.path.join(BASE, "..", "data", "charts", "manifest.jsonl"))
 
 FAIL, WARN, OK = [], [], []

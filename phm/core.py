@@ -18,21 +18,48 @@
   · 超出覆盖范围时诚实降置信度，不静默给值
   · 纯标准库，无第三方依赖
 """
-import bisect
 import json
 import math
-import os
+import re
 import statistics as st
 from collections import defaultdict
 
 # ============================================================
 # 档位定义（来自官谱实测分布切分）
 # ============================================================
-NPS_EDGES = [0, 2.5, 4.5, 6.5, 10, 100]
+# ★ 全项目唯一真源。phm/gui/index.html 的 NE 常量、
+#   tools/official_formula_v2.py 的档位都必须与此保持一致。
+#
+# NPS 用 9 档而非 5 档，是实测选出来的，不是拍脑袋：
+#   留一法（官谱 1,037 条，MIN_N=4，三档回退）
+#     5 档  点误差中位 0.700  p90 2.000  ≤1.0 命中 69.5%  区间覆盖 56.2%
+#     9 档  点误差中位 0.600  p90 1.500  ≤1.0 命中 74.4%  区间覆盖 57.2%
+#   9 档在点误差与区间覆盖上**同时**更优，故采纳。
+NPS_EDGES = [0, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 8, 10, 100]
 HOLD_EDGES = [0.0, 0.12, 0.25, 0.40, 0.55, 1.01]
-NPS_LABEL = ["0~2.5", "2.5~4.5", "4.5~6.5", "6.5~10", "10+"]
+NPS_LABEL = ["0~1.5", "1.5~2.5", "2.5~3.5", "3.5~4.5", "4.5~5.5",
+             "5.5~6.5", "6.5~8", "8~10", "10+"]
 HOLD_LABEL = ["0~12%", "12~25%", "25~40%", "40~55%", "55%+"]
 LEVELS = ["EZ", "HD", "IN", "AT"]
+
+# ============================================================
+# 难度标签归一化（单一真源）
+# ============================================================
+# 为什么必须归一化：Phira 的 level 字段是自由文本，实测 1,589 种取值，
+# 形如 "IN Lv.15" / "IN.15" / "IN  Lv.15" / "IN" / "15" / "Legacy Lv.16"。
+# 旧代码用 `level[:2]` 取前两字符，对 "15" 得到 "15"、对 "Legacy" 得到 "LE"，
+# 于是前端难度下拉框被 "15" "LE" "$P" 等垃圾淹没，筛选功能实际不可用。
+#
+# 策略：白名单（只认标准标签），其余一律返回 None 由调用方降级 —— 宁可说
+# 「无法识别」也不静默猜错。这与本项目「不猜、可追溯」的原则一致。
+_DIFF_RE = re.compile(r"(?<![A-Za-z])(EZ|HD|IN|AT|SP)(?![A-Za-z])", re.I)
+
+
+def norm_level(level):
+    """把自由文本 level 归一化为 EZ/HD/IN/AT/SP；无法识别返回 None"""
+    s = (level or "").replace(".", " ").replace("Lv", " ")
+    m = _DIFF_RE.search(s)
+    return m.group(1).upper() if m else None
 
 # 官方难度区间（实测 1,037 条官谱）
 LEVEL_RANGE = {
@@ -54,7 +81,7 @@ def bucket(v, edges):
 
 
 def base_key(nps, hold_ratio, level):
-    lv = (level or "").upper()[:2]
+    lv = norm_level(level)
     ni = bucket(nps, NPS_EDGES)
     hi = bucket(hold_ratio, HOLD_EDGES)
     if ni is None or hi is None:
@@ -65,9 +92,14 @@ def base_key(nps, hold_ratio, level):
 class Verdict:
     """难度显影引擎"""
 
-    def __init__(self, official_path):
-        rows = [json.loads(l) for l in
-                open(official_path, encoding="utf-8")]
+    def __init__(self, official_path=None, rows=None):
+        """official_path：官谱真源 jsonl 路径；或直接传 rows（list[dict]）。
+
+        直接传 rows 供 tools/calibrate_engine.py 做留一法，避免每轮读写磁盘。
+        """
+        if rows is None:
+            rows = [json.loads(l) for l in
+                    open(official_path, encoding="utf-8")]
         self.rows = [r for r in rows if r["notes_real"] > 0]
 
         # 建表：格内定数分布
@@ -92,10 +124,32 @@ class Verdict:
                 "vals": ds,
             }
 
+        # 回退表：(lv, ni) —— 丢掉 Hold 档的粗格。
+        # 为什么需要：细格 (lv,ni,hi) 样本不足时，旧实现直接掉到「标签中位」
+        # （一个点值、无区间）。加这一层能在样本不足时仍给出区间。
+        cells2 = defaultdict(list)
+        for r in self.rows:
+            lv = norm_level(r.get("level"))
+            ni = bucket(r["nps"], NPS_EDGES)
+            if lv is not None and ni is not None:
+                cells2[(lv, ni)].append(r["difficulty"])
+        self.table2 = {}
+        for k, ds in cells2.items():
+            ds = sorted(ds)
+            if len(ds) < 2:
+                continue
+            self.table2[k] = {
+                "med": st.median(ds),
+                "p25": ds[len(ds) // 4],
+                "p75": ds[min(len(ds) * 3 // 4, len(ds) - 1)],
+                "n": len(ds),
+                "vals": ds,
+            }
+
         # 标签基线
         by_lv = defaultdict(list)
         for r in self.rows:
-            by_lv[(r.get("level") or "").upper()[:2]].append(r["difficulty"])
+            by_lv[norm_level(r.get("level"))].append(r["difficulty"])
         self.lv_base = {k: st.median(v) for k, v in by_lv.items()}
 
         # 各标签内 NPS 四分位（用于特征差异对比）
@@ -104,7 +158,7 @@ class Verdict:
         self.lv_stair = defaultdict(list)
         self.lv_notes = defaultdict(list)
         for r in self.rows:
-            lv = (r.get("level") or "").upper()[:2]
+            lv = norm_level(r.get("level"))
             self.lv_nps[lv].append(r["nps"])
             self.lv_hold[lv].append(r["t_hold"] / r["notes_real"] * 100)
             self.lv_stair[lv].append(r.get("stair_speed_avg", 0) or 0)
@@ -123,22 +177,38 @@ class Verdict:
           官谱格内 P75 已经偏高（75% 的样本低于它），
           再直接与标注比较，边界附近会有大量「刚好越界」的误报。
           实测加 0.2 容差后，高于上界的比例从 26.7% 降到合理水平。
+
+        ★ 回退链（与 tools/official_formula_v2.py 的评估口径一致）：
+          1. (lv, nps档, hold档) 样本 ≥ MIN_N → high
+          2. (lv, nps档)         样本 ≥ MIN_N → mid
+          3. 标签基线                      → low
+          4. 全局中位                      → none
+          档位定义与 MIN_N 均取自本文件，是全项目唯一真源。
         """
         k = base_key(nps, hold_ratio, level)
-        lv = (level or "").upper()[:2]
+        lv = norm_level(level)
+        ni = bucket(nps, NPS_EDGES)
         TOL = 0.2
 
-        if k and k in self.table:
-            t = self.table[k]
-            conf = "high" if t["n"] >= 8 else "mid"
-            return (t["p25"], t["p75"] + TOL, t["med"], conf,
+        t = self.table.get(k) if k else None
+        if t and t["n"] >= MIN_N:
+            return (round(t["p25"], 2), round(t["p75"] + TOL, 2),
+                    round(t["med"], 2), "high",
                     f"官谱同标签同NPS同Hold档（n={t['n']}，"
                     f"区间为格内 P25~P75+{TOL}）")
 
+        t2 = (self.table2.get((lv, ni))
+              if (lv is not None and ni is not None) else None)
+        if t2 and t2["n"] >= MIN_N:
+            return (round(t2["p25"], 2), round(t2["p75"] + TOL, 2),
+                    round(t2["med"], 2), "mid",
+                    f"官谱同标签同NPS档（n={t2['n']}；"
+                    f"Hold 档样本不足，已放宽一档）")
+
         if lv in self.lv_base:
-            return (None, None, self.lv_base[lv], "low",
+            return (None, None, round(self.lv_base[lv], 2), "low",
                     "仅标签基线（档位无官谱样本）")
-        return (None, None, self.global_med, "none", "全局兜底")
+        return (None, None, round(self.global_med, 2), "none", "全局兜底")
 
     # ---------------- 2. 特征差异 ----------------
     @staticmethod
@@ -159,34 +229,9 @@ class Verdict:
         n = sum(1 for x in pool if x < val)
         return n / len(pool) * 100
 
-    def feature_diff(self, feat, nps, hold_ratio, level):
-        """
-        返回特征对照：{值, 同类中位, 百分位, 偏离%, 解读}
-        """
-        lv = (level or "").upper()[:2]
-        specs = {
-            "nps": (nps, self.lv_nps.get(lv), "NPS（每秒手数）"),
-            "hold_ratio": (hold_ratio * 100 if hold_ratio < 1.5
-                           else hold_ratio,
-                           self.lv_hold.get(lv), "Hold占比"),
-            "notes_real": (None, self.lv_notes.get(lv), "物量"),
-            "stair_speed_avg": (None, self.lv_stair.get(lv), "纵连速度"),
-        }
-        if feat == "notes_real":
-            pool = self.lv_notes.get(lv)
-            val = nps and None
-            return pool
-        if feat == "stair_speed_avg":
-            return self.lv_stair.get(lv)
-        if feat == "hold_ratio":
-            return self.lv_hold.get(lv)
-        if feat == "nps":
-            return self.lv_nps.get(lv)
-        return None
-
     def compare(self, nps, hold_ratio, notes_real, stair_speed, level):
         """完整的特征对照报告"""
-        lv = (level or "").upper()[:2]
+        lv = norm_level(level)
         hr = hold_ratio * 100 if hold_ratio < 1.5 else hold_ratio
         out = []
 
@@ -226,16 +271,21 @@ class Verdict:
 
     # ---------------- 3. 官谱参照 ----------------
     def similar_official(self, nps, hold_ratio, notes_real, level,
-                         top=5, weights=(1.0, 0.8, 0.6)):
+                         top=5, weights=(1.0, 0.8, 0.6), exclude=None):
         """
         找最相似的官谱。
         相似度用对数尺度上的相对距离（各维度量级不同，需归一）
+
+        exclude：需要排除的样本（按对象身份）。自检时传入被查询的官谱行，
+                 否则它会以 100% 相似度返回自己，构成无意义的自证。
         """
-        lv = (level or "").upper()[:2]
+        lv = norm_level(level)
         cands = [r for r in self.rows
-                 if (r.get("level") or "").upper()[:2] == lv]
+                 if norm_level(r.get("level")) == lv]
+        if exclude is not None:
+            cands = [r for r in cands if r is not exclude]
         if not cands:
-            cands = self.rows
+            cands = [r for r in self.rows if r is not exclude]
 
         ln, lh = math.log1p(max(nps, .01)), math.log1p(max(hold_ratio * 100, .01))
         lnn = math.log1p(max(notes_real, 1))
@@ -266,7 +316,7 @@ class Verdict:
         """
         不依赖任何模型的检查。返回 (是否通过, 检查项列表)
         """
-        lv = (level or "").upper()[:2]
+        lv = norm_level(level)
         out = []
 
         # 1. 定数超官方历史上限
@@ -307,7 +357,6 @@ class Verdict:
                 })
 
         # 3. Liveness 双字段冲突（phira.moe 前端同款规则）
-        import re
         m = re.search(r"Lv\.\s*(\d+(?:\.\d+)?)", (level or ""), re.I)
         if m and not (level or "").strip().upper().startswith("UK"):
             lv_num = float(m.group(1))

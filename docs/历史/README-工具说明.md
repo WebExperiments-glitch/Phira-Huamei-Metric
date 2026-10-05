@@ -2,6 +2,12 @@
 
 > 用可审计的公开规则，为 Phigros/Phira 谱面提供**难度参考**与**标注合规性检查**
 
+> ⚠️ **路径迁移说明**（2026-10-05 项目整理）：本文写作时的 `data/official/manifest_v3.jsonl`、
+> `data/community/manifest_v2.jsonl`、`verdict/`、`reports/` 等路径已废弃。
+> 现行布局见根目录 `README.md`：官谱真源 `data/official.jsonl`、社区谱真源 `data/community.jsonl`、
+> 引擎 `phm/core.py`、CLI `phm/cli.py`、单文件 GUI `phm/P.H.M..html`；
+> 文中提到的部分一次性脚本已归档至 `tools/archive/`（核心脚本仍在 `tools/`）。
+
 ---
 
 ## ⚠️ 这个工具不做的事（先说清楚）

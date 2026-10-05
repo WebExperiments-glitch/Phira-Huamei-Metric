@@ -290,8 +290,13 @@ async function boot(){
       fetch('data/official.jsonl').then(r=>{if(!r.ok)throw new Error('官谱 HTTP '+r.status);return r.text()})
     ]);
     DATA=parse(c);OFF=parse(o);IDX=new Map(DATA.map(r=>[r.id,r]));
-    const lvs=[...new Set(DATA.map(r=>(r.level||'').slice(0,2).toUpperCase()).filter(Boolean))].sort();
-    $('#lv').innerHTML='<option value="">全部难度</option>'+lvs.map(x=>'<option>'+x+'</option>').join('');
+    const ORDER=['EZ','HD','IN','AT','SP'];
+    const rk=x=>{const i=ORDER.indexOf(x);return i<0?99:i};
+    const lvs=[...new Set(DATA.map(r=>r.tag).filter(Boolean))]
+      .sort((a,b)=>rk(a)-rk(b)||a.localeCompare(b));
+    let opts=lvs.map(x=>'<option value="'+x+'">'+x+'</option>').join('');
+    if(DATA.some(r=>!r.tag))opts+='<option value=" none">其他/未标注</option>';
+    $('#lv').innerHTML='<option value="">全部难度</option>'+opts;
     if(DATA.length)show(DATA[0].id);
   }catch(e){
     $('#view').innerHTML='<div class="empty" style="color:var(--bad)">载入失败：'+esc(e.message)+'</div>';
@@ -318,7 +323,7 @@ $('#q').addEventListener('keydown',e=>{
 $('#q').addEventListener('blur',()=>setTimeout(()=>$('#sug').style.display='none',180));
 $('#lv').addEventListener('change',()=>{
   const v=$('#lv').value;
-  const hit=v?DATA.find(r=>(r.level||'').slice(0,2).toUpperCase()===v):DATA[0];
+  const hit=v?(v===' none'?DATA.find(r=>!r.tag):DATA.find(r=>r.tag===v)):DATA[0];
   if(hit)show(hit.id);
 });
 
@@ -327,23 +332,31 @@ function show(id){
   const r=IDX.get(id);if(!r)return;
   CUR=r;$('#sug').style.display='none';
   const nl=r.notes_real||1,hr=(r.t_hold||0)/nl,dfc=(r.t_drag||0)/nl;
-  const lv=(r.level||'').slice(0,2).toUpperCase();
-  const same=OFF.filter(x=>(x.level||'').slice(0,2).toUpperCase()===lv);
+  const lv=r.tag;
+  const same=lv?OFF.filter(x=>x.tag===lv):[];
   const P={nps:same.map(x=>x.nps),nt:same.map(x=>x.notes_real),
     hd:same.map(x=>x.t_hold/x.notes_real*100),sr:same.map(x=>x.stair_speed_avg||0)};
 
   // 区间
-  const NE=[0,2.5,4.5,6.5,10,1e9],HE=[0,.12,.25,.40,.55,1.01];
+  /* 档位必须与 phm/core.py 的 NPS_EDGES 一致（9 档，实测更优） */
+  const NE=[0,1.5,2.5,3.5,4.5,5.5,6.5,8,10,1e9],HE=[0,.12,.25,.40,.55,1.01];
   const bk=(v,e)=>{for(let i=0;i<e.length-1;i++)if(v>=e[i]&&v<e[i+1])return i;return null};
-  const cell=OFF.filter(x=>(x.level||'').slice(0,2).toUpperCase()===lv
+  const cell=OFF.filter(x=>x.tag===lv
     &&bk(x.nps,NE)===bk(r.nps,NE)&&bk(x.t_hold/x.notes_real,HE)===bk(hr,HE));
-  let lo=null,hi=null,mid=null,basis='无同类官谱样本';
-  if(cell.length>=4){
-    const ds=cell.map(x=>x.difficulty).sort((a,b)=>a-b);
+  // 回退链必须与 phm/core.py reference_range 一致：
+  //   细格(lv,NPS,Hold) → 粗格(lv,NPS) → 标签基线 → 空
+  const cell2=lv?OFF.filter(x=>x.tag===lv&&bk(x.nps,NE)===bk(r.nps,NE)):[];
+  const MIN_N=4;
+  let lo=null,hi=null,mid=null,basis='无同类官谱样本',USE=null;
+  if(cell.length>=MIN_N)USE=cell;
+  else if(cell2.length>=MIN_N)USE=cell2;
+  if(USE){
+    const ds=USE.map(x=>x.difficulty).sort((a,b)=>a-b);
     lo=ds[Math.floor(ds.length/4)];
     hi=ds[Math.min(Math.floor(ds.length*3/4),ds.length-1)]+.2;
     mid=ds[Math.floor(ds.length/2)];
-    basis='官谱同标签同NPS同Hold档（n='+cell.length+'）';
+    basis=(USE===cell?'官谱同标签同NPS同Hold档（n='+cell.length+'）'
+      :'官谱同标签同NPS档（n='+cell2.length+'；Hold 档样本不足，已放宽一档）');
   }else if(same.length){
     mid=med(same.map(x=>x.difficulty));
     basis='仅标签基线';
@@ -381,8 +394,11 @@ function show(id){
       +'<span style="color:var(--fg3)">区间含官谱标注噪声 ±0.7，不是精确值</span></div>'
       +'<details class="why"><summary>这个区间是怎么来的？</summary>'
       +'<p>把「同难度标签 + 同手数密度 + 同长条占比」的官谱挑出来'
-      +'（'+(cell.length||0)+' 首），取它们定数的四分位区间。</p>'
-      +'<p>依据：'+esc(basis)+'</p></details>';
+      +'（'+((USE&&USE.length)||0)+' 首），取它们定数的四分位区间。</p>'
+      +'<p>依据：'+esc(basis)+'</p>'
+      +'<p style="color:var(--warn)">把这条规则套回 1,037 首官谱它自己：'
+      +'<b>42.3% 落在「自己的同类区间」之外</b>。'
+      +'所以「落在区间外」不等于标错 —— 官方也会落在外面。</p></details>';
   }else{
     core='<div class="gauge"><span class="num" style="color:var(--blue)">'+f(r.difficulty)+'</span></div>'
       +'<div class="badge lo">参考中位 '+f(mid)+'</div>'
@@ -433,7 +449,7 @@ function show(id){
   }
   if(lo!=null&&Math.abs(r.difficulty-mid)>=2)
     CK.push(['bad','✕','比同类中位'+(r.difficulty>mid?'高':'低')+' '+f(Math.abs(r.difficulty-mid))+' 级',
-      '同类 n='+cell.length]);
+      '同类 n='+((USE&&USE.length)||0)]);
 
   $('#view').innerHTML=
   '<div class="shead"><h1>'+esc(r.name)+'</h1><div class="row">'

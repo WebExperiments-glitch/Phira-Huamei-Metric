@@ -21,7 +21,7 @@ import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 rows = [json.loads(l) for l in open(
-    os.path.join(BASE, "..", "data", "official", "manifest_v3.jsonl"),
+    os.path.join(BASE, "..", "data", "official.jsonl"),
     encoding="utf-8")]
 rows = [r for r in rows if r["notes_real"] > 0]
 D = [r["difficulty"] for r in rows]

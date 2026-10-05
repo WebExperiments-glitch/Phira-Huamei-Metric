@@ -34,11 +34,16 @@ import statistics as st
 import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(BASE, ".."))
+sys.path.insert(0, os.path.join(ROOT, "phm"))
 
-NPS_EDGES = [0, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 8, 10, 100]
-HOLD_EDGES = [0.0, 0.12, 0.25, 0.40, 0.55, 1.01]
+# ★ 单一真源：档位定义与最小样本数一律取自交付引擎 phm/core.py。
+#   历史教训：本脚本曾自带 NPS_EDGES=[0,1.5,2.5,…,10,100]（9 档），
+#   而 core.py 用 [0,2.5,4.5,6.5,10,100]（5 档）—— 于是这里公布的 LOO
+#   精度描述的是「另一个没上线的模型」。任何档位改动都必须只改 core.py。
+from core import NPS_EDGES, HOLD_EDGES, MIN_N, norm_level  # noqa: E402
+
 LEVELS = ["EZ", "HD", "IN", "AT"]
-MIN_N = 4
 
 
 def bucket(v, edges):
@@ -51,23 +56,47 @@ def bucket(v, edges):
 
 
 def key(r):
-    lv = (r.get("level") or "").upper()[:2]
+    lv = norm_level(r.get("level"))
     ni = bucket(r["nps"], NPS_EDGES)
     hi = bucket(r["t_hold"] / r["notes_real"], HOLD_EDGES)
     return lv, ni, hi
 
 
 def build(rows):
-    """分层建表：(level, nps_i, hold_i) -> {med, n, all_med}"""
+    """分层建表：(level, nps_i, hold_i) -> {med, n, all_med}
+
+    ⚠️ 同时写入 (level, None, None) 的标签基线。
+       旧实现只写三元组键，而 predict() 会去查 (lv,None,None) ——
+       该键永远不存在，导致第三层回退是死代码，样本不足的谱直接掉到
+       全局中位（实测 69/1037）。这里补上，使回退链真正四级生效。
+    """
     cells = {}
     for r in rows:
         k = key(r)
         cells.setdefault(k, []).append(r["difficulty"])
+    bylv = {}
+    for r in rows:
+        bylv.setdefault(norm_level(r.get("level")), []).append(r["difficulty"])
+    byni = {}
+    for r in rows:
+        lv, ni, _ = key(r)
+        if lv is not None and ni is not None:
+            byni.setdefault((lv, ni), []).append(r["difficulty"])
+
     table = {}
     for k, ds in cells.items():
         table[k] = {"med": st.median(ds), "n": len(ds),
                     "all_med": st.median(ds)}
-    # 逐级回退表
+    # 第二层：(lv, nps档) 粗格（丢掉 Hold 档）
+    for k, ds in byni.items():
+        table[(k[0], k[1], None)] = {"med": st.median(ds), "n": len(ds),
+                                     "all_med": st.median(ds)}
+    # 第三层：标签基线
+    for lv, ds in bylv.items():
+        if lv is None:
+            continue
+        table[(lv, None, None)] = {"med": st.median(ds), "n": len(ds),
+                                   "all_med": st.median(ds)}
     return table, cells
 
 
@@ -91,9 +120,11 @@ def predict(r, table, rows_med):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default=os.path.join(
-        BASE, "..", "data", "official", "manifest_enhanced.jsonl"))
+        BASE, "..", "data", "official.jsonl"),
+        help="官谱真源（含 NPS / Hold / stair 等特征）")
     ap.add_argument("--out", default=os.path.join(
-        BASE, "..", "data", "official", "formula_v2.json"))
+        BASE, "..", "data", "formula.json"),
+        help="公式查表输出")
     ap.add_argument("--eval", action="store_true")
     args = ap.parse_args()
 
@@ -107,7 +138,7 @@ def main():
     print("分层基线（难度标签 → 定数中位）")
     print("=" * 76)
     for lv in LEVELS:
-        s = [r["difficulty"] for r in rows if (r.get("level") or "").upper()[:2] == lv]
+        s = [r["difficulty"] for r in rows if norm_level(r.get("level")) == lv]
         if s:
             print(f"  {lv:<3} n={len(s):<4} 定数 {min(s):.1f}~{max(s):.1f} "
                   f"中位 {st.median(s):.1f}")
@@ -117,7 +148,7 @@ def main():
     print("分层 × NPS 档 → 定数中位")
     print("=" * 76)
     for lv in LEVELS:
-        sub = [r for r in rows if (r.get("level") or "").upper()[:2] == lv]
+        sub = [r for r in rows if norm_level(r.get("level")) == lv]
         if not sub:
             continue
         print(f"\n  【{lv}】 n={len(sub)}")

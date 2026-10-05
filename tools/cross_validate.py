@@ -23,7 +23,7 @@ LEVELS = ["EZ", "HD", "IN", "AT"]
 
 
 def load_mine():
-    p = os.path.join(ROOT, "data", "official", "manifest_enhanced.jsonl")
+    p = os.path.join(ROOT, "data", "official.jsonl")
     out = {}
     for line in open(p, encoding="utf-8"):
         r = json.loads(line)

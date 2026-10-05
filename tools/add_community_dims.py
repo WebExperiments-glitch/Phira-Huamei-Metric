@@ -11,10 +11,8 @@
       dims14 内部统一用「秒 + tick」表示，可直接复用。
 """
 import argparse
-import bisect
 import collections
 import json
-import math
 import os
 import statistics as st
 import sys
@@ -22,7 +20,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
-from dims14 import extract_dims, union_len, _eff_count   # noqa: E402
+from dims14 import extract_dims                          # noqa: E402
 
 COST = {1: 1.00, 2: 1.00, 3: 0.35, 4: 0.55}
 

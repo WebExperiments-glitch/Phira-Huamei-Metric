@@ -1,32 +1,35 @@
 #!/usr/bin/env python3
 """
-难度显影报告生成器
+P.H.M. 命令行报告生成器
 
 用法：
-  python verdict_report.py --model <manifest_v3.jsonl> \
-                           --chart <社区谱manifest> --id 22681
-  python verdict_report.py --model <manifest_v3.jsonl> --batch
+  python phm/cli.py --model data/official.jsonl \
+                    --chart data/community.jsonl --id 22681
+  python phm/cli.py --model data/official.jsonl \
+                    --chart data/community.jsonl --batch
 """
 import argparse
 import json
 import os
-import statistics as st
 import sys
-from collections import defaultdict
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(BASE, ".."))
 sys.path.insert(0, BASE)
 
-from verdict_core import Verdict, LEVEL_RANGE, MAX_OFFICIAL   # noqa
+from core import Verdict                                # noqa
 
 
 def fmt(v, n=2):
     return "-" if v is None else f"{v:.{n}f}"
 
 
-def make_report(vd, r, peer_median=None):
-    """生成单张谱的显影报告"""
+def make_report(vd, r, peer_median=None, exclude=None):
+    """生成单张谱的显影报告
+
+    exclude：官谱自检时传入被查询的那一行，避免其在「官谱参照」里
+             以 100% 相似度自我印证（无意义）。
+    """
     nps = r.get("nps") or 0
     hr = (r.get("t_hold") or 0) / max(r.get("notes_real", 1), 1)
     notes = r.get("notes_real", 0)
@@ -36,7 +39,7 @@ def make_report(vd, r, peer_median=None):
 
     lo, hi, mid, conf, basis = vd.reference_range(nps, hr, lv)
     feats = vd.compare(nps, hr, notes, stair, lv)
-    similar = vd.similar_official(nps, hr, notes, lv, top=5)
+    similar = vd.similar_official(nps, hr, notes, lv, top=5, exclude=exclude)
     checks = vd.hard_checks(diff, lv, peer_median)
 
     lines = []
@@ -138,17 +141,12 @@ def make_report(vd, r, peer_median=None):
     return "\n".join(lines)
 
 
-def peer_median(vd, nps, hr, level):
-    """同标签同物量区间的社区谱定数中位"""
-    return None
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True,
-                    help="官谱 manifest_v3.jsonl（含 NPS/Hold/stair 等）")
+                    help="官谱真源 data/official.jsonl")
     ap.add_argument("--chart", default="",
-                    help="社区谱 manifest_features.jsonl")
+                    help="社区谱真源 data/community.jsonl")
     ap.add_argument("--id", type=int, help="单谱报告")
     ap.add_argument("--name", help="按曲名查")
     ap.add_argument("--batch", action="store_true", help="批量生成全部")
@@ -163,10 +161,11 @@ def main():
     if not args.chart:
         # 自检：对官谱跑一遍，看引擎是否正确
         print(f"[engine] 官谱 {vd.n_official} 条，建表 {len(vd.table)} 格")
-        print("[engine] 自检：取一条官谱做报告")
+        print("[engine] 自检：取一条官谱做报告（官谱参照中排除其自身）")
         r = dict(vd.rows[100])
-        # 自检时用一条【不在官谱表内】的样本做参照，避免相似度100%的自证
-        print(make_report(vd, r))
+        # 用 dict 副本查询，但 exclude 必须指向【表内同一行对象】，故用身份匹配
+        exclude = vd.rows[100]
+        print(make_report(vd, r, exclude=exclude))
         return 0
 
     cp = args.chart if os.path.isabs(args.chart) else os.path.join(
@@ -177,7 +176,7 @@ def main():
 
     if args.id:
         r = next(x for x in com if x.get("id") == args.id)
-        print(make_report(vd, r))
+        print(make_report(vd, r, exclude=r))
         return 0
 
     if args.name:
@@ -187,7 +186,7 @@ def main():
             print(f"[abort] 未找到 {args.name}")
             return 1
         r = cands[0]
-        print(make_report(vd, r))
+        print(make_report(vd, r, exclude=r))
         return 0
 
     if args.batch:
@@ -195,7 +194,7 @@ def main():
         os.makedirs(outdir, exist_ok=True)
         idx = []
         for i, r in enumerate(com, 1):
-            txt = make_report(vd, r)
+            txt = make_report(vd, r, exclude=r)
             with open(os.path.join(outdir, f"{r['id']}.txt"), "w",
                       encoding="utf-8") as f:
                 f.write(txt)
@@ -226,7 +225,7 @@ def main():
     # 交互式示例
     print(f"[engine] 官谱 {vd.n_official} 条 | 社区谱 {len(com)} 条")
     r = com[0]
-    print(make_report(vd, r))
+    print(make_report(vd, r, exclude=r))
     return 0
 
 

@@ -21,8 +21,8 @@ import sys
 from collections import defaultdict
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-OFF = os.path.join(BASE, "..", "data", "official", "manifest_v3.jsonl")
-COM = os.path.join(BASE, "..", "data", "community", "manifest_features.jsonl")
+OFF = os.path.join(BASE, "..", "data", "official.jsonl")
+COM = os.path.join(BASE, "..", "data", ".stages", "community_base.jsonl")
 
 
 def pear(xs, ys):

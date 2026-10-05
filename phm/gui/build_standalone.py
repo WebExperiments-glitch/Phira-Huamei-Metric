@@ -16,6 +16,24 @@ import sys
 BASE = os.path.dirname(os.path.abspath(__file__))
 
 
+def _find_node():
+    """定位可用的 node：先用环境/托管版本，再退回 PATH。
+
+    之前这里把 node 路径硬编码到某一个托管版本号，一旦版本升级就静默跳过
+    语法自检（产物照样写出，等于自检失效）。改为候选列表 + PATH 兜底。
+    """
+    import shutil
+    cands = [
+        os.environ.get("PHM_NODE"),
+        r"C:\Users\30500\.workbuddy\binaries\node\versions\22.22.2-3\node.exe",
+        r"C:\Program Files\nodejs\node.exe",
+    ]
+    for c in cands:
+        if c and os.path.exists(c):
+            return c
+    return shutil.which("node")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--index", default=os.path.join(BASE, "index.html"))
@@ -80,11 +98,15 @@ def main():
     new_body = (
         "\n  try{\n"
         "    IDX=new Map(DATA.map(r=>[r.id,r]));\n"
-        "    const lvs=[...new Set(DATA.map(r=>(r.level||'').slice(0,2)"
-        ".toUpperCase()).filter(Boolean))].sort();\n"
+        "    const ORDER=['EZ','HD','IN','AT','SP'];\n"
+        "    const rk=x=>{const i=ORDER.indexOf(x);return i<0?99:i};\n"
+        "    const lvs=[...new Set(DATA.map(r=>r.tag).filter(Boolean))]\n"
+        "      .sort((a,b)=>rk(a)-rk(b)||a.localeCompare(b));\n"
+        "    let opts=lvs.map(x=>'<option value=\"'+x+'\">'+x+'</option>').join('');\n"
+        "    if(DATA.some(r=>!r.tag))opts+="
+        "'<option value=\"\\x00none\">其他/未标注</option>';\n"
         "    const el=document.getElementById('lv');\n"
-        "    el.innerHTML='<option value=\"\">全部难度</option>'+"
-        "lvs.map(x=>'<option>'+x+'</option>').join('');\n"
+        "    el.innerHTML='<option value=\"\">全部难度</option>'+opts;\n"
         "    if(DATA.length)show(DATA[0].id);\n"
         "  }catch(e){\n"
         "    document.getElementById('view').innerHTML="
@@ -108,8 +130,32 @@ def main():
     if not m:
         print("[FAIL] 产物中找不到 <script>", file=sys.stderr)
         return 1
-    node = "C:/Users/30500/.workbuddy/binaries/node/versions/22.22.2-3/node.exe"
-    if os.path.exists(node):
+
+    # ---- 3b. 数据量自检：产物内嵌行数必须等于源文件行数 ----
+    # 教训：单文件版曾出现「数据已更新但 HTML 用旧数据」，因为构建没跟流水线走。
+    #      校验对象必须是【产物】，不是源文件。
+    # 数组由 json.dumps 行拼接，本身即合法 JSON，直接解析最可靠
+    # （用正则数 `{"id":` 会漏掉官谱——它的 id 是别名后置的）。
+    n_com = sum(1 for l in com.split("\n") if l.strip())
+    n_off = sum(1 for l in off.split("\n") if l.strip())
+    try:
+        got_com = len(json.loads(com_arr))
+        got_off = len(json.loads(off_arr))
+    except json.JSONDecodeError as e:
+        print(f"[FAIL] 内嵌数组不是合法 JSON：{e}", file=sys.stderr)
+        return 1
+    if (got_com, got_off) != (n_com, n_off):
+        print(f"[FAIL] 内嵌数据量与源不符："
+              f"社区 {got_com}/{n_com}，官谱 {got_off}/{n_off}",
+              file=sys.stderr)
+        return 1
+    print(f"[check] 内嵌数据量 社区 {got_com} + 官谱 {got_off} ✓")
+
+    node = _find_node()
+    if not node:
+        print("[warn] 未找到 node，跳过 JS 语法自检（产物仍已写出）",
+              file=sys.stderr)
+    else:
         fd, tmp = tempfile.mkstemp(suffix=".js")
         os.close(fd)
         with open(tmp, "w", encoding="utf-8") as f:
@@ -121,7 +167,7 @@ def main():
             print("[FAIL] 产物 JS 语法错误：", file=sys.stderr)
             print(r.stderr[:800], file=sys.stderr)
             return 1
-        print("[check] JS 语法 OK")
+        print(f"[check] JS 语法 OK（{os.path.basename(node)}）")
 
     # ---- 4. 关键内容自检：防止替换吞掉代码 ----
     need = ["function show(", "<details", 'class="vcard"',

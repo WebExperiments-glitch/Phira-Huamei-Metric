@@ -20,7 +20,6 @@ import json
 import os
 import random
 import ssl
-import sys
 import threading
 import time
 import urllib.error

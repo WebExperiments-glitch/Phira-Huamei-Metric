@@ -13,7 +13,6 @@
 解决：按 id 合并，产出单文件。
 """
 import argparse
-import collections
 import json
 import os
 import statistics as st

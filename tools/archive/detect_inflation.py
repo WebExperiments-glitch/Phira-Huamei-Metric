@@ -78,7 +78,7 @@ def build_x(r, feats):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
-    ap.add_argument("--train", default="data/official/manifest_enhanced.jsonl",
+    ap.add_argument("--train", default="data/official.jsonl",
                     help="官谱训练数据，用于计算裁剪范围")
     ap.add_argument("--data", required=True)
     ap.add_argument("--out", required=True)

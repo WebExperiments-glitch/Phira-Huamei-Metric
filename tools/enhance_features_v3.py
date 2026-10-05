@@ -7,16 +7,13 @@
 """
 import argparse
 import bisect
-import collections
 import json
-import math
 import os
-import statistics as st
 import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
-from dims14 import extract_dims, union_len, _eff_count   # noqa: E402
+from dims14 import extract_dims                          # noqa: E402
 
 COST = {1: 1.00, 2: 1.00, 3: 0.35, 4: 0.55}
 
@@ -135,7 +132,7 @@ def strain_features(ts, ty, window=1.0):
         r = pre[n] / max(last - ts[0], 1e-6)
         return {"strain_peak": round(r, 4), "strain_peak_ratio": 0.0,
                 "strain_p50": round(r, 4), "strain_p90": round(r, 4),
-                "strain_p99": round(r, 4)}
+                "strain_p99": round(r, 4), "strain_raw_max": round(r, 4)}
     vs = sorted(vals)
     med = vs[len(vs) // 2]
     return {
@@ -145,6 +142,8 @@ def strain_features(ts, ty, window=1.0):
         "strain_p50": round(vs[int(len(vs) * .50)], 4),
         "strain_p90": round(vs[min(int(len(vs) * .90), len(vs) - 1)], 4),
         "strain_p99": round(vs[min(int(len(vs) * .99), len(vs) - 1)], 4),
+        # 与 community 口径一致：保留原始峰值（供对照，定价用 p99）
+        "strain_raw_max": round(vs[-1], 4),
     }
 
 
@@ -157,6 +156,8 @@ def rhythm_features(ts):
         return {}
     ds = sorted(d)
     return {
+        # 与 community 口径一致：iv_mean 供记录，定价用 iv_median
+        "iv_mean": round(sum(d) / len(d), 4),
         "iv_median": round(ds[len(ds) // 2], 4),
         "chord_ratio": round(sum(1 for x in d if x < 0.050) / len(d) * 100, 3),
         "fast_ratio": round(sum(1 for x in d if x < 0.150) / len(d) * 100, 3),

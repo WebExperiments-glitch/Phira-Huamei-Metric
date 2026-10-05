@@ -37,13 +37,10 @@
   · 真实秒换算：竞品用 time_to_seconds(beat, bpm)，与我的 seconds*60/32/bpm
     等价（PGR 的 time 单位是 1/32 拍）
 """
-import bisect
 import collections
-import json
 import math
 import os
 import statistics as st
-import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
