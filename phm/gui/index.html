@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.H.M. v3.1 — Phira Huamei Metric</title>
+<title>P.H.M. — Phira Huamei Metric</title>
 <style>
 /* ══ 主题 ══ */
 :root[data-theme="dark"]{
@@ -48,7 +48,10 @@ body>header{
 .logo b{font-size:18px;font-weight:700;letter-spacing:.5px}
 .logo i{color:var(--amber);font-style:normal;font-weight:700}
 .logo span{font-size:10.5px;color:var(--fg3);letter-spacing:.6px;text-transform:uppercase}
-.search{flex:1;max-width:380px}
+/* ⚠️ 必须 relative：.sug 是 absolute 且 left:0;right:0。
+   缺了它，最近的定位祖先是 position:sticky 的 header，
+   下拉会横跨整个顶栏（实测 1298px vs 输入框 380px）。 */
+.search{flex:1;max-width:380px;position:relative}
 .search input{
   width:100%;background:var(--panel2);border:1px solid var(--line2);
   color:var(--fg);padding:8px 13px;border-radius:9px;font-size:13px;font-family:inherit;
@@ -191,9 +194,12 @@ td.num{text-align:right}
 .foot{text-align:center;padding:40px 0 0;color:var(--fg3);font-size:11.5px}
 .empty{text-align:center;padding:90px 20px;color:var(--fg3);font-size:13px}
 
-/* 专业模式：默认隐藏 */
-.prof{display:none!important}
-body.prof .prof{display:block!important}
+/* 专业模式：默认隐藏
+   ⚠️ 旧写法是 .prof{display:none!important} + body.prof .prof{display:block!important}。
+   后者会把 .grid.prof 的 display:grid 强制成 block（!important + 更高特异性），
+   于是「事实性检查 / 谱型识别」两栏塌成单栏堆叠。
+   正确做法：只在关闭时隐藏，打开时不干预 display，元素按自身类型渲染。 */
+body:not(.prof) .prof{display:none}
 </style>
 </head>
 <body>
@@ -201,7 +207,7 @@ body.prof .prof{display:block!important}
 <header>
   <div class="hd">
     <div class="logo">
-      <b>P<i>.</i>H<i>.</i>M<i>.</i></b><em style="font-size:9.5px;color:var(--fg3);font-style:normal;margin-left:2px">v3.1</em>
+      <b>P<i>.</i>H<i>.</i>M<i>.</i></b><em id="lver" style="font-size:9.5px;color:var(--fg3);font-style:normal;margin-left:2px"></em>
       <span>Phira Huamei Metric</span>
     </div>
     <div class="search">
@@ -236,12 +242,15 @@ body.prof .prof{display:block!important}
     </div>
   </div>
 
-  <div id="view"><div class="empty">搜索曲名或谱师开始</div></div>
+  <div id="view"><div class="empty">正在载入…</div></div>
 
   <div class="foot">
-    公式 <span class="mono">查表(难度标签 × NPS档 × Hold%档)</span> ·
-    精度 <span class="mono">留一法 MAE 0.700</span>，与官方标注噪声同级 ·
-    官谱定数自 APK 提取，可逐条追溯
+    <div>
+      公式 <span class="mono">查表(难度标签 × NPS档 × Hold%档)</span> ·
+      精度 <span class="mono">留一法 中位 0.60 / p90 1.50</span>（与官方标注噪声同级）·
+      官谱定数自 APK 提取，可逐条追溯
+    </div>
+    <div id="dstat" style="margin-top:7px;color:var(--fg3)"></div>
   </div>
 </div>
 
@@ -250,8 +259,12 @@ let DATA=[],OFF=[],IDX=new Map(),CUR=null;
 const $=s=>document.querySelector(s);
 const f=(v,n=1)=>v==null||isNaN(v)?'—':(+v).toFixed(n);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* 中位数：必须与 phm/core.py 的 statistics.median 同口径。
+   ⚠️ 旧实现是 s[Math.floor(s.length/2)]（上中位），偶数样本会与 core 不一致
+   （core 取中间两项平均）。两侧同一张谱算出不同「同类中位」就是不对。 */
 const med=a=>{const s=[...a].filter(x=>x!=null&&!isNaN(x)).sort((x,y)=>x-y);
-  return s.length?s[Math.floor(s.length/2)]:null};
+  if(!s.length)return null;const m=s.length>>1;
+  return s.length%2?s[m]:(s[m-1]+s[m])/2};
 const qp=s=>(s==null||isNaN(s))?'':(Math.abs(s)<5?'持平'
   :(s>0?'+':'')+s.toFixed(0)+'%');
 
@@ -281,7 +294,46 @@ document.addEventListener('click',e=>{
 });
 
 /* ══ 数据 ══ */
-function parse(t){return t.split('\n').filter(x=>x.trim()).map(x=>JSON.parse(x))}
+/* 逐行解析，坏行跳过并计数。
+   ⚠️ 旧实现是 map(JSON.parse)，只要一行损坏就抛异常 → 整个 GUI 显示「载入失败」，
+   9684 行里坏 1 行就全废。数据文件是逐行生成的，天然应该按行容错。 */
+function parse(t){
+  const out=[];let bad=0;
+  for(const line of t.split('\n')){
+    if(!line.trim())continue;
+    try{out.push(JSON.parse(line))}catch(e){bad++}
+  }
+  if(bad)console.warn('[P.H.M.] 已跳过 '+bad+' 行损坏数据');
+  parse.bad=(parse.bad||0)+bad;
+  return out;
+}
+const VER='3.2';
+const ORDER=['EZ','HD','IN','AT','SP'];
+const rk=x=>{const i=ORDER.indexOf(x);return i<0?99:i};
+
+/* 难度下拉：只列数据里真实存在的标准标签 + 「其他/未标注」 */
+function renderLevels(){
+  const lvs=[...new Set(DATA.map(r=>r.tag).filter(Boolean))]
+    .sort((a,b)=>rk(a)-rk(b)||a.localeCompare(b));
+  let o=lvs.map(x=>'<option value="'+x+'">'+x+'</option>').join('');
+  if(DATA.some(r=>!r.tag))o+='<option value="__none__">其他/未标注</option>';
+  $('#lv').innerHTML='<option value="">全部难度</option>'+o;
+}
+
+/* 默认展示哪首：优先「已上架 + 物量足够」，避免打开就是一张未上架或残缺谱 */
+function pickDefault(){
+  return DATA.find(r=>r.stable&&(r.notes_real||0)>=500)
+      || DATA.find(r=>r.stable) || DATA[0] || null;
+}
+
+/* 页脚数据状态：条目数 + 版本 + 坏行告警（数据新旧一眼可见） */
+function renderDstat(){
+  const bad=parse.bad||0, el=$('#dstat');
+  if(!el)return;
+  el.textContent='数据 社区谱 '+DATA.length+' 条 · 官谱 '+OFF.length+' 条'
+    +' · 引擎 v'+VER+(bad?(' · ⚠ 已跳过 '+bad+' 行损坏数据'):'');
+}
+
 async function boot(){
   try{
     $('#view').innerHTML='<div class="empty">正在载入…</div>';
@@ -289,32 +341,48 @@ async function boot(){
       fetch('data/community.jsonl').then(r=>{if(!r.ok)throw new Error('社区谱 HTTP '+r.status);return r.text()}),
       fetch('data/official.jsonl').then(r=>{if(!r.ok)throw new Error('官谱 HTTP '+r.status);return r.text()})
     ]);
-    DATA=parse(c);OFF=parse(o);IDX=new Map(DATA.map(r=>[r.id,r]));
-    const ORDER=['EZ','HD','IN','AT','SP'];
-    const rk=x=>{const i=ORDER.indexOf(x);return i<0?99:i};
-    const lvs=[...new Set(DATA.map(r=>r.tag).filter(Boolean))]
-      .sort((a,b)=>rk(a)-rk(b)||a.localeCompare(b));
-    let opts=lvs.map(x=>'<option value="'+x+'">'+x+'</option>').join('');
-    if(DATA.some(r=>!r.tag))opts+='<option value=" none">其他/未标注</option>';
-    $('#lv').innerHTML='<option value="">全部难度</option>'+opts;
-    if(DATA.length)show(DATA[0].id);
+    // 每次载入前重置坏行计数，否则点「重试」会把同一个坏行数重复累加
+    parse.bad=0;
+    DATA=parse(c);OFF=parse(o);
+    IDX=new Map(DATA.map(r=>[r.id,r]));    renderLevels(); renderDstat();
+    const d=pickDefault();
+    if(d)show(d.id); else $('#view').innerHTML='<div class="empty">数据文件为空</div>';
   }catch(e){
-    $('#view').innerHTML='<div class="empty" style="color:var(--bad)">载入失败：'+esc(e.message)+'</div>';
+    $('#view').innerHTML='<div class="empty" style="color:var(--bad)">载入失败：'+esc(e.message)
+      +'<div style="margin-top:16px"><button class="ibtn" style="width:auto;padding:0 15px;height:30px" '
+      +'onclick="boot()">重试</button></div></div>';
   }
 }
 
 /* ══ 搜索 ══ */
+/* 版本号单真源：标题与 logo 都从 VER 取，避免三处写死后互相对不上 */
+function applyVersion(){
+  document.title='P.H.M. v'+VER+' — Phira Huamei Metric';
+  const e=document.getElementById('lver'); if(e)e.textContent='v'+VER;
+}
+
 function search(k){
   k=k.trim().toLowerCase();if(!k)return[];
   return DATA.filter(r=>(r.name||'').toLowerCase().includes(k)
     ||(r.charter||'').toLowerCase().includes(k)).slice(0,7);
 }
 $('#q').addEventListener('input',e=>{
-  const m=search(e.target.value),s=$('#sug');
-  if(!m.length||!e.target.value.trim()){s.style.display='none';return}
+  const k=e.target.value,s=$('#sug');
+  if(!k.trim()){s.style.display='none';return}
+  const m=search(k);
   s.style.display='block';
-  s.innerHTML=m.map(r=>'<button onclick="show('+r.id+')">'+esc(r.name)
+  if(!m.length){   // 无结果也要给反馈，否则用户以为界面卡了
+    s.innerHTML='<button style="cursor:default;color:var(--fg3)">无匹配的曲目或谱师</button>';
+    return;
+  }
+  s.innerHTML=m.map(r=>'<button data-id="'+esc(r.id)+'">'+esc(r.name)
     +' <span class="m">'+esc((r.level||'').slice(0,10))+' · '+f(r.difficulty)+'</span></button>').join('');
+});
+/* 事件委托：不在 HTML 里拼 onclick（不依赖 id 类型，也不受 CSP 限制） */
+$('#sug').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-id]'); if(!b)return;
+  show(Number(b.dataset.id));
+  $('#q').value=''; $('#sug').style.display='none';
 });
 $('#q').addEventListener('keydown',e=>{
   if(e.key==='Enter'){const m=search(e.target.value);
@@ -323,7 +391,10 @@ $('#q').addEventListener('keydown',e=>{
 $('#q').addEventListener('blur',()=>setTimeout(()=>$('#sug').style.display='none',180));
 $('#lv').addEventListener('change',()=>{
   const v=$('#lv').value;
-  const hit=v?(v===' none'?DATA.find(r=>!r.tag):DATA.find(r=>r.tag===v)):DATA[0];
+  // 「全部难度」走 pickDefault()，与首屏默认一致（此前这里跳 DATA[0]，
+  // 于是同一动作在首屏和切回时给出不同的谱）
+  const hit=v?(v==='__none__'?DATA.find(r=>!r.tag):DATA.find(r=>r.tag===v))
+             :pickDefault();
   if(hit)show(hit.id);
 });
 
@@ -331,6 +402,12 @@ $('#lv').addEventListener('change',()=>{
 function show(id){
   const r=IDX.get(id);if(!r)return;
   CUR=r;$('#sug').style.display='none';
+  // 同步难度下拉：搜索/切换谱面后，筛选框应与当前谱一致，否则界面自相矛盾
+  const lvSel=$('#lv');
+  if(lvSel&&lvSel.options.length){
+    const want=(r.tag&&[...lvSel.options].some(o=>o.value===r.tag))?r.tag:'';
+    if(lvSel.value!==want)lvSel.value=want;
+  }
   const nl=r.notes_real||1,hr=(r.t_hold||0)/nl,dfc=(r.t_drag||0)/nl;
   const lv=r.tag;
   const same=lv?OFF.filter(x=>x.tag===lv):[];
@@ -354,7 +431,8 @@ function show(id){
     const ds=USE.map(x=>x.difficulty).sort((a,b)=>a-b);
     lo=ds[Math.floor(ds.length/4)];
     hi=ds[Math.min(Math.floor(ds.length*3/4),ds.length-1)]+.2;
-    mid=ds[Math.floor(ds.length/2)];
+    // 与 core.py 的 st.median 同口径（偶数取中间两项平均）
+    mid=med(ds);
     basis=(USE===cell?'官谱同标签同NPS同Hold档（n='+cell.length+'）'
       :'官谱同标签同NPS档（n='+cell2.length+'；Hold 档样本不足，已放宽一档）');
   }else if(same.length){
@@ -433,6 +511,7 @@ function show(id){
   if(r.difficulty>18)CK.push(['bad','✕','定数 '+f(r.difficulty)+' 超出官方历史最高 18.0',
     '官谱 1,037 条定数无一超过 18.0（DesultorySignals AT）']);
   else CK.push(['ok','✓','定数 '+f(r.difficulty)+' 在官方历史范围内','官方最高 18.0']);
+  /* 与 phm/core.py 的 LEVEL_RANGE 必须逐字一致（构建时由 build_standalone.py 断言） */
   const LR={EZ:[0,10.5],HD:[3,14.5],IN:[6.5,17.5],AT:[13,18]};
   if(LR[lv]){
     const a=LR[lv][0],b=LR[lv][1];
@@ -461,7 +540,8 @@ function show(id){
   +(r.stable?'<span class="pill ok">已上架</span>':'')
   +'</div></div>'
 
-  +'<div class="vcard"><div class="lbl">'+(lv||'')+' 难度参考</div>'+core+'</div>'
+  +'<div class="vcard"><div class="lbl">'
+  +(lv?esc(lv)+' 难度参考':'难度参考（标签未识别）')+'</div>'+core+'</div>'
 
   // 专业模式：特征对照
   +'<div class="box prof"><div class="bh"><span class="idx">1</span><b>特征对照</b></div>'
@@ -519,7 +599,7 @@ function show(id){
   +'</div></div></div>';
 }
 
-applyTheme();applyPro();boot();
+applyVersion();applyTheme();applyPro();boot();
 </script>
 </body>
 </html>

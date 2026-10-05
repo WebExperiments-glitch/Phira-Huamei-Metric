@@ -34,6 +34,61 @@ def _find_node():
     return shutil.which("node")
 
 
+def check_gui_core_parity(html):
+    """断言浏览器端常量与交付引擎 phm/core.py 一致，不一致即失败。
+
+    背景：GUI 是浏览器端独立实现（无 Python 运行时），档位与区间表只能复制一份。
+    复制必然漂移 —— 实际发生过「core 已改 9 档 NPS，GUI 仍写 5 档」，
+    导致同一张谱在 CLI 与 GUI 上算出不同区间。构建期断言是唯一可靠的防线。
+    """
+    import re
+    root = os.path.abspath(os.path.join(BASE, "..", ".."))
+    if os.path.join(root, "phm") not in sys.path:
+        sys.path.insert(0, os.path.join(root, "phm"))
+    import core
+
+    def arr(pat, what):
+        m = re.search(pat, html)
+        if not m:
+            raise AssertionError(f"index.html 里找不到 {what}（正则 {pat}）")
+        return [float(x) for x in m.group(1).split(",") if x.strip()]
+
+    ne = arr(r"const NE=\[([^\]]+)\]", "NPS 档 NE")
+    he = arr(r"HE=\[([^\]]+)\]", "Hold 档 HE")
+    m = re.search(r"const MIN_N=(\d+)", html)
+    if not m:
+        raise AssertionError("index.html 里找不到 MIN_N")
+    min_n = int(m.group(1))
+
+    problems = []
+    # 末位是「∞」哨兵，两侧写法不同（1e9 vs 100），只比较倒数第二及之前
+    if ne[:-1] != [float(v) for v in core.NPS_EDGES[:-1]]:
+        problems.append(f"NPS 档不一致：GUI {ne} vs core {core.NPS_EDGES}")
+    if ne[-1] < 100 or core.NPS_EDGES[-1] < 100:
+        problems.append(f"NPS 档末位不是 ∞ 哨兵：GUI {ne[-1]} vs core {core.NPS_EDGES[-1]}")
+    if [round(v, 4) for v in he] != [round(float(v), 4) for v in core.HOLD_EDGES]:
+        problems.append(f"Hold 档不一致：GUI {he} vs core {core.HOLD_EDGES}")
+    if min_n != int(core.MIN_N):
+        problems.append(f"MIN_N 不一致：GUI {min_n} vs core {core.MIN_N}")
+
+    for lv, m2 in re.findall(r"([A-Z]{2}):\[([^\]]+)\]", html):
+        if lv not in core.LEVEL_RANGE or core.LEVEL_RANGE[lv] is None:
+            continue
+        gui = tuple(float(x) for x in m2.split(","))
+        ref = tuple(float(x) for x in core.LEVEL_RANGE[lv])
+        if gui != ref:
+            problems.append(f"LEVEL_RANGE[{lv}] 不一致：GUI {gui} vs core {ref}")
+
+    if problems:
+        print("[FAIL] 浏览器端与 core.py 口径不一致：", file=sys.stderr)
+        for p in problems:
+            print("       · " + p, file=sys.stderr)
+        return 1
+    print("[check] 浏览器端常量与 core.py 一致 "
+          f"(NPS {len(ne)-1} 档 / Hold {len(he)-1} 档 / MIN_N {min_n})")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--index", default=os.path.join(BASE, "index.html"))
@@ -95,28 +150,31 @@ def main():
         return 1
     tail = html[close:]        # 从 } 开始，保留闭合
 
+    # 单文件版无需 fetch，直接复用 index.html 里的 renderLevels / renderDstat /
+    # pickDefault —— 这三者是下拉与默认展示的唯一实现，不再在这里重复一遍
+    # （此前这里内联了第三份下拉逻辑，改一处漏两处）。
     new_body = (
         "\n  try{\n"
         "    IDX=new Map(DATA.map(r=>[r.id,r]));\n"
-        "    const ORDER=['EZ','HD','IN','AT','SP'];\n"
-        "    const rk=x=>{const i=ORDER.indexOf(x);return i<0?99:i};\n"
-        "    const lvs=[...new Set(DATA.map(r=>r.tag).filter(Boolean))]\n"
-        "      .sort((a,b)=>rk(a)-rk(b)||a.localeCompare(b));\n"
-        "    let opts=lvs.map(x=>'<option value=\"'+x+'\">'+x+'</option>').join('');\n"
-        "    if(DATA.some(r=>!r.tag))opts+="
-        "'<option value=\"\\x00none\">其他/未标注</option>';\n"
-        "    const el=document.getElementById('lv');\n"
-        "    el.innerHTML='<option value=\"\">全部难度</option>'+opts;\n"
-        "    if(DATA.length)show(DATA[0].id);\n"
+        "    renderLevels(); renderDstat();\n"
+        "    const d=pickDefault();\n"
+        "    if(d)show(d.id);\n"
+        "    else document.getElementById('view')"
+        ".innerHTML='<div class=\"empty\">数据为空</div>';\n"
         "  }catch(e){\n"
         "    document.getElementById('view').innerHTML="
-        "'<div class=\"empty\" style=\"color:var(--bad)\">载入失败：'+e.message+'</div>';\n"
+        "'<div class=\"empty\" style=\"color:var(--bad)\">载入失败：'"
+        "+(e&&e.message)+'</div>';\n"
         "  }\n"
     )
     # 只替换函数体（保留 head 的语义：改成非 async）
     html = html[:i] + "function boot(){" + new_body + tail
 
     # 末尾的 boot(); 保持不变（单文件版仍需启动）
+
+    # ---- 口径自检：浏览器端常量必须与 phm/core.py 一致 ----
+    if check_gui_core_parity(html):
+        return 1
 
     out = os.path.abspath(args.out)
     with open(out, "w", encoding="utf-8") as f:
@@ -171,7 +229,14 @@ def main():
 
     # ---- 4. 关键内容自检：防止替换吞掉代码 ----
     need = ["function show(", "<details", 'class="vcard"',
-            "特征对照", "官谱参照", "body.prof", "data-theme"]
+            "特征对照", "官谱参照",
+            # 专业模式的可见性规则（旧写法 body.prof 会压掉 grid 布局，已弃用）
+            "body:not(.prof)", "data-theme",
+            # 这些函数由 boot() 调用，必须跟着活下来
+            "function renderLevels(", "function pickDefault(",
+            "function renderDstat(", "function applyVersion(",
+            # 难度筛选的哨兵值必须是纯 ASCII（NUL 会被 HTML 解析成 U+FFFD）
+            '__none__']
     miss = [k for k in need if k not in html]
     if miss:
         print(f"[FAIL] 产物缺失关键内容：{miss}", file=sys.stderr)
@@ -180,7 +245,15 @@ def main():
     if n_fetch:
         print(f"[FAIL] 产物仍有 {n_fetch} 个 fetch（未内嵌）", file=sys.stderr)
         return 1
-    print("[check] 关键内容齐全，无 fetch")
+
+    # ---- 5. 回归守卫：产物不得含 NUL ----
+    # 实锤过的 bug：难度筛选曾用 value="\x00none" 作哨兵，
+    # HTML 解析器把属性值里的 NUL 替换成 U+FFFD，导致该选项选中后无任何反应。
+    if "\x00" in html:
+        print("[FAIL] 产物含 NUL 字符：HTML 属性里的 NUL 会被解析成 U+FFFD，"
+              "使 value 与代码里的字面量对不上", file=sys.stderr)
+        return 1
+    print("[check] 关键内容齐全，无 fetch，无 NUL")
 
     size = os.path.getsize(out)
     print(f"[done] {out}")
