@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P.H.M. v3.1 — Phira Huamei Metric</title>
+<style>
+/* ══ 主题 ══ */
+:root[data-theme="dark"]{
+  --bg:#0b0e14;--panel:#11151d;--panel2:#161b25;--raise:#1c222d;
+  --line:#232936;--line2:#2e3644;
+  --fg:#e8edf5;--fg2:#9aa5b6;--fg3:#6b7482;
+  --amber:#e0a95c;--amber2:#f0c68a;--amberDim:rgba(224,169,92,.13);
+  --ok:#4ec97a;--okDim:rgba(78,201,122,.12);
+  --warn:#e5b448;--warnDim:rgba(229,180,72,.13);
+  --bad:#f2585f;--badDim:rgba(242,88,95,.12);
+  --blue:#58a6ff;--blueDim:rgba(88,166,255,.12);
+  --shadow:0 8px 30px rgba(0,0,0,.5);
+}
+:root[data-theme="light"]{
+  --bg:#faf9f7;--panel:#ffffff;--panel2:#f4f2ef;--raise:#ebe8e4;
+  --line:#e2ded8;--line2:#d3cdc4;
+  --fg:#1f2328;--fg2:#5c636e;--fg3:#8b929c;
+  --amber:#a9711f;--amber2:#8a5a15;--amberDim:rgba(169,113,31,.09);
+  --ok:#1a7f43;--okDim:rgba(26,127,67,.09);
+  --warn:#9a6700;--warnDim:rgba(154,103,0,.10);
+  --bad:#cf222e;--badDim:rgba(207,34,46,.08);
+  --blue:#0969da;--blueDim:rgba(9,105,218,.08);
+  --shadow:0 4px 20px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--fg);
+  font:14px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Cascadia Mono",Consolas,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 80px}
+
+/* ══ 顶栏 ══ */
+body>header{
+  position:sticky;top:0;z-index:50;
+  background:var(--bg);border-bottom:1px solid var(--line);
+  margin:0 -22px 26px;padding:0 22px;
+}
+.hd{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:15px;height:58px}
+.logo{display:flex;align-items:baseline;gap:8px;flex-shrink:0}
+.logo b{font-size:18px;font-weight:700;letter-spacing:.5px}
+.logo i{color:var(--amber);font-style:normal;font-weight:700}
+.logo span{font-size:10.5px;color:var(--fg3);letter-spacing:.6px;text-transform:uppercase}
+.search{flex:1;max-width:380px}
+.search input{
+  width:100%;background:var(--panel2);border:1px solid var(--line2);
+  color:var(--fg);padding:8px 13px;border-radius:9px;font-size:13px;font-family:inherit;
+}
+.search input:focus{outline:none;border-color:var(--amber)}
+.search input::placeholder{color:var(--fg3)}
+.sel{background:var(--panel2);border:1px solid var(--line2);color:var(--fg2);
+  padding:8px 10px;border-radius:9px;font-size:12px;font-family:inherit;cursor:pointer}
+
+.tools{margin-left:auto;position:relative}
+.ibtn{width:32px;height:32px;border-radius:8px;background:var(--panel2);
+  border:1px solid var(--line2);color:var(--fg2);cursor:pointer;
+  display:grid;place-items:center;font-size:15px}
+.ibtn:hover{border-color:var(--amber);color:var(--amber)}
+.pop{position:absolute;top:calc(100% + 8px);right:0;z-index:70;
+  background:var(--panel);border:1px solid var(--line2);border-radius:12px;
+  box-shadow:var(--shadow);width:266px;padding:7px;display:none}
+.pop.show{display:block}
+.pop .ph{font-size:10.5px;color:var(--fg3);padding:8px 11px 5px;
+  letter-spacing:.5px;text-transform:uppercase}
+.opt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  padding:10px 11px;border:none;background:none;border-radius:8px;
+  color:var(--fg);font-size:13px;cursor:pointer;font-family:inherit}
+.opt:hover{background:var(--panel2)}
+.opt .txt{flex:1}
+.opt .txt small{display:block;font-size:11px;color:var(--fg3);font-weight:400;margin-top:2px;line-height:1.4}
+.sw{width:34px;height:19px;border-radius:10px;background:var(--raise);
+  position:relative;flex-shrink:0;transition:background .18s}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:15px;height:15px;
+  border-radius:50%;background:var(--fg3);transition:transform .18s,background .18s}
+.opt[aria-pressed="true"] .sw{background:var(--amber)}
+.opt[aria-pressed="true"] .sw::after{transform:translateX(15px);background:var(--panel)}
+.pop hr{border:none;border-top:1px solid var(--line);margin:5px 10px}
+
+.sug{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;
+  background:var(--panel);border:1px solid var(--line2);border-radius:10px;
+  overflow:hidden;box-shadow:var(--shadow)}
+.sug button{display:block;width:100%;text-align:left;background:none;border:none;
+  color:var(--fg);padding:9px 13px;font-size:13px;cursor:pointer;font-family:inherit;
+  border-bottom:1px solid var(--line)}
+.sug button:hover{background:var(--panel2)}
+.sug button:last-child{border-bottom:none}
+.sug .m{color:var(--fg3);font-size:11px;margin-left:8px}
+
+/* ══ 谱面头 ══ */
+.shead{padding:0 2px 20px;margin-bottom:22px;border-bottom:1px solid var(--line)}
+.shead h1{font-size:26px;font-weight:650;letter-spacing:-.2px;margin-bottom:8px}
+.shead .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  font-size:12.5px;color:var(--fg3)}
+.pill{padding:3px 10px;border-radius:6px;font-size:11.5px;font-weight:600;
+  background:var(--amberDim);color:var(--amber2)}
+.pill.ok{background:var(--okDim);color:var(--ok)}
+
+/* ══ 核心答案 ══ */
+.vcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:30px 28px 26px;margin-bottom:20px;text-align:center}
+.vcard .lbl{font-size:11.5px;color:var(--fg3);margin-bottom:16px;letter-spacing:.4px}
+.gauge{display:flex;align-items:baseline;justify-content:center;gap:18px;
+  margin-bottom:22px;flex-wrap:wrap}
+.gauge .num{font-size:62px;font-weight:750;line-height:1;letter-spacing:-3px}
+.gauge .sep{color:var(--fg3);font-size:20px;font-weight:300}
+.gauge .rng{font-size:30px;font-weight:600;color:var(--fg2);letter-spacing:-.5px}
+.badge{display:inline-flex;align-items:center;gap:8px;
+  padding:10px 22px;border-radius:22px;font-size:14.5px;font-weight:600}
+.badge.in{background:var(--okDim);color:var(--ok)}
+.badge.hi{background:var(--warnDim);color:var(--warn)}
+.badge.lo{background:var(--blueDim);color:var(--blue)}
+.vsub{font-size:12.5px;color:var(--fg3);margin-top:18px;line-height:1.9}
+
+/* 依据折叠（默认收起） */
+.why{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.why summary{font-size:12px;color:var(--fg3);cursor:pointer;list-style:none;
+  display:inline-flex;align-items:center;gap:6px;padding:4px 0}
+.why summary::-webkit-details-marker{display:none}
+.why summary::before{content:'▸';font-size:10px;transition:transform .15s}
+.why[open] summary::before{transform:rotate(90deg)}
+.why summary:hover{color:var(--fg2)}
+.why p{font-size:12px;color:var(--fg3);margin-top:7px;line-height:1.8;text-align:left}
+
+.scale{position:relative;height:62px;margin:10px 0 0}
+.zone{position:absolute;top:0;height:20px;background:var(--okDim);
+  border-left:2px solid var(--ok);border-right:2px solid var(--ok);border-radius:3px}
+.midline{position:absolute;top:-2px;height:24px;width:1px;background:var(--ok);opacity:.7}
+.own{position:absolute;top:3px;width:3px;height:32px;border-radius:2px;background:var(--blue)}
+.own::after{content:attr(data-r);position:absolute;top:34px;left:50%;
+  transform:translateX(-50%);font-size:10.5px;color:var(--fg3);white-space:nowrap}
+.ticks{position:absolute;top:22px;left:0;right:0;height:14px}
+.ticks span{position:absolute;transform:translateX(-50%);font-size:10px;color:var(--fg3)}
+
+/* ══ 卡片 ══ */
+.box{background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:19px 21px;margin-bottom:16px}
+.bh{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.bh b{font-size:13.5px;font-weight:650}
+.bh .idx{width:19px;height:19px;border-radius:5px;background:var(--raise);
+  color:var(--amber);font-size:10.5px;font-weight:700;display:grid;place-items:center}
+.bsub{font-size:11.5px;color:var(--fg3);margin-bottom:16px}
+.grid{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+@media(max-width:1020px){.grid{grid-template-columns:1fr}}
+
+/* ══ 表 ══ */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:7px 9px;color:var(--fg3);font-weight:500;font-size:11px;
+  border-bottom:1px solid var(--line2)}
+td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.num{text-align:right}
+.up{color:var(--warn)}.dn{color:var(--blue)}.flat{color:var(--fg3)}
+.meter{height:4px;background:var(--raise);border-radius:2px;overflow:hidden;min-width:50px}
+.meter i{display:block;height:100%;border-radius:2px}
+.meter i.up{background:var(--warn)}.meter i.dn{background:var(--blue)}.meter i.flat{background:var(--fg3)}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{padding:5px 11px;border-radius:7px;font-size:11.5px;
+  background:var(--panel2);border:1px solid var(--line);color:var(--fg2)}
+.chip.hit{background:var(--amberDim);border-color:var(--amber);color:var(--amber2);font-weight:600}
+.chip .d{color:var(--fg3);font-weight:400;margin-left:6px;font-size:10.5px}
+
+.ck{display:flex;gap:11px;align-items:flex-start;padding:10px 12px;
+  background:var(--panel2);border-radius:9px;margin-bottom:7px;border-left:2.5px solid var(--fg3)}
+.ck.ok{border-left-color:var(--ok)}.ck.bad{border-left-color:var(--bad)}
+.ck .i{font-size:13px;line-height:1.5;flex-shrink:0}
+.ck .t{font-size:12.5px;margin-bottom:2px}
+.ck .b{font-size:10.5px;color:var(--fg3)}
+
+.sim td{padding:7px 9px;font-size:12.5px}
+.simbar{display:inline-block;width:40px;height:4px;background:var(--raise);
+  border-radius:2px;overflow:hidden;vertical-align:middle;margin-right:6px}
+.simbar i{display:block;height:100%;background:var(--amber)}
+.simsum{margin-top:13px;padding:11px 14px;background:var(--panel2);border-radius:9px;
+  font-size:12.5px;border-left:2.5px solid var(--amber)}
+
+.notice{background:var(--amberDim);border:1px solid var(--amber);
+  border-radius:12px;padding:13px 17px;margin-bottom:22px;
+  font-size:12.5px;color:var(--fg2);display:flex;gap:12px;align-items:flex-start}
+.notice .ic{color:var(--amber);font-size:14px;line-height:1.5;flex-shrink:0}
+.notice b{color:var(--amber2);font-weight:600}
+.notice code{background:var(--panel2);padding:1px 5px;border-radius:4px;color:var(--amber2)}
+
+.foot{text-align:center;padding:40px 0 0;color:var(--fg3);font-size:11.5px}
+.empty{text-align:center;padding:90px 20px;color:var(--fg3);font-size:13px}
+
+/* 专业模式：默认隐藏 */
+.prof{display:none!important}
+body.prof .prof{display:block!important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd">
+    <div class="logo">
+      <b>P<i>.</i>H<i>.</i>M<i>.</i></b><em style="font-size:9.5px;color:var(--fg3);font-style:normal;margin-left:2px">v3.1</em>
+      <span>Phira Huamei Metric</span>
+    </div>
+    <div class="search">
+      <input id="q" type="text" placeholder="搜索曲名或谱师…" autocomplete="off">
+      <div class="sug" id="sug" style="display:none"></div>
+    </div>
+    <select class="sel" id="lv"><option value="">全部难度</option></select>
+    <div class="tools">
+      <button class="ibtn" id="btnSet" title="设置">⚙</button>
+      <div class="pop" id="pop">
+        <div class="ph">外观</div>
+        <button class="opt" id="oTheme" aria-pressed="true">
+          <span class="txt">深色主题<small>点击切换为浅色</small></span><span class="sw"></span>
+        </button>
+        <hr>
+        <div class="ph">显示</div>
+        <button class="opt" id="oPro" aria-pressed="false">
+          <span class="txt">专业模式<small>特征对照 · 官谱参照 · 判据明细</small></span><span class="sw"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="notice">
+    <div class="ic">◆</div>
+    <div>
+      <b>不判定「虚标」。</b>
+      官方定数本身是人工标注，实测噪声 <code>2.80 级</code>（同曲且物量相近的相邻难度）。
+      此噪声下无法区分「谱师标错」与「官方也会这么标」。这里给出的是参考区间。
+    </div>
+  </div>
+
+  <div id="view"><div class="empty">搜索曲名或谱师开始</div></div>
+
+  <div class="foot">
+    公式 <span class="mono">查表(难度标签 × NPS档 × Hold%档)</span> ·
+    精度 <span class="mono">留一法 MAE 0.700</span>，与官方标注噪声同级 ·
+    官谱定数自 APK 提取，可逐条追溯
+  </div>
+</div>
+
+<script>
+let DATA=[],OFF=[],IDX=new Map(),CUR=null;
+const $=s=>document.querySelector(s);
+const f=(v,n=1)=>v==null||isNaN(v)?'—':(+v).toFixed(n);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const med=a=>{const s=[...a].filter(x=>x!=null&&!isNaN(x)).sort((x,y)=>x-y);
+  return s.length?s[Math.floor(s.length/2)]:null};
+const qp=s=>(s==null||isNaN(s))?'':(Math.abs(s)<5?'持平'
+  :(s>0?'+':'')+s.toFixed(0)+'%');
+
+/* ══ 设置 ══ */
+let THEME='dark',PRO=false;
+try{THEME=localStorage.getItem('phm.theme')||'dark';
+    PRO=localStorage.getItem('phm.pro')==='1';}catch(e){}
+function applyTheme(){
+  document.documentElement.dataset.theme=THEME;
+  const b=$('#oTheme');
+  b.setAttribute('aria-pressed',THEME==='dark');
+  b.querySelector('.txt').innerHTML=(THEME==='dark'?'深色主题':'浅色主题')
+    +'<small>'+(THEME==='dark'?'点击切换为浅色':'点击切换为深色')+'</small>';
+  try{localStorage.setItem('phm.theme',THEME)}catch(e){}
+}
+function applyPro(){
+  document.body.classList.toggle('prof',PRO);
+  $('#oPro').setAttribute('aria-pressed',PRO);
+  try{localStorage.setItem('phm.pro',PRO?'1':'0')}catch(e){}
+  if(CUR)show(CUR.id);
+}
+$('#oTheme').onclick=()=>{THEME=THEME==='dark'?'light':'dark';applyTheme();};
+$('#oPro').onclick=()=>{PRO=!PRO;applyPro();};
+$('#btnSet').onclick=e=>{e.stopPropagation();$('#pop').classList.toggle('show');};
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tools'))$('#pop').classList.remove('show');
+});
+
+/* ══ 数据 ══ */
+function parse(t){return t.split('\n').filter(x=>x.trim()).map(x=>JSON.parse(x))}
+async function boot(){
+  try{
+    $('#view').innerHTML='<div class="empty">正在载入…</div>';
+    const[c,o]=await Promise.all([
+      fetch('data/community.jsonl').then(r=>{if(!r.ok)throw new Error('社区谱 HTTP '+r.status);return r.text()}),
+      fetch('data/official.jsonl').then(r=>{if(!r.ok)throw new Error('官谱 HTTP '+r.status);return r.text()})
+    ]);
+    DATA=parse(c);OFF=parse(o);IDX=new Map(DATA.map(r=>[r.id,r]));
+    const lvs=[...new Set(DATA.map(r=>(r.level||'').slice(0,2).toUpperCase()).filter(Boolean))].sort();
+    $('#lv').innerHTML='<option value="">全部难度</option>'+lvs.map(x=>'<option>'+x+'</option>').join('');
+    if(DATA.length)show(DATA[0].id);
+  }catch(e){
+    $('#view').innerHTML='<div class="empty" style="color:var(--bad)">载入失败：'+esc(e.message)+'</div>';
+  }
+}
+
+/* ══ 搜索 ══ */
+function search(k){
+  k=k.trim().toLowerCase();if(!k)return[];
+  return DATA.filter(r=>(r.name||'').toLowerCase().includes(k)
+    ||(r.charter||'').toLowerCase().includes(k)).slice(0,7);
+}
+$('#q').addEventListener('input',e=>{
+  const m=search(e.target.value),s=$('#sug');
+  if(!m.length||!e.target.value.trim()){s.style.display='none';return}
+  s.style.display='block';
+  s.innerHTML=m.map(r=>'<button onclick="show('+r.id+')">'+esc(r.name)
+    +' <span class="m">'+esc((r.level||'').slice(0,10))+' · '+f(r.difficulty)+'</span></button>').join('');
+});
+$('#q').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const m=search(e.target.value);
+    if(m.length)show(m[0].id);$('#sug').style.display='none';}
+});
+$('#q').addEventListener('blur',()=>setTimeout(()=>$('#sug').style.display='none',180));
+$('#lv').addEventListener('change',()=>{
+  const v=$('#lv').value;
+  const hit=v?DATA.find(r=>(r.level||'').slice(0,2).toUpperCase()===v):DATA[0];
+  if(hit)show(hit.id);
+});
+
+/* ══ 渲染 ══ */
+function show(id){
+  const r=IDX.get(id);if(!r)return;
+  CUR=r;$('#sug').style.display='none';
+  const nl=r.notes_real||1,hr=(r.t_hold||0)/nl,dfc=(r.t_drag||0)/nl;
+  const lv=(r.level||'').slice(0,2).toUpperCase();
+  const same=OFF.filter(x=>(x.level||'').slice(0,2).toUpperCase()===lv);
+  const P={nps:same.map(x=>x.nps),nt:same.map(x=>x.notes_real),
+    hd:same.map(x=>x.t_hold/x.notes_real*100),sr:same.map(x=>x.stair_speed_avg||0)};
+
+  // 区间
+  const NE=[0,2.5,4.5,6.5,10,1e9],HE=[0,.12,.25,.40,.55,1.01];
+  const bk=(v,e)=>{for(let i=0;i<e.length-1;i++)if(v>=e[i]&&v<e[i+1])return i;return null};
+  const cell=OFF.filter(x=>(x.level||'').slice(0,2).toUpperCase()===lv
+    &&bk(x.nps,NE)===bk(r.nps,NE)&&bk(x.t_hold/x.notes_real,HE)===bk(hr,HE));
+  let lo=null,hi=null,mid=null,basis='无同类官谱样本';
+  if(cell.length>=4){
+    const ds=cell.map(x=>x.difficulty).sort((a,b)=>a-b);
+    lo=ds[Math.floor(ds.length/4)];
+    hi=ds[Math.min(Math.floor(ds.length*3/4),ds.length-1)]+.2;
+    mid=ds[Math.floor(ds.length/2)];
+    basis='官谱同标签同NPS同Hold档（n='+cell.length+'）';
+  }else if(same.length){
+    mid=med(same.map(x=>x.difficulty));
+    basis='仅标签基线';
+  }
+
+  // 谱型
+  const TY=[];
+  if(dfc>.50)TY.push(['抽象谱','Drag '+(dfc*100).toFixed(0)+'%']);
+  else if(dfc>.35)TY.push(['Drag偏多','Drag '+(dfc*100).toFixed(0)+'%']);
+  if((r.fake||0)>nl)TY.push(['假键流',r.fake+' 假键']);
+  if((r.stair_speed_avg||0)>20)TY.push(['高纵连',f(r.stair_speed_avg,0)]);
+  if((r.hold_interference_index||0)>50)TY.push(['长押主导',f(r.hold_interference_index,0)]);
+  if(!TY.length)TY.push(['常规配置','']);
+
+  // 核心答案
+  let core;
+  if(lo!=null){
+    const vc=r.difficulty<lo?'lo':(r.difficulty>hi?'hi':'in');
+    const vt=vc==='in'?'难度正常，和同类谱面一致'
+      :(vc==='hi'?'标得偏高，同类谱面通常没这么高':'标得偏低，同类谱面通常没这么低');
+    const a=lo-2,b=hi+2,pos=v=>Math.max(0,Math.min(100,(v-a)/(b-a)*100));
+    core='<div class="gauge">'
+      +'<span class="num" style="color:var(--blue)">'+f(r.difficulty)+'</span>'
+      +'<span class="sep">vs</span>'
+      +'<span class="rng">'+f(lo)+' – '+f(hi)+'</span></div>'
+      +'<div class="badge '+vc+'">'+(vc==='in'?'✓':(vc==='hi'?'▲':'▼'))+' '+vt+'</div>'
+      +'<div class="scale">'
+      +'<div class="zone" style="left:'+pos(lo)+'%;width:'+(pos(hi)-pos(lo))+'%"></div>'
+      +'<div class="midline" style="left:'+pos(mid)+'%"></div>'
+      +'<div class="own" data-r="你 '+f(r.difficulty)+'" style="left:'+pos(r.difficulty)+'%"></div>'
+      +'<div class="ticks">'+[[a,''],[lo,lo],[mid,mid],[hi,hi],[b,'']]
+        .map(function(t){return '<span style="left:'+pos(t[0])+'%">'+t[1]+'</span>';}).join('')
+      +'</div></div>'
+      +'<div class="vsub">左边是你标的定数，右边是 '+lv+' 难度同类官谱的定价范围<br>'
+      +'<span style="color:var(--fg3)">区间含官谱标注噪声 ±0.7，不是精确值</span></div>'
+      +'<details class="why"><summary>这个区间是怎么来的？</summary>'
+      +'<p>把「同难度标签 + 同手数密度 + 同长条占比」的官谱挑出来'
+      +'（'+(cell.length||0)+' 首），取它们定数的四分位区间。</p>'
+      +'<p>依据：'+esc(basis)+'</p></details>';
+  }else{
+    core='<div class="gauge"><span class="num" style="color:var(--blue)">'+f(r.difficulty)+'</span></div>'
+      +'<div class="badge lo">参考中位 '+f(mid)+'</div>'
+      +'<div class="vsub" style="color:var(--warn)">⚠ '+esc(basis)+'，无可比区间</div>';
+  }
+
+  // 特征
+  const FL=[['NPS 每秒手数',r.nps,med(P.nps),2],['物量',r.notes_real,med(P.nt),0],
+    ['Hold 占比',hr*100,med(P.hd),1],['纵连速度',r.stair_speed_avg,med(P.sr),1]];
+  const FEAT=FL.map(function(x){
+    const dv=(x[2]!=null&&x[2]!==0)?((x[1]-x[2])/x[2]*100):null;
+    const cls=Math.abs(dv||0)>15?(dv>0?'up':'dn'):'flat';
+    return{lb:x[0],v:x[1],m:x[2],dp:x[3],dv:dv,cls:cls,
+      txt:Math.abs(dv||0)>15?(dv>0?'偏高':'偏低'):'接近中位',
+      w:Math.min(Math.abs(dv||0),100)};
+  });
+
+  // 官谱参照
+  const L=x=>Math.log1p(Math.max(x||0,.01));
+  const b1=Math.max(L(r.nps),.1),b2=Math.max(L(hr*100),.1),b3=Math.max(L(r.notes_real),.1);
+  const SIM=same.map(function(x){
+    const d=Math.abs(L(x.nps)-b1)/b1+Math.abs(L(x.t_hold/x.notes_real*100)-b2)/b2
+      +Math.abs(L(x.notes_real)-b3)/b3;
+    const o={};for(const k in x)o[k]=x[k];o.sm=Math.max(0,1-d/3);return o;
+  }).sort(function(a,b){return b.sm-a.sm;}).slice(0,5);
+  const sd=SIM.map(x=>x.difficulty);
+  const sMin=sd.length?Math.min.apply(null,sd):null;
+  const sMax=sd.length?Math.max.apply(null,sd):null;
+
+  // 判据
+  const CK=[];
+  if(r.difficulty>18)CK.push(['bad','✕','定数 '+f(r.difficulty)+' 超出官方历史最高 18.0',
+    '官谱 1,037 条定数无一超过 18.0（DesultorySignals AT）']);
+  else CK.push(['ok','✓','定数 '+f(r.difficulty)+' 在官方历史范围内','官方最高 18.0']);
+  const LR={EZ:[0,10.5],HD:[3,14.5],IN:[6.5,17.5],AT:[13,18]};
+  if(LR[lv]){
+    const a=LR[lv][0],b=LR[lv][1];
+    if(r.difficulty>b)CK.push(['bad','✕',lv+' 定数 '+f(r.difficulty)+' 超出官方 '+lv+' 上限 '+b,'实测官谱 '+lv+' 区间']);
+    else if(r.difficulty<a)CK.push(['bad','✕',lv+' 定数 '+f(r.difficulty)+' 低于官方 '+lv+' 下限 '+a,'实测官谱 '+lv+' 区间']);
+    else CK.push(['ok','✓',lv+' 定数 '+f(r.difficulty)+' 在官方 '+lv+' 区间内','实测 ['+a+', '+b+']']);
+  }
+  const mm=(r.level||'').match(/Lv\.\s*(\d+(?:\.\d+)?)/i);
+  if(mm&&!/^uk/i.test((r.level||'').trim())){
+    const v=parseFloat(mm[1]),d=Math.abs(v-r.difficulty);
+    if(d>=1)CK.push(['bad','✕','等级文字 Lv.'+v+' 与定数 '+f(r.difficulty)+' 相差 '+f(d)+'，超 1.0 阈值',
+      'phira.moe 前端校验器同款规则']);
+    else CK.push(['ok','✓','等级文字与定数一致（差 '+f(d)+'）','phira.moe 前端校验器同款规则']);
+  }
+  if(lo!=null&&Math.abs(r.difficulty-mid)>=2)
+    CK.push(['bad','✕','比同类中位'+(r.difficulty>mid?'高':'低')+' '+f(Math.abs(r.difficulty-mid))+' 级',
+      '同类 n='+cell.length]);
+
+  $('#view').innerHTML=
+  '<div class="shead"><h1>'+esc(r.name)+'</h1><div class="row">'
+  +'<span class="pill">'+esc(r.level||'无标签')+'</span>'
+  +'<span>物量 '+r.notes_real+'</span><span>·</span>'
+  +'<span>NPS '+f(r.nps,2)+'</span><span>·</span>'
+  +'<span>'+f(r.duration_s,0)+'s</span>'
+  +(r.charter?'<span>·</span><span>'+esc(r.charter)+'</span>':'')
+  +(r.stable?'<span class="pill ok">已上架</span>':'')
+  +'</div></div>'
+
+  +'<div class="vcard"><div class="lbl">'+(lv||'')+' 难度参考</div>'+core+'</div>'
+
+  // 专业模式：特征对照
+  +'<div class="box prof"><div class="bh"><span class="idx">1</span><b>特征对照</b></div>'
+  +'<div class="bsub">你与同难度标签官谱的差距 · 依据 '+esc(basis)+'</div>'
+  +'<table><thead><tr><th>特征</th><th class="num">你的值</th>'
+  +'<th class="num">同类中位</th><th class="num">偏离</th>'
+  +'<th style="width:84px"></th><th>判定</th></tr></thead><tbody>'
+  +FEAT.map(function(x){
+    return '<tr><td>'+x.lb+'</td>'
+    +'<td class="num mono">'+f(x.v,x.dp)+'</td>'
+    +'<td class="num mono" style="color:var(--fg3)">'+f(x.m,x.dp)+'</td>'
+    +'<td class="num mono '+x.cls+'">'+(x.dv==null?'—':qp(x.dv))+'</td>'
+    +'<td><div class="meter"><i class="'+x.cls+'" style="width:'+x.w+'%"></i></div></td>'
+    +'<td class="'+x.cls+'" style="font-size:11.5px">'+x.txt+'</td></tr>';
+  }).join('')
+  +'</tbody></table>'
+  +'<div style="font-size:10.5px;color:var(--fg3);margin-top:10px">'
+  +'Hold 占比高 = 强度分散（单次操作持续成本高），非正向难度因子</div></div>'
+
+  // 专业模式：两栏
+  +'<div class="grid prof" style="grid-template-columns:1fr 320px">'
+  +'<div class="box" style="margin:0">'
+  +'<div class="bh"><span class="idx">2</span><b>事实性检查</b></div>'
+  +'<div class="bsub">不依赖模型，可直接核验</div>'
+  +CK.map(function(c){
+    return '<div class="ck '+c[0]+'"><div class="i">'+c[1]+'</div>'
+    +'<div><div class="t">'+esc(c[2])+'</div>'
+    +'<div class="b">依据：'+esc(c[3])+'</div></div></div>';
+  }).join('')
+  +'</div><div>'
+  +'<div class="box" style="margin:0 0 16px">'
+  +'<div class="bh"><span class="idx">3</span><b>谱型识别</b></div>'
+  +'<div class="bsub">抽象谱 Drag&gt;50% · 假键流 假键&gt;真键</div>'
+  +'<div class="chips">'+TY.map(function(t){
+    return '<span class="chip hit">'+t[0]+'<span class="d">'+esc(t[1])+'</span></span>';
+  }).join('')+'</div></div>'
+  +'<div class="box" style="margin:0">'
+  +'<div class="bh"><span class="idx">4</span><b>官谱参照</b></div>'
+  +'<div class="bsub">与你最相似的官谱及其定价</div>'
+  +'<table class="sim"><thead><tr><th>曲名</th><th class="num">定数</th>'
+  +'<th style="width:70px">相似度</th></tr></thead><tbody>'
+  +SIM.map(function(x){
+    return '<tr><td>'+esc(x.name)+'</td>'
+    +'<td class="num mono" style="color:var(--amber2)">'+f(x.difficulty)+'</td>'
+    +'<td class="num"><span class="simbar"><i style="width:'+(x.sm*100).toFixed(0)+'%"></i></span>'
+    +'<span class="mono" style="font-size:10.5px">'+(x.sm*100).toFixed(0)+'%</span></td></tr>';
+  }).join('')
+  +'</tbody></table>'
+  +(sd.length?'<div class="simsum">这 '+sd.length+' 首官谱定价 '
+    +'<b style="color:var(--amber2)">'+f(sMin)+' ~ '+f(sMax)+'</b>'
+    +(r.difficulty<sMin?'<br><span style="color:var(--blue)">你比它们低 '+f(sMin-r.difficulty)+' 级</span>'
+     :(r.difficulty>sMax?'<br><span style="color:var(--warn)">你比它们高 '+f(r.difficulty-sMax)+' 级</span>'
+     :'<br><span style="color:var(--ok)">与参照官谱一致</span>'))
+    +'</div>':'')
+  +'</div></div></div>';
+}
+
+applyTheme();applyPro();boot();
+</script>
+</body>
+</html>

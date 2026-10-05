@@ -1,0 +1,47 @@
+# ============================================================
+#  P.H.M. — Phira Huamei Metric
+#  数据与外部素材不入库（体积大、可重新获取）
+# ============================================================
+
+# ── 数据（31GB 谱面语料 + 派生数据，可由流水线重建）──
+data/
+!data/.gitkeep
+
+# ── 外部素材（Phira 源码、竞品工具、APK 等）──
+_research/
+*.apk
+
+# ── 构建产物（由 build_standalone.py 生成）──
+phm/P.H.M..html
+phm/gui/data/
+
+# ── 批量报告（由 cli.py --batch 生成）──
+reports/
+
+# ── 工具本地状态（工作日志等，不入开源仓库）──
+.workbuddy/
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# ── Node ──
+node_modules/
+package-lock.json
+
+# ── 编辑器 / 系统 ──
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── 临时文件 ──
+*.tmp
+_check.js
+*.log
