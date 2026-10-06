@@ -22,6 +22,36 @@ color:var(--fg2);text-decoration:none;border:1px solid var(--line);border-radius
 padding:5px 11px;transition:.15s;white-space:nowrap}
 .gh:hover{color:var(--fg);border-color:var(--fg3);background:var(--card2)}
 .gh svg{display:block;flex:none}
+.gh button,.gh{cursor:pointer}
+/* ── 连接 Phira 面板 ── */
+.pf{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 16px}
+.pf .pfhead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.pf .pfx{margin-left:auto;cursor:pointer;color:var(--fg3);padding:0 4px}
+.pf .pfx:hover{color:var(--fg)}
+.pf .pfdesc{font-size:12px;color:var(--fg2);margin:6px 0 10px;line-height:1.6}
+.pf .pfdesc b{color:var(--fg)}
+.pf .pfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pf input{flex:1;max-width:280px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 11px;color:var(--fg);font:inherit;outline:none}
+.pf input:focus{border-color:var(--blue)}
+.pf button{border:0;border-radius:8px;padding:8px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--blue);color:#fff}
+.pf button:disabled{opacity:.5;cursor:default}
+.pf .pfmsg{font-size:12px;color:var(--fg2);margin-top:8px;min-height:1em}
+.pfuser{display:flex;align-items:center;gap:13px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.pfuser img{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--card2)}
+.pfuser .nm{font-weight:700;font-size:16px}
+.pfuser .meta{font-size:12px;color:var(--fg2)}
+.pfuser .rks{margin-left:auto;text-align:right}
+.pfuser .rks b{font-size:23px;color:var(--amber)}
+.pfuser .rks span{font-size:11px;color:var(--fg3);display:block}
+.btable{margin-top:10px;width:100%;border-collapse:collapse;font-size:12.5px}
+.btable th{text-align:left;color:var(--fg3);font-weight:400;padding:5px 6px;border-bottom:1px solid var(--line)}
+.btable td{padding:5px 6px;border-bottom:1px solid var(--line)}
+.btable tr:hover td{background:var(--card2)}
+.btable .idx{color:var(--fg3);width:26px}
+.btable .rk{color:var(--amber);font-variant-numeric:tabular-nums}
+.btable .oc{color:var(--fg2);font-variant-numeric:tabular-nums}
+.improw{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.improw .hint{font-size:11.5px;color:var(--fg3)}
 #drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
@@ -86,12 +116,26 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
 <header>
   <h1><b>P.H.M.</b> Standard</h1>
   <span class="ver">V0.3.2 · 开发者测试版</span>
+  <button class="gh" id="phiraBtn" type="button"
+     title="连接 Phira：读取你的公开资料与最好成绩（不需要密码）">🔗 连接 Phira</button>
   <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
      target="_blank" rel="noopener" title="GitHub 仓库 · Phira-Huamei-Metric"
      aria-label="GitHub 仓库"><svg viewBox="0 0 16 16" width="17" height="17"
      fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
   <div class="slogan">谱面负荷分析器 —— 分析全部在你的设备上完成；分析完可以顺手<b>打卡</b>：填一个 ACC，我们帮你算单曲 RKS，成绩匿名进库帮定数公式变准。</div>
 </header>
+
+<div class="pf" id="ppanel" style="display:none">
+  <div class="pfhead">🔗 连接 Phira<span class="pfx" id="pclose" title="收起">✕</span></div>
+  <div class="pfdesc">输入你的 Phira <b>用户名</b>，读取你的<b>公开资料</b>（RKS、最好成绩）。<br>
+  不需要密码、不读取任何私密信息 —— 这些数据在 Phira 站内本来就是公开的。</div>
+  <div class="pfrow">
+    <input id="pname" placeholder="Phira 用户名，如 Mivik" maxlength="24" autocomplete="off">
+    <button id="psearch" type="button">查询</button>
+  </div>
+  <div class="pfmsg" id="pfmsg"></div>
+  <div id="pfout"></div>
+</div>
 
 <div id="drop">
   <div class="big">把 Phira 谱面包拖到这里</div>
@@ -829,6 +873,149 @@ function renderCount(n){
     .then(function(res){
       if(!res.error&&res.count!=null) renderCount(res.count);
     }).catch(function(){});
+})();
+
+/* ═════════ Phira 连接：公开 API（无需密码，CORS 开放）═════════ */
+const PHIRA_API="https://api.phira.cn";
+const PF={user:null,rows:[]};
+function pfMsg(t,col){const el=$("#pfmsg");if(!el)return;el.textContent=t||"";el.style.color=col||"";}
+function pfGet(p){
+  return fetch(PHIRA_API+p,{headers:{"Accept":"application/json"}}).then(function(r){
+    if(!r.ok) throw new Error("Phira API "+r.status);
+    return r.json();});
+}
+/* 限并发执行（避免一次 40 个请求） */
+function pfPoolRun(items,limit,fn){
+  const out=new Array(items.length); let i=0;
+  const n=Math.min(limit,items.length)||1;
+  return Promise.all(Array.from({length:n},function(){
+    return (async function(){ while(i<items.length){ const k=i++;
+      try{ out[k]=await fn(items[k],k); }catch(e){ out[k]=null; } } })();
+  })).then(function(){return out;});
+}
+function lvShort(l){ return String(l||"").replace(/\s+/g," ").trim(); }
+function lvTag(l){ const m=/^([A-Za-z]{2,3})/i.exec(String(l||"")); return m?m[1].toUpperCase():"?"; }
+
+function pfRender(){
+  const u=PF.user,rows=PF.rows;
+  if(!u) return;
+  const joined=String(u.joined||"").slice(0,10);
+  let html='<div class="pfuser">'
+    +(u.avatar?'<img src="'+esc(u.avatar)+'" alt="" onerror="this.style.display=\'none\'">':"")
+    +'<div><div class="nm">'+esc(u.name)+'</div>'
+    +'<div class="meta">#'+esc(u.id)+' · 粉丝 '+esc(u.follower_count)
+    +(joined?' · 加入 '+esc(joined):"")+'</div></div>'
+    +'<div class="rks"><b>'+(+u.rks).toFixed(2)+'</b>'
+    +'<span>RKS（Phira 官方值 · 客户端不显示，这里能看）</span></div></div>';
+  html+='<table class="btable"><tr><th class="idx">#</th><th>曲名</th><th>等级</th>'
+    +'<th>官方定数</th><th>单曲 RKS</th></tr>'
+    +rows.map(function(r,i){
+      const inf=r.info||{};
+      return '<tr><td class="idx">'+(i+1)+'</td>'
+        +'<td>'+esc(inf.name||("谱面 #"+r.chart))+'</td>'
+        +'<td>'+esc(lvShort(inf.level)||"-")+'</td>'
+        +'<td class="oc">'+(inf.difficulty!=null?(+inf.difficulty).toFixed(2):"-")+'</td>'
+        +'<td class="rk">'+(+r.rks).toFixed(2)+'</td></tr>';
+    }).join("")+'</table>';
+  html+='<div class="improw"><button id="pimport" type="button">'
+    +'📥 把这 '+rows.length+' 条最好成绩导入数据飞轮</button>'
+    +'<span class="hint">只含谱面与成绩数据，不含账号密码；用来校准定数公式。</span></div>';
+  $("#pfout").innerHTML=html;
+  const ib=$("#pimport"); if(ib) ib.addEventListener("click",pfImport);
+}
+
+async function pfSearch(){
+  const raw=$("#pname").value.trim();
+  if(!raw){ pfMsg("先填 Phira 用户名","var(--red)"); return; }
+  const btn=$("#psearch"); btn.disabled=true;
+  $("#pfout").innerHTML=""; pfMsg("查询用户…");
+  try{
+    const j=await pfGet("/user?search="+encodeURIComponent(raw)+"&page=1");
+    const u=(j&&j.results&&j.results[0])||null;
+    if(!u){ pfMsg("没找到「"+raw+"」，检查拼写（区分大小写）","var(--red)"); btn.disabled=false; return; }
+    pfMsg("读取最好成绩…");
+    const pool=(await pfGet("/record/get-pool/"+u.id)).bestPool||[];
+    if(!pool.length){ pfMsg("这个账号还没有成绩记录","var(--red)"); btn.disabled=false; return; }
+    let done=0;
+    const charts=await pfPoolRun(pool,5,async function(p){
+      const c=await pfGet("/chart/"+p.chart).catch(function(){return null;});
+      done++; pfMsg("拉取谱面信息…（"+done+"/"+pool.length+"）");
+      return c;
+    });
+    PF.user=u;
+    PF.rows=pool.map(function(p,i){
+      const o={chart:p.chart,record:p.record,rks:p.rks}; o.info=charts[i]; return o;});
+    try{ localStorage.setItem("phm_phira_name",u.name); }catch(e){}
+    pfMsg("");
+    pfRender();
+  }catch(e){
+    pfMsg("查询失败："+(e&&e.message?e.message:"网络异常")+"（Phira API 可能临时不可用）","var(--red)");
+  }
+  btn.disabled=false;
+}
+
+async function pfImport(){
+  const btn=$("#pimport"); if(!btn) return;
+  if(!cloudDB){ pfMsg("云服务未连上，无法导入","var(--red)"); return; }
+  btn.disabled=true;
+  const rows=PF.rows, u=PF.user;
+  let done=0;
+  const recs=await pfPoolRun(rows,5,async function(r){
+    const rec=await pfGet("/record/"+r.record).catch(function(){return null;});
+    done++; pfMsg("读取准确率…（"+done+"/"+rows.length+"）");
+    return rec;
+  });
+  const payload=rows.map(function(r,i){
+    const inf=r.info||{}, rec=recs[i];
+    return {
+      chart_name:String(inf.name||("谱面 #"+r.chart)).slice(0,120),
+      chart_diff:lvTag(inf.level),
+      chart_level:lvShort(inf.level)||null,
+      official_const:inf.difficulty!=null?+(+inf.difficulty).toFixed(3):null,
+      acc:rec&&rec.accuracy!=null?+(rec.accuracy*100).toFixed(4):null,
+      song_rks:+(+r.rks).toFixed(3),
+      chart_id:r.chart,
+      phira_user_id:u.id,
+      phira_user_name:String(u.name).slice(0,60),
+      source:"phira",
+      engine_ver:"5d-knn-v0.3.2",
+      client_id:clientId()
+    };
+  });
+  pfMsg("写入中…");
+  try{
+    const ins=await cloudDB.from("phm_scores").insert(payload);
+    if(ins.error) throw ins.error;
+    pfMsg("");
+    btn.outerHTML='<span style="color:var(--green);font-size:12.5px">✅ 已导入 '
+      +payload.length+' 条成绩，感谢你帮定数公式变准！</span>';
+    renderCount((window.PHM_COUNT||0)+payload.length);
+  }catch(e){
+    btn.disabled=false;
+    pfMsg("导入失败："+(e&&e.message?e.message:"网络异常"),"var(--red)");
+  }
+}
+
+/* 面板开关 */
+(function(){
+  const btn=$("#phiraBtn"), panel=$("#ppanel");
+  if(!btn||!panel) return;
+  btn.addEventListener("click",function(){
+    const show=panel.style.display==="none";
+    panel.style.display=show?"":"none";
+    if(show){
+      let last=null; try{ last=localStorage.getItem("phm_phira_name"); }catch(e){}
+      const inp=$("#pname");
+      if(last&&inp&&!inp.value) inp.value=last;
+      if(inp) inp.focus();
+    }
+  });
+  const c=$("#pclose");
+  if(c) c.addEventListener("click",function(){ panel.style.display="none"; });
+  const s=$("#psearch");
+  if(s) s.addEventListener("click",pfSearch);
+  const inp=$("#pname");
+  if(inp) inp.addEventListener("keydown",function(e){ if(e.key==="Enter") pfSearch(); });
 })();
 </script>
 </body>
