@@ -1317,7 +1317,16 @@ async function computeChart(cid,btn,info){
   try{
     const res=await fetchTO(url,90000);
     if(!res.ok) throw new Error("HTTP "+res.status);
+    /* 安全边界：拒绝异常大的包（防内存爆掉/恶意文件） */
+    const len=+(res.headers.get("content-length")||0);
+    const MAXB=60*1024*1024;
+    if(len>MAXB){
+      try{ if(res.body&&res.body.cancel) await res.body.cancel(); }catch(e){}
+      throw new Error("谱面包过大（"+(len/1048576).toFixed(0)+" MB，超过 "
+        +(MAXB/1048576)+" MB 上限），已跳过");
+    }
     const buf=await res.arrayBuffer();
+    if(buf.byteLength>MAXB) throw new Error("谱面包过大，已跳过");
     btn.textContent="解析中…";
     csMsg("已下载 "+(buf.byteLength/1048576).toFixed(2)+" MB，正在解析…");
     const rs=await analyzeChart(buf,nm+".pez");
