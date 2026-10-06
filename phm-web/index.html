@@ -22,6 +22,16 @@ header h1 b{color:var(--amber)}
 #drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
 #drop input{display:none}
 .note{font-size:11.5px;color:var(--fg3);margin:10px 2px 0}
+.punch{margin-top:10px;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;background:var(--card2)}
+.punch .ptitle{font-weight:700;font-size:13px;color:var(--fg)}
+.punch .pdesc{font-size:12px;color:var(--fg2);margin:4px 0 8px}
+.punch .pdesc b{color:var(--fg)}
+.punch .prow{display:flex;gap:8px;align-items:center}
+.punch input{width:150px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--fg);font:inherit;outline:none}
+.punch input:focus{border-color:var(--blue)}
+.punch button{border:0;border-radius:8px;padding:7px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--blue);color:#fff}
+.punch button:disabled{opacity:.5;cursor:default}
+.punch .pmsg{font-size:12px;color:var(--fg2);margin-top:6px;min-height:1em}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
 .card h2{font-size:15px;margin-bottom:2px}
 .card .sub{font-size:12px;color:var(--fg2);margin-bottom:12px}
@@ -65,7 +75,7 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
 <header>
   <h1><b>P.H.M.</b> Standard</h1>
   <span class="ver">V0.3.2 · 开发者测试版</span>
-  <div class="slogan">谱面负荷分析器 —— <b>零内嵌</b>：本页不含任何数据库，放入谱面包，全部分析在你自己的设备上完成。</div>
+  <div class="slogan">谱面负荷分析器 —— 分析全部在你的设备上完成；分析完可以顺手<b>打卡</b>：填一个 ACC，我们帮你算单曲 RKS，成绩匿名进库帮定数公式变准。</div>
 </header>
 
 <div id="drop">
@@ -74,6 +84,7 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
   <input id="file" type="file" accept=".pez,.zip" multiple>
 </div>
 <div class="note" id="msg"></div>
+<div class="note" id="pcount" style="display:none;color:var(--green)"></div>
 <div id="out"></div>
 
 <footer>
@@ -583,6 +594,13 @@ function card(r){
     +'）—— 衡量操作与读取负荷，与官方定数无关</div>'
     +'<table>'+rows.map(function(x){return '<tr><td>'+x[0]
       +'</td><td>'+esc(x[1])+'</td></tr>';}).join("")+'</table>'
+    +'<div class="punch" id="punch-'+STATE.sel+'" data-i="'+STATE.sel+'">'
+      +'<div class="ptitle">🎯 打卡 · 数据飞轮（可选，匿名）</div>'
+      +'<div class="pdesc">你在 Phira 里这把的<b>准度 ACC</b>（成绩页右上角的 %）填进来：'
+      +'我们按社区公式帮你算这张图的<b>单曲 RKS</b>，成绩匿名入库帮定数变准。</div>'
+      +'<div class="prow"><input id="pacc" inputmode="decimal" autocomplete="off"'
+      +' placeholder="如 96.50" maxlength="9"><button id="pgo" type="button">打卡</button></div>'
+      +'<div class="pmsg"></div></div>'
     +'</div>';
 }
 
@@ -635,6 +653,125 @@ drop.addEventListener("drop",function(e){
 $("#file").addEventListener("change",function(e){
   handleFiles([...e.target.files]); e.target.value="";
 });
-</script></script>
+</script>
+<!-- ═════════ 数据飞轮：匿名打卡（CloudBase）═════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
+<script>
+"use strict";
+/* publicConfig（仅公开值：endpoint + publishableKey） */
+const CLOUD_CFG={endpoint:"https://phm.app.workbuddy.host",
+  publishableKey:"wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b"};
+let cloudDB=null;
+try{
+  if(window.WorkBuddyCloud&&WorkBuddyCloud.createWorkBuddyCloud){
+    cloudDB=WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG).database;
+  }
+}catch(e){ cloudDB=null; }
+
+/* 匿名会话 id（localStorage，无隐私信息） */
+function clientId(){
+  let v=null;
+  try{ v=localStorage.getItem("phm_cid"); }catch(e){}
+  if(!v){ v=Math.random().toString(36).slice(2,10);
+    try{ localStorage.setItem("phm_cid",v); }catch(e){} }
+  return v;
+}
+/* 单曲 rks（Phigros/Phira 社区公式）：((acc−55)/45)²×定数，acc<70 记 0 */
+function songRks(cst,accPct){
+  if(!(cst>0)||!(accPct>=70)) return 0;
+  const k=(accPct-55)/45;
+  return k*k*cst;
+}
+/* 容错解析：96.5→96.5；0.965→96.5；965000（万分制分数）→96.5 */
+function parseAcc(s){
+  s=String(s).trim().replace(/%\s*$/,"").replace(/[,，]/g,"");
+  if(!/^\d{1,6}(\.\d+)?$/.test(s)) return null;
+  let v=+s;
+  if(v>0&&v<1) v=v*100;          /* 0.965 小数形式 → 96.5 */
+  if(v>1000) v=v/10000;          /* 万分制分数 → ACC */
+  if(v>100) return null;
+  return v>0?v:null;
+}
+function punchPreview(idx){
+  const box=$("#punch-"+idx); if(!box) return;
+  const inp=box.querySelector("input"), msg=box.querySelector(".pmsg");
+  if(!inp||document.activeElement!==inp) return;
+  const acc=parseAcc(inp.value);
+  const ref=STATE.reports[idx]&&STATE.reports[idx].knn?STATE.reports[idx].knn.ref:null;
+  if(acc==null){ msg.textContent=""; return; }
+  const r=songRks(ref,acc);
+  msg.innerHTML="单曲 RKS 预览 ≈ <b>"+r.toFixed(2)+"</b>"
+    +(acc<70?"　<span style=\"color:var(--red)\">ACC&lt;70 不计入 RKS</span>":"");
+}
+async function submitPunch(idx){
+  const box=$("#punch-"+idx); if(!box) return;
+  const inp=box.querySelector("input"), btn=box.querySelector("button"),
+        msg=box.querySelector(".pmsg");
+  const r=STATE.reports[idx]; if(!r||r.error) return;
+  const acc=parseAcc(inp?inp.value:"");
+  if(acc==null){
+    msg.textContent="⚠ 请填准度 ACC（0–100 的数字，如 96.50，成绩页右上角那个 %）";
+    msg.style.color="var(--red)"; return;
+  }
+  if(!cloudDB){
+    msg.textContent="⚠ 云服务未连上（检查网络），本次打卡没有发出";
+    msg.style.color="var(--red)"; return;
+  }
+  btn.disabled=true; msg.style.color=""; msg.textContent="提交中…";
+  const ref=r.knn?r.knn.ref:null;
+  const srk=songRks(ref,acc);
+  try{
+    const ins=await cloudDB.from("phm_scores").insert({
+      chart_name:String(r.name||r.label||"").slice(0,120),
+      chart_diff:r.knn?r.knn.tier:null,
+      chart_level:r.level||null,
+      ref_const:ref!=null?+ref.toFixed(3):null,
+      ps_score:r.ps?+r.ps.total.toFixed(3):null,
+      acc:acc, song_rks:+srk.toFixed(3),
+      speed_peak:r.spPeak!=null?+r.spPeak:null,
+      nps:r.feats?+r.feats.real_notes_per_second.toFixed(4):null,
+      engine_ver:"5d-knn-v0.3.2",
+      client_id:clientId()
+    });
+    if(ins.error) throw ins.error;
+    const row=box.querySelector(".prow");
+    if(row) row.style.display="none";
+    msg.innerHTML="✅ 已记录！这张图的单曲 RKS ≈ <b>"+srk.toFixed(2)+"</b>"
+      +"（ACC "+acc.toFixed(2)+"，参考定数 "+(ref==null?"-":f1(ref))+"）";
+  }catch(e2){
+    btn.disabled=false;
+    msg.textContent="⚠ 打卡失败："+(e2&&e2.message?e2.message:"网络异常，稍后再试");
+    msg.style.color="var(--red)";
+  }
+}
+/* 事件委托（打卡块随 innerHTML 重渲染） */
+document.addEventListener("click",function(e){
+  const b=e.target.closest?e.target.closest("#pgo"):null; if(!b) return;
+  const box=b.closest(".punch"); if(!box) return;
+  submitPunch(+(box.getAttribute("data-i")||STATE.sel));
+});
+document.addEventListener("keydown",function(e){
+  if(e.key!=="Enter"||!e.target||e.target.id!=="pacc") return;
+  const box=e.target.closest(".punch"); if(!box) return;
+  submitPunch(+(box.getAttribute("data-i")||STATE.sel));
+});
+document.addEventListener("input",function(e){
+  if(!e.target||e.target.id!=="pacc") return;
+  punchPreview(+(e.target.closest(".punch").getAttribute("data-i")||STATE.sel));
+});
+/* 顶部打卡计数（不阻塞主流程） */
+(function(){
+  const done=function(n){
+    const el=$("#pcount"); if(!el) return;
+    el.textContent="🎯 数据飞轮：已收集 "+n+" 条打卡 —— 每一条都在帮定数公式变准";
+    el.style.display="";
+  };
+  if(!cloudDB) return;
+  cloudDB.from("phm_scores").select("id",{count:"exact",head:true})
+    .then(function(res){
+      if(!res.error&&res.count!=null) done(res.count);
+    }).catch(function(){});
+})();
+</script>
 </body>
 </html>
