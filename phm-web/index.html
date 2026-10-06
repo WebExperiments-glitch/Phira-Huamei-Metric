@@ -41,6 +41,18 @@ cursor:pointer;white-space:nowrap}
 .coutbox{margin:0 0 14px;padding:12px 15px;border:1px solid var(--line);
 border-radius:12px;background:var(--card)}
 .coutbox:empty{display:none;margin:0;padding:0;border:0}
+/* 页面级状态条（算定数/导入的进度与错误都显示在这里，不再写进隐藏面板） */
+.csstatus{margin:0 0 14px;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.7;
+border-left:3px solid var(--fg3);background:var(--card);color:var(--fg2)}
+.csstatus b{color:var(--fg)}
+.csstatus.warn{border-left-color:var(--amber)}
+.csstatus.err{border-left-color:var(--red)}
+.csstatus.ok{border-left-color:var(--green)}
+.csstatus a{color:var(--blue);text-decoration:none;border-bottom:1px dotted var(--blue);font-weight:700}
+.cdl{display:inline-flex;align-items:center;gap:4px;text-decoration:none;
+border:1px solid var(--amber);color:var(--amber);background:var(--card);
+border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+.cdl:hover{background:rgba(232,163,61,.12)}
 .gh svg{display:block;flex:none}
 .gh button,.gh{cursor:pointer}
 /* ── 连接 Phira 面板 ── */
@@ -208,6 +220,7 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
   <div class="slogan">谱面负荷分析器 —— 分析全部在你的设备上完成；分析完可以顺手<b>打卡</b>：填一个 ACC，我们帮你算单曲 RKS，成绩匿名进库帮定数公式变准。</div>
 </header>
 
+<div class="csstatus" id="csmsg" style="display:none"></div>
 <div class="coutbox" id="cout"></div>
 
 <div class="pf" id="ppanel" style="display:none">
@@ -852,7 +865,7 @@ document.addEventListener("click",async function(e){
     if(t.closest("#psearch")){ await pfSearch(); return; }
     if(t.closest("#cgo")){ await chartSearch(); return; }
     const cb=t.closest(".calcb");
-    if(cb){
+    if(cb&&!t.closest(".cdl")){          /* .cdl 是下载链接，不能再当「算」处理 */
       const cid=+cb.getAttribute("data-cid");
       const fromSrch=(CS.rows||[]).filter(function(c){return c.id===cid;})[0];
       const fromPF=((PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{}).info;
@@ -1230,25 +1243,36 @@ function cachedConst(cid){
   const c=CHART_CACHE[cid];
   return (c&&c.ref_const!=null)?+c.ref_const:null;
 }
+/* 页面级状态条（算定数/导入的进度与错误都显示在这里，绝不写进隐藏面板） */
+function csMsg(html,kind){
+  const el=document.getElementById("csmsg"); if(!el) return;
+  el.className="csstatus"+(kind?" "+kind:"");
+  el.innerHTML=html||"";
+  el.style.display=html?"":"none";
+}
+
 /* 按需下载一张谱面 → 本页引擎算定数 → 入云端缓存
-   info 可显式传入（搜索结果），否则从 PF.rows 里找 */
+   info 可显式传入（搜索结果），否则从 PF.rows 里找
+   ⚠ Phira 的文件 CDN 未开放跨域 → 浏览器 fetch 必然失败，届时降级为「下载 + 拖入」 */
 async function computeChart(cid,btn,info){
   if(!info){
     const row=(PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{};
     info=row.info||{};
   }
+  const nm=info.name||("谱面 #"+cid);
   const url=info.file;
-  if(!url){ pfMsg("这张谱面没有可下载的文件（可能被下架）","var(--red)"); return; }
-  const label=btn.textContent;
+  if(!url){ csMsg("⚠ 《"+esc(nm)+"》没有可下载的文件（可能已下架）","err"); return; }
   btn.disabled=true; btn.textContent="下载中…";
+  csMsg("正在下载《"+esc(nm)+"》…");
   try{
     const res=await fetch(url);
-    if(!res.ok) throw new Error("下载失败 HTTP "+res.status);
+    if(!res.ok) throw new Error("HTTP "+res.status);
     const buf=await res.arrayBuffer();
     btn.textContent="解析中…";
-    const rs=await analyzeChart(buf,(info.name||("chart"+cid))+".pez");
+    csMsg("已下载 "+(buf.byteLength/1048576).toFixed(2)+" MB，正在解析…");
+    const rs=await analyzeChart(buf,nm+".pez");
     const rep=rs.filter(function(x){return !x.error;})[0];
-    if(!rep) throw new Error((rs[0]&&rs[0].error)||"解析失败（非 RPE/PGR 格式）");
+    if(!rep) throw new Error((rs[0]&&rs[0].error)||"解析失败（非 RPE / PGR 格式）");
     const f=rep.feats||{};
     const payload={
       chart_id:numOrNull(cid,1,null),
@@ -1264,21 +1288,29 @@ async function computeChart(cid,btn,info){
       speed_peak:numOrNull(rep.spPeak,0,1000000),
       engine_ver:"5d-knn-v0.3.2"
     };
-    if(payload.chart_id==null){ pfMsg("谱号异常，写入跳过","var(--red)"); return; }
+    if(payload.chart_id==null) throw new Error("谱号异常");
     if(cloudDB){
       const up=await cloudDB.from("phm_charts").upsert(payload);
-      if(up.error) pfMsg("（定数已算出，但云端缓存写入失败："+up.error.message+"）","var(--fg3)");
+      if(up.error) csMsg("⚠ 定数已算出，但云端缓存写入失败："+esc(up.error.message),"warn");
     }
     CHART_CACHE[cid]=payload;
-    pfMsg(payload.ref_const!=null
-      ? "✅ "+payload.name+" → P.H.M. 定数 "+payload.ref_const.toFixed(2)
-        +"（AP 时单曲 rks 就是 "+payload.ref_const.toFixed(2)+"）· 已入共享缓存"
-      : "⚠ 这张谱面算不出参考定数（结构异常）","var(--green)");
-    pfRender();                        /* 重渲染：定数与本页 RKS 一起更新 */
+    const rc=payload.ref_const;
+    csMsg("✅ 《"+esc(payload.name)+"》 → P.H.M. 定数 <b>"
+      +(rc!=null?rc.toFixed(2):"—")+"</b>"
+      +(rc!=null?"（AP 时单曲 rks 就等于这个数）":"")+" · 已存入共享缓存","ok");
+    pfRender();
     if(typeof renderChartSearch==="function") renderChartSearch();
-  }catch(e){
-    btn.disabled=false; btn.textContent=label;
-    pfMsg("算定数失败："+(e&&e.message?e.message:"网络异常"),"var(--red)");
+  }catch(err){
+    btn.outerHTML='<a class="cdl" href="'+esc(url)+'" target="_blank" rel="noopener"'
+      +' title="下载谱面包 zip">📥 下载</a>';
+    csMsg('⚠ <b>浏览器无法直接读取谱面文件</b> —— Phira 的文件 CDN'
+      +'（<span class="mono">phira-cdn.5wyxi.com</span>）没有开放跨域，'
+      +'这是 Phira 服务端的限制，网页端绕不过去。<br>'
+      +'请点表格里的 <b>📥 下载</b> 拿到《'+esc(nm)+'》的 zip，'
+      +'然后<b>拖到下面那个虚线框</b> —— 本页引擎会立刻算出 P.H.M. 定数（同一条流水线）。'
+      +'<br><span style="color:var(--fg3)">技术细节：'
+      +esc(err&&err.message?err.message:"fetch failed")+'</span>',
+      "warn");
   }
 }
 
