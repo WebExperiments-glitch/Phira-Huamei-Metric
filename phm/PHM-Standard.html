@@ -70,7 +70,7 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
 
 <footer>
   <div><b>PS 是什么：</b>P.H.M. Standard 难度标度（0–20），由公式的四个负荷组加权合成——
-  <span class="mono">PS = 20 × (0.45·密度 + 0.30·结构 + 0.15·协调 + 0.10·持续)</span>。
+  <span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>。
   每个维度经饱和函数归一，每一分都可追溯到上方明细。
   <b>PS 与官方定数无关</b>——官方定数是人工标注（噪声 2.80 级），PS 是独立标度，
   排序与人类共识的一致性已验收（Spearman ρ = 0.92）。</div>
@@ -360,23 +360,33 @@ function extractDims(notes,ev,dur,bpm,nlines){
 }
 
 /* ── P.H.M. Standard 公式（对照 tools/phm_standard.py，逐常数一致）── */
-function sat(v,k){ return v<=0?0:v/(v+k); }
-function gDensity(f){ return 0.30*sat(f.real_notes_per_second,6.0)
-  +0.20*sat(f.notes_real,1200.0)+0.20*sat(f.strain_p50,10.0)
-  +0.15*sat(f.above_avg_density_mean,8.0)+0.15*sat(f.iv_mean,0.30); }
-function gPattern(f){ return 0.35*sat(f.cross_hand_density,1.2)
-  +0.25*sat(f.stair_speed_max,14.0)+0.20*sat(f.note_clutter_ratio,35.0)
-  +0.20*sat(f.pattern_switch_rate,4.0); }
-function gCoord(f){ return 0.25*sat(f.eff_peak_tps_1s,14.0)
-  +0.30*sat(f.avg_chord_size,3.0)
-  +0.25*sat(f.multi_finger_3plus_events/Math.max(f.duration_s,0.01),0.5)
-  +0.20*sat(f.chord_size_entropy,0.8); }
-function gStamina(f){ return 0.60*sat(f.eff_avg_tps_1s,6.0)
-  +0.40*sat(f.hold_ratio,0.35); }
+/* ── P.H.M. Standard 公式 v0.1（对照 tools/phm_standard.py，逐常数一致）── */
+function sat(v,k){ return v<=0?0:1-Math.exp(-v/k); }
+function satd(v,k){ return v<=0?0:Math.exp(-v/k); }
+const K={strain_p99:20.4,above_avg_density_mean:10.7081,
+  real_notes_per_second:9.5682,iv_mean:0.1413,
+  stair_speed_max:33.7778,cross_hand_density:7.5408,
+  note_clutter_ratio:68.2235,pattern_switch_rate:3.0663,
+  avg_chord_size:1.4539,multi_finger_3plus_events:0.3366,
+  chord_size_entropy:0.6203,real_core_notes_per_second:6.7287,
+  notes_real:1441.0};
+function gDensity(f){ return 0.35*sat(f.strain_p99,K.strain_p99)
+  +0.25*sat(f.above_avg_density_mean,K.above_avg_density_mean)
+  +0.25*sat(f.real_notes_per_second,K.real_notes_per_second)
+  +0.15*satd(f.iv_mean,K.iv_mean); }
+function gPattern(f){ return 0.35*sat(f.stair_speed_max,K.stair_speed_max)
+  +0.30*sat(f.cross_hand_density,K.cross_hand_density)
+  +0.20*sat(f.note_clutter_ratio,K.note_clutter_ratio)
+  +0.15*sat(f.pattern_switch_rate,K.pattern_switch_rate); }
+function gCoord(f){ return 0.35*sat(f.avg_chord_size,K.avg_chord_size)
+  +0.35*sat(f.multi_finger_3plus_events/Math.max(f.duration_s,0.01),K.multi_finger_3plus_events)
+  +0.30*sat(f.chord_size_entropy,K.chord_size_entropy); }
+function gStamina(f){ return 0.60*sat(f.real_core_notes_per_second,K.real_core_notes_per_second)
+  +0.40*sat(f.notes_real,K.notes_real); }
 function psScore(f){
   const g={density:gDensity(f),pattern:gPattern(f),
            coord:gCoord(f),stamina:gStamina(f)};
-  return {total:20*(0.45*g.density+0.30*g.pattern+0.15*g.coord+0.10*g.stamina),g:g};
+  return {total:20*(0.40*g.density+0.30*g.pattern+0.15*g.coord+0.15*g.stamina),g:g};
 }
 
 /* ── analyze(fileBytes, fileName) → 报告对象数组 ── */
