@@ -512,6 +512,7 @@ function card(r){
   if(r.error) return '<div class="card err"><h2>✕ '+esc(r.label)
     +'</h2><div style="color:var(--red)">'+esc(r.error)+'</div></div>';
   const ps=r.ps, kn=r.knn||{ref:null,tier:"?",near:[]};
+  const f=r.feats;
   const tier=kn.tier||"?";
   const tcol=TIER_COLOR[tier]||"var(--fg)";
   const bars=GROUPS.map(function(g){
