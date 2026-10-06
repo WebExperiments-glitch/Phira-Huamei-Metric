@@ -1,13 +1,13 @@
 # P.H.M. — Phira Huamei Metric
 
 > 为 Phira / Phigros 谱面提供**可审计的难度参考**。
-> 给出**一个确定的数值 + 它的不确定度**，附特征差异、官谱参照与事实性检查。
-> 不给判决。
+> 拖入谱面包，得到一个客观数值 + 它匹配到的官谱参照。
+> **不给判决。**
 
 **版本：V0.3.2 · 开发者测试版**
 > ⚠️ 版本号在正式版发布后**重新计算**。
 
-**在线使用**：https://webexperiments-glitch.github.io/Phira-Huamei-Metric/ （无需安装，打开即用）
+**在线使用**：<https://phm.app.workbuddy.host/> （打开即用，无需安装）
 
 ---
 
@@ -27,21 +27,37 @@
 
 ## 快速开始
 
-### 方式一：单文件 GUI（推荐，零依赖）
+### 方式一：在线版（推荐）
 
-双击 `phm/P.H.M..html` 即可。无需 Python、无需起服务、无需联网。
+打开 <https://phm.app.workbuddy.host/> ：把 `.pez` / `.zip` 谱面包拖进虚线框即可。
+一次可拖多个，也可以在顶部直接搜 Phira 谱面。
 
-- 默认只给**一个答案**：一个点估计数值 + `±1.0` 不确定度
-- 右上角 ⚙ 可开**专业模式**（特征对照 / 官谱参照 / 判据明细）与**浅色主题**
-- 专业模式**默认关闭** —— 多数人只想知道「这谱大概多难」
+### 方式二：本地单文件
 
-### 方式二：命令行报告
+双击 `phm/PHM-Standard.html`。单个 HTML 文件，零依赖、零构建、不需要联网即可完成分析
+（联网只影响「连接 Phira」和「搜谱面」两个可选功能）。
+
+### 方式三：命令行报告
 
 ```bash
 python phm/cli.py --model data/official.jsonl --chart data/community.jsonl --id 22681
 python phm/cli.py --model data/official.jsonl --chart data/community.jsonl --name Pandemic
 python phm/cli.py --model data/official.jsonl                     # 引擎自检
 ```
+
+---
+
+## 架构与数据（澄清「零后端」的准确含义）
+
+| 部分 | 在哪跑 | 说明 |
+|---|---|---|
+| 谱面解析 + 特征 + PS / 参考定数 | **纯前端**（单文件 116 KB） | ZIP 解压、RPE/PGR 解析、5 维 k-NN 全部在浏览器内，**谱面文件不上传** |
+| 连接 Phira / 搜谱面 | 前端直连 `api.phira.cn` | 只读公开数据（RKS、最好成绩、谱面信息），**不需要密码** |
+| 打卡 / 定数共享缓存（**可选**） | WorkBuddy 托管云数据库 | 只有你在打卡区**主动勾选**时才写；不勾选则完全本机 |
+
+所以「零后端」指的是**核心分析链路零后端**；数据飞轮那一层用的是托管云库（PostgreSQL），
+不是自建服务器。在线版由 WorkBuddy 云服务托管（非 GitHub Pages —— 仓库里的 Pages 只作备份，不是主入口）。
+
 
 ---
 

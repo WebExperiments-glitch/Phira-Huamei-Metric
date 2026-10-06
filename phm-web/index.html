@@ -160,7 +160,7 @@ font-size:11.5px;color:var(--fg3);line-height:1.6}
 .punch .popt{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--fg2);margin-top:9px;cursor:pointer;user-select:none;line-height:1.45}
 .punch .popt input{width:auto;margin:2px 0 0;padding:0;accent-color:var(--blue);cursor:pointer}
 .punch .popt b{color:var(--fg)}
-.punch.off .prow{opacity:.45;pointer-events:none}
+.punch.off .prow{opacity:.9}   /* 勾选状态只影响「是否上传」，不影响本机算 RKS */
 .punch .pmsg{font-size:12px;color:var(--fg2);margin-top:6px;min-height:1em}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
 .card h2{font-size:15px;margin-bottom:2px}
@@ -200,6 +200,43 @@ border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer}
 .psline b{color:var(--amber)}
 footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg3);line-height:1.8}
 .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:8px;border:1px solid var(--line);color:var(--fg2);margin-left:6px}
+footer details{margin-top:6px}
+footer summary{cursor:pointer;color:var(--fg2);font-size:11.5px;outline:none}
+footer summary:hover{color:var(--fg)}
+footer details[open] summary{margin-bottom:5px}
+footer .fd{margin-top:4px}
+
+/* ═════════ 窄屏适配（手机 / 小窗）═════════ */
+@media (max-width:640px){
+  body{padding:12px 12px 20px}
+  header{gap:7px;padding:4px 0 10px;margin-bottom:10px}
+  header h1{font-size:17px}
+  .ver{display:none}
+  .hsearch{order:10;flex:1 1 100%;margin:8px 0 0!important}
+  .hsearch input{flex:1;width:auto;min-width:0;max-width:none}
+  .gh{padding:5px 9px;font-size:11px}
+  .slogan{font-size:11.5px}
+  #drop{padding:24px 14px;border-radius:12px}
+  #drop .big{font-size:15px}
+  #drop>div+div{font-size:11.5px}
+  .punch input{width:118px}
+  .punch .prow{flex-wrap:wrap}
+  .btable th,.btable td{padding:4px 3px;font-size:11px}
+  .cslv,.csflag{display:none}          /* 搜索结果窄屏只留 谱号/曲名/定数/P.H.M. */
+  .csid{width:46px;font-size:10.5px}
+  .csname{font-size:11.5px}
+  .pmrows .l{display:none}
+  .pf .pfrow{flex-wrap:wrap}
+  .pf input{max-width:none;flex:1}
+  .pfuser .rks{margin-left:0;width:100%;text-align:left}
+  .pmhead b{font-size:22px}
+  .coutbox{padding:10px 11px}
+  .csstatus{padding:9px 11px;font-size:11.5px}
+}
+@media (max-width:380px){
+  .gh span{display:none}               /* 极窄屏按钮只留图标 */
+  .pmrows .a{display:none}
+}
 </style>
 </head>
 <body>
@@ -217,7 +254,7 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
      target="_blank" rel="noopener" title="GitHub 仓库 · Phira-Huamei-Metric"
      aria-label="GitHub 仓库"><svg viewBox="0 0 16 16" width="17" height="17"
      fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
-  <div class="slogan">谱面负荷分析器 —— 分析全部在你的设备上完成；分析完可以顺手<b>打卡</b>：填一个 ACC，我们帮你算单曲 RKS，成绩匿名进库帮定数公式变准。</div>
+  <div class="slogan">拖入谱面包 → 立刻得到一个<b>客观的难度参考</b>。解析全部在你的浏览器里完成，<b>谱面不会被上传</b>。</div>
 </header>
 
 <div class="csstatus" id="csmsg" style="display:none"></div>
@@ -246,17 +283,28 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
 <div id="out"></div>
 
 <footer>
-  <div><b>PS 是什么：</b>P.H.M. Standard 难度标度（0–20），由公式的四个负荷组加权合成——
-  <span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>。
-  每个维度经饱和函数归一，每一分都可追溯到上方明细。
-  <b>PS 与官方定数无关</b>——官方定数是人工标注（噪声 2.80 级），PS 是独立标度，
-  排序与人类共识的一致性已验收（Spearman ρ = 0.92）。</div>
-  <div style="margin-top:4px">方法与验收脚本见仓库 <a class="link"
+  <div>方法与验收脚本见仓库 <a class="link"
   href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/tools/phm_standard.py"
   target="_blank" rel="noopener">tools/phm_standard.py</a> ·
   源码 <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
   target="_blank" rel="noopener">GitHub</a> ·
   版本 V0.3.2（正式版发布后重新计算）· GPL-3.0</div>
+  <details>
+    <summary>PS 是什么？本工具的边界与隐私（点开看）</summary>
+    <div class="fd"><b>PS</b> 是 P.H.M. Standard 难度标度（0–20），由四个负荷组加权合成：
+    <span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>，
+    每个维度经饱和函数归一，每一分都能追溯到卡片上的明细。</div>
+    <div class="fd"><b>PS 与官方定数无关</b> —— 官方定数是人工标注（实测标注噪声约 2.80 级），
+    PS 是独立标度；它与人类共识排序的一致性已验收（Spearman ρ = 0.92）。
+    <b>本工具不判定「虚标」</b>：在这个噪声水平下，没有任何工具能区分「谱师标错」和「官方也会这么标」。</div>
+    <div class="fd"><b>结果里的「参考定数」</b>来自 1,037 张官谱的 k-NN 匹配（5 维：密度 / 长条占比 /
+    物量 / 纵连 / 线速峰值）—— 它是<b>同类官谱的定数中位</b>，不是预测值，也不带不确定度声明。</div>
+    <div class="fd"><b>隐私</b>：谱面解析 100% 在你的浏览器内完成，<b>谱面文件不会被上传</b>。
+    填 ACC 算 RKS 同样在本机算。只有当你在打卡区<b>主动勾选</b>「匿名上传」时，才会把
+    曲名 / 定数 / ACC 三项写入云端用于校准；不含账号、昵称、分数记录。
+    连 Phira 时只读取公开资料（RKS、最好成绩），<b>不需要也不接受你的 Phira 密码</b>；
+    用户名 / UID 只存在你自己浏览器的 localStorage 里用于下次自动填充。</div>
+  </details>
 </footer>
 </div>
 
@@ -757,14 +805,14 @@ function card(r){
     +'<table>'+rows.map(function(x){return '<tr><td>'+x[0]
       +'</td><td>'+esc(x[1])+'</td></tr>';}).join("")+'</table>'
     +'<div class="punch'+(OPTN()?"":" off")+'" id="punch-'+STATE.sel+'" data-i="'+STATE.sel+'">'
-      +'<div class="ptitle">🎯 打卡 · 数据飞轮（可选，匿名）</div>'
-      +'<div class="pdesc">你在 Phira 里这把的<b>准度 ACC</b>（成绩页右上角的 %）填进来：'
-      +'我们按社区公式帮你算这张图的<b>单曲 RKS</b>，成绩匿名入库帮定数变准。</div>'
+      +'<div class="ptitle">🎯 算单曲 RKS<span style="font-weight:400;color:var(--fg3)">（可选：匿名贡献数据）</span></div>'
+      +'<div class="pdesc">填你这把的<b>准度 ACC</b>（成绩页右上角的 %），'
+      +'立刻算出这张图的<b>单曲 RKS</b> —— <b>全部在本机计算</b>。</div>'
       +'<div class="prow"><input id="pacc" inputmode="decimal" autocomplete="off"'
-      +' placeholder="如 96.50" maxlength="9"><button id="pgo" type="button"'+(OPTN()?"":" disabled")+'>打卡</button></div>'
+      +' placeholder="如 96.50" maxlength="9"><button id="pgo" type="button">算 RKS</button></div>'
       +'<label class="popt"><input type="checkbox" id="popt"'+(OPTN()?" checked":"")+'>'
-      +'<span>允许匿名上传这条成绩 —— <b>只用于校准定数</b>，不含账号、昵称等任何个人信息。'
-      +'不想参与就取消勾选，卡片照常可用。</span></label>'
+      +'<span>顺便<b>匿名上传</b>这条成绩，帮我们校准定数（只存曲名、定数、ACC 三项，'
+      +'不含账号 / 昵称 / 分数记录）。<b>不勾也能照常算 RKS。</b></span></label>'
       +'<div class="pmsg"></div></div>'
     +'</div>';
 }
@@ -889,7 +937,7 @@ document.addEventListener("keydown",async function(e){
       if(box) await submitPunch(+(box.getAttribute("data-i")||STATE.sel)); }
   }catch(err){}
 });
-/* 上传偏好勾选 */
+/* 上传开关（偏好持久化；与「算 RKS」解耦，不影响本机计算） */
 document.addEventListener("change",function(e){
   try{
     if(!e.target||e.target.id!=="popt") return;
@@ -897,10 +945,12 @@ document.addEventListener("change",function(e){
     saveOptin(on);
     const box=e.target.closest(".punch"); if(!box) return;
     box.classList.toggle("off",!on);
-    const btn=box.querySelector("#pgo"), msg=box.querySelector(".pmsg");
-    if(btn) btn.disabled=!on;
-    if(msg){ msg.style.color=on?"":"var(--fg2)";
-      msg.textContent=on?"":"已关闭上传：这条成绩只在你本机计算，不会发出。"; }
+    const msg=box.querySelector(".pmsg");
+    if(msg){
+      msg.style.color="var(--fg3)";
+      msg.textContent=on?"已开启匿名上传 —— 之后每次算 RKS 会顺便上传这条成绩。"
+                       :"已关闭上传 —— 只在本机计算，什么都不会发出。";
+    }
   }catch(err){}
 });
 /* ACC 输入实时预览 */
@@ -931,10 +981,10 @@ function clientId(){
     try{ localStorage.setItem("phm_cid",v); }catch(e){} }
   return v;
 }
-/* 上传偏好：默认开启；用户取消勾选后记住（localStorage） */
+/* 上传偏好：**默认关闭**（隐私优先）；用户主动勾选才上传，之后记住选择 */
 window.PHM_OPTIN=(function(){
-  try{ const v=localStorage.getItem("phm_optin"); return v===null?true:v==="1"; }
-  catch(e){ return true; }
+  try{ const v=localStorage.getItem("phm_optin"); return v==="1"; }
+  catch(e){ return false; }
 })();
 function saveOptin(on){
   window.PHM_OPTIN=on;
@@ -972,45 +1022,57 @@ async function submitPunch(idx){
   const inp=box.querySelector("input"), btn=box.querySelector("button"),
         msg=box.querySelector(".pmsg");
   const r=STATE.reports[idx]; if(!r||r.error) return;
-  if(!window.PHM_OPTIN){
-    msg.textContent="已关闭上传（见下方开关）—— 取消勾选后这条成绩不会发出";
-    msg.style.color="var(--fg2)"; return;
-  }
   const acc=parseAcc(inp?inp.value:"");
   if(acc==null){
     msg.textContent="⚠ 请填准度 ACC（0–100 的数字，如 96.50，成绩页右上角那个 %）";
     msg.style.color="var(--red)"; return;
   }
-  if(!cloudDB){
-    msg.textContent="⚠ 云服务未连上（检查网络），本次打卡没有发出";
-    msg.style.color="var(--red)"; return;
-  }
-  btn.disabled=true; msg.style.color=""; msg.textContent="提交中…";
   const ref=r.knn?r.knn.ref:null;
   const srk=songRks(ref,acc);
+
+  /* ① 本机立刻算 —— 不依赖网络、不发出任何数据 */
+  const row=box.querySelector(".prow");
+  if(row) row.style.display="none";
+  if(btn) btn.disabled=true;
+  const base="单曲 RKS ≈ <b>"+srk.toFixed(2)+"</b>（ACC "+acc.toFixed(2)
+    +(ref!=null?"，参考定数 "+f1(ref):"")+"）";
+  msg.style.color=""; msg.innerHTML="✅ "+base;
+
+  /* ② 上传：仅当用户主动勾选时才做 */
+  if(!window.PHM_OPTIN){
+    msg.innerHTML+='<br><span style="color:var(--fg3)">（未勾选上传 —— '
+      +'本条只在你本机计算，没有发出任何数据）</span>';
+    return;
+  }
+  if(!cloudDB){
+    msg.innerHTML+='<br><span style="color:var(--red)">云服务未连上，'
+      +'这条没能上传（RKS 已在本机算出）</span>';
+    return;
+  }
+  msg.innerHTML+='<br><span style="color:var(--fg2)">正在匿名上传…</span>';
   try{
     const ins=await cloudDB.from("phm_scores").insert({
-      chart_name:String(r.name||r.label||"").slice(0,120),
-      chart_diff:r.knn?r.knn.tier:null,
-      chart_level:r.level||null,
-      ref_const:ref!=null?+ref.toFixed(3):null,
-      ps_score:r.ps?+r.ps.total.toFixed(3):null,
-      acc:acc, song_rks:+srk.toFixed(3),
-      speed_peak:r.spPeak!=null?+r.spPeak:null,
-      nps:r.feats?+r.feats.real_notes_per_second.toFixed(4):null,
+      chart_name:txtOrNull(r.name||r.label,120),
+      chart_diff:txtOrNull(r.knn?r.knn.tier:null,8),
+      chart_level:txtOrNull(r.level,60),
+      ref_const:numOrNull(ref,0,25,3),
+      ps_score:numOrNull(r.ps&&r.ps.total,0,25,3),
+      acc:numOrNull(acc,0,100,4),
+      song_rks:numOrNull(srk,0,25,3),
+      speed_peak:numOrNull(r.spPeak,0,1000000),
+      nps:numOrNull(r.feats&&r.feats.real_notes_per_second,0,200,4),
       engine_ver:"5d-knn-v0.3.2",
       client_id:clientId()
     });
     if(ins.error) throw ins.error;
-    const row=box.querySelector(".prow");
-    if(row) row.style.display="none";
     renderCount((window.PHM_COUNT||0)+1);   /* 计数就地 +1 */
-    msg.innerHTML="✅ 已记录！这张图的单曲 RKS ≈ <b>"+srk.toFixed(2)+"</b>"
-      +"（ACC "+acc.toFixed(2)+"，参考定数 "+(ref==null?"-":f1(ref))+"）";
+    msg.innerHTML="✅ "+base
+      +'<br><span style="color:var(--green)">已匿名上传，感谢帮我们校准定数</span>';
   }catch(e2){
-    btn.disabled=false;
-    msg.textContent="⚠ 打卡失败："+(e2&&e2.message?e2.message:"网络异常，稍后再试");
-    msg.style.color="var(--red)";
+    const limited=/rate limit|exceeds|too many|429|503/i.test(String(e2&&e2.message||""));
+    msg.innerHTML="✅ "+base
+      +'<br><span style="color:var(--red)">上传失败：'
+      +esc(limited?"服务器繁忙（限流），稍后再试":(e2&&e2.message?e2.message:"网络异常"))+'</span>';
   }
 }
 /* （事件绑定已统一提到脚本开头的事件委托块，此处不再重复绑定） */
@@ -1020,9 +1082,9 @@ function renderCount(n){
   const el=$("#pcount"); if(!el) return;
   window.PHM_COUNT=n;
   if(n>0){
-    el.innerHTML="🎯 数据飞轮：已收到 <b>"+n+"</b> 条打卡 —— 每一条都在帮定数公式变准";
+    el.innerHTML="🎯 数据飞轮：已收到 <b>"+n+"</b> 条成绩数据 —— 每一条都在帮定数公式变准";
   }else{
-    el.innerHTML="🎯 数据飞轮已就绪 —— 还没有人打卡；拖入谱面 → 拉到底部填 ACC，你就是第一条";
+    el.innerHTML="🎯 数据飞轮已就绪 —— 还没有人贡献数据；拖入谱面 → 拉到底部填 ACC，你就是第一条";
   }
   el.style.display="";
 }
