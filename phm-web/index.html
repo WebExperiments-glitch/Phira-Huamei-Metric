@@ -20,12 +20,27 @@ header h1 b{color:var(--amber)}
 .ver{font-size:12px;color:var(--fg3)}
 .slogan{font-size:12px;color:var(--fg2);width:100%}
 .slogan b{color:var(--fg)}
-.gh{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;
+.gh{display:inline-flex;align-items:center;gap:6px;font-size:12px;
 color:var(--fg2);text-decoration:none;border:1px solid var(--line);border-radius:8px;
 padding:5px 11px;transition:.15s;white-space:nowrap;
 background:var(--card2);font:inherit;cursor:pointer;line-height:1.5}
 .gh:hover{color:var(--fg);border-color:var(--fg3);background:var(--card)}
 .gh:active{transform:translateY(1px)}
+/* 顶部常驻搜索（不藏在任何面板里） */
+.hsearch{margin-left:auto;display:flex;gap:7px;align-items:center}
+.hsearch input{width:185px;background:var(--bg);border:1px solid var(--line);
+border-radius:8px;padding:6px 11px;color:var(--fg);font:inherit;font-size:12px;outline:none}
+.hsearch input:focus{border-color:var(--blue)}
+.hsearch input::placeholder{color:var(--fg3)}
+.hsearch button{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
+border-radius:8px;padding:6px 14px;font:inherit;font-size:12px;font-weight:600;
+cursor:pointer;white-space:nowrap}
+.hsearch button:hover{border-color:var(--blue);color:var(--fg)}
+.hsearch button:disabled{opacity:.5;cursor:default}
+/* 搜索结果区（页面级，独立于面板） */
+.coutbox{margin:0 0 14px;padding:12px 15px;border:1px solid var(--line);
+border-radius:12px;background:var(--card)}
+.coutbox:empty{display:none;margin:0;padding:0;border:0}
 .gh svg{display:block;flex:none}
 .gh button,.gh{cursor:pointer}
 /* ── 连接 Phira 面板 ── */
@@ -99,10 +114,7 @@ border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;li
 .pmhint{margin-top:8px;font-size:11px;color:var(--fg3);line-height:1.6}
 .pmhint b{color:var(--fg2)}
 /* 谱面搜索 */
-.pfsep{margin:15px 0 13px;border-top:1px solid var(--line)}
-.pfsub{font-weight:700;font-size:13px;margin-bottom:8px}
-.pfsrchint{font-size:11.5px;color:var(--fg3);margin-top:7px;line-height:1.6}
-.pfsrchint b{color:var(--fg2)}
+/* 搜索结果列表 */
 .cshead{font-size:11.5px;color:var(--fg3);margin:10px 0 5px;display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
 .cshead b{color:var(--fg)}
 .cslist{display:flex;flex-direction:column;gap:1px}
@@ -116,6 +128,9 @@ border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;li
 .csflag i.ok{color:var(--green);font-style:normal}
 .cspm{flex:none;width:44px;text-align:right}
 .cspm b{color:var(--amber);font-variant-numeric:tabular-nums}
+.csfoot{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
+font-size:11.5px;color:var(--fg3);line-height:1.6}
+.csfoot b{color:var(--fg2)}
 #drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
@@ -180,6 +195,10 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
 <header>
   <h1><b>P.H.M.</b> Standard</h1>
   <span class="ver">V0.3.2 · 开发者测试版</span>
+  <div class="hsearch">
+    <input id="csrch" placeholder="搜谱面：曲名 / 谱师" maxlength="40" autocomplete="off">
+    <button id="cgo" type="button" title="搜索 Phira 谱面并算 P.H.M. 定数">搜索</button>
+  </div>
   <button class="gh" id="phiraBtn" type="button"
      title="连接 Phira：读取你的公开资料与最好成绩（不需要密码）">🔗 连接 Phira</button>
   <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
@@ -188,6 +207,8 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
      fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
   <div class="slogan">谱面负荷分析器 —— 分析全部在你的设备上完成；分析完可以顺手<b>打卡</b>：填一个 ACC，我们帮你算单曲 RKS，成绩匿名进库帮定数公式变准。</div>
 </header>
+
+<div class="coutbox" id="cout"></div>
 
 <div class="pf" id="ppanel" style="display:none">
   <div class="pfhead">🔗 连接 Phira<span class="pfx" id="pclose" title="收起">✕</span></div>
@@ -200,14 +221,6 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
   </div>
   <div class="pfmsg" id="pfmsg"></div>
   <div id="pfout"></div>
-  <div class="pfsep"></div>
-  <div class="pfsub">🔍 搜谱面 —— 出 P.H.M. 定数，带谱号方便下载</div>
-  <div class="pfrow">
-    <input id="csrch" placeholder="曲名或谱师，如 属性 / Vøranger" maxlength="40" autocomplete="off">
-    <button id="cgo" type="button">搜</button>
-  </div>
-  <div class="pfsrchint">搜不到？把谱面包直接<b>拖到上方</b> —— 本页引擎照样能分析并算出定数（本地谱面同样适用）。</div>
-  <div id="cout"></div>
 </div>
 
 <div id="drop">
@@ -1157,7 +1170,9 @@ function renderChartSearch(){
         +'<span class="cspm">'+(mine!=null?'<b>'+mine.toFixed(2)+'</b>'
           :'<button class="calcb" type="button" data-cid="'+c.id
             +'" title="下载这张谱面算 P.H.M. 定数">算</button>')+'</span>'
-        +'</div>';}).join("")+'</div>';
+        +'</div>';}).join("")+'</div>'
+    +'<div class="csfoot">搜不到想要的？把谱面包直接<b>拖到下面</b> —— '
+    +'本页引擎照样能分析并算出定数（本地谱面、私谱都行）。</div>';
 }
 
 /* 用户查找：纯数字走 UID 直查，否则按用户名搜索 */
