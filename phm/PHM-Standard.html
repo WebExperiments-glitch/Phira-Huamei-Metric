@@ -89,6 +89,24 @@ border-radius:6px;padding:2px 9px;font:inherit;font-size:11px;cursor:pointer;lin
 .calcb:disabled{opacity:.5;cursor:default}
 .pmhint{margin-top:8px;font-size:11px;color:var(--fg3);line-height:1.6}
 .pmhint b{color:var(--fg2)}
+/* 谱面搜索 */
+.pfsep{margin:15px 0 13px;border-top:1px solid var(--line)}
+.pfsub{font-weight:700;font-size:13px;margin-bottom:8px}
+.pfsrchint{font-size:11.5px;color:var(--fg3);margin-top:7px;line-height:1.6}
+.pfsrchint b{color:var(--fg2)}
+.cshead{font-size:11.5px;color:var(--fg3);margin:10px 0 5px;display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.cshead b{color:var(--fg)}
+.cslist{display:flex;flex-direction:column;gap:1px}
+.csrow{display:flex;gap:8px;align-items:center;font-size:11.5px;padding:4px 6px;border-radius:6px}
+.csrow:hover{background:var(--card2)}
+.csid{color:var(--fg3);font-variant-numeric:tabular-nums;flex:none;width:56px}
+.csname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}
+.cslv{color:var(--fg2);flex:none;width:74px;font-size:11px}
+.csdif{color:var(--fg2);flex:none;width:36px;text-align:right;font-variant-numeric:tabular-nums}
+.csflag{flex:none;width:42px;color:var(--fg3);font-size:10.5px}
+.csflag i.ok{color:var(--green);font-style:normal}
+.cspm{flex:none;width:44px;text-align:right}
+.cspm b{color:var(--amber);font-variant-numeric:tabular-nums}
 #drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
@@ -173,6 +191,14 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
   </div>
   <div class="pfmsg" id="pfmsg"></div>
   <div id="pfout"></div>
+  <div class="pfsep"></div>
+  <div class="pfsub">🔍 搜谱面 —— 出 P.H.M. 定数，带谱号方便下载</div>
+  <div class="pfrow">
+    <input id="csrch" placeholder="曲名或谱师，如 属性 / Vøranger" maxlength="40" autocomplete="off">
+    <button id="cgo" type="button">搜</button>
+  </div>
+  <div class="pfsrchint">搜不到？把谱面包直接<b>拖到上方</b> —— 本页引擎照样能分析并算出定数（本地谱面同样适用）。</div>
+  <div id="cout"></div>
 </div>
 
 <div id="drop">
@@ -867,7 +893,13 @@ async function submitPunch(idx){
 /* 事件委托（打卡块随 innerHTML 重渲染） */
 document.addEventListener("click",function(e){
   const cb=e.target.closest?e.target.closest(".calcb"):null;
-  if(cb){ computeChart(+cb.getAttribute("data-cid"),cb); return; }
+  if(cb){
+    const cid=+cb.getAttribute("data-cid");
+    const fromSrch=(CS.rows||[]).filter(function(c){return c.id===cid;})[0];
+    const fromPF=((PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{}).info;
+    computeChart(cid,cb,fromSrch||fromPF||null);
+    return;
+  }
   const b=e.target.closest?e.target.closest("#pgo"):null; if(!b) return;
   const box=b.closest(".punch"); if(!box) return;
   submitPunch(+(box.getAttribute("data-i")||STATE.sel));
@@ -1028,6 +1060,45 @@ function pfRender(){
   const ib=$("#pimport"); if(ib) ib.addEventListener("click",pfImport);
 }
 
+/* ═════ 谱面搜索（Phira 公开 API；结果带谱号，可一键算 P.H.M. 定数）═════ */
+const CS={rows:[]};
+async function chartSearch(){
+  const kw=$("#csrch").value.trim();
+  if(!kw){ pfMsg("先填搜索关键词（曲名或谱师）","var(--red)"); return; }
+  const btn=$("#cgo"); btn.disabled=true;
+  pfMsg("搜索中…");
+  try{
+    const r=await pfGet("/chart?search="+encodeURIComponent(kw)+"&pageNum=20&page=1");
+    const arr=Array.isArray(r)?r:(r.results||[]);
+    CS.rows=arr;
+    await loadChartCache(arr.map(function(c){return c.id;}));
+    pfMsg(arr.length?"":"没搜到 —— 换个关键词，或把谱面包拖到上方用本页引擎直接分析","");
+    renderChartSearch();
+  }catch(e){
+    pfMsg("搜索失败："+(e&&e.message?e.message:"网络异常"),"var(--red)");
+  }
+  btn.disabled=false;
+}
+function renderChartSearch(){
+  const out=$("#cout"); if(!out) return;
+  const arr=CS.rows||[];
+  if(!arr.length){ out.innerHTML=""; return; }
+  out.innerHTML='<div class="cshead">找到 <b>'+arr.length+'</b> 张'
+    +'<span>点「算」= 按需下载这一张并用本页引擎算定数</span></div>'
+    +'<div class="cslist">'+arr.map(function(c){
+      const mine=cachedConst(c.id);
+      return '<div class="csrow">'
+        +'<span class="csid">#'+c.id+'</span>'
+        +'<span class="csname" title="'+esc(c.name)+'">'+esc(c.name)+'</span>'
+        +'<span class="cslv">'+esc(lvShort(c.level)||"-")+'</span>'
+        +'<span class="csdif">'+(c.difficulty!=null?(+c.difficulty).toFixed(2):"-")+'</span>'
+        +'<span class="csflag">'+(c.ranked?'<i class="ok">上架</i>':'未上架')+'</span>'
+        +'<span class="cspm">'+(mine!=null?'<b>'+mine.toFixed(2)+'</b>'
+          :'<button class="calcb" type="button" data-cid="'+c.id
+            +'" title="下载这张谱面算 P.H.M. 定数">算</button>')+'</span>'
+        +'</div>';}).join("")+'</div>';
+}
+
 /* 用户查找：纯数字走 UID 直查，否则按用户名搜索 */
 async function pfFindUser(input){
   const s=String(input||"").trim();
@@ -1066,10 +1137,13 @@ function cachedConst(cid){
   const c=CHART_CACHE[cid];
   return (c&&c.ref_const!=null)?+c.ref_const:null;
 }
-/* 按需下载一张谱面 → 本页引擎算定数 → 入云端缓存 */
-async function computeChart(cid,btn){
-  const row=(PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{};
-  const info=row.info||{};
+/* 按需下载一张谱面 → 本页引擎算定数 → 入云端缓存
+   info 可显式传入（搜索结果），否则从 PF.rows 里找 */
+async function computeChart(cid,btn,info){
+  if(!info){
+    const row=(PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{};
+    info=row.info||{};
+  }
   const url=info.file;
   if(!url){ pfMsg("这张谱面没有可下载的文件（可能被下架）","var(--red)"); return; }
   const label=btn.textContent;
@@ -1103,9 +1177,11 @@ async function computeChart(cid,btn){
     }
     CHART_CACHE[cid]=payload;
     pfMsg(payload.ref_const!=null
-      ? "✅ "+payload.name+" → P.H.M. 定数 "+payload.ref_const.toFixed(2)+"（已入共享缓存）"
+      ? "✅ "+payload.name+" → P.H.M. 定数 "+payload.ref_const.toFixed(2)
+        +"（AP 时单曲 rks 就是 "+payload.ref_const.toFixed(2)+"）· 已入共享缓存"
       : "⚠ 这张谱面算不出参考定数（结构异常）","var(--green)");
     pfRender();                        /* 重渲染：定数与本页 RKS 一起更新 */
+    if(typeof renderChartSearch==="function") renderChartSearch();
   }catch(e){
     btn.disabled=false; btn.textContent=label;
     pfMsg("算定数失败："+(e&&e.message?e.message:"网络异常"),"var(--red)");
@@ -1273,11 +1349,23 @@ async function pfImport(){
   });
   pfMsg("写入中…");
   try{
-    const ins=await cloudDB.from("phm_scores").insert(payload);
+    /* 先查出已存在的条数（同账号 + 同谱面），给出提示 */
+    let existN=0;
+    try{
+      const cids=payload.map(function(x){return x.chart_id;});
+      const ex=await cloudDB.from("phm_scores").select("chart_id")
+        .eq("phira_user_id",u.id).in("chart_id",cids);
+      if(!ex.error) existN=(ex.data||[]).length;
+    }catch(e){}
+    /* upsert：唯一索引 (phira_user_id, chart_id) 保证同一账号同一谱面只有一行 */
+    const ins=await cloudDB.from("phm_scores")
+      .upsert(payload,{onConflict:"phira_user_id,chart_id"});
     if(ins.error) throw ins.error;
     pfMsg("");
-    btn.outerHTML='<span style="color:var(--green);font-size:12.5px">✅ 已导入 '
-      +payload.length+' 条成绩，感谢你帮定数公式变准！</span>';
+    let txt="✅ 已写入 "+payload.length+" 条成绩";
+    if(existN>0) txt+="（其中 "+existN+" 条已存在 → 已更新为最新成绩，不会重复计数）";
+    txt+="，感谢你帮定数公式变准！";
+    btn.outerHTML='<span style="color:var(--green);font-size:12.5px">'+txt+'</span>';
     renderCount((window.PHM_COUNT||0)+payload.length);
   }catch(e){
     btn.disabled=false;
@@ -1306,6 +1394,10 @@ async function pfImport(){
   if(s) s.addEventListener("click",pfSearch);
   const inp=$("#pname");
   if(inp) inp.addEventListener("keydown",function(e){ if(e.key==="Enter") pfSearch(); });
+  const cgo=$("#cgo");
+  if(cgo) cgo.addEventListener("click",chartSearch);
+  const csrch=$("#csrch");
+  if(csrch) csrch.addEventListener("keydown",function(e){ if(e.key==="Enter") chartSearch(); });
 })();
 </script>
 </body>
