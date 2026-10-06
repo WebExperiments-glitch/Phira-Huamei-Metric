@@ -127,10 +127,11 @@ footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-si
 
 <div class="pf" id="ppanel" style="display:none">
   <div class="pfhead">🔗 连接 Phira<span class="pfx" id="pclose" title="收起">✕</span></div>
-  <div class="pfdesc">输入你的 Phira <b>用户名</b>，读取你的<b>公开资料</b>（RKS、最好成绩）。<br>
-  不需要密码、不读取任何私密信息 —— 这些数据在 Phira 站内本来就是公开的。</div>
+  <div class="pfdesc">输入你的 Phira <b>用户名</b>或 <b>UID</b>（纯数字，更好输不会打错），读取你的<b>公开资料</b>（RKS、最好成绩）。<br>
+  不需要密码、不读取任何私密信息 —— 这些数据在 Phira 站内本来就是公开的。<br>
+  <span style="color:var(--fg3)">不知道自己 UID？先输用户名查一次，结果卡片上会显示 <b>#编号</b>，之后直接输那个数字即可。</span></div>
   <div class="pfrow">
-    <input id="pname" placeholder="Phira 用户名，如 Mivik" maxlength="24" autocomplete="off">
+    <input id="pname" placeholder="用户名或 UID，如 Mivik / 2" maxlength="24" autocomplete="off">
     <button id="psearch" type="button">查询</button>
   </div>
   <div class="pfmsg" id="pfmsg"></div>
@@ -932,15 +933,33 @@ function pfRender(){
   const ib=$("#pimport"); if(ib) ib.addEventListener("click",pfImport);
 }
 
+/* 用户查找：纯数字走 UID 直查，否则按用户名搜索 */
+async function pfFindUser(input){
+  const s=String(input||"").trim();
+  if(!s) return {err:"先填用户名或 UID"};
+  if(/^\d{1,12}$/.test(s)){                     /* UID 直查（不抛错，返回 null） */
+    const r=await fetch(PHIRA_API+"/user/"+s,{headers:{Accept:"application/json"}})
+      .catch(function(){return null;});
+    if(!r) return {err:"网络异常，稍后再试"};
+    const j=await r.json().catch(function(){return null;});
+    if(j&&j.id!=null) return {user:j};
+    return {err:"没找到 UID 为 "+s+" 的用户"};
+  }
+  const j=await pfGet("/user?search="+encodeURIComponent(s)+"&page=1");
+  const u=(j&&j.results&&j.results[0])||null;
+  if(!u) return {err:"没找到「"+s+"」，检查拼写（区分大小写）"};
+  return {user:u};
+}
+
 async function pfSearch(){
   const raw=$("#pname").value.trim();
-  if(!raw){ pfMsg("先填 Phira 用户名","var(--red)"); return; }
+  if(!raw){ pfMsg("先填用户名或 UID","var(--red)"); return; }
   const btn=$("#psearch"); btn.disabled=true;
   $("#pfout").innerHTML=""; pfMsg("查询用户…");
   try{
-    const j=await pfGet("/user?search="+encodeURIComponent(raw)+"&page=1");
-    const u=(j&&j.results&&j.results[0])||null;
-    if(!u){ pfMsg("没找到「"+raw+"」，检查拼写（区分大小写）","var(--red)"); btn.disabled=false; return; }
+    const found=await pfFindUser(raw);
+    if(found.err){ pfMsg(found.err,"var(--red)"); btn.disabled=false; return; }
+    const u=found.user;
     pfMsg("读取最好成绩…");
     const pool=(await pfGet("/record/get-pool/"+u.id)).bestPool||[];
     if(!pool.length){ pfMsg("这个账号还没有成绩记录","var(--red)"); btn.disabled=false; return; }
@@ -958,7 +977,10 @@ async function pfSearch(){
     PF.user=u;
     PF.rows=pool.map(function(p){
       return {chart:p.chart,record:p.record,rks:p.rks,info:cmap[p.chart]||null};});
-    try{ localStorage.setItem("phm_phira_name",u.name); }catch(e){}
+    try{
+      localStorage.setItem("phm_phira_name",u.name);
+      localStorage.setItem("phm_phira_uid",String(u.id));
+    }catch(e){}
     pfMsg("");
     pfRender();
   }catch(e){
@@ -1021,9 +1043,10 @@ async function pfImport(){
     const show=panel.style.display==="none";
     panel.style.display=show?"":"none";
     if(show){
-      let last=null; try{ last=localStorage.getItem("phm_phira_name"); }catch(e){}
+      let last=null;
+      try{ last=localStorage.getItem("phm_phira_uid")||localStorage.getItem("phm_phira_name"); }catch(e){}
       const inp=$("#pname");
-      if(last&&inp&&!inp.value) inp.value=last;
+      if(last&&inp&&!inp.value) inp.value=last;   /* 优先回填 UID（更好输） */
       if(inp) inp.focus();
     }
   });
