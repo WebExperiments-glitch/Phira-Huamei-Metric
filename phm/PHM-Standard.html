@@ -237,6 +237,50 @@ footer .fd{margin-top:4px}
   .gh span{display:none}               /* 极窄屏按钮只留图标 */
   .pmrows .a{display:none}
 }
+/* ── P.H.M. 账号面板（专属登录）── */
+.authbox{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 16px}
+.authbox .ahead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:8px}
+.authbox .pfx{margin-left:auto;cursor:pointer;color:var(--fg3);padding:0 4px;font-weight:400}
+.authbox .pfx:hover{color:var(--fg)}
+.authbox .adesc{font-size:12px;color:var(--fg2);line-height:1.7;margin-bottom:10px}
+.authbox .adesc b{color:var(--fg)}
+.atabs{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
+.atabs button{border:1px solid var(--line);background:transparent;color:var(--fg2);
+border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}
+.atabs button.on{border-color:var(--blue);color:var(--fg);background:var(--card2)}
+.afield{margin-bottom:9px}
+.afield label{display:block;font-size:11.5px;color:var(--fg3);margin-bottom:4px}
+.afield input{width:100%;max-width:320px;background:var(--bg);border:1px solid var(--line);
+border-radius:8px;padding:7px 11px;color:var(--fg);font:inherit;font-size:13px;outline:none}
+.afield input:focus{border-color:var(--blue)}
+.coderow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.coderow input{flex:1;max-width:180px}
+.coderow button{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
+border-radius:8px;padding:7px 12px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.coderow button:disabled{opacity:.5;cursor:default}
+.coderow button:hover:not(:disabled){border-color:var(--blue);color:var(--fg)}
+.arow{margin-top:11px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.aprimary{border:0;border-radius:8px;padding:8px 20px;font:inherit;font-size:13px;font-weight:700;
+cursor:pointer;background:var(--blue);color:#fff}
+.aprimary:disabled{opacity:.5;cursor:default}
+.alink{border:0;background:transparent;color:var(--fg3);font:inherit;font-size:12px;
+cursor:pointer;text-decoration:underline;padding:4px}
+.alink:hover{color:var(--fg2)}
+.amsg{font-size:12px;color:var(--fg2);margin-top:9px;min-height:1em;line-height:1.6}
+.amsg.err{color:var(--red)}
+.amsg.ok{color:var(--green)}
+.aurow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.auname{font-weight:700;font-size:15px}
+.aumeta{font-size:11.5px;color:var(--fg3);margin-top:2px}
+.aurow .alink{margin-left:auto}
+.abind{margin:11px 0;padding:10px 13px;border-radius:9px;background:var(--card2);
+font-size:12px;color:var(--fg2);line-height:1.75}
+.abind b{color:var(--fg)}
+.abind button{margin-top:7px}
+.achpw{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+/* 公开统计条 */
+.pstats{margin:10px 0 0;font-size:11.5px;color:var(--fg3);line-height:1.8}
+.pstats b{color:var(--fg2)}
 </style>
 </head>
 <body>
@@ -248,6 +292,8 @@ footer .fd{margin-top:4px}
     <input id="csrch" placeholder="搜谱面：曲名 / 谱师" maxlength="40" autocomplete="off">
     <button id="cgo" type="button" title="搜索 Phira 谱面并算 P.H.M. 定数">搜索</button>
   </div>
+  <button class="gh" id="authBtn" type="button"
+     title="P.H.M. 账号：登录后可绑定 Phira、留下自己的记录">👤 登录</button>
   <button class="gh" id="phiraBtn" type="button"
      title="连接 Phira：读取你的公开资料与最好成绩（不需要密码）">🔗 连接 Phira</button>
   <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
@@ -257,8 +303,64 @@ footer .fd{margin-top:4px}
   <div class="slogan">拖入谱面包 → 立刻得到一个<b>客观的难度参考</b>。解析全部在你的浏览器里完成，<b>谱面不会被上传</b>。</div>
 </header>
 
+<div class="authbox" id="authpanel" style="display:none">
+  <div class="ahead">👤 P.H.M. 账号<span class="pfx" id="aclose" title="收起">✕</span></div>
+
+  <div id="aguest">
+    <div class="adesc">登录后可以<b>绑定 Phira 账号</b>、留下属于你的记录。不登录也能用全部功能
+    （拖谱面、搜谱面、算 RKS）。<br>
+    <span style="color:var(--fg3)">Web 端仅支持<b>邮箱</b>登录（手机短信登录只在小程序里提供）。</span></div>
+
+    <div class="atabs">
+      <button type="button" id="atab-login" class="on">登录</button>
+      <button type="button" id="atab-signup">注册</button>
+      <button type="button" id="atab-reset">找回密码</button>
+    </div>
+
+    <div class="afield"><label for="aemail">邮箱</label>
+      <input id="aemail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+
+    <div class="afield" id="apwWrap"><label for="apw" id="apwLabel">密码</label>
+      <input id="apw" type="password" autocomplete="current-password" placeholder="至少 6 位"></div>
+
+    <div class="afield" id="acodeWrap" style="display:none">
+      <label for="acode">邮箱验证码</label>
+      <div class="coderow">
+        <input id="acode" inputmode="numeric" autocomplete="one-time-code" placeholder="收到的数字" maxlength="8">
+        <button type="button" id="asend">获取验证码</button>
+      </div>
+    </div>
+
+    <div class="arow">
+      <button type="button" id="asubmit" class="aprimary">登录</button>
+    </div>
+    <div class="amsg" id="amsg"></div>
+  </div>
+
+  <div id="auser" style="display:none">
+    <div class="aurow">
+      <div><div class="auname" id="auname">—</div>
+      <div class="aumeta" id="aumeta"></div></div>
+      <button type="button" id="asignout" class="alink">退出登录</button>
+    </div>
+    <div class="abind" id="abind"></div>
+    <div class="achpw">
+      <button type="button" id="achpwBtn" class="alink">修改密码</button>
+      <div id="achpwForm" style="display:none">
+        <div class="afield"><label for="aold">当前密码</label>
+          <input id="aold" type="password" autocomplete="current-password"></div>
+        <div class="afield"><label for="anew">新密码</label>
+          <input id="anew" type="password" autocomplete="new-password" placeholder="至少 6 位"></div>
+        <button type="button" id="achpwGo" class="aprimary">确认修改</button>
+      </div>
+    </div>
+    <div class="amsg" id="amsg2"></div>
+  </div>
+</div>
+
 <div class="csstatus" id="csmsg" style="display:none"></div>
 <div class="coutbox" id="cout"></div>
+<div class="pstats" id="pstats" style="display:none"></div>
 
 <div class="pf" id="ppanel" style="display:none">
   <div class="pfhead">🔗 连接 Phira<span class="pfx" id="pclose" title="收起">✕</span></div>
@@ -908,6 +1010,33 @@ function togglePanel(force){
 document.addEventListener("click",async function(e){
   const t=e.target; if(!t||!t.closest) return;
   try{
+    /* ── P.H.M. 账号 ── */
+    if(t.closest("#authBtn")){
+      const p=document.getElementById("authpanel");
+      if(p) p.style.display=(p.style.display==="none"?"":"none");
+      return;
+    }
+    if(t.closest("#aclose")){ const p=document.getElementById("authpanel"); if(p) p.style.display="none"; return; }
+    if(t.closest("#atab-login")){ authSetMode("login"); return; }
+    if(t.closest("#atab-signup")){ authSetMode("signup"); return; }
+    if(t.closest("#atab-reset")){ authSetMode("reset"); return; }
+    if(t.closest("#asend")){ await authSend(); return; }
+    if(t.closest("#asubmit")){ await authSubmit(); return; }
+    if(t.closest("#abindgo")){ await authBind(); return; }
+    if(t.closest("#aunbind")){ await authUnbind(); return; }
+    if(t.closest("#asignout")){
+      try{ await cloud.auth.signOut(); }catch(err){}
+      AUTH.user=null; await authRender();
+      csMsg("已退出登录","ok");
+      return;
+    }
+    if(t.closest("#achpwBtn")){
+      const f=document.getElementById("achpwForm");
+      if(f) f.style.display=(f.style.display==="none"?"":"none");
+      return;
+    }
+    if(t.closest("#achpwGo")){ await authChangePw(); return; }
+    /* ── 面板与功能 ── */
     if(t.closest("#phiraBtn")){ togglePanel(); return; }
     if(t.closest("#pclose")){ const p=document.getElementById("ppanel"); if(p) p.style.display="none"; return; }
     if(t.closest("#psearch")){ await pfSearch(); return; }
@@ -931,6 +1060,8 @@ document.addEventListener("click",async function(e){
 document.addEventListener("keydown",async function(e){
   if(!e.target||e.key!=="Enter") return;
   try{
+    if(e.target.id==="aemail"||e.target.id==="apw"||e.target.id==="acode"){ await authSubmit(); return; }
+    if(e.target.id==="aold"||e.target.id==="anew"){ await authChangePw(); return; }
     if(e.target.id==="pname"){ await pfSearch(); return; }
     if(e.target.id==="csrch"){ await chartSearch(); return; }
     if(e.target.id==="pacc"){ const box=e.target.closest(".punch");
@@ -966,12 +1097,13 @@ document.addEventListener("input",function(e){
 /* publicConfig（仅公开值：endpoint + publishableKey） */
 const CLOUD_CFG={endpoint:"https://phm.app.workbuddy.host",
   publishableKey:"wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b"};
-let cloudDB=null;
+let cloud=null, cloudDB=null;
 try{
   if(window.WorkBuddyCloud&&WorkBuddyCloud.createWorkBuddyCloud){
-    cloudDB=WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG).database;
+    cloud=WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG);   /* 账号模块要用完整实例 */
+    cloudDB=cloud.database;
   }
-}catch(e){ cloudDB=null; }
+}catch(e){ cloud=null; cloudDB=null; }
 
 /* 匿名会话 id（localStorage，无隐私信息） */
 function clientId(){
@@ -1354,6 +1486,207 @@ async function cloudWrite(table,data,opts){
   }
   return {ok:okN, fail:fails.length?[...new Set(fails)]:[]};
 }
+
+/* ═════ P.H.M. 专属账号：邮箱注册/登录 · 绑定 Phira · 活跃统计 ═════
+   边界：Web 端仅支持邮箱（手机短信 / 微信登录只在小程序里提供） */
+const AUTH={mode:"login",pending:null,resetChallenge:null,user:null};
+
+function aMsg(t,kind,which){
+  const el=document.getElementById(which||"amsg"); if(!el) return;
+  el.textContent=t||""; el.className="amsg"+(kind?" "+kind:"");
+}
+function authSetMode(m){
+  AUTH.mode=m; AUTH.resetChallenge=null; AUTH.pending=null;
+  ["login","signup","reset"].forEach(function(k){
+    const b=document.getElementById("atab-"+k);
+    if(b) b.classList.toggle("on",k===m);
+  });
+  const pwW=document.getElementById("apwWrap"), cdW=document.getElementById("acodeWrap");
+  const pwL=document.getElementById("apwLabel"), sub=document.getElementById("asubmit");
+  const pwInp=document.getElementById("apw");
+  if(m==="login"){
+    pwW.style.display=""; cdW.style.display="none";
+    pwL.textContent="密码"; if(pwInp) pwInp.setAttribute("autocomplete","current-password");
+    sub.textContent="登录";
+  }else if(m==="signup"){
+    pwW.style.display=""; cdW.style.display="";
+    pwL.textContent="设置密码"; if(pwInp) pwInp.setAttribute("autocomplete","new-password");
+    sub.textContent="注册";
+  }else{
+    pwW.style.display=""; cdW.style.display="none";
+    pwL.textContent="新密码"; if(pwInp) pwInp.setAttribute("autocomplete","new-password");
+    sub.textContent="重置密码";
+  }
+  aMsg(""); aMsg("","" ,"amsg2");
+}
+async function authSend(){
+  const email=(document.getElementById("aemail").value||"").trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ aMsg("请先填一个正确的邮箱","err"); return; }
+  const btn=document.getElementById("asend");
+  btn.disabled=true; aMsg("正在发送验证码…");
+  try{
+    const sent=await cloud.auth.sendOtp({email:email});
+    if(sent.error){ aMsg("发送失败："+(sent.error.message||"请稍后再试"),"err"); btn.disabled=false; return; }
+    AUTH.pending={email:email,verificationId:sent.data.verificationId,
+                  isExistingUser:sent.data.isExistingUser};
+    aMsg("验证码已发到 "+email+"，去收件箱看看（含垃圾箱）","ok");
+    let n=60; btn.textContent=n+"s";
+    const t=setInterval(function(){
+      n--;
+      if(n<=0){ clearInterval(t); btn.textContent="获取验证码"; btn.disabled=false; }
+      else btn.textContent=n+"s";
+    },1000);
+  }catch(e){ aMsg("发送失败："+(e&&e.message||"网络异常"),"err"); btn.disabled=false; }
+}
+async function authSubmit(){
+  const email=(document.getElementById("aemail").value||"").trim();
+  const pw=document.getElementById("apw").value||"";
+  const code=(document.getElementById("acode").value||"").trim();
+  const btn=document.getElementById("asubmit");
+  if(!email){ aMsg("请填邮箱","err"); return; }
+  btn.disabled=true; aMsg("处理中…");
+  try{
+    if(AUTH.mode==="login"){
+      const r=await cloud.auth.signInWithPassword({email:email,password:pw});
+      if(r.error){ aMsg("登录失败：邮箱或密码不对","err"); btn.disabled=false; return; }
+      await authAfterSignIn(r.data&&r.data.user);
+    }else if(AUTH.mode==="signup"){
+      const p=AUTH.pending;
+      if(!p||p.email!==email){ aMsg("请先点「获取验证码」","err"); btn.disabled=false; return; }
+      if(!code){ aMsg("请填邮箱里收到的验证码","err"); btn.disabled=false; return; }
+      if(pw.length<6){ aMsg("密码至少 6 位","err"); btn.disabled=false; return; }
+      const r=await cloud.auth.verifyOtp({
+        email:p.email, verificationId:p.verificationId,
+        isExistingUser:p.isExistingUser, token:code,
+        password:p.isExistingUser?undefined:pw
+      });
+      if(r.error){ aMsg("验证失败："+(r.error.message||"验证码不对或已过期"),"err"); btn.disabled=false; return; }
+      AUTH.pending=null;
+      await authAfterSignIn(r.data&&r.data.user);
+      if(p.isExistingUser) aMsg("该邮箱已注册，已直接为你登录","ok");
+    }else{
+      if(!AUTH.resetChallenge){
+        const st=await cloud.auth.resetPasswordForEmail(email);
+        if(st.error){ aMsg("发送失败："+(st.error.message||"请稍后再试"),"err"); btn.disabled=false; return; }
+        AUTH.resetChallenge=st.data;
+        document.getElementById("acodeWrap").style.display="";
+        aMsg("重置验证码已发送 —— 填验证码和新密码，再点一次「重置密码」","ok");
+        btn.disabled=false; return;
+      }
+      if(!code){ aMsg("请填收到的重置验证码","err"); btn.disabled=false; return; }
+      if(pw.length<6){ aMsg("新密码至少 6 位","err"); btn.disabled=false; return; }
+      const done=await AUTH.resetChallenge.updateUser({nonce:code,password:pw});
+      if(done.error){ aMsg("重置失败："+(done.error.message||"验证码不对"),"err"); btn.disabled=false; return; }
+      AUTH.resetChallenge=null;
+      await authAfterSignIn(done.data&&done.data.user);
+      aMsg("密码已重置，已为你登录","ok");
+    }
+  }catch(e){ aMsg("失败："+(e&&e.message||"网络异常"),"err"); btn.disabled=false; }
+}
+/* 登录后：写档案（活跃统计）+ 刷新界面 */
+async function authAfterSignIn(user){
+  AUTH.user=user||null;
+  await touchProfile();
+  await authRender();
+  const e=(user&&user.email)||"";
+  aMsg("已登录"+(e?"："+e:""),"ok");
+  aMsg("已登录"+(e?"："+e:""),"ok","amsg2");
+}
+async function touchProfile(){
+  if(!cloudDB||!AUTH.user) return;
+  try{
+    const st=await cloudDB.from("phm_profiles").select("visits").maybeSingle();
+    const v=((st&&st.data&&st.data.visits)||0)+1;
+    await cloudDB.from("phm_profiles")
+      .upsert({last_seen:new Date().toISOString(),visits:v},{onConflict:"owner_id"});
+  }catch(e){}
+}
+async function authRender(){
+  const guest=document.getElementById("aguest"), box=document.getElementById("auser");
+  const btn=document.getElementById("authBtn");
+  if(AUTH.user){
+    guest.style.display="none"; box.style.display="";
+    const email=AUTH.user.email||"（已登录）";
+    document.getElementById("auname").textContent=email.split("@")[0];
+    document.getElementById("aumeta").textContent=email+" · 账号 ID "+String(AUTH.user.id||"").slice(0,8);
+    btn.textContent="👤 "+email.split("@")[0];
+    await renderBind();
+  }else{
+    guest.style.display=""; box.style.display="none";
+    btn.textContent="👤 登录";
+  }
+}
+async function renderBind(){
+  const el=document.getElementById("abind"); if(!el) return;
+  const uid=(PF.user&&PF.user.id)||null, name=(PF.user&&PF.user.name)||null;
+  let bound=null;
+  try{ const r=await cloudDB.from("phm_profiles").select("phira_uid,phira_name").maybeSingle();
+       if(r&&r.data) bound=r.data; }catch(e){}
+  if(bound&&bound.phira_uid){
+    el.innerHTML="🔗 已绑定 Phira：<b>"+esc(bound.phira_name||"")+"</b> #"+bound.phira_uid
+      +'<br><button type="button" class="alink" id="aunbind">解除绑定</button>';
+  }else if(uid){
+    el.innerHTML="🔗 还没绑定。刚查到的 Phira 账号：<b>"+esc(name)+"</b> #"+uid
+      +'<br><button type="button" class="aprimary" id="abindgo">绑定这个 Phira 账号</button>';
+  }else{
+    el.innerHTML="🔗 还没有绑定 Phira 账号。<br>先点上方「连接 Phira」查一次（输用户名或 UID），再回来绑定。";
+  }
+}
+async function authBind(){
+  if(!AUTH.user){ csMsg("请先登录","warn"); return; }
+  const uid=(PF.user&&PF.user.id)||null, nm=(PF.user&&PF.user.name)||null;
+  if(!uid){ csMsg("先点「连接 Phira」查到一个账号，再回来绑定","warn"); return; }
+  const r=await cloudDB.from("phm_profiles")
+    .upsert({phira_uid:numOrNull(uid,1,null),phira_name:txtOrNull(nm,60),
+             last_seen:new Date().toISOString()},{onConflict:"owner_id"});
+  if(r.error){ csMsg("绑定失败："+esc(r.error.message||"网络异常"),"err"); return; }
+  csMsg("✅ 已绑定 Phira：<b>"+esc(nm)+"</b> #"+uid,"ok");
+  await renderBind();
+}
+async function authUnbind(){
+  const r=await cloudDB.from("phm_profiles")
+    .upsert({phira_uid:null,phira_name:null,last_seen:new Date().toISOString()},{onConflict:"owner_id"});
+  if(r.error){ csMsg("解绑失败："+esc(r.error.message||"网络异常"),"err"); return; }
+  csMsg("已解除 Phira 绑定","ok");
+  await renderBind();
+}
+async function authChangePw(){
+  const o=document.getElementById("aold").value||"", n=document.getElementById("anew").value||"";
+  if(!o||!n){ aMsg("请填当前密码和新密码","err","amsg2"); return; }
+  if(n.length<6){ aMsg("新密码至少 6 位","err","amsg2"); return; }
+  const r=await cloud.auth.resetPasswordForOld({oldPassword:o,newPassword:n});
+  if(r.error){ aMsg("修改失败："+(r.error.message||"当前密码不对"),"err","amsg2"); return; }
+  aMsg("密码已修改","ok","amsg2");
+  document.getElementById("achpwForm").style.display="none";
+}
+/* 公开统计（只显示聚合数，不暴露个体） */
+async function renderStats(){
+  const el=document.getElementById("pstats"); if(!el||!cloudDB) return;
+  try{
+    const r=await cloudDB.rpc("phm_stats");
+    if(r.error||!r.data){ el.style.display="none"; return; }
+    const s=r.data;
+    el.innerHTML="📊 本站公开数据：账号 <b>"+s.profiles+"</b> 个 · 今日活跃 <b>"+s.active_1d
+      +"</b> · 7 日活跃 <b>"+s.active_7d+"</b> · 已绑定 Phira <b>"+s.phira_bound
+      +"</b> · 成绩数据 <b>"+s.scores+"</b> 条 · 定数缓存 <b>"+s.charts+"</b> 张";
+    el.style.display="";
+  }catch(e){ el.style.display="none"; }
+}
+/* 初始化：恢复会话 + 观察登录态变化 */
+(async function(){
+  if(!cloudDB) return;
+  try{
+    const s=await cloud.auth.getSession();
+    AUTH.user=(s&&s.data&&s.data.user)||null;
+    await authRender();
+    if(AUTH.user) await touchProfile();
+    cloud.auth.onAuthStateChange(function(ev,sess){
+      AUTH.user=(sess&&sess.user)||null;
+      authRender();
+    });
+  }catch(e){}
+  renderStats();
+})();
 
 /* 页面级状态条（算定数/导入的进度与错误都显示在这里，绝不写进隐藏面板） */
 function csMsg(html,kind){
