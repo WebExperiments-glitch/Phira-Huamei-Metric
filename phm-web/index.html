@@ -52,6 +52,9 @@ padding:5px 11px;transition:.15s;white-space:nowrap}
 .btable .oc{color:var(--fg2);font-variant-numeric:tabular-nums}
 .improw{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .improw .hint{font-size:11.5px;color:var(--fg3)}
+.pfnb{margin-top:11px;padding:9px 12px;border-radius:9px;background:var(--card2);
+border-left:3px solid var(--amber);font-size:12px;color:var(--fg2);line-height:1.65}
+.pfnb b{color:var(--fg)}
 #drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
@@ -878,7 +881,7 @@ function renderCount(n){
 
 /* ═════════ Phira 连接：公开 API（无需密码，CORS 开放）═════════ */
 const PHIRA_API="https://api.phira.cn";
-const PF={user:null,rows:[]};
+const PF={user:null,rows:[],mode:"best",stats:null};
 function pfMsg(t,col){const el=$("#pfmsg");if(!el)return;el.textContent=t||"";el.style.color=col||"";}
 function pfGet(p){
   return fetch(PHIRA_API+p,{headers:{"Accept":"application/json"}}).then(function(r){
@@ -906,28 +909,39 @@ function lvShort(l){ return String(l||"").replace(/\s+/g," ").trim(); }
 function lvTag(l){ const m=/^([A-Za-z]{2,3})/i.exec(String(l||"")); return m?m[1].toUpperCase():"?"; }
 
 function pfRender(){
-  const u=PF.user,rows=PF.rows;
+  const u=PF.user,rows=PF.rows||[],mode=PF.mode,st=PF.stats;
   if(!u) return;
   const joined=String(u.joined||"").slice(0,10);
+  const isBest=(mode==="best");
+  let meta='#'+esc(u.id)+' · 粉丝 '+esc(u.follower_count)+(joined?' · 加入 '+esc(joined):"");
+  if(st&&st.numRecords!=null)
+    meta+='<br>'+st.numRecords+' 次游玩 · 平均准度 '+(st.avgAccuracy*100).toFixed(1)+'%';
   let html='<div class="pfuser">'
     +(u.avatar?'<img src="'+esc(u.avatar)+'" alt="" onerror="this.style.display=\'none\'">':"")
     +'<div><div class="nm">'+esc(u.name)+'</div>'
-    +'<div class="meta">#'+esc(u.id)+' · 粉丝 '+esc(u.follower_count)
-    +(joined?' · 加入 '+esc(joined):"")+'</div></div>'
+    +'<div class="meta">'+meta+'</div></div>'
     +'<div class="rks"><b>'+(+u.rks).toFixed(2)+'</b>'
-    +'<span>RKS（Phira 官方值 · 客户端不显示，这里能看）</span></div></div>';
+    +'<span>'+(isBest?'RKS（Phira 官方值 · 客户端不显示，这里能看）'
+      :'官方 RKS · 只统计已上架谱面')+'</span></div></div>';
+  if(!isBest){
+    html+='<div class="pfnb">ⓘ 你的成绩都在<b>未上架</b>谱面上 —— Phira 的 B19 / RKS 只收录已上架谱面，'
+      +'所以官方 RKS 是 0。<b>但我们照收不误</b>：下面是你最近的成绩。'
+      +'（这也是 P.H.M. 存在的意义 —— 给未上架谱面一个客观难度参考。）</div>';
+  }
   html+='<table class="btable"><tr><th class="idx">#</th><th>曲名</th><th>等级</th>'
-    +'<th>官方定数</th><th>单曲 RKS</th></tr>'
+    +'<th>官方定数</th><th>'+(isBest?'单曲 RKS':'你最好 ACC')+'</th>'
+    +(isBest?'':'<th>次数</th>')+'</tr>'
     +rows.map(function(r,i){
       const inf=r.info||{};
       return '<tr><td class="idx">'+(i+1)+'</td>'
         +'<td>'+esc(inf.name||("谱面 #"+r.chart))+'</td>'
         +'<td>'+esc(lvShort(inf.level)||"-")+'</td>'
         +'<td class="oc">'+(inf.difficulty!=null?(+inf.difficulty).toFixed(2):"-")+'</td>'
-        +'<td class="rk">'+(+r.rks).toFixed(2)+'</td></tr>';
+        +'<td class="rk">'+(isBest?(+r.rks).toFixed(2):(r.acc*100).toFixed(2)+"%")+'</td>'
+        +(isBest?'':'<td class="oc">'+r.plays+'</td>')+'</tr>';
     }).join("")+'</table>';
   html+='<div class="improw"><button id="pimport" type="button">'
-    +'📥 把这 '+rows.length+' 条最好成绩导入数据飞轮</button>'
+    +'📥 把'+(isBest?'这 '+rows.length+' 条最好成绩':'这 '+rows.length+' 张谱的最好成绩')+'导入数据飞轮</button>'
     +'<span class="hint">只含谱面与成绩数据，不含账号密码；用来校准定数公式。</span></div>';
   $("#pfout").innerHTML=html;
   const ib=$("#pimport"); if(ib) ib.addEventListener("click",pfImport);
@@ -951,6 +965,30 @@ async function pfFindUser(input){
   return {user:u};
 }
 
+/* 拉最近成绩（/record?player= → 最近 20 次，无分页），按谱面聚合取最好 */
+async function pfRecent(uid){
+  const recs=await pfGet("/record?player="+uid);
+  if(!Array.isArray(recs)||!recs.length) return null;
+  const agg={};
+  recs.forEach(function(r){
+    const k=r.chart;
+    if(!agg[k]) agg[k]={chart:k,plays:0,record:r.id,acc:0,last:r.time};
+    agg[k].plays++;
+    if(r.accuracy>agg[k].acc){ agg[k].acc=r.accuracy; agg[k].record=r.id; }
+    if(r.time>agg[k].last) agg[k].last=r.time;
+  });
+  const list=Object.keys(agg).map(function(k){return agg[k];});
+  list.sort(function(a,b){return b.acc-a.acc;});
+  let cmap=await pfMulti("chart",list.map(function(x){return x.chart;}));
+  if(cmap===null){
+    const arr=await pfPoolRun(list,5,async function(x){
+      return pfGet("/chart/"+x.chart).catch(function(){return null;});});
+    cmap={}; arr.forEach(function(c,i){ if(c) cmap[list[i].chart]=c; });
+  }
+  list.forEach(function(x){ x.info=(cmap&&cmap[x.chart])||null; x.recent=true; });
+  return list;
+}
+
 async function pfSearch(){
   const raw=$("#pname").value.trim();
   if(!raw){ pfMsg("先填用户名或 UID","var(--red)"); return; }
@@ -960,23 +998,36 @@ async function pfSearch(){
     const found=await pfFindUser(raw);
     if(found.err){ pfMsg(found.err,"var(--red)"); btn.disabled=false; return; }
     const u=found.user;
+    /* 统计（并行取，失败不影响主流程） */
+    const stats=await pfGet("/user/"+u.id+"/stats").catch(function(){return null;});
     pfMsg("读取最好成绩…");
-    const pool=(await pfGet("/record/get-pool/"+u.id)).bestPool||[];
-    if(!pool.length){ pfMsg("这个账号还没有成绩记录","var(--red)"); btn.disabled=false; return; }
-    pfMsg("拉取谱面信息…");
-    const cids=pool.map(function(p){return p.chart;});
-    let cmap=await pfMulti("chart",cids);
-    if(cmap===null){                       /* 降级：逐个拉 */
-      let done=0;
-      const arr=await pfPoolRun(pool,5,async function(p){
-        const c=await pfGet("/chart/"+p.chart).catch(function(){return null;});
-        done++; pfMsg("拉取谱面信息…（"+done+"/"+pool.length+"）");
-        return c;});
-      cmap={}; arr.forEach(function(c,i){ if(c) cmap[pool[i].chart]=c; });
+    let pool=[];
+    try{ pool=(await pfGet("/record/get-pool/"+u.id)).bestPool||[]; }catch(e){ pool=[]; }
+    let mode="best", rows=null;
+    if(pool.length){
+      const cids=pool.map(function(p){return p.chart;});
+      let cmap=await pfMulti("chart",cids);
+      if(cmap===null){                       /* 降级：逐个拉 */
+        let done=0;
+        const arr=await pfPoolRun(pool,5,async function(p){
+          const c=await pfGet("/chart/"+p.chart).catch(function(){return null;});
+          done++; pfMsg("拉取谱面信息…（"+done+"/"+pool.length+"）");
+          return c;});
+        cmap={}; arr.forEach(function(c,i){ if(c) cmap[pool[i].chart]=c; });
+      }
+      rows=pool.map(function(p){
+        return {chart:p.chart,record:p.record,rks:p.rks,info:cmap[p.chart]||null,plays:1};});
+    }else{
+      /* B19 为空：Phira 的 B19/RKS 只统计「已上架」谱面 —— 回退到最近成绩 */
+      pfMsg("B19 为空（未上架谱面不计入）→ 改读最近成绩…");
+      const recent=await pfRecent(u.id);
+      if(!recent||!recent.length){
+        pfMsg("这个账号在 Phira 上没有可读的成绩（可能一直离线游玩）","var(--red)");
+        btn.disabled=false; return;
+      }
+      mode="recent"; rows=recent;
     }
-    PF.user=u;
-    PF.rows=pool.map(function(p){
-      return {chart:p.chart,record:p.record,rks:p.rks,info:cmap[p.chart]||null};});
+    PF.user=u; PF.rows=rows; PF.mode=mode; PF.stats=stats;
     try{
       localStorage.setItem("phm_phira_name",u.name);
       localStorage.setItem("phm_phira_uid",String(u.id));
@@ -993,30 +1044,41 @@ async function pfImport(){
   const btn=$("#pimport"); if(!btn) return;
   if(!cloudDB){ pfMsg("云服务未连上，无法导入","var(--red)"); return; }
   btn.disabled=true;
-  const rows=PF.rows, u=PF.user;
-  pfMsg("读取准确率…");
-  let recs=await pfMulti("record",rows.map(function(r){return r.record;}));
-  if(recs===null){                       /* 降级：逐个拉 */
-    let done=0;
-    const arr=await pfPoolRun(rows,5,async function(r){
-      const rec=await pfGet("/record/"+r.record).catch(function(){return null;});
-      done++; pfMsg("读取准确率…（"+done+"/"+rows.length+"）");
-      return rec;});
-    recs={}; arr.forEach(function(rec,i){ if(rec) recs[rows[i].record]=rec; });
+  const rows=PF.rows, u=PF.user, isBest=(PF.mode==="best");
+  let recs={};
+  if(isBest){                            /* 最好成绩模式：补拉准确率 */
+    pfMsg("读取准确率…");
+    let m=await pfMulti("record",rows.map(function(r){return r.record;}));
+    if(m===null){                        /* 降级：逐个拉 */
+      let done=0;
+      const arr=await pfPoolRun(rows,5,async function(r){
+        const rec=await pfGet("/record/"+r.record).catch(function(){return null;});
+        done++; pfMsg("读取准确率…（"+done+"/"+rows.length+"）");
+        return rec;});
+      m={}; arr.forEach(function(rec,i){ if(rec) m[rows[i].record]=rec; });
+    }
+    recs=m;
   }
   const payload=rows.map(function(r){
-    const inf=r.info||{}, rec=recs[r.record];
+    const inf=r.info||{};
+    let acc=null;
+    if(isBest){
+      const rec=recs[r.record];
+      acc=rec&&rec.accuracy!=null?+(rec.accuracy*100).toFixed(4):null;
+    }else if(r.acc!=null){
+      acc=+(r.acc*100).toFixed(4);       /* 聚合时已算好（0–1 → %） */
+    }
     return {
       chart_name:String(inf.name||("谱面 #"+r.chart)).slice(0,120),
       chart_diff:lvTag(inf.level),
       chart_level:lvShort(inf.level)||null,
       official_const:inf.difficulty!=null?+(+inf.difficulty).toFixed(3):null,
-      acc:rec&&rec.accuracy!=null?+(rec.accuracy*100).toFixed(4):null,
-      song_rks:+(+r.rks).toFixed(3),
+      acc:acc,
+      song_rks:(isBest&&r.rks!=null)?+(+r.rks).toFixed(3):null,
       chart_id:r.chart,
       phira_user_id:u.id,
       phira_user_name:String(u.name).slice(0,60),
-      source:"phira",
+      source:isBest?"phira":"phira-recent",
       engine_ver:"5d-knn-v0.3.2",
       client_id:clientId()
     };
