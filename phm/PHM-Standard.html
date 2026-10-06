@@ -1039,7 +1039,7 @@ const PHIRA_API="https://api.phira.cn";
 const PF={user:null,rows:[],mode:"best",stats:null};
 function pfMsg(t,col){const el=$("#pfmsg");if(!el)return;el.textContent=t||"";el.style.color=col||"";}
 function pfGet(p){
-  return fetch(PHIRA_API+p,{headers:{"Accept":"application/json"}}).then(function(r){
+  return fetchTO(PHIRA_API+p,15000,{headers:{"Accept":"application/json"}}).then(function(r){
     if(!r.ok) throw new Error("Phira API "+r.status);
     return r.json();});
 }
@@ -1243,6 +1243,56 @@ function cachedConst(cid){
   const c=CHART_CACHE[cid];
   return (c&&c.ref_const!=null)?+c.ref_const:null;
 }
+/* 带超时的 fetch（网络挂起时不再无限等待） */
+function fetchTO(url,ms,opts){
+  const o=opts||{};
+  const ctl=(typeof AbortController!=="undefined")?new AbortController():null;
+  let rejectFn=null;
+  const timer=setTimeout(function(){
+    if(ctl){ try{ctl.abort();}catch(e){} }
+    if(rejectFn) rejectFn(new Error("请求超时（"+Math.round((ms||15000)/1000)+"s）"));
+  },ms||15000);
+  return new Promise(function(resolve,reject){
+    rejectFn=reject;
+    fetch(url, ctl?Object.assign({},o,{signal:ctl.signal}):o)
+      .then(function(r){ clearTimeout(timer); resolve(r); },
+            function(e){ clearTimeout(timer); reject(e); });
+  });
+}
+
+/* 通用云写入：分批 + 速率限制自动重试退避
+   实测环境级限流阈值：读无限制（但串行 ~140ms/次），写约 25~40 并发触发
+   "Environment ... exceeds rate limit" */
+async function cloudWrite(table,data,opts){
+  const o=opts||{};
+  const arr=Array.isArray(data)?data:[data];
+  const batchSize=o.batchSize||8;
+  const gap=o.gap==null?400:o.gap;
+  let okN=0; const fails=[];
+  const log=function(t){ if(o.onProgress){ try{o.onProgress(t);}catch(e){} } };
+  for(let i=0;i<arr.length;i+=batchSize){
+    const batch=arr.slice(i,i+batchSize);
+    let done=false;
+    for(let attempt=1;attempt<=4&&!done;attempt++){
+      const up=await cloudDB.from(table)
+        .upsert(batch,o.onConflict?{onConflict:o.onConflict}:undefined);
+      if(!up.error){ okN+=batch.length; done=true; break; }
+      const msg=String((up.error&&up.error.message)||"");
+      const limited=/rate limit|exceeds|too many|429|503/i.test(msg);
+      if(limited&&attempt<4){
+        const wait=500*Math.pow(2,attempt-1);        /* 500 / 1000 / 2000 ms */
+        log("触发速率限制，"+wait+"ms 后重试（第 "+attempt+" 次）…");
+        await new Promise(function(r){ setTimeout(r,wait); });
+        continue;
+      }
+      fails.push(msg);
+      done=true;
+    }
+    if(i+batchSize<arr.length) await new Promise(function(r){ setTimeout(r,gap); });
+  }
+  return {ok:okN, fail:fails.length?[...new Set(fails)]:[]};
+}
+
 /* 页面级状态条（算定数/导入的进度与错误都显示在这里，绝不写进隐藏面板） */
 function csMsg(html,kind){
   const el=document.getElementById("csmsg"); if(!el) return;
@@ -1265,7 +1315,7 @@ async function computeChart(cid,btn,info){
   btn.disabled=true; btn.textContent="下载中…";
   csMsg("正在下载《"+esc(nm)+"》…");
   try{
-    const res=await fetch(url);
+    const res=await fetchTO(url,90000);
     if(!res.ok) throw new Error("HTTP "+res.status);
     const buf=await res.arrayBuffer();
     btn.textContent="解析中…";
@@ -1487,16 +1537,20 @@ async function pfImport(){
         .eq("phira_user_id",u.id).in("chart_id",cids);
       if(!ex.error) existN=(ex.data||[]).length;
     }catch(e){}
-    /* upsert：唯一索引 (phira_user_id, chart_id) 保证同一账号同一谱面只有一行 */
-    const ins=await cloudDB.from("phm_scores")
-      .upsert(payload,{onConflict:"phira_user_id,chart_id"});
-    if(ins.error) throw ins.error;
+    /* upsert + 分批 + 限流重试：唯一索引保证同一账号同一谱面只有一行 */
+    const wr=await cloudWrite("phm_scores",payload,{
+      batchSize:8, gap:450, onConflict:"phira_user_id,chart_id",
+      onProgress:function(t){ csMsg("正在写入 "+payload.length+" 条成绩… "+esc(t)); }
+    });
+    if(wr.ok===0&&wr.fail.length) throw new Error(wr.fail[0]);
     pfMsg("");
-    let txt="✅ 已写入 "+payload.length+" 条成绩";
+    let txt="✅ 已写入 "+wr.ok+" 条成绩";
     if(existN>0) txt+="（其中 "+existN+" 条已存在 → 已更新为最新成绩，不会重复计数）";
+    if(wr.fail.length) txt+="；⚠ "+wr.fail.length+" 条失败（"+String(wr.fail[0]).slice(0,50)+"）";
     txt+="，感谢你帮定数公式变准！";
-    btn.outerHTML='<span style="color:var(--green);font-size:12.5px">'+txt+'</span>';
-    renderCount((window.PHM_COUNT||0)+payload.length);
+    csMsg(txt,wr.fail.length?"warn":"ok");
+    btn.outerHTML='<span style="color:var(--green);font-size:12.5px">'+esc(txt)+'</span>';
+    renderCount((window.PHM_COUNT||0)+wr.ok);
   }catch(e){
     btn.disabled=false;
     pfMsg("导入失败："+(e&&e.message?e.message:"网络异常"),"var(--red)");
