@@ -75,6 +75,11 @@ border-radius:999px;padding:1px 8px}
 .pmrows .a,.pmrows .l,.pmrows .s{font-variant-numeric:tabular-nums;flex:none}
 .pmrows .s{color:var(--amber);width:42px;text-align:right}
 .pmrows .more{color:var(--fg3);font-size:11px}
+.pmwarn{margin:0 0 9px;padding:8px 11px;border-radius:8px;background:rgba(232,163,61,.1);
+border-left:3px solid var(--amber);font-size:11.5px;color:var(--fg2);line-height:1.65}
+.pmwarn b{color:var(--amber)}
+.pmnote{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
+font-size:11px;color:var(--fg3);line-height:1.6}
 #drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
@@ -957,21 +962,29 @@ function pfRender(){
   }
   if(pm){
     html+='<div class="pmrks"><div class="pmhead">P.H.M. RKS'
-      +'<b>'+pm.rks.toFixed(2)+'</b><span class="pmtag">官方停更后的替代值</span></div>'
-      +'<div class="pmdesc">用你是同样一套公式 <span class="mono">(Σ B19 + φ位) ÷ 20</span> 算出：'
-      +'本次计入 <b>'+pm.n+'</b> 条成绩'
-      +(pm.phi?'，φ 位 <b>'+esc(pm.phi.name)+'</b>（定数 '+pm.phi.lv.toFixed(2)+'，已 AP）':'，暂无 φ 位（记 0）')
-      +'。定数取谱面标称值（未上架谱面为谱师自报，可能偏低或偏高）；'
-      +'数据源只到最近 20 次游玩，实际值可能更高。</div>'
+      +'<b>'+pm.fair.toFixed(2)+'</b><span class="pmtag">官方停更后的替代值</span></div>'
+      +'<div class="pmdesc">公式经反推验证与 Phira 官方一致（32 个样本，'
+      +'「内部定数 ÷ 标称定数」比值中位 <b>1.0000</b>）：'
+      +'<span class="mono">单曲 rks = ((acc−55)/45)² × 定数</span>。'
+      +'本次计入 <b>'+pm.n+'</b> 条'
+      +(pm.phi?'，φ 位 <b>'+esc(pm.phi.name)+'</b>（定数 '+pm.phi.lv.toFixed(2)+'，已 AP）'
+             :'，暂无 φ 位（计 0）')
+      +'。上值为<b>按实际条数平均</b>；若严格按官方口径 <span class="mono">÷20</span>'
+      +'则为 <b>'+pm.rks.toFixed(2)+'</b>（B19 未满时会偏低）。</div>'
+      +(pm.cnt<20?'<div class="pmwarn">⚠ 只凑到 <b>'+pm.cnt+'</b> 条（标准 B19 要 19 条 + φ1）。'
+        +'官方 ÷20 口径会把这个值压到 '+pm.rks.toFixed(2)+'，明显低于你的真实水平 —— '
+        +'所以主显示用的是按实际条数平均。<b>多打几首，两个值就会靠拢。</b></div>':'')
       +'<div class="pmrows">'
       +pm.b19.slice(0,5).map(function(x,i){
         return '<div><span class="i">'+(i+1)+'</span>'
           +'<span class="n">'+esc(x.name)+'</span>'
-          +'<span class="a">'+x.acc.toFixed(2)+'%</span>'
+          +'<span class="a">'+(x.acc==null?'—':x.acc.toFixed(2)+'%')+'</span>'
           +'<span class="l">定数 '+x.lv.toFixed(2)+'</span>'
           +'<span class="s">'+x.sr.toFixed(2)+'</span></div>';}).join("")
       +(pm.b19.length>5?'<div class="more">… 共 '+pm.b19.length+' 条单曲 rks</div>':'')
-      +'</div></div>';
+      +'</div>'
+      +'<div class="pmnote">定数取谱面标称值（未上架谱面为谱师自报，可能偏高或偏低）；'
+      +'成绩数据源只到最近 20 次游玩，因此实际水平大概率高于此值。</div></div>';
   }
   html+='<table class="btable"><tr><th class="idx">#</th><th>曲名</th><th>等级</th>'
     +'<th>官方定数</th><th>'+(isBest?'单曲 RKS':'你最好 ACC')+'</th>'
@@ -1035,12 +1048,17 @@ function phmRks(rows){
   if(!items.length) return null;
   items.sort(function(a,b){return b.sr-a.sr;});
   const b19=items.slice(0,19);
-  const phis=items.filter(function(x){return x.acc>=100;})
+  const phis=items.filter(function(x){return x.acc!=null&&x.acc>=100;})
                   .sort(function(a,b){return b.lv-a.lv;});
   const phi=phis[0]||null;
   let sum=0; b19.forEach(function(x){sum+=x.sr;});
-  return {rks:(sum+(phi?phi.lv:0))/20, sum:sum, phi:phi,
-          n:items.length, b19:b19};
+  const bonus=phi?phi.lv:0;
+  const cnt=b19.length+(phi?1:0);
+  return {
+    rks:(sum+bonus)/20,                    /* Phigros 口径：不足按 0 补足 20 */
+    fair:cnt?((sum+bonus)/cnt):0,          /* 按实际条数平均（样本少时更接近真实水平） */
+    n:items.length, b19:b19, phi:phi, sum:sum, cnt:cnt
+  };
 }
 async function pfRecent(uid){
   const recs=await pfGet("/record?player="+uid);
