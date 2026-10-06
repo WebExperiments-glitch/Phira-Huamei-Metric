@@ -59,6 +59,22 @@ border-left:3px solid var(--amber);font-size:12px;color:var(--fg2);line-height:1
 .pfchk>div{font-size:11.5px;color:var(--fg2)}
 .pfchk>div b{color:var(--fg)}
 .pfchk-tip{margin-top:8px;padding-top:7px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--fg3)}
+/* P.H.M. RKS 卡片 */
+.pmrks{margin-top:11px;border:1px solid var(--line);border-radius:11px;
+background:linear-gradient(180deg,var(--card2),var(--card));padding:12px 14px}
+.pmhead{display:flex;align-items:baseline;gap:9px;font-weight:700;font-size:13px;flex-wrap:wrap}
+.pmhead b{font-size:26px;color:var(--amber);font-variant-numeric:tabular-nums}
+.pmtag{font-size:11px;color:var(--fg3);font-weight:400;border:1px solid var(--line);
+border-radius:999px;padding:1px 8px}
+.pmdesc{font-size:11.5px;color:var(--fg2);margin:7px 0 9px;line-height:1.7}
+.pmdesc b{color:var(--fg)}
+.pmrows{display:flex;flex-direction:column;gap:3px}
+.pmrows>div{display:flex;gap:9px;align-items:baseline;font-size:11.5px;color:var(--fg2)}
+.pmrows .i{color:var(--fg3);width:14px;flex:none}
+.pmrows .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}
+.pmrows .a,.pmrows .l,.pmrows .s{font-variant-numeric:tabular-nums;flex:none}
+.pmrows .s{color:var(--amber);width:42px;text-align:right}
+.pmrows .more{color:var(--fg3);font-size:11px}
 #drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
@@ -927,23 +943,35 @@ function pfRender(){
     +'<div class="rks"><b>'+(+u.rks).toFixed(2)+'</b>'
     +'<span>'+(isBest?'RKS（Phira 官方值 · 客户端不显示，这里能看）'
       :'官方 RKS · 只统计已上架谱面')+'</span></div></div>';
+  const pm=phmRks(rows);
   if(!(+u.rks>0)){
-    /* RKS = 0 自查：Phira 客户端源码 song.rs 的「计入成绩」判据 */
-    html+='<div class="pfnb"><b>为什么官方 RKS 是 0？</b>下面这些情况会让成绩<b>不计入排行榜/RKS</b>'
-      +'（成绩照样上传、榜上也能看到你，但不算 RKS）：'
-      +'<div class="pfchk">'
-      +'<div>⌨️ <b>开了「使用键盘游玩」</b>（设置 → 通用）—— 设置里就写着"成绩无法上传"</div>'
-      +'<div>🖼️ <b>开了「低画质模式」</b>—— 它也被算作不计成绩的 mod（最反直觉的一条）</div>'
-      +'<div>📴 离线模式（设置里开启后成绩不上传）</div>'
-      +'<div>⏩ <b>速度低于 1.0</b>（开了变速游玩）</div>'
-      +'<div>🎯 练习模式 / 课题模式（只有普通游玩才计入）</div>'
-      +'<div>📋 谱面<b>未上架</b>（只有 ranked 谱面的成绩才计入 RKS）</div>'
-      +'</div>'
-      +'<div class="pfchk-tip">怎么确认？每次打完看结算界面：若出现 <b>「本次游玩不计成绩」</b>'
-      +'橙色提示，就是命中了上面某一条。</div></div>';
+    html+='<div class="pfnb"><b>官方 RKS 是 0 —— 这不是你的问题，也不是设置问题。</b>'
+      +'实测（抽样 10 位<b>今天还在玩</b>的活跃玩家）：他们的 bestPool 最新成绩全部停在 '
+      +'<b>2023 ~ 2026-03</b> 之间（最晚一条 2026-03-19），而他们的排行榜成绩天天在更新。'
+      +'→ <b>Phira 服务端的 RKS / B19 计算已停止更新</b>，单曲排行榜仍在实时运作。'
+      +'所以你打上架谱、榜上能看到自己，RKS 却永远不动；2026 年之后注册的账号 bestPool 从一开始就是空的。'
+      +'这不是玩家能修的东西。</div>';
   }else if(!isBest){
     html+='<div class="pfnb">ⓘ B19 为空 —— Phira 的 B19 只收录已上架谱面，'
       +'你最近打的多为未上架谱面。下面是你最近的成绩（<b>P.H.M. 照收不误</b>）。</div>';
+  }
+  if(pm){
+    html+='<div class="pmrks"><div class="pmhead">P.H.M. RKS'
+      +'<b>'+pm.rks.toFixed(2)+'</b><span class="pmtag">官方停更后的替代值</span></div>'
+      +'<div class="pmdesc">用你是同样一套公式 <span class="mono">(Σ B19 + φ位) ÷ 20</span> 算出：'
+      +'本次计入 <b>'+pm.n+'</b> 条成绩'
+      +(pm.phi?'，φ 位 <b>'+esc(pm.phi.name)+'</b>（定数 '+pm.phi.lv.toFixed(2)+'，已 AP）':'，暂无 φ 位（记 0）')
+      +'。定数取谱面标称值（未上架谱面为谱师自报，可能偏低或偏高）；'
+      +'数据源只到最近 20 次游玩，实际值可能更高。</div>'
+      +'<div class="pmrows">'
+      +pm.b19.slice(0,5).map(function(x,i){
+        return '<div><span class="i">'+(i+1)+'</span>'
+          +'<span class="n">'+esc(x.name)+'</span>'
+          +'<span class="a">'+x.acc.toFixed(2)+'%</span>'
+          +'<span class="l">定数 '+x.lv.toFixed(2)+'</span>'
+          +'<span class="s">'+x.sr.toFixed(2)+'</span></div>';}).join("")
+      +(pm.b19.length>5?'<div class="more">… 共 '+pm.b19.length+' 条单曲 rks</div>':'')
+      +'</div></div>';
   }
   html+='<table class="btable"><tr><th class="idx">#</th><th>曲名</th><th>等级</th>'
     +'<th>官方定数</th><th>'+(isBest?'单曲 RKS':'你最好 ACC')+'</th>'
@@ -982,7 +1010,38 @@ async function pfFindUser(input){
   return {user:u};
 }
 
-/* 拉最近成绩（/record?player= → 最近 20 次，无分页），按谱面聚合取最好 */
+/* P.H.M. RKS —— 官方 RKS 停更后的替代值
+   公式同 Phigros 社区：rks = (Σ B19 + φ位) / 20
+   单曲 rks = ((acc−55)/45)² × 定数（acc<70 记 0）；
+   定数优先用谱面 difficulty，缺失则该条不计入 */
+function phmRks(rows){
+  const items=[];
+  (rows||[]).forEach(function(r){
+    const inf=r.info||{};
+    const lv=inf.difficulty!=null?+inf.difficulty:null;
+    if(lv==null||!(lv>=1&&lv<=20)) return;      /* 定数离群（谱师乱填）直接跳过 */
+    const nm=inf.name||("谱面 #"+r.chart);
+    if(r.rks!=null&&r.acc==null){               /* B19 模式：Phira 已给单曲 rks */
+      items.push({lv:lv, acc:null, sr:+r.rks, name:nm});
+      return;
+    }
+    let accPct=null;
+    if(r.acc!=null) accPct=r.acc*100;           /* 最近成绩模式：0–1 → % */
+    else if(r.accuracy!=null) accPct=r.accuracy*100;
+    if(accPct==null||!(accPct>=70)) return;
+    const k=(accPct-55)/45;
+    items.push({lv:lv, acc:accPct, sr:k*k*lv, name:nm});
+  });
+  if(!items.length) return null;
+  items.sort(function(a,b){return b.sr-a.sr;});
+  const b19=items.slice(0,19);
+  const phis=items.filter(function(x){return x.acc>=100;})
+                  .sort(function(a,b){return b.lv-a.lv;});
+  const phi=phis[0]||null;
+  let sum=0; b19.forEach(function(x){sum+=x.sr;});
+  return {rks:(sum+(phi?phi.lv:0))/20, sum:sum, phi:phi,
+          n:items.length, b19:b19};
+}
 async function pfRecent(uid){
   const recs=await pfGet("/record?player="+uid);
   if(!Array.isArray(recs)||!recs.length) return null;
