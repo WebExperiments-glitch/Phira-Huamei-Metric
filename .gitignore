@@ -7,7 +7,6 @@
 # 保留三份「真源」（体积小、是运行工具的必需输入，开源后他人可直接出报告）：
 #   data/official.jsonl   1.7MB  官谱 1,037 条
 #   data/community.jsonl   18MB  社区谱 9,684 条
-#   data/formula.json     7KB    公式查表
 # 排除超大原始语料（31GB）与可由流水线重建的中间产物：
 data/charts/
 data/.stages/
@@ -15,6 +14,7 @@ data/_backup_before_consolidate/
 
 # ── 外部素材（Phira 源码、竞品工具、APK 等）──
 _research/
+第三方参考/
 *.apk
 
 # ── 构建产物（由 build_standalone.py 生成）──
