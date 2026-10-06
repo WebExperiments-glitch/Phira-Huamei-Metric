@@ -884,7 +884,7 @@ function pfGet(p){
     if(!r.ok) throw new Error("Phira API "+r.status);
     return r.json();});
 }
-/* 限并发执行（避免一次 40 个请求） */
+/* 限并发执行（备用：批量端点不可用时降级） */
 function pfPoolRun(items,limit,fn){
   const out=new Array(items.length); let i=0;
   const n=Math.min(limit,items.length)||1;
@@ -892,6 +892,14 @@ function pfPoolRun(items,limit,fn){
     return (async function(){ while(i<items.length){ const k=i++;
       try{ out[k]=await fn(items[k],k); }catch(e){ out[k]=null; } } })();
   })).then(function(){return out;});
+}
+/* 批量端点：/xxx/multi-get?ids=a,b,c → 按 id 建索引（不依赖返回顺序） */
+async function pfMulti(kind,ids){
+  if(!ids.length) return {};
+  const arr=await pfGet("/"+kind+"/multi-get?ids="+ids.join(",")).catch(function(){return null;});
+  if(!Array.isArray(arr)) return null;          /* 端点失效 → 调用方降级 */
+  const map={}; arr.forEach(function(o){ if(o&&o.id!=null) map[o.id]=o; });
+  return map;
 }
 function lvShort(l){ return String(l||"").replace(/\s+/g," ").trim(); }
 function lvTag(l){ const m=/^([A-Za-z]{2,3})/i.exec(String(l||"")); return m?m[1].toUpperCase():"?"; }
@@ -936,15 +944,20 @@ async function pfSearch(){
     pfMsg("读取最好成绩…");
     const pool=(await pfGet("/record/get-pool/"+u.id)).bestPool||[];
     if(!pool.length){ pfMsg("这个账号还没有成绩记录","var(--red)"); btn.disabled=false; return; }
-    let done=0;
-    const charts=await pfPoolRun(pool,5,async function(p){
-      const c=await pfGet("/chart/"+p.chart).catch(function(){return null;});
-      done++; pfMsg("拉取谱面信息…（"+done+"/"+pool.length+"）");
-      return c;
-    });
+    pfMsg("拉取谱面信息…");
+    const cids=pool.map(function(p){return p.chart;});
+    let cmap=await pfMulti("chart",cids);
+    if(cmap===null){                       /* 降级：逐个拉 */
+      let done=0;
+      const arr=await pfPoolRun(pool,5,async function(p){
+        const c=await pfGet("/chart/"+p.chart).catch(function(){return null;});
+        done++; pfMsg("拉取谱面信息…（"+done+"/"+pool.length+"）");
+        return c;});
+      cmap={}; arr.forEach(function(c,i){ if(c) cmap[pool[i].chart]=c; });
+    }
     PF.user=u;
-    PF.rows=pool.map(function(p,i){
-      const o={chart:p.chart,record:p.record,rks:p.rks}; o.info=charts[i]; return o;});
+    PF.rows=pool.map(function(p){
+      return {chart:p.chart,record:p.record,rks:p.rks,info:cmap[p.chart]||null};});
     try{ localStorage.setItem("phm_phira_name",u.name); }catch(e){}
     pfMsg("");
     pfRender();
@@ -959,14 +972,18 @@ async function pfImport(){
   if(!cloudDB){ pfMsg("云服务未连上，无法导入","var(--red)"); return; }
   btn.disabled=true;
   const rows=PF.rows, u=PF.user;
-  let done=0;
-  const recs=await pfPoolRun(rows,5,async function(r){
-    const rec=await pfGet("/record/"+r.record).catch(function(){return null;});
-    done++; pfMsg("读取准确率…（"+done+"/"+rows.length+"）");
-    return rec;
-  });
-  const payload=rows.map(function(r,i){
-    const inf=r.info||{}, rec=recs[i];
+  pfMsg("读取准确率…");
+  let recs=await pfMulti("record",rows.map(function(r){return r.record;}));
+  if(recs===null){                       /* 降级：逐个拉 */
+    let done=0;
+    const arr=await pfPoolRun(rows,5,async function(r){
+      const rec=await pfGet("/record/"+r.record).catch(function(){return null;});
+      done++; pfMsg("读取准确率…（"+done+"/"+rows.length+"）");
+      return rec;});
+    recs={}; arr.forEach(function(rec,i){ if(rec) recs[rows[i].record]=rec; });
+  }
+  const payload=rows.map(function(r){
+    const inf=r.info||{}, rec=recs[r.record];
     return {
       chart_name:String(inf.name||("谱面 #"+r.chart)).slice(0,120),
       chart_diff:lvTag(inf.level),
