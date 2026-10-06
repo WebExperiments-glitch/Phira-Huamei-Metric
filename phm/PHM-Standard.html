@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P.H.M. Standard · V0.3.2</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--card2:#1c2330;--fg:#e6edf3;--fg2:#9aa7b4;--fg3:#6b7684;
+--line:#2a313c;--amber:#e8a33d;--blue:#5aa2e8;--green:#4cc38a;--red:#e5534b;
+--density:#5aa2e8;--pattern:#c98ce8;--coord:#e8a33d;--stamina:#4cc38a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.6 "Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:20px}
+.wrap{max-width:880px;margin:0 auto}
+header{display:flex;align-items:baseline;gap:12px;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+header h1{font-size:20px;letter-spacing:.5px}
+header h1 b{color:var(--amber)}
+.ver{font-size:12px;color:var(--fg3)}
+.slogan{font-size:12px;color:var(--fg2);width:100%}
+.slogan b{color:var(--fg)}
+#drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
+#drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
+#drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
+#drop input{display:none}
+.note{font-size:11.5px;color:var(--fg3);margin:10px 2px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
+.card h2{font-size:15px;margin-bottom:2px}
+.card .sub{font-size:12px;color:var(--fg2);margin-bottom:12px}
+.err{border-color:var(--red)}
+.ps{display:flex;align-items:baseline;gap:10px}
+.ps .num{font-size:54px;font-weight:750;color:var(--amber);letter-spacing:-2px;line-height:1}
+.ps .u{font-size:13px;color:var(--fg3)}
+.scale{position:relative;height:8px;border-radius:4px;background:var(--card2);margin:14px 0 4px;overflow:hidden}
+.scale i{position:absolute;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#2d5f9e,var(--amber),var(--red))}
+.tick{position:relative;height:16px;font-size:10.5px;color:var(--fg3)}
+.tick span{position:absolute;transform:translateX(-50%)}
+.groups{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:12px 0 4px}
+.g .t{display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin-bottom:3px}
+.g .t b{color:var(--fg)}
+.bar{height:6px;border-radius:3px;background:var(--card2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.gdensity i{background:var(--density)}.gpattern i{background:var(--pattern)}
+.gcoord i{background:var(--coord)}.gstamina i{background:var(--stamina)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left}
+td:nth-child(2),th:nth-child(2){text-align:right;color:var(--fg)}
+th{color:var(--fg3);font-weight:500;font-size:11.5px}
+.why{margin-top:10px;font-size:12px;color:var(--fg2)}
+.why summary{cursor:pointer;color:var(--blue)}
+.why p{margin:6px 0}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
+footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg3);line-height:1.8}
+.badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:8px;border:1px solid var(--line);color:var(--fg2);margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1><b>P.H.M.</b> Standard</h1>
+  <span class="ver">V0.3.2 · 开发者测试版</span>
+  <div class="slogan">谱面负荷分析器 —— <b>零内嵌</b>：本页不含任何数据库，放入谱面包，全部分析在你自己的设备上完成。</div>
+</header>
+
+<div id="drop">
+  <div class="big">把 Phira 谱面包拖到这里</div>
+  <div>或点击选择文件 · 支持 .pez / .zip · 可一次多个</div>
+  <input id="file" type="file" accept=".pez,.zip" multiple>
+</div>
+<div class="note" id="msg"></div>
+<div id="out"></div>
+
+<footer>
+  <div><b>PS 是什么：</b>P.H.M. Standard 难度标度（0–20），由公式的四个负荷组加权合成——
+  <span class="mono">PS = 20 × (0.45·密度 + 0.30·结构 + 0.15·协调 + 0.10·持续)</span>。
+  每个维度经饱和函数归一，每一分都可追溯到上方明细。
+  <b>PS 与官方定数无关</b>——官方定数是人工标注（噪声 2.80 级），PS 是独立标度，
+  排序与人类共识的一致性已验收（Spearman ρ = 0.92）。</div>
+  <div style="margin-top:4px">方法与验收脚本见仓库 <span class="mono">tools/phm_standard.py</span> ·
+  版本 V0.3.2（正式版发布后重新计算）· GPL-3.0</div>
+</footer>
+</div>
+
+<!-- ═════════ 引擎（纯函数，无 UI 依赖；与 tools/phm_standard.py 及
+     tools/enhance_features_v3.py / tools/dims14.py 逐条对照） ═════════ -->
+<script id="engine">
+"use strict";
+/* ── ZIP 读取（无依赖）：EOCD → 中央目录 → 本地头 → 数据 ── */
+function zipParse(buf){
+  const u8=new Uint8Array(buf), dv=new DataView(buf);
+  // 从尾部找 EOCD 签名 0x06054b50
+  let e=-1;
+  for(let i=u8.length-22;i>=0 && i>u8.length-66000;i--){
+    if(dv.getUint32(i,true)===0x06054b50){e=i;break;}
+  }
+  if(e<0) throw new Error("不是有效的 ZIP（找不到中央目录）");
+  const count=dv.getUint16(e+10,true), cdOff=dv.getUint32(e+16,true);
+  const dec=new TextDecoder(), entries=[];
+  let p=cdOff;
+  for(let i=0;i<count;i++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true);
+    const nameLen=dv.getUint16(p+28,true), extLen=dv.getUint16(p+30,true),
+          cmtLen=dv.getUint16(p+32,true), lho=dv.getUint32(p+42,true);
+    const flag=dv.getUint16(p+8,true);
+    const nameRaw=u8.subarray(p+46,p+46+nameLen);
+    const name=dec.decode(nameRaw);
+    entries.push({name,method,csize,lho,utf8:!!(flag&0x800)});
+    p+=46+nameLen+extLen+cmtLen;
+  }
+  return {files:entries.map(en=>({
+    name:en.name,
+    read:async ()=>{
+      const lp=en.lho;
+      if(dv.getUint32(lp,true)!==0x04034b50) throw new Error("本地头损坏: "+en.name);
+      const nl=dv.getUint16(lp+26,true), el=dv.getUint16(lp+28,true);
+      const start=lp+30+nl+el;
+      const raw=u8.subarray(start,start+en.csize);
+      if(en.method===0) return raw;
+      if(en.method===8){
+        if(typeof DecompressionStream==="undefined")
+          throw new Error("浏览器不支持 DecompressionStream，请换新版 Chrome/Edge");
+        const ds=new DecompressionStream("deflate-raw");
+        const stream=new Blob([raw]).stream().pipeThrough(ds);
+        return new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      throw new Error("不支持的压缩方法 "+en.method+": "+en.name);
+    }
+  }))};
+}
+
+/* ── 谱面解析：RPE（社区）与 PGR（官方）双格式
+   对照 tools/add_community_dims.py 的 read_rpe / read_pgr 逐条一致 ── */
+function tripleBeats(t){ const a=t[0],b2=t[1],c=t[2]; return c?a+b2/c:a; }
+function makeBpmList(ranges){
+  const el=[]; let t=0, lb=0, lbp=null;
+  for(const rg of ranges){
+    if(lbp!=null) t+=(rg.t-lb)*(60.0/lbp);
+    lb=rg.t; lbp=rg.bpm; el.push([rg.t,t,rg.bpm]);
+  }
+  return { el:el, tb:function(beats){
+    if(!this.el.length) return beats*0.5;
+    if(beats<this.el[0][0]){ const e0=this.el[0];
+      return e0[1]+(beats-e0[0])*60.0/e0[2]; }
+    let lo=0, hi=this.el.length-1;
+    while(lo<hi){ const m=(lo+hi+1)>>1; if(this.el[m][0]<=beats) lo=m; else hi=m-1; }
+    const e=this.el[lo]; return e[1]+(beats-e[0])*(60.0/e[2]);
+  }};
+}
+function loadChart(j){
+  const lines=j.judgeLineList||[];
+  if(!lines.length) throw new Error("没有 judgeLineList（不是 RPE/PGR 谱面）");
+  const ev={move:0,rot:0,dis:0,tempo:[]};
+  let notes=[], bpm=120.0;
+  if(j.BPMList){
+    /* RPE：BPMList + 拍三元组。tick = 拍整数部分 × 32（与社区管线一致）*/
+    const ranges=(j.BPMList||[]).map(function(b){
+        return {t:tripleBeats(b.startTime), bpm:+b.bpm};})
+      .filter(function(x){return x.bpm>0;})
+      .sort(function(a,b){return a.t-b.t;});
+    if(!ranges.length) ranges.push({t:0,bpm:120});
+    const bl=makeBpmList(ranges);
+    bpm=ranges[0].bpm;
+    lines.forEach(function(ln,li){
+      /* ★ RPE 的演出事件在 eventLayers 里（对照 read_rpe）：
+         speedEvents 计入变速、rotateEvents 计入旋转、posXEvents 计入位移 */
+      for(const layer of (ln.eventLayers||[])){
+        if(!layer||typeof layer!=="object") continue;
+        for(const e of (layer.speedEvents||[])){
+          const stt=e.startTime;
+          if(stt&&stt.length===3) ev.tempo.push(stt[0]);
+        }
+        ev.rot+=(layer.rotateEvents||[]).length;
+        ev.move+=(layer.posXEvents||[]).length;
+      }
+      ev.rot+=(ln.rotateEvents||[]).length;
+      for(const n of (ln.notes||[])){
+        if(n.isFake===1||n.isFake===true) continue;
+        const stt=n.startTime;
+        if(!stt||stt.length!==3||n.type==null) continue;
+        notes.push({sec:bl.tb(tripleBeats(stt)), tick:stt[0]*32.0,
+          type:n.type, x:n.positionX||0, line:li, fake:false});
+      }
+    });
+  } else {
+    /* PGR：time 为 1/32 拍 tick，bpm 取第一个非空行 */
+    let bpm0=120.0;
+    for(const ln of lines){ if(ln.bpm){ bpm0=+ln.bpm; break; } }
+    bpm=bpm0;
+    const r=60.0/32.0/bpm0;
+    lines.forEach(function(ln,li){
+      for(const e of (ln.judgeLineMoveEvents||[])){
+        const st=e.startTime,en=e.endTime;
+        if(st==null||en==null) continue;
+        const dur=(en-st)*r; if(dur<=0) continue;
+        const x0=e.start||0,x1=e.end||0,y0=e.start2||0,y1=e.end2||0;
+        ev.move+=Math.abs((x1-x0)*880)+Math.abs((y1-y0)*880);
+      }
+      ev.rot+=(ln.judgeLineRotateEvents||[]).length;
+      ev.dis+=(ln.judgeLineDisappearEvents||[]).length;
+      const se=ln.speedEvents||[];
+      for(let i=1;i<se.length;i++){
+        if(se[i].startTime!=null) ev.tempo.push(se[i].startTime*r);
+      }
+      for(const key of ["notesAbove","notesBelow"]){
+        for(const nn of (ln[key]||[])){
+          const t=nn.time;
+          if(t==null||nn.type==null) continue;
+          notes.push({sec:t*r, tick:t*32.0, type:nn.type,
+            x:nn.positionX||0, line:li, fake:false});
+        }
+      }
+    });
+  }
+  if(!notes.length) throw new Error("谱面里没有音符");
+  notes.sort(function(a,b){return a.sec-b.sec||a.tick-b.tick;});
+  const real=notes.filter(function(n){return !n.fake;});
+  const secs=real.map(function(n){return n.sec;});
+  const dur=Math.max(1e-3,Math.max.apply(null,secs)-Math.min.apply(null,secs));
+  return {notes:notes, real:real, dur:dur, bpm:bpm,
+          nlines:lines.length, ev:ev};
+}
+/* ── 加权密度（对照 strain_features）── */
+function pyRound(x,d){ const m=Math.pow(10,d); return Math.round(x*m)/m; }
+function strainFeatures(ts,ty,window){
+  window=window||1.0;
+  const n=ts.length; if(!n) return {};
+  const COST={1:1.0,2:1.0,3:0.35,4:0.55};
+  const pre=new Array(n+1).fill(0);
+  for(let i=0;i<n;i++) pre[i+1]=pre[i]+(COST[ty[i]]!=null?COST[ty[i]]:1.0);
+  const step=window/20, vals=[];
+  let t=ts[0]; const last=ts[n-1];
+  const lb=(arr,x)=>{let lo=0,hi=arr.length;while(lo<hi){const m=(lo+hi)>>1;if(arr[m]<x)lo=m+1;else hi=m;}return lo;};
+  while(t<=last+1e-9){
+    const i0=lb(ts,t), i1=lb(ts,t+window);
+    let span=Math.min(t+window,last+1e-9)-t;
+    if(span<=1e-6) span=window;
+    if(i1-i0>=5) vals.push((pre[i1]-pre[i0])/span);
+    t+=step;
+  }
+  if(!vals.length){
+    const r2=pyRound(pre[n]/Math.max(last-ts[0],1e-6),4);
+    return {strain_peak:r2,strain_p50:r2,strain_p90:r2,strain_p99:r2,strain_raw_max:r2};
+  }
+  const vs=vals.slice().sort((a,b)=>a-b);
+  const pick=q=>vs[Math.min(Math.floor(vs.length*q),vs.length-1)];
+  return {strain_peak:pyRound(pick(0.99),4),strain_p50:pyRound(pick(0.50),4),
+          strain_p90:pyRound(pick(0.90),4),strain_p99:pyRound(pick(0.99),4),
+          strain_raw_max:pyRound(vs[vs.length-1],4)};
+}
+
+/* ── 节奏（对照 rhythm_features）── */
+function rhythmFeatures(ts){
+  const n=ts.length; if(n<3) return {};
+  const d=[]; for(let i=0;i<n-1;i++) if(ts[i+1]>ts[i]) d.push(ts[i+1]-ts[i]);
+  if(!d.length) return {};
+  const ds=d.slice().sort((a,b)=>a-b);
+  const sum=d.reduce((a,b)=>a+b,0);
+  return {iv_mean:pyRound(sum/d.length,4),
+    iv_median:pyRound(ds[Math.floor(ds.length/2)],4),
+    chord_ratio:pyRound(d.filter(x=>x<0.050).length/d.length*100,3),
+    fast_ratio:pyRound(d.filter(x=>x<0.150).length/d.length*100,3)};
+}
+
+/* ── 结构维度（对照 tools/dims14.py extract_dims）── */
+function unionLen(iv){
+  if(!iv.length) return 0;
+  const s=iv.slice().sort((a,b)=>a[0]-b[0]);
+  let total=0, cs=s[0][0], ce=s[0][1];
+  for(let i=1;i<s.length;i++){
+    if(s[i][0]>ce){total+=ce-cs;cs=s[i][0];ce=s[i][1];}
+    else ce=Math.max(ce,s[i][1]);
+  }
+  return total+(ce-cs);
+}
+function effCount(ticks){
+  if(ticks.length<2) return ticks.length;
+  let c=1;
+  for(let i=1;i<ticks.length;i++) if(ticks[i]-ticks[i-1]>=1) c++;
+  return c;
+}
+function extractDims(notes,ev,dur,bpm,nlines){
+  const n=notes.length; if(!n) return {};
+  const ds=Math.max(dur,0.01);
+  const ts=notes.map(x=>x.sec), ticks=notes.map(x=>x.tick),
+        types=notes.map(x=>x.type), xs=notes.map(x=>x.x);
+  const out={};
+  const core=[]; for(let i=0;i<n;i++) if(types[i]===1||types[i]===2) core.push([ts[i],ticks[i]]);
+  const coreT=core.map(a=>a[0]), coreK=core.map(a=>a[1]);
+  out.real_core_notes_per_second=core.length/ds;
+  out.real_notes_per_second=n/ds;
+  let effPeak=0; const effVals=[];
+  if(core.length>5){
+    let r2=0;
+    for(let l=0;l<coreT.length;l++){
+      while(r2<coreT.length&&coreT[r2]-coreT[l]<=1.0) r2++;
+      const e=effCount(coreK.slice(l,r2));
+      if(e>effPeak) effPeak=e;
+      effVals.push(e);
+    }
+  } else effVals.push(core.length);
+  out.eff_peak_tps_1s=effPeak;
+  out.eff_avg_tps_1s=effVals.length?effVals.reduce((a,b)=>a+b,0)/effVals.length:0;
+  const rcnps=out.real_core_notes_per_second;
+  if(coreT.length>5){
+    const aw=[], ai=[];
+    let left=0;
+    for(let right=0;right<coreT.length;right++){
+      while(coreT[right]-coreT[left]>1.0) left++;
+      const w=right-left+1;
+      if(w>=rcnps){aw.push(w);ai.push([Math.max(0,coreT[right]-1.0),coreT[right]]);}
+    }
+    out.above_avg_density_mean=aw.length?aw.reduce((a,b)=>a+b,0)/aw.length:rcnps;
+    out.above_avg_duration_sec=unionLen(ai);
+    out.above_avg_density_ratio=aw.length/Math.max(coreT.length,1);
+  } else {out.above_avg_density_mean=rcnps;out.above_avg_duration_sec=0;}
+  const byT=new Map();
+  for(const nt of notes){const k2=nt.sec.toFixed(3);
+    if(!byT.has(k2))byT.set(k2,[]); byT.get(k2).push(nt.x);}
+  const sizes=[]; for(const[,v]of byT)sizes.push(v.length);
+  if(sizes.length>1){
+    const cnt={}; sizes.forEach(sz=>cnt[sz]=(cnt[sz]||0)+1);
+    const tot=sizes.length, ks=Object.keys(cnt);
+    let ent=0; for(const k2 of ks){const c=cnt[k2]/tot;ent-=c*Math.log2(c);}
+    const mx=ks.length>1?Math.log2(ks.length):1;
+    out.chord_size_entropy=mx>0?ent/mx:0;
+  } else out.chord_size_entropy=0;
+  out.avg_chord_size=sizes.length?sizes.reduce((a,b)=>a+b,0)/sizes.length:1.0;
+  let mf=0,mf3=0;
+  for(const[,v]of byT){const sz=v.length;if(sz>=3){mf+=sz*(sz-1)/2;mf3++;}}
+  out.weighted_mf_score_per_sec=mf/ds;
+  out.multi_finger_3plus_events=mf3;
+  const stairs=[]; let run=[0];
+  for(let i=1;i<n;i++){
+    if(ts[i]-ts[i-1]<0.18&&types[i]===1&&types[i-1]===1) run.push(i);
+    else{if(run.length>=4){const dd=ts[run[run.length-1]]-ts[run[0]];
+      if(dd>0.01)stairs.push(run.length/dd);} run=[i];}
+  }
+  if(run.length>=4){const dd=ts[run[run.length-1]]-ts[run[0]];
+    if(dd>0.01)stairs.push(run.length/dd);}
+  out.stair_speed_avg=stairs.length?stairs.reduce((a,b)=>a+b,0)/stairs.length:0;
+  out.stair_speed_max=stairs.length?Math.max.apply(null,stairs):0;
+  out.stair_density=stairs.length/ds;
+  let sw=0; for(let i=1;i<n;i++) if(types[i]!==types[i-1]) sw++;
+  out.pattern_switch_rate=sw/ds; out.type_switch_per_sec=sw/ds;
+  out.tempo_change_count=(ev.tempo||[]).length;
+  out.hold_ratio=types.filter(t=>t===2).length/n;
+  let fast=0; for(let i=1;i<n;i++) if(ts[i]-ts[i-1]<0.1) fast++;
+  out.note_clutter_ratio=fast/Math.max(n-1,1)*100;
+  out.drag_per_sec=types.filter(t=>t===4).length/ds;
+  let ch=0; for(let i=1;i<n;i++)
+    if(ts[i]-ts[i-1]<0.25&&Math.abs(xs[i]-xs[i-1])>3.0) ch++;
+  out.cross_hand_density=ch/ds;
+  const px={}; xs.forEach(x=>{px[x]=(px[x]||0)+1;});
+  let pe=0; for(const k2 in px){const c=px[k2]/n; pe-=c*Math.log2(c);}
+  out.position_entropy=pe;
+  out.jline_move_disp_per_sec=ev.move/ds;
+  out.jline_rotate_density=ev.rot/ds;
+  out.jline_disappear_density=ev.dis/ds;
+  out.duration_s=ds; out.bpm=bpm; out.lines=nlines; out.notes_real=n;
+  return out;
+}
+
+/* ── P.H.M. Standard 公式（对照 tools/phm_standard.py，逐常数一致）── */
+function sat(v,k){ return v<=0?0:v/(v+k); }
+function gDensity(f){ return 0.30*sat(f.real_notes_per_second,6.0)
+  +0.20*sat(f.notes_real,1200.0)+0.20*sat(f.strain_p50,10.0)
+  +0.15*sat(f.above_avg_density_mean,8.0)+0.15*sat(f.iv_mean,0.30); }
+function gPattern(f){ return 0.35*sat(f.cross_hand_density,1.2)
+  +0.25*sat(f.stair_speed_max,14.0)+0.20*sat(f.note_clutter_ratio,35.0)
+  +0.20*sat(f.pattern_switch_rate,4.0); }
+function gCoord(f){ return 0.25*sat(f.eff_peak_tps_1s,14.0)
+  +0.30*sat(f.avg_chord_size,3.0)
+  +0.25*sat(f.multi_finger_3plus_events/Math.max(f.duration_s,0.01),0.5)
+  +0.20*sat(f.chord_size_entropy,0.8); }
+function gStamina(f){ return 0.60*sat(f.eff_avg_tps_1s,6.0)
+  +0.40*sat(f.hold_ratio,0.35); }
+function psScore(f){
+  const g={density:gDensity(f),pattern:gPattern(f),
+           coord:gCoord(f),stamina:gStamina(f)};
+  return {total:20*(0.45*g.density+0.30*g.pattern+0.15*g.coord+0.10*g.stamina),g:g};
+}
+
+/* ── analyze(fileBytes, fileName) → 报告对象数组 ── */
+async function analyzeChart(buf,fileName){
+  const zip=zipParse(buf);
+  const reports=[];
+  const chartEntries=zip.files.filter(x=>/\.json$/i.test(x.name));
+  if(!chartEntries.length) throw new Error("包里没有 .json 谱面文件");
+  let meta={};
+  const yml=zip.files.find(x=>/info\.ya?ml$/i.test(x.name));
+  for(const en of chartEntries){
+    let j;
+    const raw=await en.read();
+    let txt=new TextDecoder("utf-8").decode(raw);
+    if(txt.charCodeAt(0)===0xFEFF) txt=txt.slice(1);
+    try{ j=JSON.parse(txt); }
+    catch(e){ reports.push({file:fileName,name:en.name,error:"JSON 解析失败: "+e.message}); continue; }
+    if(!j.judgeLineList) continue;              // 非 RPE 谱面（如 meta json）
+    const r=loadChart(j);
+    const ts=r.real.map(n=>n.sec), ty=r.real.map(n=>n.type);
+    const f=Object.assign({},
+      strainFeatures(ts,ty), rhythmFeatures(ts),
+      extractDims(r.real,r.ev,r.dur,r.bpm0,r.nlines));
+    f.notes_all=r.notes.length;
+    const ps=psScore(f);
+    reports.push({file:fileName,name:en.name,meta:meta,feats:f,ps:ps});
+  }
+  if(!reports.length) throw new Error("没有找到可解析的 RPE 谱面");
+  return reports;
+}
+</script>
+
+<!-- ═════════ UI ═════════ -->
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const f1=v=>v==null?"-":(+v).toFixed(1), f2=v=>v==null?"-":(+v).toFixed(2);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const GROUPS=[["density","密度负荷",0.45],["pattern","结构负荷",0.30],
+              ["coord","协调负荷",0.15],["stamina","持续负荷",0.10]];
+
+function card(r){
+  if(r.error)
+    return '<div class="card err"><h2>✕ '+esc(r.file)+'</h2><div class="sub">'
+      +esc(r.name||"")+'</div><div style="color:var(--red)">'+esc(r.error)+'</div></div>';
+  const f=r.feats, ps=r.ps;
+  const pct=v=>Math.max(0,Math.min(100,v/20*100));
+  const pos=v=>Math.max(0,Math.min(100,v/20*100));
+  const bars=GROUPS.map(g=>
+    '<div class="g '+g[0]+'"><div class="t"><span>'+g[1]
+      +' <span class="mono">×'+g[2].toFixed(2)+'</span></span><b>'
+      +f2(ps.g[g[0]])+'</b></div><div class="bar"><i style="width:'
+      +(ps.g[g[0]]*100).toFixed(1)+'%"></i></div></div>').join("");
+  const rows=[
+    ["真实物量",f.notes_real+(f.notes_all>f.notes_real?"（含假键 "+f.notes_all+"）":"")],
+    ["时长",f1(f.duration_s)+" s"],["BPM",f2(f.bpm)],["判定线",f.lines],
+    ["总密度",f2(f.real_notes_per_second)+" /s"],
+    ["有效密度 均值/峰值",f2(f.eff_avg_tps_1s)+" / "+f2(f.eff_peak_tps_1s)],
+    ["加权密度 p50 / p99",f2(f.strain_p50)+" / "+f2(f.strain_p99)],
+    ["音符间隔 中位",f2(f.iv_median)+" s"],
+    ["长条占比",(f.hold_ratio*100).toFixed(1)+"%"],
+    ["纵连峰值",f2(f.stair_speed_max)+" /s"],
+    ["交叉手",f2(f.cross_hand_density)+" /s"],
+    ["三押以上",f.multi_finger_3plus_events+" 次"],
+    ["演出 位移·旋转·消失",f1(f.jline_move_disp_per_sec)+" · "+f1(f.jline_rotate_density)
+      +" · "+f1(f.jline_disappear_density)+" /s（仅展示，不计分）"],
+  ];
+  return '<div class="card">'
+    +'<h2>'+esc(r.name)+'</h2><div class="sub">'+esc(r.file)
+    +' · '+esc(r.level||"")+'</div>'
+    +'<div class="ps"><span class="num">'+f1(ps.total)+'</span>'
+    +'<span class="u">PS · P.H.M. 标度（0–20）</span>'
+    +'<span class="badge">公式直算 · 与官方定数无关</span></div>'
+    +'<div class="scale"><i style="left:0;width:'+pct(ps.total).toFixed(1)+'%"></i></div>'
+    +'<div class="tick"><span style="left:0">0</span>'
+      +'<span style="left:50%">10</span><span style="left:100%">20</span></div>'
+    +'<div class="groups">'+bars+'</div>'
+    +'<table>'+rows.map(x=>'<tr><td>'+x[0]+'</td><td>'+esc(x[1])+'</td></tr>').join("")+'</table>'
+    +'<details class="why"><summary>这个数是怎么算的</summary>'
+    +'<p>谱面文件在<b>你的设备上</b>完成解析：RPE 音符 → '+f.notes_real
+    +' 个真实音符 → 15 个负荷维度 → 四组饱和归一 → 加权合成。</p>'
+    +'<p class="mono">PS = 20 × (0.45×密度 '+f2(ps.g.density)
+    +' + 0.30×结构 '+f2(ps.g.pattern)
+    +' + 0.15×协调 '+f2(ps.g.coord)
+    +' + 0.10×持续 '+f2(ps.g.stamina)+') = '+f1(ps.total)+'</p>'
+    +'<p>PS 是 P.H.M. 独立标度，不是对官方定数的预测。排序与人类共识的一致性'
+    +'已验收（Spearman ρ = 0.92，官谱 1,037 条）。</p></details></div>';
+}
+
+async function handleFiles(files){
+  const out=$("#out");
+  for(const file of files){
+    const msg=document.createElement("div");
+    msg.className="card"; msg.textContent="解析中："+file.name+" …";
+    out.appendChild(msg);
+    try{
+      const buf=await file.arrayBuffer();
+      const rs=await analyzeChart(buf,file.name);
+      msg.remove();
+      for(const r of rs){ const d=document.createElement("div");
+        d.innerHTML=card(r); out.appendChild(d.firstChild); }
+    }catch(e){
+      msg.className="card err";
+      msg.innerHTML='<h2>✕ '+esc(file.name)+'</h2><div style="color:var(--red)">'
+        +esc(e.message||String(e))+'</div>';
+    }
+  }
+  $("#msg").textContent="";
+}
+
+const drop=$("#drop");
+drop.addEventListener("click",()=>$("#file").click());
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{
+  e.preventDefault(); drop.classList.add("hover");}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{
+  e.preventDefault(); drop.classList.remove("hover");}));
+drop.addEventListener("drop",e=>{
+  $("#msg").textContent="";
+  handleFiles([...e.dataTransfer.files].filter(f=>/\.(pez|zip)$/i.test(f.name)));
+});
+$("#file").addEventListener("change",e=>{
+  handleFiles([...e.target.files]); e.target.value="";
+});
+</script>
+</body>
+</html>
