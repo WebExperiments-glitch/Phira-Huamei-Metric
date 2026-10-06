@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>P.H.M. Standard · V0.3.2</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="P.H.M. —— Phira / Phigros 谱面定数参考工具。拖入谱面包即出客观定数，可与 Phira 账号联动查看 RKS 与最好成绩。">
 <style>
 :root{--bg:#0d1117;--card:#161b22;--card2:#1c2330;--fg:#e6edf3;--fg2:#9aa7b4;--fg3:#6b7684;
 --line:#2a313c;--amber:#e8a33d;--blue:#5aa2e8;--green:#4cc38a;--red:#e5534b;
@@ -19,8 +22,10 @@ header h1 b{color:var(--amber)}
 .slogan b{color:var(--fg)}
 .gh{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;
 color:var(--fg2);text-decoration:none;border:1px solid var(--line);border-radius:8px;
-padding:5px 11px;transition:.15s;white-space:nowrap}
-.gh:hover{color:var(--fg);border-color:var(--fg3);background:var(--card2)}
+padding:5px 11px;transition:.15s;white-space:nowrap;
+background:var(--card2);font:inherit;cursor:pointer;line-height:1.5}
+.gh:hover{color:var(--fg);border-color:var(--fg3);background:var(--card)}
+.gh:active{transform:translateY(1px)}
 .gh svg{display:block;flex:none}
 .gh button,.gh{cursor:pointer}
 /* ── 连接 Phira 面板 ── */
@@ -84,7 +89,11 @@ font-size:11px;color:var(--fg3);line-height:1.6}
 .btable th.pmh{color:var(--amber);font-weight:400}
 .btable .pm b{color:var(--amber);font-variant-numeric:tabular-nums}
 .calcb{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
-border-radius:6px;padding:2px 9px;font:inherit;font-size:11px;cursor:pointer;line-height:1.5}
+border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;line-height:1.6}
+/* 提高优先级，避免被 .pf button 的主按钮样式覆盖成蓝色方块 */
+.pf .calcb{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
+border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;line-height:1.6}
+.pf .calcb:hover{border-color:var(--amber);color:var(--amber);background:var(--card)}
 .calcb:hover{border-color:var(--amber);color:var(--amber)}
 .calcb:disabled{opacity:.5;cursor:default}
 .pmhint{margin-top:8px;font-size:11px;color:var(--fg3);line-height:1.6}
@@ -790,6 +799,94 @@ $("#file").addEventListener("change",function(e){
 <script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
 <script>
 "use strict";
+/* ═════ 全局健壮性：统一事件委托（最先绑定，不依赖后续任何代码）═════
+   教训：绑定写在脚本末尾时，前面任意一句同步代码抛错都会让按钮彻底失灵。 */
+window.addEventListener("error",function(ev){
+  try{
+    const el=document.getElementById("pfmsg")||document.getElementById("msg");
+    if(el){ el.textContent="⚠ 脚本错误："+((ev&&ev.message)||"未知")+" —— 部分功能可能不可用，刷新可恢复";
+      el.style.color="var(--red)"; }
+  }catch(e){}
+});
+window.addEventListener("unhandledrejection",function(ev){
+  try{
+    const el=document.getElementById("pfmsg");
+    if(el&&!el.textContent){
+      const m=(ev&&ev.reason&&ev.reason.message)||"网络或权限问题";
+      el.textContent="⚠ 异步错误："+m; el.style.color="var(--red)";
+    }
+  }catch(e){}
+});
+/* 面板开关（供委托与外部调用） */
+function togglePanel(force){
+  const p=document.getElementById("ppanel"); if(!p) return;
+  const show=(typeof force==="boolean")?force:(p.style.display==="none");
+  p.style.display=show?"":"none";
+  if(show){
+    let last=null;
+    try{ last=localStorage.getItem("phm_phira_uid")||localStorage.getItem("phm_phira_name"); }catch(e){}
+    const inp=document.getElementById("pname");
+    if(last&&inp&&!inp.value) inp.value=last;
+    try{ if(inp) inp.focus(); }catch(e){}
+  }
+}
+/* 统一 click 委托 */
+document.addEventListener("click",async function(e){
+  const t=e.target; if(!t||!t.closest) return;
+  try{
+    if(t.closest("#phiraBtn")){ togglePanel(); return; }
+    if(t.closest("#pclose")){ const p=document.getElementById("ppanel"); if(p) p.style.display="none"; return; }
+    if(t.closest("#psearch")){ await pfSearch(); return; }
+    if(t.closest("#cgo")){ await chartSearch(); return; }
+    const cb=t.closest(".calcb");
+    if(cb){
+      const cid=+cb.getAttribute("data-cid");
+      const fromSrch=(CS.rows||[]).filter(function(c){return c.id===cid;})[0];
+      const fromPF=((PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{}).info;
+      await computeChart(cid,cb,fromSrch||fromPF||null);
+      return;
+    }
+    const pb=t.closest("#pgo");
+    if(pb){ const box=pb.closest(".punch");
+      if(box) await submitPunch(+(box.getAttribute("data-i")||STATE.sel)); }
+  }catch(err){
+    try{ pfMsg("操作失败："+(err&&err.message?err.message:"未知错误"),"var(--red)"); }catch(e2){}
+  }
+});
+/* Enter 提交 */
+document.addEventListener("keydown",async function(e){
+  if(!e.target||e.key!=="Enter") return;
+  try{
+    if(e.target.id==="pname"){ await pfSearch(); return; }
+    if(e.target.id==="csrch"){ await chartSearch(); return; }
+    if(e.target.id==="pacc"){ const box=e.target.closest(".punch");
+      if(box) await submitPunch(+(box.getAttribute("data-i")||STATE.sel)); }
+  }catch(err){}
+});
+/* 上传偏好勾选 */
+document.addEventListener("change",function(e){
+  try{
+    if(!e.target||e.target.id!=="popt") return;
+    const on=!!e.target.checked;
+    saveOptin(on);
+    const box=e.target.closest(".punch"); if(!box) return;
+    box.classList.toggle("off",!on);
+    const btn=box.querySelector("#pgo"), msg=box.querySelector(".pmsg");
+    if(btn) btn.disabled=!on;
+    if(msg){ msg.style.color=on?"":"var(--fg2)";
+      msg.textContent=on?"":"已关闭上传：这条成绩只在你本机计算，不会发出。"; }
+  }catch(err){}
+});
+/* ACC 输入实时预览 */
+document.addEventListener("input",function(e){
+  try{
+    if(e.target&&e.target.id==="pacc"){
+      const box=e.target.closest(".punch");
+      if(box) punchPreview(+(box.getAttribute("data-i")||STATE.sel));
+    }
+  }catch(err){}
+});
+
 /* publicConfig（仅公开值：endpoint + publishableKey） */
 const CLOUD_CFG={endpoint:"https://phm.app.workbuddy.host",
   publishableKey:"wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b"};
@@ -890,43 +987,7 @@ async function submitPunch(idx){
     msg.style.color="var(--red)";
   }
 }
-/* 事件委托（打卡块随 innerHTML 重渲染） */
-document.addEventListener("click",function(e){
-  const cb=e.target.closest?e.target.closest(".calcb"):null;
-  if(cb){
-    const cid=+cb.getAttribute("data-cid");
-    const fromSrch=(CS.rows||[]).filter(function(c){return c.id===cid;})[0];
-    const fromPF=((PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{}).info;
-    computeChart(cid,cb,fromSrch||fromPF||null);
-    return;
-  }
-  const b=e.target.closest?e.target.closest("#pgo"):null; if(!b) return;
-  const box=b.closest(".punch"); if(!box) return;
-  submitPunch(+(box.getAttribute("data-i")||STATE.sel));
-});
-document.addEventListener("keydown",function(e){
-  if(e.key!=="Enter"||!e.target||e.target.id!=="pacc") return;
-  const box=e.target.closest(".punch"); if(!box) return;
-  submitPunch(+(box.getAttribute("data-i")||STATE.sel));
-});
-document.addEventListener("input",function(e){
-  if(!e.target||e.target.id!=="pacc") return;
-  punchPreview(+(e.target.closest(".punch").getAttribute("data-i")||STATE.sel));
-});
-/* 上传开关（偏好持久化；取消后按钮立即禁用） */
-document.addEventListener("change",function(e){
-  if(!e.target||e.target.id!=="popt") return;
-  const on=!!e.target.checked;
-  saveOptin(on);
-  const box=e.target.closest(".punch"); if(!box) return;
-  box.classList.toggle("off",!on);
-  const btn=box.querySelector("#pgo"), msg=box.querySelector(".pmsg");
-  if(btn) btn.disabled=!on;
-  if(msg){
-    msg.style.color=on?"":"var(--fg2)";
-    msg.textContent=on?"":"已关闭上传：这条成绩只在你本机计算，不会发出。";
-  }
-});
+/* （事件绑定已统一提到脚本开头的事件委托块，此处不再重复绑定） */
 /* 顶部打卡计数（不阻塞主流程；打卡成功后就地 +1） */
 window.PHM_COUNT=null;
 function renderCount(n){
@@ -1117,6 +1178,23 @@ async function pfFindUser(input){
   return {user:u};
 }
 
+/* 数值清洗：越界/非有限值一律置 null，避免触发数据库 CHECK 约束；dp 指定小数位 */
+function numOrNull(v,min,max,dp){
+  if(v==null||v==="") return null;
+  let n=+v;
+  if(!isFinite(n)) return null;
+  if(min!=null&&n<min) return null;
+  if(max!=null&&n>max) return null;
+  if(dp!=null) n=+n.toFixed(dp);
+  return n;
+}
+/* 文字清洗：去控制字符、限长 */
+function txtOrNull(s,max){
+  if(s==null) return null;
+  const t=String(s).replace(/[\u0000-\u001f\u007f]/g,"").trim();
+  return t?t.slice(0,max||120):null;
+}
+
 /* ═════ P.H.M. 谱面定数共享缓存 ═════
    谱面文件按需下载（CORS 开放），用本页引擎算参考定数后入云端，
    所有用户共享 —— 别人算过的谱你不用再下载。 */
@@ -1158,19 +1236,20 @@ async function computeChart(cid,btn,info){
     if(!rep) throw new Error((rs[0]&&rs[0].error)||"解析失败（非 RPE/PGR 格式）");
     const f=rep.feats||{};
     const payload={
-      chart_id:cid,
-      name:String(info.name||rep.name||"").slice(0,160),
-      level:info.level||rep.level||null,
-      difficulty:info.difficulty!=null?+info.difficulty:null,
-      ref_const:rep.knn&&rep.knn.ref!=null?+rep.knn.ref.toFixed(4):null,
-      ps_score:rep.ps?+rep.ps.total.toFixed(4):null,
-      nps:f.real_notes_per_second!=null?+f.real_notes_per_second.toFixed(4):null,
-      hold_ratio:f.hold_ratio!=null?+f.hold_ratio.toFixed(5):null,
-      notes:f.notes_real!=null?f.notes_real:null,
-      stair_avg:f.stair_speed_avg!=null?+f.stair_speed_avg.toFixed(4):null,
-      speed_peak:rep.spPeak!=null?+rep.spPeak:null,
+      chart_id:numOrNull(cid,1,null),
+      name:txtOrNull(info.name||rep.name,160),
+      level:txtOrNull(info.level||rep.level,60),
+      difficulty:numOrNull(info.difficulty,0,25,3),
+      ref_const:numOrNull(rep.knn&&rep.knn.ref,0,25,4),
+      ps_score:numOrNull(rep.ps&&rep.ps.total,0,25,4),
+      nps:numOrNull(f.real_notes_per_second,0,200,4),
+      hold_ratio:numOrNull(f.hold_ratio,0,1,5),
+      notes:numOrNull(f.notes_real,0,100000),
+      stair_avg:numOrNull(f.stair_speed_avg,0,500,4),
+      speed_peak:numOrNull(rep.spPeak,0,1000000),
       engine_ver:"5d-knn-v0.3.2"
     };
+    if(payload.chart_id==null){ pfMsg("谱号异常，写入跳过","var(--red)"); return; }
     if(cloudDB){
       const up=await cloudDB.from("phm_charts").upsert(payload);
       if(up.error) pfMsg("（定数已算出，但云端缓存写入失败："+up.error.message+"）","var(--fg3)");
@@ -1333,20 +1412,24 @@ async function pfImport(){
       acc=+(r.acc*100).toFixed(4);       /* 聚合时已算好（0–1 → %） */
     }
     return {
-      chart_name:String(inf.name||("谱面 #"+r.chart)).slice(0,120),
-      chart_diff:lvTag(inf.level),
-      chart_level:lvShort(inf.level)||null,
-      official_const:inf.difficulty!=null?+(+inf.difficulty).toFixed(3):null,
-      acc:acc,
-      song_rks:(isBest&&r.rks!=null)?+(+r.rks).toFixed(3):null,
-      chart_id:r.chart,
-      phira_user_id:u.id,
-      phira_user_name:String(u.name).slice(0,60),
+      chart_name:txtOrNull(inf.name||("谱面 #"+r.chart),120),
+      chart_diff:txtOrNull(lvTag(inf.level),8),
+      chart_level:txtOrNull(lvShort(inf.level),60),
+      official_const:numOrNull(inf.difficulty,1,25,3),
+      acc:numOrNull(acc,0,100,4),
+      song_rks:isBest?numOrNull(r.rks,0,25,3):null,
+      chart_id:numOrNull(r.chart,1,null),
+      phira_user_id:numOrNull(u.id,1,null),
+      phira_user_name:txtOrNull(u.name,60),
       source:isBest?"phira":"phira-recent",
       engine_ver:"5d-knn-v0.3.2",
       client_id:clientId()
     };
+  }).filter(function(x){
+    /* 关键字段缺失的条目剔除 —— 批量写入时一条非法会导致整批失败 */
+    return x.chart_id!=null&&x.phira_user_id!=null&&x.chart_name;
   });
+  if(!payload.length){ pfMsg("没有可写入的有效成绩（谱号或用户信息缺失）","var(--red)"); btn.disabled=false; return; }
   pfMsg("写入中…");
   try{
     /* 先查出已存在的条数（同账号 + 同谱面），给出提示 */
@@ -1373,32 +1456,7 @@ async function pfImport(){
   }
 }
 
-/* 面板开关 */
-(function(){
-  const btn=$("#phiraBtn"), panel=$("#ppanel");
-  if(!btn||!panel) return;
-  btn.addEventListener("click",function(){
-    const show=panel.style.display==="none";
-    panel.style.display=show?"":"none";
-    if(show){
-      let last=null;
-      try{ last=localStorage.getItem("phm_phira_uid")||localStorage.getItem("phm_phira_name"); }catch(e){}
-      const inp=$("#pname");
-      if(last&&inp&&!inp.value) inp.value=last;   /* 优先回填 UID（更好输） */
-      if(inp) inp.focus();
-    }
-  });
-  const c=$("#pclose");
-  if(c) c.addEventListener("click",function(){ panel.style.display="none"; });
-  const s=$("#psearch");
-  if(s) s.addEventListener("click",pfSearch);
-  const inp=$("#pname");
-  if(inp) inp.addEventListener("keydown",function(e){ if(e.key==="Enter") pfSearch(); });
-  const cgo=$("#cgo");
-  if(cgo) cgo.addEventListener("click",chartSearch);
-  const csrch=$("#csrch");
-  if(csrch) csrch.addEventListener("keydown",function(e){ if(e.key==="Enter") chartSearch(); });
-})();
+/* （面板开关与全部按钮绑定已在脚本开头的统一委托块完成） */
 </script>
 </body>
 </html>
