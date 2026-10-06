@@ -281,6 +281,20 @@ font-size:12px;color:var(--fg2);line-height:1.75}
 /* 公开统计条 */
 .pstats{margin:10px 0 0;font-size:11.5px;color:var(--fg3);line-height:1.8}
 .pstats b{color:var(--fg2)}
+/* 数据飞轮产出：玩家表现条 */
+.playstat{margin:10px 0 2px;padding:9px 13px;border-radius:9px;background:var(--card2);
+border-left:3px solid var(--blue);font-size:12px;color:var(--fg2);line-height:1.65}
+.playstat b{color:var(--fg)}
+/* 水平曲线与残差 */
+.pcurve{margin-top:11px;padding:11px 14px;border-radius:10px;background:var(--card2);
+border-left:3px solid var(--pattern);font-size:12px;color:var(--fg2);line-height:1.75}
+.pcurve b{color:var(--fg)}
+.pcnote{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line);
+font-size:11px;color:var(--fg3);line-height:1.65}
+.resflag{margin-left:5px;font-size:10px;padding:0 5px;border-radius:6px;
+border:1px solid var(--line);color:var(--fg3)}
+.resflag.up{color:var(--blue);border-color:var(--blue)}
+.resflag.down{color:var(--amber);border-color:var(--amber)}
 </style>
 </head>
 <body>
@@ -904,6 +918,7 @@ function card(r){
     +f2(ps.g.density)+' · 结构 '+f2(ps.g.pattern)+' · 协调 '
     +f2(ps.g.coord)+' · 持续 '+f2(ps.g.stamina)
     +'）—— 衡量操作与读取负荷，与官方定数无关</div>'
+    +'<div class="playstat" id="playstat-'+STATE.sel+'" style="display:none"></div>'
     +'<table>'+rows.map(function(x){return '<tr><td>'+x[0]
       +'</td><td>'+esc(x[1])+'</td></tr>';}).join("")+'</table>'
     +'<div class="punch'+(OPTN()?"":" off")+'" id="punch-'+STATE.sel+'" data-i="'+STATE.sel+'">'
@@ -931,6 +946,8 @@ function render(){
         +'" data-i="'+i+'">'+esc(rp.label)+'</button>';}).join("")+'</div>';
   }
   out.innerHTML=sel+card(STATE.reports[STATE.sel]);
+  const cur=STATE.reports[STATE.sel];
+  if(typeof renderPlayStat==="function") renderPlayStat((cur&&cur.playStat)||null);
   const chips=out.querySelectorAll(".chip");
   chips.forEach(function(b2){b2.addEventListener("click",function(){
     STATE.sel=+b2.getAttribute("data-i");render();});});
@@ -954,6 +971,16 @@ async function handleFiles(files){
   STATE.reports=acc;              /* 替换而非追加 —— 新谱面刷新视图 */
   STATE.sel=acc.length-1;         /* 聚焦最后拖入的 */
   render();
+  /* 数据飞轮：后台查“这张谱别人打得怎么样”，回来就地补进卡片 */
+  if(typeof loadPlayStats==="function"){
+    acc.forEach(function(r){
+      if(r.error||!r.name) return;
+      loadPlayStats(r.name).then(function(s){
+        r.playStat=s;
+        if(STATE.reports[STATE.sel]===r&&typeof renderPlayStat==="function") renderPlayStat(s);
+      }).catch(function(){});
+    });
+  }
 }
 
 const drop=$("#drop");
@@ -1312,6 +1339,26 @@ function pfRender(){
       +'<div class="pmnote">定数取谱面标称值（未上架谱面为谱师自报，可能偏高或偏低）；'
       +'成绩数据源只到最近 20 次游玩，因此实际水平大概率高于此值。</div></div>';
   }
+  /* 水平曲线 + 残差：用玩家自己的成绩抵消水平差异，看哪张谱偏离 */
+  const pc=fitPlayerCurve(rows);
+  const resMap={};
+  if(pc){
+    pc.pts.forEach(function(p){ resMap[p.chart]=p.res; });
+    const thr=1.5*pc.sd;
+    const hi=pc.pts.filter(function(p){return p.res>=thr;});
+    const lo=pc.pts.filter(function(p){return p.res<=-thr;});
+    html+='<div class="pcurve">📈 <b>你的水平曲线</b>（按 '+pc.n+' 条成绩拟合）：'
+      +'定数每 +1 级，ACC '+(pc.b1<0?'−':'+')+Math.abs(pc.b1).toFixed(2)+' 个百分点'
+      +' · 残差 σ = '+pc.sd.toFixed(2)+' 分 · 偏离阈值 ±'+thr.toFixed(2);
+    if(hi.length) html+='<br>✅ 明显高于你该有的表现（谱<b>偏简单</b>）：'
+      +hi.map(function(p){return esc(p.name)+'（+'+p.res.toFixed(1)+'）';}).join('、');
+    if(lo.length) html+='<br>⚠ 明显低于你的水平（谱<b>偏难</b>）：'
+      +lo.map(function(p){return esc(p.name)+'（'+p.res.toFixed(1)+'）';}).join('、');
+    if(!hi.length&&!lo.length) html+='<br>暂无超过阈值的谱 —— 你的成绩与标称定数总体吻合。';
+    html+='<div class="pcnote">这是<b>相对</b>结论：用你自己的成绩抵消了玩家水平差异，'
+      +'所以能指出「同一个标称定数里哪张更简单/更难」，但得不出<b>绝对</b>难度 —— '
+      +'绝对值要看结构定数（P.H.M.）与多玩家共识。样本越多越可靠。</div></div>';
+  }
   const mineN=rows.filter(function(r){return cachedConst(r.chart)!=null;}).length;
   html+='<table class="btable"><tr><th class="idx">#</th><th>曲名</th><th>等级</th>'
     +'<th>标称</th><th class="pmh">P.H.M.</th>'
@@ -1321,7 +1368,11 @@ function pfRender(){
       const inf=r.info||{};
       const mine=cachedConst(r.chart);
       return '<tr><td class="idx">'+(i+1)+'</td>'
-        +'<td>'+esc(inf.name||("谱面 #"+r.chart))+'</td>'
+        +'<td>'+esc(inf.name||("谱面 #"+r.chart))
+          +(pc&&resMap[r.chart]!=null&&Math.abs(resMap[r.chart])>=1.5*pc.sd
+            ?'<span class="resflag'+(resMap[r.chart]>0?' up':' down')+'">'
+             +(resMap[r.chart]>0?'易':'难')+'</span>':'')
+          +'</td>'
         +'<td>'+esc(lvShort(inf.level)||"-")+'</td>'
         +'<td class="oc">'+(inf.difficulty!=null?(+inf.difficulty).toFixed(2):"-")+'</td>'
         +'<td class="pm">'+(mine!=null
@@ -1687,6 +1738,67 @@ async function renderStats(){
   }catch(e){}
   renderStats();
 })();
+
+/* ── 玩家水平曲线 + 残差分析 ──
+   原理（用户提出的方法论）：同一玩家短期内水平恒定 → 用他自己的成绩拟合
+   「ACC ~ 定数」曲线，再看每张谱偏离曲线多远。正残差=比他该有的表现好（谱偏简单）
+   ⚠ 只能得到「相对排序」，得不出绝对难度 —— 绝对值要靠结构定数或多玩家共识 */
+function fitPlayerCurve(rows){
+  const pts=[];
+  (rows||[]).forEach(function(r){
+    const inf=r.info||{};
+    const mine=cachedConst(r.chart);
+    const lv=mine!=null?mine:(inf.difficulty!=null?+inf.difficulty:null);
+    let acc=null;
+    if(r.acc!=null) acc=r.acc*100;
+    else if(r.accuracy!=null) acc=r.accuracy*100;
+    if(lv==null||!(lv>=1&&lv<=20)||acc==null||!(acc>=70)) return;
+    pts.push({lv:lv,acc:acc,name:inf.name||("谱面 #"+r.chart),chart:r.chart});
+  });
+  if(pts.length<6) return null;                    /* 样本太少不拟合 */
+  const n=pts.length;
+  let mx=0,my=0; pts.forEach(function(p){mx+=p.lv/n;my+=p.acc/n;});
+  let sxy=0,sxx=0;
+  pts.forEach(function(p){sxy+=(p.lv-mx)*(p.acc-my);sxx+=(p.lv-mx)*(p.lv-mx);});
+  if(!(sxx>1e-9)) return null;
+  const b1=sxy/sxx, b0=my-b1*mx;
+  pts.forEach(function(p){ p.res=p.acc-(b0+b1*p.lv); });
+  let ss=0; pts.forEach(function(p){ss+=p.res*p.res;});
+  const sd=Math.sqrt(ss/n);
+  return {pts:pts.sort(function(a,b){return b.res-a.res;}),b1:b1,b0:b0,sd:sd,n:n};
+}
+
+/* ── 数据飞轮的可见产出：这张谱别人打得怎么样 ── */
+async function loadPlayStats(name){
+  if(!cloudDB||!name) return null;
+  try{
+    const r=await cloudDB.from("phm_scores")
+      .select("acc,official_const")
+      .eq("chart_name",String(name).slice(0,120))
+      .not("acc","is",null).limit(300);
+    if(r.error||!r.data||!r.data.length) return null;
+    const a=r.data.map(function(x){return +x.acc;})
+      .filter(function(x){return isFinite(x)&&x>=0&&x<=100;})
+      .sort(function(x,y){return x-y;});
+    if(!a.length) return null;
+    let sum=0; a.forEach(function(x){sum+=x;});
+    return {
+      n:a.length, avg:sum/a.length,
+      min:a[0], max:a[a.length-1],
+      med:a[Math.floor(a.length/2)],
+      oc:(r.data[0].official_const!=null?+r.data[0].official_const:null)
+    };
+  }catch(e){ return null; }
+}
+function renderPlayStat(s){
+  const el=document.getElementById("playstat-"+STATE.sel); if(!el) return;
+  if(!s){ el.style.display="none"; el.innerHTML=""; return; }
+  el.innerHTML="👥 <b>"+s.n+"</b> 条玩家成绩（来自数据飞轮）· 平均 ACC <b>"
+    +s.avg.toFixed(2)+"%</b> · 中位 "+s.med.toFixed(2)+"% · 范围 "
+    +s.min.toFixed(2)+"%~"+s.max.toFixed(2)+"%"
+    +(s.oc!=null?" · 库中定数 "+s.oc.toFixed(2):"");
+  el.style.display="";
+}
 
 /* 页面级状态条（算定数/导入的进度与错误都显示在这里，绝不写进隐藏面板） */
 function csMsg(html,kind){
