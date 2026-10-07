@@ -20,7 +20,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 /* 文案两套：中文给 QQ / B站，英文给 X（国际圈看不懂「参考定数」四个字）。
    用法：node tools/make-og.mjs         → og.png
-        node tools/make-og.mjs --en     → og-en.png */
+        node tools/make-og.mjs --en     → og-en.png
+    ⚠ og-en.png 已不在托管白名单里（独立英文页 en.html 已删除）。
+     保留 --en 只是为将来可能的多语言分享卡留个口子。 */
 const EN = process.argv.includes('--en');
 const OUT = path.join(ROOT, 'public', EN ? 'og-en.png' : 'og.png');
 const W = 1200, H = 630, PORT = 9337;

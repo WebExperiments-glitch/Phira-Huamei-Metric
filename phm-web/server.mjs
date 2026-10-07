@@ -151,8 +151,11 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
-  'settings.html', 'en.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
-  '404.html', 'sitemap.xml', 'og.png', 'og-en.png']);
+  'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
+  '404.html', 'sitemap.xml', 'og.png']);
+/* 注：曾经还有一个独立的英文页 en.html。i18n 上线后它是**冗余**的 ——
+   全站一套代码两种语言，再留一个手写的英文页就变成两份必然漂移的实现，
+   而且「English」入口和设置页里的语言开关重复。已删除。 */
 /* ⚠ PUBLIC_DIRS 每加一个目录，都是往互联网上多开一扇门。
    加 data/ 是为了 ref-com.json（社区参照集生成物，生成器只往这里写它）；
    这个目录里不允许出现任何其他文件 —— 有的话就该把它挪出 public/。 */

@@ -51,6 +51,8 @@
   --brand-soft: rgba(240,176,63,.14);   /* 底色：选中/高亮行 */
   --brand-line: rgba(240,176,63,.38);   /* 描边：focus ring / 选中边框 */
   --brand-ink:  #201705;                /* 主色底上的文字（深色，保证对比） */
+  --brand-hover:#f7bd5a;                /* 主色按钮的悬停态 */
+  --on-color:   #0d1117;                /* 压在任何**亮色块**上的文字（徽标、色条） */
 
   /* ── 语义色：降饱和，别抢注意力 ── */
   --ok:   #3fb950;
@@ -136,6 +138,8 @@
   --brand-soft: rgba(184,121,26,.11);
   --brand-line: rgba(184,121,26,.34);
   --brand-ink:  #ffffff;
+  --brand-hover:#a86c12;
+  --on-color:   #ffffff;                /* 浅色主题里色块本身变深了 → 反白 */
 
   --ok:   #1a7f37;
   --warn: #9a6700;

@@ -30,7 +30,7 @@ import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js';
  *   必须重算（tools/warm-cache.mjs --force + tools/reconcile-cache.mjs）。 */
 export const ENGINE_VER = 'com-trim15-v0.5.0';
 /* 官谱参照（向后兼容既有调用方：攻坚测试探针、tools/*.mjs 都在用它） */
-export const OFFICIAL_REF = REF_OFFICIAL;
+const OFFICIAL_REF = REF_OFFICIAL;
 export { REF_DIMS, REF_OFFICIAL, ROW_LABELS };
 /* ── ZIP 读取（无依赖）：EOCD → 中央目录 → 本地头 → 数据 ── */
 export function zipParse(buf){
@@ -133,8 +133,8 @@ export function pickUniqueChart(list, local) {
   }
   return { hit: null, reason: 'ambiguous', candidates: total };
 }
-export function tripleBeats(t){ const a=t[0],b2=t[1],c=t[2]; return c?a+b2/c:a; }
-export function makeBpmList(ranges){
+function tripleBeats(t){ const a=t[0],b2=t[1],c=t[2]; return c?a+b2/c:a; }
+function makeBpmList(ranges){
   const el=[]; let t=0, lb=0, lbp=null;
   for(const rg of ranges){
     if(lbp!=null) t+=(rg.t-lb)*(60.0/lbp);
@@ -349,8 +349,8 @@ export function loadChart(j){
           nlines:lines.length, ev:ev};
 }
 /* ── 加权密度（对照 strain_features）── */
-export function pyRound(x,d){ const m=Math.pow(10,d); return Math.round(x*m)/m; }
-export function strainFeatures(ts,ty,window){
+function pyRound(x,d){ const m=Math.pow(10,d); return Math.round(x*m)/m; }
+function strainFeatures(ts,ty,window){
   window=window||1.0;
   const n=ts.length; if(!n) return {};
   const COST={1:1.0,2:1.0,3:0.35,4:0.55};
@@ -377,7 +377,7 @@ export function strainFeatures(ts,ty,window){
           strain_raw_max:pyRound(vs[vs.length-1],4)};
 }
 /* ── 节奏（对照 rhythm_features）── */
-export function rhythmFeatures(ts){
+function rhythmFeatures(ts){
   const n=ts.length; if(n<3) return {};
   const d=[]; for(let i=0;i<n-1;i++) if(ts[i+1]>ts[i]) d.push(ts[i+1]-ts[i]);
   if(!d.length) return {};
@@ -389,7 +389,7 @@ export function rhythmFeatures(ts){
     fast_ratio:pyRound(d.filter(x=>x<0.150).length/d.length*100,3)};
 }
 /* ── 结构维度（历史参照：一个不在本仓库内的 Python 原型 dims14.py）── */
-export function unionLen(iv){
+function unionLen(iv){
   if(!iv.length) return 0;
   const s=iv.slice().sort((a,b)=>a[0]-b[0]);
   let total=0, cs=s[0][0], ce=s[0][1];
@@ -399,13 +399,13 @@ export function unionLen(iv){
   }
   return total+(ce-cs);
 }
-export function effCount(ticks){
+function effCount(ticks){
   if(ticks.length<2) return ticks.length;
   let c=1;
   for(let i=1;i<ticks.length;i++) if(ticks[i]-ticks[i-1]>=1) c++;
   return c;
 }
-export function extractDims(notes,ev,dur,bpm,nlines){
+function extractDims(notes,ev,dur,bpm,nlines){
   const n=notes.length; if(!n) return {};
   const ds=Math.max(dur,0.01);
   const ts=notes.map(x=>x.sec), ticks=notes.map(x=>x.tick),
@@ -656,7 +656,7 @@ export function knnReference(f, spPeak, refRows, basis, excludeId) {
   };
 }
 /* ── 线速峰值（speedEvents |value| 最大值，eventLayers + 顶层）── */
-export function speedPeakOfChart(j){
+function speedPeakOfChart(j){
   /* ⚠️ RPE 170 speedEvents 用 start/end 表示线速倍率（无 value）；
      实测：正常 AT ~110，演出陷阱谱 3550（32 倍） */
   let mx=0;
@@ -680,8 +680,8 @@ export function speedPeakOfChart(j){
   return mx;
 }
 /* ── P.H.M. Standard 公式（**唯一真源就是这里**；曾与一个仓库外的 Python 原型逐常数对照）── */
-export function sat(v,k){ return v<=0?0:1-Math.exp(-v/k); }
-export function satd(v,k){ return v<=0?0:Math.exp(-v/k); }
+function sat(v,k){ return v<=0?0:1-Math.exp(-v/k); }
+function satd(v,k){ return v<=0?0:Math.exp(-v/k); }
 export const K={strain_p99:20.4,above_avg_density_mean:10.7081,
   real_notes_per_second:9.5682,iv_mean:0.1413,
   stair_speed_max:33.7778,cross_hand_density:7.5408,
@@ -689,20 +689,20 @@ export const K={strain_p99:20.4,above_avg_density_mean:10.7081,
   avg_chord_size:1.4539,multi_finger_3plus_events:0.3366,
   chord_size_entropy:0.6203,real_core_notes_per_second:6.7287,
   notes_real:1441.0};
-export function gDensity(f){ return 0.35*sat(f.strain_p99,K.strain_p99)
+function gDensity(f){ return 0.35*sat(f.strain_p99,K.strain_p99)
   +0.25*sat(f.above_avg_density_mean,K.above_avg_density_mean)
   +0.25*sat(f.real_notes_per_second,K.real_notes_per_second)
   +0.15*satd(f.iv_mean,K.iv_mean); }
-export function gPattern(f){ return 0.35*sat(f.stair_speed_max,K.stair_speed_max)
+function gPattern(f){ return 0.35*sat(f.stair_speed_max,K.stair_speed_max)
   +0.30*sat(f.cross_hand_density,K.cross_hand_density)
   +0.20*sat(f.note_clutter_ratio,K.note_clutter_ratio)
   +0.15*sat(f.pattern_switch_rate,K.pattern_switch_rate); }
-export function gCoord(f){ return 0.35*sat(f.avg_chord_size,K.avg_chord_size)
+function gCoord(f){ return 0.35*sat(f.avg_chord_size,K.avg_chord_size)
   +0.35*sat(f.multi_finger_3plus_events/Math.max(f.duration_s,0.01),K.multi_finger_3plus_events)
   +0.30*sat(f.chord_size_entropy,K.chord_size_entropy); }
-export function gStamina(f){ return 0.60*sat(f.real_core_notes_per_second,K.real_core_notes_per_second)
+function gStamina(f){ return 0.60*sat(f.real_core_notes_per_second,K.real_core_notes_per_second)
   +0.40*sat(f.notes_real,K.notes_real); }
-export function psScore(f){
+function psScore(f){
   const g={density:gDensity(f),pattern:gPattern(f),
            coord:gCoord(f),stamina:gStamina(f)};
   return {total:20*(0.40*g.density+0.30*g.pattern+0.15*g.coord+0.15*g.stamina),g:g};

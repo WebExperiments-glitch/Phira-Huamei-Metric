@@ -629,6 +629,43 @@ await goto('/settings', 2600);
   await evalJS(`window.PHM_SETTINGS.theme.set(${JSON.stringify(before.theme)})`);
   await new Promise(r => setTimeout(r, 250));
 
+  /* ── ★ 必须**真的点按钮** ──
+     上面那几条是直接调 API，它照样能通过 —— 而用户点不动的原因，
+     十有八九是**事件没绑上**（或绑错了元素）。这就是我上一版的测试盲区：
+     测了"能力存在"，没测"入口可达"。 */
+  const clicked = await evalJS(`(function(){
+    const seg = document.getElementById('themeSeg');
+    if (!seg) return '@@noSeg';
+    const btn = seg.querySelector('button[data-mode=' + ${JSON.stringify(JSON.stringify(target))} + ']');
+    if (!btn) return '@@noBtn';
+    btn.click();
+    return 'ok';
+  })()`);
+  ok('主题分段控件存在且按钮可点', clicked === 'ok', clicked);
+  await new Promise(r => setTimeout(r, 400));
+  const afterClick = await evalJS(`(function(){
+    const on = document.querySelector('#themeSeg button.on');
+    return { theme: document.documentElement.getAttribute('data-theme'),
+             mode: document.documentElement.getAttribute('data-theme-mode'),
+             onBtn: on ? on.getAttribute('data-mode') : null,
+             bg: getComputedStyle(document.body).backgroundColor };
+  })()`);
+  ok('★ 点按钮后 data-theme 真的切了', afterClick.theme === target,
+    JSON.stringify(afterClick).slice(0, 130));
+  ok('★ 高亮跟到被点的那一项', afterClick.onBtn === target, 'on=' + afterClick.onBtn);
+  ok('★ 背景色随点击变化', afterClick.bg !== before.bg, before.bg + ' → ' + afterClick.bg);
+
+  /* 再点回原来的，确认双向都能切 */
+  const backClicked = await evalJS(`(function(){
+    const btn = document.querySelector('#themeSeg button[data-mode=' + ${JSON.stringify(JSON.stringify(before.theme))} + ']');
+    if (!btn) return '@@noBtn';
+    btn.click(); return 'ok';
+  })()`);
+  await new Promise(r => setTimeout(r, 350));
+  const afterBack = await evalJS(`document.documentElement.getAttribute('data-theme')`);
+  ok('★ 点回原主题也生效（不是单向的）',
+    backClicked === 'ok' && afterBack === before.theme, backClicked + '/' + afterBack);
+
   /* ── 语言 ── */
   const i18nReady = await evalJS(`!!(window.PHM_I18N && window.PHM_I18N.t)`);
   ok('存在 i18n 钩子 PHM_I18N', i18nReady);

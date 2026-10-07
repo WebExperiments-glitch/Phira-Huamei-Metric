@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.8.2">
+<meta name="app-version" content="V0.9.0">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.8.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.0">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -90,7 +90,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 .sbtn:hover:not(:disabled){border-color:var(--brand-line);background:var(--card3);text-decoration:none}
 .sbtn:disabled{opacity:.4;cursor:not-allowed}
 .sbtn.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
-.sbtn.primary:hover:not(:disabled){background:#f7bd5a;border-color:#f7bd5a;color:var(--brand-ink)}
+.sbtn.primary:hover:not(:disabled){background:var(--brand-hover);border-color:var(--brand-hover);color:var(--brand-ink)}
 .sbtn.danger{color:var(--err);border-color:var(--err);opacity:.85}
 .sbtn.danger:hover:not(:disabled){background:rgba(229,83,75,.12);opacity:1}
 
@@ -119,7 +119,7 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 
 <!-- 云 SDK：固定版本 + SRI。第三方脚本拥有与应用代码相同的权限，
      所以既钉版本也钉内容（内容对不上浏览器会拒绝执行）。 -->
-<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
+<script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
   integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
   crossorigin="anonymous"></script>
 

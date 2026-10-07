@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.8.2">
+<meta name="app-version" content="V0.9.0">
 <meta name="robots" content="noindex">
 <title>404 · 页面不存在 — P.H.M. Standard</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
@@ -11,6 +11,8 @@
 <meta name="theme-color" content="#0d1117">
 <!-- 错误页不该被搜索引擎收录：它会被当成重复内容，也会污染「谱面定数」的检索结果 -->
 <style>
+/* ⚠ 本页**自带**一套最小令牌，是有意的：错误页必须在任何情况下都能显示，
+   不能依赖 /css/base.css 加载成功。改 base.css 的令牌时记得同步这里。 */
 :root{--bg:#0d1117;--card:#161b22;--card2:#1c2330;--fg:#e6edf3;--fg2:#9aa7b4;--fg3:#6b7684;
 --line:#2a313c;--amber:#e8a33d;--blue:#5aa2e8}
 *{box-sizing:border-box;margin:0;padding:0}

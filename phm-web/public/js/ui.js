@@ -72,7 +72,9 @@ export function renderNav(active) {
       '<a href="' + href + '"' + (act === _navActive ? ' class="on"' : '') + '>' + t(key) + '</a>'
     ).join('') + '</div>'
     + '<div class="spacer"></div>'
-    + '<span class="ver">' + esc(APP_VER) + '</span>';
+    /* 版本号带 beta 标记 —— 见 docs/ARCHITECTURE.md「版本策略」：
+       beta 期间版本连续增长；等确认没有已知问题后**归零**成 V0.1 并去掉标记。 */
+    + '<span class="ver">' + esc(APP_VER) + ' beta</span>';
   wireNavSticky();
 }
 
@@ -96,8 +98,11 @@ export function lvTag(level) {
   const m = /(?<![A-Za-z])(EZ|HD|IN|AT|SP)(?![A-Za-z])/i.exec(String(level || ''));
   return m ? m[1].toUpperCase() : '?';
 }
+/* 档位配色走令牌 —— 深浅主题下自动切换；写死字面色会让浅色主题里的
+   徽标对比度失衡（这几个色是照深底挑的）。
+   ⚠ app.html 里还留着一份同样的表（本页不走 ui.js 的模块作用域），改这里要同步那边。 */
 export const TIER_COLOR = {
-  EZ: '#4cc38a', HD: '#5aa2e8', IN: '#e8a33d', AT: '#e5534b', SP: '#c98ce8',
+  EZ: 'var(--ok)', HD: 'var(--info)', IN: 'var(--brand)', AT: 'var(--err)', SP: 'var(--purple)',
 };
 export function tierColor(t) { return TIER_COLOR[t] || 'var(--fg2)'; }
 

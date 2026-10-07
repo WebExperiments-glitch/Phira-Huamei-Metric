@@ -222,13 +222,19 @@ export const THEME_MODES = ['auto', 'dark', 'light'];
 
 export function applyTheme(mode) {
   const m = mode || theme.get();
-  const dark = theme.resolved(m);
+  /* ⚠ resolved() 返回的是**模式名字符串**（'dark' / 'light'），不是布尔。
+     早先这里写成 `const dark = theme.resolved(m)` 再 `dark ? 'dark' : 'light'` ——
+     字符串 'light' 也是真值，于是**每次都被设成 dark**：
+     点「深色」恰好正确（巧合），点「浅色」则纹丝不动。
+     变量名和类型必须对得上，这种错编译器不会管，只能靠测试。 */
+  const resolved = theme.resolved(m);
+  const isDark = resolved === 'dark';
   try {
     const el = document.documentElement;
-    el.setAttribute('data-theme', dark ? 'dark' : 'light');
+    el.setAttribute('data-theme', isDark ? 'dark' : 'light');
     el.setAttribute('data-theme-mode', m);
   } catch (e) { /* 无 document 时（Node 测）忽略 */ }
-  return dark;
+  return isDark;
 }
 
 export const theme = {

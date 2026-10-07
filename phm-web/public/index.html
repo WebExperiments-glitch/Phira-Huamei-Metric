@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.8.2">
+<meta name="app-version" content="V0.9.0">
 <title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -29,7 +29,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.8.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.0">
 <style>
 .hero{text-align:center;padding:22px 0 6px}
 .hero h1{font-size:30px;font-weight:400;letter-spacing:.5px;line-height:1.32}
@@ -147,7 +147,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
   <div class="row" style="justify-content:space-between">
     <span>P.H.M. Standard · <span id="verfoot">开发者测试版</span> · GPL-3.0</span>
     <span><a href="/app">算定数</a> · <a href="/charter">谱师</a> · <a href="/user">玩家</a>
-      · <a href="/en.html">English</a>
+      · <a href="#" id="langswitch" title="切换界面语言">English</a>
       · <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric" target="_blank" rel="noopener">GitHub</a></span>
   </div>
   <details style="margin-top:10px">
@@ -167,13 +167,31 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER, applyStatic, t, onLangChange } from '/js/ui.js';
+import { renderNav, esc, APP_VER, applyStatic, t, onLangChange,
+         currentLang, setLang } from '/js/ui.js';
 renderNav('home');
 /* 首页 hero / 入口卡片是静态 HTML，靠 data-i18n 批量替换 */
 applyStatic();
 onLangChange(function () { document.getElementById('verfoot').textContent = t('set.about.ver') + ' ' + APP_VER; });
 
 document.getElementById('verfoot').textContent = '版本 ' + APP_VER + '（开发者测试版）';
+
+/* 语言切换：显示"另一种语言"的名字。
+   ⚠ 以前这里链到 /en.html —— 一个**独立手写的英文页**。i18n 上线后它就是冗余：
+   全站一套代码两种语言，再留一份英文实现必然漂移；而且它和设置页里的
+   语言开关是同一个功能的两个入口，用户会问"为什么这里还有一个"。
+   已删除那个页面，这里改成真正的切换。 */
+(function () {
+  const ls = document.getElementById('langswitch');
+  if (!ls) return;
+  const paint = function () { ls.textContent = currentLang() === 'zh' ? 'English' : '中文'; };
+  ls.addEventListener('click', function (e) {
+    e.preventDefault();
+    setLang(currentLang() === 'zh' ? 'en' : 'zh');
+  });
+  onLangChange(paint);
+  paint();
+})();
 
 /* 站点统计：从服务端读。失败就安静降级 —— 首页不该因为统计接口挂了而看起来像坏了。 */
 (async function () {

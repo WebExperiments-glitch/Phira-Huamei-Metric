@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.8.2">
+<meta name="app-version" content="V0.9.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -33,7 +33,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.8.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -246,7 +246,7 @@ margin:16px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
 .ps .num{font-size:54px;font-weight:750;color:var(--amber);letter-spacing:-2px;line-height:1}
 .ps .u{font-size:13px;color:var(--fg3)}
 .scale{position:relative;height:8px;border-radius:4px;background:var(--card2);margin:14px 0 4px;overflow:hidden}
-.scale i{position:absolute;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#2d5f9e,var(--amber),var(--red))}
+.scale i{position:absolute;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,var(--info),var(--brand),var(--err))}
 .tick{position:relative;height:16px;font-size:10.5px;color:var(--fg3)}
 .tick span{position:absolute;transform:translateX(-50%)}
 .groups{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:12px 0 4px}
@@ -267,7 +267,7 @@ th{color:var(--fg3);font-weight:500;font-size:11.5px}
 .link{color:var(--blue);text-decoration:none;border-bottom:1px dotted var(--blue)}
 .link:hover{color:var(--fg);border-bottom-color:var(--fg)}
 .tierbadge{display:inline-block;font-size:15px;font-weight:700;
-color:#0d1117;padding:2px 10px;border-radius:8px;margin-right:10px}
+color:var(--brand-ink);padding:2px 10px;border-radius:8px;margin-right:10px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 .chip{background:var(--card);border:1px solid var(--line);color:var(--fg2);
 border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer}
@@ -575,7 +575,7 @@ border:1px solid var(--line);color:var(--fg3)}
      账号 session）。此前用的是 @dev 浮动标签 —— CDN 上任何一次更新都会直接进入所有
      用户的浏览器，而账号 session 就存在 localStorage 里。
      现在钉死 0.1.3（npm latest）并加 integrity：内容对不上浏览器会拒绝执行。 -->
-<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
+<script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
   integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
   crossorigin="anonymous"></script>
 <script type="module">
@@ -684,8 +684,10 @@ const esc=function(st){return String(st).replace(/[&<>"]/g,function(c){
 };
 const GROUPS=[["density","密度负荷"],["pattern","结构负荷"],
               ["coord","协调负荷"],["stamina","持续负荷"]];
-const TIER_COLOR={"EZ":"#4cc38a","HD":"#5aa2e8","IN":"#e8a33d",
-                  "AT":"#e5534b","SP":"#c98ce8"};
+/* 档位配色 —— ⚠ 与 js/ui.js 里的 TIER_COLOR 重复（已知债）。
+   本页没走 ui.js 的模块作用域，暂时各留一份；两处数值必须一致。 */
+const TIER_COLOR={"EZ":"var(--ok)","HD":"var(--info)","IN":"var(--brand)",
+                  "AT":"var(--err)","SP":"var(--purple)"};
 let STATE={reports:[],sel:0};
 
 function card(r,idx){
@@ -762,9 +764,9 @@ function card(r,idx){
       +'<span style="left:50%">10</span><span style="left:100%">20</span></div>'
     +'<div class="srow"><span class="slabel">分享这张谱</span>'
       +'<button class="sbtn" type="button" data-share="wide" data-i="'+idx+'">'
-      +'🖼 横版图 · QQ / B站 / X</button>'
+      +'横版图 · QQ / B站 / X</button>'
       +'<button class="sbtn" type="button" data-share="tall" data-i="'+idx+'">'
-      +'📱 竖版图 · 抖音</button></div>'
+      +'竖版图 · 抖音</button></div>'
     +'<table style="margin-top:8px"><tr><th>'+basisDesc+'参照（最相近 5 张）</th>'
     +'<th>档</th><th>定数</th></tr>'+nearRows+'</table>'
     +'<div class="psline">PS 负荷标度 <b>'+f1(ps.total)+'</b> / 20（密度 '
@@ -775,7 +777,7 @@ function card(r,idx){
     +'<table>'+rows.map(function(x){return '<tr><td>'+x[0]
       +'</td><td>'+esc(x[1])+'</td></tr>';}).join("")+'</table>'
     +'<div class="punch'+(OPTN()?"":" off")+'" id="punch-'+STATE.sel+'" data-i="'+STATE.sel+'">'
-      +'<div class="ptitle">🎯 算单曲 RKS<span style="font-weight:400;color:var(--fg3)">（可选：匿名贡献数据）</span></div>'
+      +'<div class="ptitle">算单曲 RKS<span style="font-weight:400;color:var(--fg3)">（可选：匿名贡献数据）</span></div>'
       +'<div class="pdesc">填你这把的<b>准度 ACC</b>（成绩页右上角的 %），'
       +'立刻算出这张图的<b>单曲 RKS</b> —— <b>全部在本机计算</b>。</div>'
       +'<div class="prow"><input id="pacc" inputmode="decimal" autocomplete="off"'
@@ -975,7 +977,7 @@ document.addEventListener("click",async function(e){
       const a=document.createElement("a");
       a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
       document.body.appendChild(a); a.click(); a.remove();
-      csMsg("📥 正在下载《"+esc(nm)+"》 —— 下完后把 zip <b>拖到下面的虚线框</b>，"
+      csMsg("正在下载《"+esc(nm)+"》 —— 下完后把 zip <b>拖到下面的虚线框</b>，"
         +"本页会自动算出定数，并顺带存进共享缓存。","ok");
       return;
     }
@@ -1252,9 +1254,9 @@ function renderCount(n){
   const el=$("#pcount"); if(!el) return;   /* 该行已移除，与 #pstats 合并；函数保留以兼容调用点 */
   window.PHM_COUNT=n;
   if(n>0){
-    el.innerHTML="🎯 数据飞轮：已收到 <b>"+n+"</b> 条成绩数据 —— 每一条都在帮定数公式变准";
+    el.innerHTML="数据飞轮：已收到 <b>"+n+"</b> 条成绩数据 —— 每一条都在帮定数公式变准";
   }else{
-    el.innerHTML="🎯 数据飞轮已就绪 —— 还没有人贡献数据；拖入谱面 → 拉到底部填 ACC，你就是第一条";
+    el.innerHTML="数据飞轮已就绪 —— 还没有人贡献数据；拖入谱面 → 拉到底部填 ACC，你就是第一条";
   }
   el.style.display="";
 }
@@ -1376,7 +1378,7 @@ function renderChartSearch(kw){
     +'<div class="csfoot">「算」由<b>服务端</b>完成：浏览器拿不到谱面文件（Phira 的文件 CDN 没开放跨域），'
     +'但服务端不受这个限制，而且用的是与本页面<b>完全相同的那份引擎</b>。'
     +'算完直接存进共享缓存，别人再搜同一张就秒出。<br>'
-    +'也可以点 <b>📥</b> 手动下载，把 zip 拖到下面的虚线框 —— 那才是<b>本机计算</b>路径（谱面文件不会上传）。</div>';
+    +'也可以点 <b>下载</b> 手动下载，把 zip 拖到下面的虚线框 —— 那才是<b>本机计算</b>路径（谱面文件不会上传）。</div>';
 }
 
 
@@ -1572,11 +1574,11 @@ async function authRender(){
     const email=AUTH.user.email||"（已登录）";
     document.getElementById("auname").textContent=email.split("@")[0];
     document.getElementById("aumeta").textContent=email+" · 账号 ID "+String(AUTH.user.id||"").slice(0,8);
-    btn.textContent="👤 "+email.split("@")[0];
+    btn.textContent=email.split("@")[0];
     await renderBind();
   }else{
     guest.style.display=""; box.style.display="none";
-    btn.textContent="👤 登录";
+    btn.textContent="登录";
   }
 }
 async function renderBind(){
@@ -1591,13 +1593,13 @@ async function renderBind(){
   try{ const r=await cloudDB.from("phm_profiles").select("phira_uid,phira_name").maybeSingle();
        if(r&&r.data) bound=r.data; }catch(e){}
   if(bound&&bound.phira_uid){
-    el.innerHTML="🔗 已绑定 Phira：<b>"+esc(bound.phira_name||"")+"</b> #"+bound.phira_uid
+    el.innerHTML="已绑定 Phira：<b>"+esc(bound.phira_name||"")+"</b> #"+bound.phira_uid
       +'<br><button type="button" class="alink" id="aunbind">解除绑定</button>';
   }else if(uid){
-    el.innerHTML="🔗 还没绑定。刚查到的 Phira 账号：<b>"+esc(name)+"</b> #"+uid
+    el.innerHTML="还没绑定。刚查到的 Phira 账号：<b>"+esc(name)+"</b> #"+uid
       +'<br><button type="button" class="aprimary" id="abindgo">绑定这个 Phira 账号</button>';
   }else{
-    el.innerHTML="🔗 还没有绑定 Phira 账号。<br>先去<b>「玩家」</b>页查一次你自己的账号（输用户名或 UID），再回来绑定。";
+    el.innerHTML="还没有绑定 Phira 账号。<br>先去<b>「玩家」</b>页查一次你自己的账号（输用户名或 UID），再回来绑定。";
   }
 }
 async function authBind(){
@@ -1649,7 +1651,7 @@ async function renderStats(){
     /* ⚠ 样本量必须写出来。产品定位就是「不吹牛」，那展示聚合数字时也一样 ——
        成绩样本还少的时候，平均/中位波动很大，不标清楚等于在暗示它很硬。 */
     const thin=(s.scores||0)<200;
-    el.innerHTML="📊 本站公开数据："+parts.join(" · ")
+    el.innerHTML="本站公开数据："+parts.join(" · ")
       +(thin
         ? "<br>⚠ 样本量还小（成绩 "+(s.scores||0)+" 条）："
           +"<b>玩家表现统计（平均 / 中位）波动大，仅供参考</b>。"
@@ -1761,7 +1763,7 @@ async function loadPlayStats(name){
 function renderPlayStat(s){
   const el=document.getElementById("playstat-"+STATE.sel); if(!el) return;
   if(!s){ el.style.display="none"; el.innerHTML=""; return; }
-  el.innerHTML="👥 <b>"+s.n+"</b> 条玩家成绩（来自数据飞轮）· 平均 ACC <b>"
+  el.innerHTML="<b>"+s.n+"</b> 条玩家成绩（来自数据飞轮）· 平均 ACC <b>"
     +s.avg.toFixed(2)+"%</b> · 中位 "+s.med.toFixed(2)+"% · 范围 "
     +s.min.toFixed(2)+"%~"+s.max.toFixed(2)+"%"
     +(s.oc!=null?" · 库中定数 "+s.oc.toFixed(2):"");
@@ -1792,7 +1794,7 @@ async function analyzeByChartId(cid,btn){
           :" · 由服务端计算并已存入共享缓存")),"ok");
   }catch(e){
     csMsg("算定数失败："+esc((e&&e.message)||"网络异常")
-      +"<br>可以改用右边的 <b>📥</b> 手动下载，再把 zip 拖到下面虚线框用本机引擎算。","err");
+      +"<br>可以改用右边的 <b>下载</b> 手动下载，再把 zip 拖到下面虚线框用本机引擎算。","err");
   }
   btn.disabled=false; btn.textContent=label;
 }
@@ -1896,7 +1898,7 @@ async function computeChart(cid,btn,info){
     csMsg('⚠ <b>浏览器无法直接读取谱面文件</b> —— Phira 的文件 CDN'
       +'（<span class="mono">phira-cdn.5wyxi.com</span>）没有开放跨域，'
       +'这是 Phira 服务端的限制，网页端绕不过去。<br>'
-      +'请点表格里的 <b>📥 下载</b> 拿到《'+esc(nm)+'》的 zip，'
+      +'请点表格里的 <b>下载</b> 拿到《'+esc(nm)+'》的 zip，'
       +'然后<b>拖到下面那个虚线框</b> —— 本页引擎会立刻算出 P.H.M. 定数（同一条流水线）。'
       +'<br><span style="color:var(--fg3)">技术细节：'
       +esc(err&&err.message?err.message:"fetch failed")+'</span>',
