@@ -456,20 +456,27 @@ function zipParse(buf){
   }
   if(e<0) throw new Error("不是有效的 ZIP（找不到中央目录）");
   const count=dv.getUint16(e+10,true), cdOff=dv.getUint32(e+16,true);
+  /* zip bomb 防护：条目数与解压后总大小都要有硬顶（此前只限制了压缩包体积） */
+  const MAX_ENTRIES=800, MAX_TOTAL=400*1024*1024;
+  if(count>MAX_ENTRIES) throw new Error("ZIP 条目过多（"+count+" > "+MAX_ENTRIES+"），已拒绝");
   const dec=new TextDecoder(), entries=[];
-  let p=cdOff;
+  let p=cdOff, total=0;
   for(let i=0;i<count;i++){
     if(dv.getUint32(p,true)!==0x02014b50) break;
     const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true);
+    const usize=dv.getUint32(p+24,true);            /* 解压后大小 */
     const nameLen=dv.getUint16(p+28,true), extLen=dv.getUint16(p+30,true),
           cmtLen=dv.getUint16(p+32,true), lho=dv.getUint32(p+42,true);
     const flag=dv.getUint16(p+8,true);
+    total+=usize;
+    if(total>MAX_TOTAL) throw new Error("ZIP 解压后过大（超过 "
+      +Math.round(MAX_TOTAL/1048576)+" MB），可能是压缩炸弹，已拒绝");
     const nameRaw=u8.subarray(p+46,p+46+nameLen);
     const name=dec.decode(nameRaw);
-    entries.push({name,method,csize,lho,utf8:!!(flag&0x800)});
+    entries.push({name,method,csize,usize,lho,utf8:!!(flag&0x800)});
     p+=46+nameLen+extLen+cmtLen;
   }
-  return {files:entries.map(en=>({
+  return {files:entries.map(en=({
     name:en.name,
     read:async ()=>{
       const lp=en.lho;
@@ -1310,11 +1317,10 @@ function renderCount(n){
   el.style.display="";
 }
 (function(){
-  if(!cloudDB) return;
-  cloudDB.from("phm_scores").select("id",{count:"exact",head:true})
-    .then(function(res){
-      if(!res.error&&res.count!=null) renderCount(res.count);
-    }).catch(function(){});
+  /* 用聚合 RPC 取总数 —— 不再对 phm_scores 做全表 count（该表已撤销 anon SELECT） */
+  fetchTO("/api/stats",15000).then(function(r){ return r.ok?r.json():null; })
+    .then(function(s){ if(s&&typeof s.scores==="number") renderCount(s.scores); })
+    .catch(function(){});
 })();
 
 /* ═════════ Phira 连接：公开 API（无需密码，CORS 开放）═════════ */
@@ -1901,25 +1907,19 @@ function fitPlayerCurve(rows){
   return {pts:pts.sort(function(a,b){return b.res-a.res;}),b1:b1,b0:b0,sd:sd,n:n};
 }
 
-/* ── 数据飞轮的可见产出：这张谱别人打得怎么样 ── */
+/* ── 数据飞轮的可见产出：这张谱别人打得怎么样 ──
+   走 phm_plays 聚合 RPC：只拿「条数/均值/中位/极值」，不接触任何 UID、用户名、client_id。
+   （此前直读 phm_scores 全表，等于把每个贡献者的身份暴露给任何访客） */
 async function loadPlayStats(name){
   if(!cloudDB||!name) return null;
   try{
-    const r=await cloudDB.from("phm_scores")
-      .select("acc,official_const")
-      .eq("chart_name",String(name).slice(0,120))
-      .not("acc","is",null).limit(300);
-    if(r.error||!r.data||!r.data.length) return null;
-    const a=r.data.map(function(x){return +x.acc;})
-      .filter(function(x){return isFinite(x)&&x>=0&&x<=100;})
-      .sort(function(x,y){return x-y;});
-    if(!a.length) return null;
-    let sum=0; a.forEach(function(x){sum+=x;});
+    const r=await cloudDB.rpc("phm_plays",{name_in:String(name).slice(0,120)});
+    if(r.error||!r.data||!(r.data.n>0)) return null;
+    const d=r.data;
     return {
-      n:a.length, avg:sum/a.length,
-      min:a[0], max:a[a.length-1],
-      med:a[Math.floor(a.length/2)],
-      oc:(r.data[0].official_const!=null?+r.data[0].official_const:null)
+      n:d.n, avg:+d.avg, min:+d.min, max:+d.max,
+      med:(d.med!=null?+d.med:+d.avg),
+      oc:(d.oc!=null?+d.oc:null)
     };
   }catch(e){ return null; }
 }
@@ -2218,13 +2218,13 @@ async function pfImport(){
   if(!okGo){ csMsg("已取消导入 —— 没有上传任何数据","warn"); btn.disabled=false; return; }
   csMsg("正在写入…");
   try{
-    /* 先查出已存在的条数（同账号 + 同谱面），给出提示 */
+    /* 先查出已存在的条数（同账号 + 同谱面），给出提示。
+       走 phm_mine RPC —— 只回一个计数，不再拉取整行。 */
     let existN=0;
     try{
       const cids=payload.map(function(x){return x.chart_id;});
-      const ex=await cloudDB.from("phm_scores").select("chart_id")
-        .eq("phira_user_id",u.id).in("chart_id",cids);
-      if(!ex.error) existN=(ex.data||[]).length;
+      const ex=await cloudDB.rpc("phm_mine",{uid_in:u.id,ids_in:cids});
+      if(!ex.error&&typeof ex.data==="number") existN=ex.data;
     }catch(e){}
     /* 走服务端网关：分批 + 限流 + 校验都在服务端做（失败会自动回退直连） */
     csMsg("正在写入 "+payload.length+" 条成绩…（服务端校验中）");
