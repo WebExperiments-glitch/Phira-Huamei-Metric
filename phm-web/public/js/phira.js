@@ -114,6 +114,14 @@ async function phGet(path, opts) {
       const r = await fetch(PHIRA_API + path, {
         signal: ctl.signal,
         headers: { Accept: 'application/json' },
+        /* ⚠ **必须 no-store。**
+           api.phira.cn 的响应**一个缓存头都不带**（实测：没有 Cache-Control、
+           没有 ETag、没有 Last-Modified，只有 CF-Cache-Status: DYNAMIC）。
+           这种"裸响应"在浏览器里属于启发式缓存的地带 —— 一旦命中，
+           用户看到的就是**几小时前的旧成绩**，而且刷新页面也没用
+           （缓存键是 URL，两次刷新是同一个 URL）。
+           成绩必须实时，所以这里显式关掉缓存，由我们自己在内存里控制复用。 */
+        cache: 'no-store',
       });
       clearTimeout(timer);
       if (r.ok) return await r.json();

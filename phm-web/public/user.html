@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.8.0">
+<meta name="app-version" content="V0.8.1">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.8.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.8.1">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -54,6 +54,10 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 .barrow .a{width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--fg2)}
 .barrow .l{width:58px;text-align:right;font-variant-numeric:tabular-nums;color:var(--fg3)}
 .barrow .s{width:52px;text-align:right;font-variant-numeric:tabular-nums;color:var(--amber)}
+
+/* 拉取时刻那一行：让"数据有多新"变成看得见的事实，而不是要用户猜 */
+.fetchline{font-size:12px;color:var(--fg3);margin:10px 0 2px}
+.fetchline a{color:var(--brand)}
 </style>
 </head>
 <body>
@@ -162,6 +166,9 @@ async function pick(u) {
     getRecords(u.id).catch(() => ({ records: [], capped: false })),
   ]);
   STATE.stats = stats; STATE.pool = pool; STATE.recent = rec.records; STATE.capped = rec.capped;
+  /* 记下拉取时刻 —— 页面上要显示出来。成绩数据来自第三方 API，
+     用户有权一眼看出"这是刚拉的还是旧的"，而不是靠猜。 */
+  STATE.fetchedAt = new Date();
 
   /* 补谱面信息（一次批量，失败就降级——不影响主体） */
   const ids = [...new Set([].concat(
@@ -201,6 +208,23 @@ function render() {
     + stat('官方 B19 条数', poolN, poolN ? '' : '服务端未计算')
     + stat('本次可用成绩', recs.length, STATE.capped ? '撞上接口硬上限' : '')
     + '</div>';
+
+  /* 拉取时刻 + 重新拉取。
+     成绩直接来自 Phira 的公开 API（前端直连，不经过我们的服务器），
+     所以这里如实标出拉取时间；觉得不对就点一下重新拉。
+     ⚠ 请求本身已设 cache:'no-store'（见 js/phira.js），这个按钮是给
+       用户一个"我确实重新拉了"的确定性，不是用来绕过缓存的补丁。 */
+  if (STATE.fetchedAt) {
+    const d = STATE.fetchedAt;
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    h += '<div class="fetchline">成绩数据拉取于 '
+      + (sameDay ? '' : (d.getMonth() + 1) + '月' + d.getDate() + '日 ') + hh + ':' + mm + ':' + ss
+      + '（直接来自 Phira 公开 API，未经过本站缓存） · <a href="#" id="refetch">重新拉取</a></div>';
+  }
 
   if (st && st.numRecords != null) {
     h += '<div class="note info"><b>账号检测正常。</b>这个号在 Phira 上有 <b>' + st.numRecords
@@ -311,6 +335,14 @@ function render() {
   h += '</div>';
 
   $('#out').innerHTML = h;
+
+  /* 「重新拉取」：重新走一遍 pick()，会真的再请求一次 Phira API。
+     按钮只是给用户一个确定性 —— 缓存早在 js/phira.js 里关掉了。 */
+  const rf = document.getElementById('refetch');
+  if (rf) rf.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (STATE.user) pick(STATE.user);
+  });
 }
 
 function stat(k, v, n) {
