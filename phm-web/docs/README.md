@@ -85,9 +85,13 @@ phm-web/
 > 后者记的是实测出来的接口边界（例如"成绩只能拿最近 20 条"），
 > 不知道这些会写出必然不对劲的代码。
 
-> **页面版本号只有一处**：`index.html` / `en.html` 的 `<meta name="app-version">`。
-> 页头标签、页脚、`PHM.status()`、以及引擎与分享模块的缓存版本串都从它取 —— 改一处就够。
-> ⚠ `ENGINE_VER`（引擎模块里导出，当前 `com-knn8-v0.4.0`）是**另一根轴**：
+> **页面版本号在 7 个 HTML 里各写一份**（`index.html` / `app.html` / `user.html` /
+> `charter.html` / `data.html` / `en.html` / `404.html` 的 `<meta name="app-version">`）。
+> 站点点拆时从两处变成了七处，**必须一起改** —— `smoke-page.mjs` 有一条
+> 「各页版本号一致」的断言守着它，漏改会被测试拦住。
+> 页头标签、页脚、引擎与分享模块的缓存版本串都从它取。
+>
+> ⚠ `ENGINE_VER`（引擎模块里导出，当前 `com-trim15-v0.5.0`）是**另一根轴**：
 > 它是算法版本，会作为 `engine_build` 写进数据行。**引擎一改就必须改它** ——
 > 变了之后所有缓存都与新区间不可比，必须重算（`reconcile-cache.mjs --recompute-stale`）。
 > 前端不再手写这个串，统一用 `ENGINE_VER`（曾经在 4 个地方各写一遍 `"5d-knn-v0.3.2"`）。
@@ -100,13 +104,13 @@ phm-web/
 | 我想改… | 看这个 |
 |---|---|
 | 难度算法 / 特征 / k-NN | `public/js/engine.js` |
-| 页面交互 / 渲染 | `public/index.html`（找对应函数名） |
+| 页面交互 / 渲染 | `public/app.html`（**工作台主体**，找对应函数名）。⚠ 里面还有约 300 行**休眠代码**（玩家面板迁到 `/user` 后遗留），见 `ARCHITECTURE.md` 的已知技术债 |
 | 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |
 | 数据库表或权限 | `docs/DATA-MODEL.md` → 然后用 MCP 执行 SQL |
-| 隐私相关文案 | `public/privacy.html` + `index.html` 里的设置面板 |
+| 隐私相关文案 | `public/privacy.html` + `app.html` 页脚的设置面板 |
 | 要发帖子 / 写宣发文案 | `docs/PROMOTION.md` |
 
 ---
@@ -235,7 +239,7 @@ Quon 1125 音符 / 108 Hold 等）。这些基线一挂，说明线上所有已�
 
 ### 3. 前端是 `type="module"`，不是全局脚本
 
-`index.html` 里的主逻辑是 ES module。它通过顶部这几行把引擎摊到全局：
+`app.html` 里的主逻辑是 ES module。它通过顶部这几行把引擎摊到全局：
 
 ```js
 import * as __ENGINE from "/js/engine.js";
@@ -254,7 +258,7 @@ Object.assign(globalThis, __ENGINE);
 
 ```
 用户拖入 .pez
-  → handleFiles()            [index.html]
+  → handleFiles()            [app.html]
   → analyzeChart()           [engine.js]  本地解析，文件不出浏览器
   → 渲染卡片（参考定数 / PS / 特征）
   → 若开关开启：contributeChart() 逐张串行
@@ -268,7 +272,8 @@ Object.assign(globalThis, __ENGINE);
 
 ```
 输入用户名/UID
-  → pfFindUser() → pfSearch()        [index.html]
+  → pfFindUser() → pfSearch()        [user.html · js/phira.js]
+       （⚠ app.html 里有一份同名休眠副本，别改那里）
   → 取 B19 / 最近成绩 + 谱面信息（并发池 5）
   → 若是本人确认过的账号 → 自动导入成绩
 ```
@@ -288,7 +293,7 @@ Object.assign(globalThis, __ENGINE);
 | 部署报 `service did not become reachable` | 沙箱偶发故障，**先本地 `node server.mjs` 复现**，本地正常就直接重试 |
 | Windows 上 `pkill -f` 杀不掉 node | Git Bash 的 pkill 对 Windows 进程无效，用 PowerShell 按 CommandLine 匹配 |
 | 本地打开页面但云功能报错 | 正常现象，见上文"跑起来" |
-| 改了 `engine.js` 线上没生效 | 浏览器缓存了模块，硬刷新；或检查 `PHM_VER` 是否更新 |
+| 改了 `engine.js` 线上没生效 | 浏览器缓存了模块，硬刷新；并确认 `<meta name="app-version">` 已更新（版本串是各模块的 cache-buster） |
 | 服务端复核失败写不进库 | 看响应里的 `note` 字段，通常是图谱名匹配不上或下载超时 |
 
 ---

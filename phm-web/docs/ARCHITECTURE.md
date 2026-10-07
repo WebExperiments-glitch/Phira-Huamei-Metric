@@ -6,7 +6,8 @@
 ┌──────────────────────────────────────────────────────────┐
 │ 浏览器                                                    │
 │                                                          │
-│  index.html（UI + 交互 + Phira 调用 + 账号）              │
+│  index.html 落地页                                       │
+│  app.html / user.html / charter.html / data.html         │
 │      │                                                   │
 │      ├─ /js/engine.js      ← 本地解析谱面，文件不出浏览器  │
 │      ├─ /js/ref-official.js ← 官谱参照 1,037 张（内嵌）    │

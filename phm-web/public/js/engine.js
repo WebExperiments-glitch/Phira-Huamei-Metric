@@ -388,7 +388,7 @@ export function rhythmFeatures(ts){
     chord_ratio:pyRound(d.filter(x=>x<0.050).length/d.length*100,3),
     fast_ratio:pyRound(d.filter(x=>x<0.150).length/d.length*100,3)};
 }
-/* ── 结构维度（对照 tools/dims14.py extract_dims）── */
+/* ── 结构维度（历史参照：一个不在本仓库内的 Python 原型 dims14.py）── */
 export function unionLen(iv){
   if(!iv.length) return 0;
   const s=iv.slice().sort((a,b)=>a[0]-b[0]);
@@ -679,7 +679,7 @@ export function speedPeakOfChart(j){
   }
   return mx;
 }
-/* ── P.H.M. Standard 公式 v0.1（对照 tools/phm_standard.py，逐常数一致）── */
+/* ── P.H.M. Standard 公式（**唯一真源就是这里**；曾与一个仓库外的 Python 原型逐常数对照）── */
 export function sat(v,k){ return v<=0?0:1-Math.exp(-v/k); }
 export function satd(v,k){ return v<=0?0:Math.exp(-v/k); }
 export const K={strain_p99:20.4,above_avg_density_mean:10.7081,

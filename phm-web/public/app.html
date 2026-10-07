@@ -551,8 +551,9 @@ border:1px solid var(--line);color:var(--fg3)}
 </footer>
 </div>
 
-<!-- ═════════ 引擎（纯函数，无 UI 依赖；与 tools/phm_standard.py 及
-     tools/enhance_features_v3.py / tools/dims14.py 逐条对照） ═════════ -->
+<!-- ═════════ 引擎（纯函数，无 UI 依赖） ═════════ -->
+<!-- ⚠ 早期曾与几个 Python 原型（phm_standard.py / enhance_features_v3.py / dims14.py）
+     逐条对照过，但那些文件**不在本仓库里**，不要去找。唯一真源是 /js/engine.js。 -->
 <!-- ═══ 引擎（浏览器与 Node 服务端共用同一份真源）═══
      见 public/js/engine.js 顶部注释：它同时被服务端 import 用于复核提交的定数，
      所以必须保持纯计算（不碰 DOM / localStorage / 网络）。 -->
