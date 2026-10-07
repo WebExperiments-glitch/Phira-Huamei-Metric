@@ -111,36 +111,91 @@ function sanitize(row, required) {
   return Object.keys(out).length ? out : null;
 }
 
-/* ── 限流：每 IP 每分钟 N 次写 ── */
-const RL_WINDOW = 60_000, RL_MAX = 30;
+/* ── 限流：每 IP 每分钟 N 次写 + 全局每分钟上限 ──
+ * 文件读改写必须串行（并发请求会互相覆盖丢计数）；
+ * 同时加全局桶，防止 X-Forwarded-For 被伪造时无限刷。 */
+const RL_WINDOW = 60_000, RL_MAX = 30, RL_GLOBAL_MAX = 240;
+let storeQueue = Promise.resolve();
+function withStore(fn) {
+  const run = storeQueue.then(() => {
+    const s = storeLoad();
+    const out = fn(s);
+    storeSave(s);
+    return out;
+  });
+  storeQueue = run.catch(() => {});
+  return run;
+}
 function rateOk(ip) {
-  const s = storeLoad();
-  const now = Date.now();
-  s.hits = s.hits || {};
-  const arr = (s.hits[ip] || []).filter(t => now - t < RL_WINDOW);
-  if (arr.length >= RL_MAX) { s.hits[ip] = arr; storeSave(s); return false; }
-  arr.push(now);
-  s.hits[ip] = arr;
-  storeSave(s);
-  return true;
+  return withStore((s) => {
+    const now = Date.now();
+    s.hits = s.hits || {};
+    let global = 0;
+    /* 顺手回收过期键，避免文件随 IP 无限膨胀 */
+    for (const k of Object.keys(s.hits)) {
+      const arr = (s.hits[k] || []).filter(t => now - t < RL_WINDOW);
+      if (arr.length) { s.hits[k] = arr; global += arr.length; }
+      else delete s.hits[k];
+    }
+    const arr = s.hits[ip] || [];
+    if (arr.length >= RL_MAX) return false;
+    if (global >= RL_GLOBAL_MAX) return false;
+    arr.push(now);
+    s.hits[ip] = arr;
+    return true;
+  });
 }
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon' };
+  '.ico': 'image/x-icon', '.webp': 'image/webp' };
+
+/* ⚠ 静态白名单 —— 只允许这几个文件被送出。
+   之前只做了「路径不以 ROOT 开头则拒」，结果 server.mjs / package.json /
+   server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
+   目录穿越防护 ≠ 白名单。这是本次安全修复的核心。 */
+const PUBLIC_FILES = new Set(['index.html', 'robots.txt', 'favicon.ico']);
+
+/* 安全响应头（此前只有 nosniff，等于裸奔） */
+const SEC_HEADERS = {
+  'strict-transport-security': 'max-age=31536000; includeSubDomains',
+  'x-frame-options': 'DENY',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'cross-origin-opener-policy': 'same-origin',
+  'permissions-policy': 'geolocation=(), microphone=(), camera=(), interest-cohort=()',
+  /* CSP：单文件内联脚本 + jsDelivr(云 SDK) + Phira API + 本站 CloudBase */
+  'content-security-policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://api.phira.cn https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "object-src 'none'",
+  ].join('; '),
+};
 
 function send(res, code, body, type) {
-  res.writeHead(code, { 'content-type': type || 'application/json; charset=utf-8',
-    'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+  res.writeHead(code, Object.assign({
+    'content-type': type || 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+  }, SEC_HEADERS));
   res.end(body);
 }
 function sendFile(res, fp) {
   try {
     const buf = fs.readFileSync(fp);
     const ext = path.extname(fp).toLowerCase();
-    res.writeHead(200, { 'content-type': MIME[ext] || 'application/octet-stream',
-      'x-content-type-options': 'nosniff' });
+    const isHtml = ext === '.html';
+    res.writeHead(200, Object.assign({
+      'content-type': MIME[ext] || 'application/octet-stream',
+      'cache-control': isHtml ? 'no-cache' : 'public, max-age=3600',
+    }, SEC_HEADERS));
     res.end(buf);
   } catch { send(res, 404, 'not found', 'text/plain; charset=utf-8'); }
 }
@@ -158,47 +213,9 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
 
-  /* 健康与自检 */
-  if (p === '/api/health') {
-    const s = storeLoad();
-    return send(res, 200, JSON.stringify({
-      ok: true, bootAt: BOOT_AT, now: new Date().toISOString(),
-      uptimeSec: Math.round(process.uptime()), node: process.version,
-      storeWrites: s.writes || 0, storeLastWrite: s.lastWrite || null,
-      storeFileExists: fs.existsSync(STORE),
-    }));
-  }
-  /* 持久性实验：写一次 +1 */
-  if (p === '/api/kv') {
-    const s = storeLoad();
-    if (req.method === 'POST') {
-      s.writes = (s.writes || 0) + 1;
-      s.lastWrite = new Date().toISOString();
-      s.firstBoot = s.firstBoot || BOOT_AT;
-      storeSave(s);
-      return send(res, 200, JSON.stringify(s));
-    }
-    return send(res, 200, JSON.stringify(s));
-  }
-  /* 沙箱外网连通性探测 */
-  if (p === '/api/net') {
-    const out = {};
-    const targets = {
-      phira: 'https://api.phira.cn/chart/47579',
-      cloud: 'https://phm.app.workbuddy.host/.cloud/database/rest/phm_charts?limit=1',
-    };
-    for (const [k, u] of Object.entries(targets)) {
-      const t0 = Date.now();
-      try {
-        const ctl = AbortController ? new AbortController() : null;
-        const timer = setTimeout(() => ctl && ctl.abort(), 8000);
-        const r = await fetch(u, ctl ? { signal: ctl.signal } : undefined);
-        clearTimeout(timer);
-        out[k] = { status: r.status, ms: Date.now() - t0 };
-      } catch (e) { out[k] = { error: String(e.message || e).slice(0, 80), ms: Date.now() - t0 }; }
-    }
-    return send(res, 200, JSON.stringify(out));
-  }
+  /* 健康检查：只回 ok。
+     此前返回 Node 版本 / 启动时间 / uptime / 存储状态 —— 那是给攻击者的情报，已删。 */
+  if (p === '/api/health') return send(res, 200, JSON.stringify({ ok: true }));
   /* 写入网关：校验 + 限流 + 落库 */
   if (p === '/api/contribute' || p === '/api/scores') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
@@ -232,13 +249,19 @@ const server = http.createServer(async (req, res) => {
     return send(res, r.ok ? 200 : 502, r.ok ? (r.body || '{}') : JSON.stringify({ error: 'stats unavailable', detail: r.body || r.error }));
   }
 
-  /* 静态资源 */
+  /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
   const rel = p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, '');
-  const fp = path.join(ROOT, rel);
-  if (!fp.startsWith(ROOT)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
+  if (!PUBLIC_FILES.has(rel)) return send(res, 404, 'not found', 'text/plain; charset=utf-8');
+  const fp = path.resolve(ROOT, rel);
+  if (!fp.startsWith(ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
   if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp);
   return send(res, 404, 'not found', 'text/plain; charset=utf-8');
 });
+
+/* 请求级超时：出站 fetch 有 15s 上限，入站此前没有 —— 慢连接可以挂住进程 */
+server.requestTimeout = 30000;
+server.headersTimeout = 35000;
+server.keepAliveTimeout = 15000;
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('[phm] listening on 0.0.0.0:' + PORT + ' | boot ' + BOOT_AT + ' | node ' + process.version);
