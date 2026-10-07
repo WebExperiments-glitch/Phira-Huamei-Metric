@@ -478,7 +478,27 @@ border:1px solid var(--line);color:var(--fg3)}
 <script type="module" src="/js/engine.js"></script>
 
 <!-- ═════════ UI ═════════ -->
-<script>
+<!-- UI 工具层已并入下方主 module（拆分作用域会导致跨脚本取不到函数） -->
+<!-- ═════════ 数据飞轮：匿名打卡（CloudBase）═════════ -->
+<!-- 云 SDK：固定版本 + SRI
+     第三方脚本跑在同源页面里，拥有与应用代码完全相同的权限（DOM / localStorage /
+     账号 session）。此前用的是 @dev 浮动标签 —— CDN 上任何一次更新都会直接进入所有
+     用户的浏览器，而账号 session 就存在 localStorage 里。
+     现在钉死 0.1.3（npm latest）并加 integrity：内容对不上浏览器会拒绝执行。 -->
+<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
+  integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
+  crossorigin="anonymous"></script>
+<script type="module">
+/* ── 引擎桥接 ──
+   引擎以 ESM 提供（浏览器与 Node 共用）。这里把它摊到全局作用域，
+   下面的代码继续直接调用 zipParse / knnReference / analyzeChart 等，无需改写。 */
+import * as __ENGINE from "/js/engine.js";
+Object.assign(globalThis, __ENGINE);
+
+/* ═══ UI 工具层 ═══
+   并入本 module：原来它是独立的 <script>，与下面的主逻辑处于不同作用域，
+   导致 handleFiles 里的 typeof contributeChart === "function" 恒为 false，
+   贡献循环被静默跳过。合并后同一作用域，问题消失。 */
 "use strict";
 const $=function(s){return document.querySelector(s);};
 const f1=function(v){return v==null?"-":(+v).toFixed(1);};
@@ -657,22 +677,6 @@ drop.addEventListener("drop",function(e){
 $("#file").addEventListener("change",function(e){
   handleFiles([...e.target.files]); e.target.value="";
 });
-</script>
-<!-- ═════════ 数据飞轮：匿名打卡（CloudBase）═════════ -->
-<!-- 云 SDK：固定版本 + SRI
-     第三方脚本跑在同源页面里，拥有与应用代码完全相同的权限（DOM / localStorage /
-     账号 session）。此前用的是 @dev 浮动标签 —— CDN 上任何一次更新都会直接进入所有
-     用户的浏览器，而账号 session 就存在 localStorage 里。
-     现在钉死 0.1.3（npm latest）并加 integrity：内容对不上浏览器会拒绝执行。 -->
-<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
-  integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
-  crossorigin="anonymous"></script>
-<script type="module">
-/* ── 引擎桥接 ──
-   引擎以 ESM 提供（浏览器与 Node 共用）。这里把它摊到全局作用域，
-   下面的代码继续直接调用 zipParse / knnReference / analyzeChart 等，无需改写。 */
-import * as __ENGINE from "/js/engine.js";
-Object.assign(globalThis, __ENGINE);
 
 "use strict";
 /* ═════ 全局健壮性：统一事件委托（最先绑定，不依赖后续任何代码）═════
@@ -832,6 +836,23 @@ try{
     cloudDB=cloud.database;
   }
 }catch(e){ cloud=null; cloudDB=null; }
+
+/* 运行状态自检 —— 便于线上排查，也让「说好的行为」可被验证。
+   在浏览器控制台执行 PHM.status() 即可看到各部件是否就绪。
+   只暴露状态，不含任何数据。 */
+window.PHM = window.PHM || {};
+window.PHM.status = function(){
+  return {
+    ver: "V0.3.2",
+    engine: typeof analyzeChart === "function" ? "ok" : "missing",
+    sdk: typeof window.WorkBuddyCloud,
+    cloud: cloud ? "ok" : "null",
+    cloudDB: cloudDB ? "ok" : "null",
+    autoUpload: OPTN(),
+    noticeAgreed: noticeAgreed(),
+    ownDeclared: Object.keys(localStorage).filter(k => k.indexOf("phm_own_") === 0).length,
+  };
+};
 
 /* 匿名会话 id（localStorage，无隐私信息） */
 function clientId(){
