@@ -1,0 +1,10 @@
+{
+  "name": "phm-web",
+  "private": true,
+  "version": "0.3.2",
+  "type": "module",
+  "description": "P.H.M. Standard — 静态前端 + 轻量 Node 服务（零依赖）",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
