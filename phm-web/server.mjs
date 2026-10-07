@@ -26,7 +26,8 @@ import { fileURLToPath } from 'node:url';
 import { reviewContribution, grosslyMismatched, recompute } from './lib/review.mjs';
 /* 云数据库访问层（配置 + 写入凭据 + 两个写 RPC）都在 lib/cloud.mjs，
    与 tools/ 下的批量脚本共用同一份 —— 别再复制一份到这里。 */
-import { dbFetch, dbPutChart, dbPutScores } from './lib/cloud.mjs';
+import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE } from './lib/cloud.mjs';
+import { ENGINE_VER } from './public/js/engine.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 /* 静态资源根目录。
@@ -149,7 +150,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
-const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html',
+const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'en.html', 'robots.txt', 'favicon.ico', 'privacy.html',
   '404.html', 'sitemap.xml', 'og.png', 'og-en.png']);
 /* ⚠ PUBLIC_DIRS 每加一个目录，都是往互联网上多开一扇门。
@@ -357,6 +358,55 @@ const server = http.createServer(async (req, res) => {
    * 给**不加载云 SDK** 的页面用（英文页只做只读展示，没必要引入整个 SDK）。
    * 表本身对匿名可读，所以这里不是权限提升，只是把「一次拿一批」变成一个请求。
    * 与 /api/stats 共用同一份只读配额。 */
+  /* ── /api/charts ── 两种读法，共用同一份只读配额
+   *
+   * ① `?ids=1,2,3`            → 按 id 批量取（前端「读了缓存再渲染」用的，老路径）
+   * ② `?page=1&pageSize=50`   → **真分页**（数据管理页、任何"看全库"的需求）
+   *    支持 sort / order / q / level / only / build，
+   *    回 `{rows,total,page,pageSize,pages}`，total 来自 Content-Range（真总数）。
+   *
+   * 【为什么必须补第 ② 种】只有第 ① 种时，"看全库"只能 `limit=100000`
+   *   一次拉回来 —— 649 行还行，几万行就是几十 MB 的响应 + 浏览器全量渲染。
+   *   分页不是好看，是库变大之后还能用。
+   */
+  if (p === '/api/charts' && url.searchParams.has('page')) {
+    if (!(await statsOk(ip))) {
+      return send(res, 429, JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
+    }
+    const qp = url.searchParams;
+    const sort = qp.get('sort') || 'chart_id';
+    /* ⚠ 排序字段必须白名单。这里直接进查询串，不挡就是把查询表达式交给调用方。 */
+    if (!SORTABLE.has(sort)) {
+      return send(res, 400, JSON.stringify({ error: 'sort 不在允许的字段里', allowed: [...SORTABLE] }));
+    }
+    const res2 = await dbPageCharts({
+      page: qp.get('page'), pageSize: qp.get('pageSize'),
+      sort, order: qp.get('order') === 'desc' ? 'desc' : 'asc',
+      q: qp.get('q') || '', level: qp.get('level') || '',
+      only: qp.get('only') || '', build: qp.get('build') || ENGINE_VER,
+    });
+    if (!res2) {
+      return send(res, 502, JSON.stringify({ error: 'cache unavailable' }));
+    }
+    return send(res, 200, JSON.stringify({
+      rows: res2.rows, total: res2.total, page: res2.page,
+      pageSize: res2.pageSize, pages: res2.pages,
+      sort, order: qp.get('order') === 'desc' ? 'desc' : 'asc', engineVer: ENGINE_VER,
+    }));
+  }
+
+  /* ── /api/summary ── 全库汇总（数据管理页顶部）。
+     注意它要扫全表 —— 所以**不是**按 IP 高频配额，而是与 stats 共用一份只读配额，
+     并且故意不放进任何自动轮询路径。 */
+  if (p === '/api/summary') {
+    if (!(await statsOk(ip))) {
+      return send(res, 429, JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
+    }
+    const sum = await dbSummary();
+    if (!sum) return send(res, 502, JSON.stringify({ error: 'cache unavailable' }));
+    return send(res, 200, JSON.stringify(Object.assign({ engineVer: ENGINE_VER }, sum)));
+  }
+
   if (p === '/api/charts') {
     if (!(await statsOk(ip))) {
       return send(res, 429, JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
@@ -463,7 +513,7 @@ const server = http.createServer(async (req, res) => {
      （换实现时 URL 不变）。映射是**显式白名单**，不是通配：
      将来加页面必须同时加进 PUBLIC_FILES，不会因为忘了写路由就暴露文件。 */
   const CLEAN = { '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
-                  '/privacy': 'privacy.html' };
+                  '/data': 'data.html', '/privacy': 'privacy.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

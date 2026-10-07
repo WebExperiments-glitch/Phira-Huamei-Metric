@@ -69,11 +69,15 @@
 <div id="out"></div>
 
 <div class="card" id="chartq" style="display:none">
-  <h3 style="margin-top:0">查「我在某张谱上的全部成绩」</h3>
-  <div class="sub">Phira 的成绩接口只给<b>最近 20 条</b>。但按<b>谱面</b>查询不受这个限制 —— 想知道某张谱你打过几次、最好多少，用这里。</div>
+  <h3 style="margin-top:0">按谱面查 · 可翻页</h3>
+  <div class="sub">Phira 的成绩接口只给<b>最近 20 条</b>。但按<b>谱面</b>查不受这个限制 —— 这是唯一能翻页看成绩的路径。</div>
   <div class="row">
-    <input class="inp" id="cid" style="flex:1;min-width:160px" placeholder="谱面 chart_id（纯数字）" autocomplete="off">
-    <button class="btn" id="cgo">查这张谱</button>
+    <input class="inp" id="cid" style="flex:1;min-width:150px" placeholder="谱面 chart_id（纯数字）" autocomplete="off">
+    <select class="inp" id="cmode" style="padding:6px 8px">
+      <option value="mine">我在这张谱上的全部成绩</option>
+      <option value="all">这张谱的全服记录（可翻页）</option>
+    </select>
+    <button class="btn" id="cgo">查询</button>
   </div>
   <div id="cout"></div>
 </div>
@@ -86,9 +90,10 @@
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when,
+import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager,
          loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js?v=V0.4.0';
-import { resolveUser, getUserStats, getBestPool, getRecords, getCharts } from '/js/phira.js?v=V0.4.0';
+import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
+  from '/js/phira.js?v=V0.4.0';
 
 renderNav('user');
 const $ = s => document.querySelector(s);
@@ -133,6 +138,8 @@ async function pick(u) {
   $('#cands').innerHTML = '';
   $('#q').value = u.name;
   try { localStorage.setItem('phm_last_uid', String(u.id)); } catch (e) {}
+  /* 同步到地址栏：分享"某人的成绩页"是这个站的主要传播方式之一 */
+  try { history.replaceState(null, '', '/user?uid=' + u.id); } catch (e) {}
   msg('读取成绩中…');
   const [stats, pool, rec] = await Promise.all([
     getUserStats(u.id),
@@ -294,57 +301,138 @@ function b19Note(numRecords, poolN) {
     + '所以本页另算一个 <b>P.H.M. RKS</b> 给你参考。</div>';
 }
 
-/* ── 按谱面查「我的全部成绩」 ──
-   这是绕过 20 条上限的唯一手段：`/record?player=&chart=` 不受限。 */
-$('#cgo').addEventListener('click', doChartQuery);
-$('#cid').addEventListener('keydown', e => { if (e.key === 'Enter') doChartQuery(); });
+/* ══════════════════════════════════════════════════════════════
+ * 按谱面查 —— 两种模式，都可翻页
+ * ══════════════════════════════════════════════════════════════
+ * ① mine：`/record?player=&chart=` —— 这个人在**这张谱上**的全部记录。
+ *          **不受 20 条限制**，是绕过成绩接口上限的唯一手段。
+ * ② all ：`/record/query/{chartId}?page=N` —— 这张谱的**全服记录**，
+ *          30/页、按分数降序，count 是真总数。Phira 侧少数真正能翻页的
+ *          大列表，能看到一张谱的成绩分布。
+ */
+const CQ = { mode: 'mine', chartId: 0, page: 1, pageNum: 30, count: 0, info: null };
+
+$('#cgo').addEventListener('click', () => { CQ.page = 1; doChartQuery(); });
+$('#cid').addEventListener('keydown', e => { if (e.key === 'Enter') { CQ.page = 1; doChartQuery(); } });
+$('#cmode').addEventListener('change', e => { CQ.mode = e.target.value; CQ.page = 1; doChartQuery(); });
 
 async function doChartQuery() {
   const out = $('#cout');
-  if (!STATE.user) { out.innerHTML = '<div class="status err">先在上面查一个账号</div>'; return; }
   const cid = parseInt($('#cid').value.trim(), 10);
   if (!(cid > 0)) { out.innerHTML = '<div class="status err">填一个纯数字的 chart_id</div>'; return; }
+  if (CQ.mode === 'mine' && !STATE.user) {
+    out.innerHTML = '<div class="status err">先在上面查一个账号（这一栏需要知道你是谁）</div>';
+    return;
+  }
+  CQ.chartId = cid;
   out.innerHTML = '<div class="status">查询中…</div>';
   try {
-    const { records } = await getRecords(STATE.user.id, { chart: cid });
-    const [info] = await Promise.all([getCharts([cid]).catch(() => null), loadChartCache([cid])]);
-    if (!records.length) {
-      out.innerHTML = '<div class="status warn">这个号在 <b>#' + cid + '</b> 上没有记录。</div>';
-      return;
-    }
-    const c = info && info[cid];
-    const best = records.reduce((a, b) => (accOf(b) || 0) > (accOf(a) || 0) ? b : a);
-    const cc = bestConst(cid, c);
-    let h = '<div class="status ok">共 <b>' + records.length + '</b> 次游玩'
-      + (c ? '：《' + esc(c.name) + '》' + esc(c.level || '') : '')
-      + ' · 最好准度 <b>' + pct(accOf(best), 2) + '</b>'
-      + (cc ? ' · 定数 ' + f2(cc.lv) + '（' + cc.src + '）' : '')
-      + (cc && accOf(best) != null && accOf(best) >= 70
-          ? ' · 单曲 rks <b>' + f2(Math.pow((accOf(best) - 55) / 45, 2) * cc.lv) + '</b>' : '')
-      + '</div>';
-    h += '<table><thead><tr><th>时间</th><th class="r">准度</th><th class="r">Perfect</th>'
-      + '<th class="r">Good/Bad/Miss</th><th class="r">全连</th></tr></thead><tbody>';
-    for (const r of records.slice(0, 40)) {
-      h += '<tr><td class="dim">' + esc(when(r.time)) + '</td>'
-        + '<td class="r" style="color:' + ((accOf(r) || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">'
-        + pct(accOf(r), 2) + '</td>'
-        + '<td class="r">' + (r.perfect == null ? '—' : r.perfect) + '</td>'
-        + '<td class="r dim">' + [r.good, r.bad, r.miss].map(x => x == null ? '—' : x).join(' / ') + '</td>'
-        + '<td class="r">' + (r.full_combo ? '✓' : '') + '</td></tr>';
-    }
-    h += '</tbody></table>';
-    if (records.length > 40) h += '<div class="dim2" style="font-size:12px;margin-top:6px">… 共 ' + records.length + ' 条，只显示前 40</div>';
-    out.innerHTML = h;
+    if (CQ.mode === 'mine') await renderMine(cid, out);
+    else await renderAll(cid, out);
   } catch (e) {
     out.innerHTML = '<div class="status err">查询失败：' + esc(e.message || e) + '</div>';
   }
 }
 
-/* 回访：上次查过的 UID 预填（只是省一次输入，不自动查询） */
-try {
-  const last = localStorage.getItem('phm_last_uid');
-  if (last) $('#q').value = last;
-} catch (e) {}
+async function renderMine(cid, out) {
+  const r0 = await getRecords(STATE.user.id, { chart: cid });
+  const records = r0.records;
+  const info = await getCharts([cid]).catch(() => null);
+  await loadChartCache([cid]);
+  const c = info && info[cid];
+  if (!records.length) {
+    out.innerHTML = '<div class="status warn">这个号在 <b>#' + cid + '</b> 上没有记录'
+      + (c ? '（《' + esc(c.name) + '》）' : '') + '。</div>';
+    return;
+  }
+  let best = records[0];
+  for (const x of records) if ((accOf(x) || 0) > (accOf(best) || 0)) best = x;
+  const cc = bestConst(cid, c);
+  const ba = accOf(best);
+  let h = '<div class="status ok">共 <b>' + records.length + '</b> 次游玩'
+    + (c ? '：《' + esc(c.name) + '》' + esc(c.level || '') : '')
+    + ' · 最好准度 <b>' + pct(ba, 2) + '</b>'
+    + (cc ? ' · 定数 ' + f2(cc.lv) + '（' + cc.src + '）' : '')
+    + (cc && ba != null && ba >= 70
+        ? ' · 单曲 rks <b>' + f2(Math.pow((ba - 55) / 45, 2) * cc.lv) + '</b>' : '')
+    + '</div>';
+  h += '<table><thead><tr><th>时间</th><th class="r">准度</th><th class="r">Perfect</th>'
+    + '<th class="r">Good / Bad / Miss</th><th class="r">全连</th></tr></thead><tbody>';
+  for (const x of records) {
+    const a = accOf(x);
+    h += '<tr><td class="dim">' + esc(when(x.time)) + '</td>'
+      + '<td class="r" style="color:' + ((a || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">' + pct(a, 2) + '</td>'
+      + '<td class="r">' + (x.perfect == null ? '—' : x.perfect) + '</td>'
+      + '<td class="r dim">' + [x.good, x.bad, x.miss].map(v => v == null ? '—' : v).join(' / ') + '</td>'
+      + '<td class="r">' + (x.full_combo ? '✓' : '') + '</td></tr>';
+  }
+  h += '</tbody></table>';
+  h += '<div class="note info">这个接口（<span class="mono">/record?player=&amp;chart=</span>）'
+    + '<b>不受 20 条限制</b>，所以这里是全部 ' + records.length + ' 条，不用翻页。</div>';
+  out.innerHTML = h;
+}
+
+async function renderAll(cid, out) {
+  const r = await getChartRecords(cid, { page: CQ.page, pageNum: CQ.pageNum });
+  CQ.count = r.count;
+  const info = await getCharts([cid]).catch(() => null);
+  await loadChartCache([cid]);
+  const c = info && info[cid];
+  CQ.info = c || null;
+  if (!r.records.length) {
+    out.innerHTML = '<div class="status warn">#' + cid + ' 上没有公开记录'
+      + (c ? '（《' + esc(c.name) + '》）' : '') + '。</div>';
+    return;
+  }
+  const pages = Math.max(1, Math.ceil(r.count / r.pageNum));
+  const accs = r.records.map(accOf).filter(v => v != null).sort((a, b) => b - a);
+  const cc = bestConst(cid, c);
+  let h = '<div class="status ok">'
+    + (c ? '《' + esc(c.name) + '》' + esc(c.level || '') + ' · ' : '')
+    + '全服共 <b>' + r.count + '</b> 条记录'
+    + (cc ? ' · 定数 ' + f2(cc.lv) + '（' + cc.src + '）' : '')
+    + (accs.length ? '<br><span class="dim2">本页准度：最高 <b>' + pct(accs[0], 2)
+        + '</b> · 最低 <b>' + pct(accs[accs.length - 1], 2) + '</b> · 按分数降序</span>' : '')
+    + '</div>';
+
+  h += '<table><thead><tr><th class="r">#</th><th>玩家</th><th class="r">准度</th>'
+    + '<th class="r">分数</th><th class="r">Perfect</th><th class="r">Miss</th><th class="r">时间</th></tr></thead><tbody>';
+  r.records.forEach((x, i) => {
+    const rank = (r.page - 1) * r.pageNum + i + 1;
+    const a = accOf(x);
+    const mine = STATE.user && x.player === STATE.user.id;
+    h += '<tr' + (mine ? ' style="background:rgba(232,163,61,.10)"' : '') + '>'
+      + '<td class="r dim">' + rank + '</td>'
+      + '<td>' + (x.player == null ? '—'
+          : '<a href="/user?uid=' + x.player + '">#' + x.player + '</a>')
+          + (mine ? ' <span class="pill amber">你</span>' : '') + '</td>'
+      + '<td class="r" style="color:' + ((a || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">' + pct(a, 2) + '</td>'
+      + '<td class="r dim">' + (x.score == null ? '—' : x.score) + '</td>'
+      + '<td class="r dim">' + (x.perfect == null ? '—' : x.perfect) + '</td>'
+      + '<td class="r dim">' + (x.miss == null ? '—' : x.miss) + '</td>'
+      + '<td class="r dim">' + esc(when(x.time)) + '</td></tr>';
+  });
+  h += '</tbody></table>';
+  h += '<div id="cpg">' + pagerHTML({
+    page: r.page, pages, total: r.count, pageSize: r.pageNum,
+  }) + '</div>';
+  h += '<div class="note">只有当页 ' + r.records.length + ' 条样本。记录按分数降序 —— '
+    + '前几页是硬核玩家，越往后越接近大众水平。<b>这一栏是唯一能翻页看全服的入口。</b></div>';
+  out.innerHTML = h;
+  wirePager($('#cpg'), pg => { CQ.page = pg; doChartQuery(); });
+}
+
+/* 初始输入：?uid= 优先（全服记录表里点玩家编号会带过来），否则用上次查过的。
+   ⚠ ?uid= 会**自动查询**，那是有意的 —— 从别处点过来就是要看这个人。
+   没有 ?uid= 时只预填不查询（避免用户一进来就被打一次第三方请求）。 */
+(function boot() {
+  const uid = new URLSearchParams(location.search).get('uid');
+  if (uid && /^\d{1,12}$/.test(uid)) { $('#q').value = uid; doSearch(); return; }
+  try {
+    const last = localStorage.getItem('phm_last_uid');
+    if (last) $('#q').value = last;
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>

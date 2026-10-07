@@ -209,39 +209,60 @@ export async function getCharts(ids) {
   return map;
 }
 
-/** 某个谱师的作品。
- *  「谱师」没有独立接口（陷阱 3），只能借 `/chart?search=` 再自己过滤。
- *  做法：翻若干页，把 charter **精确匹配**的挑出来；同时把"仅模糊命中"的
- *  单独返回，让用户能看出区别（否则「搜 Kevin 出来一堆不相干的谱」很困惑）。
- *  @param name      谱师名
- *  @param maxPages  最多翻几页（每页 30）—— 防止高产谱师把网络打爆
+/** 按谱师名扫**一页**搜索结果，并把结果分成「精确同名」与「仅包含」两类。
+ *
+ *  为什么要分：`/chart?search=` 同时匹配**曲名**与**谱师**（陷阱 2），
+ *  搜 "Kevin" 会出来一堆曲名带 kevin 的、谱师是别人的谱。混在一起看非常困惑。
+ *
+ *  @returns {exact, fuzzy, count, page, pageNum}
+ *    count 是 Phira 给的**总结果数**（用于算总页数 —— 真分页要靠它）
  */
-export async function getCharterCharts(name, opts) {
+export async function getCharterPage(name, opts) {
   const o = opts || {};
   const want = String(name || '').trim();
-  if (!want) return { exact: [], fuzzy: [], scanned: 0, truncated: false };
-  const maxPages = Math.max(1, o.maxPages || 6);
+  const page = Math.max(1, o.page || 1);
+  const pageNum = Math.min(30, Math.max(1, o.pageNum || 30));
+  if (!want) return { exact: [], fuzzy: [], count: 0, page, pageNum };
+  const r = await searchCharts(want, { page, pageNum });
   const low = want.toLowerCase();
   const exact = [], fuzzy = [];
-  let scanned = 0, truncated = false;
-  const seen = new Set();
+  for (const c of r.charts) {
+    if (c == null || c.id == null) continue;
+    const ch = String(c.charter || '').trim().toLowerCase();
+    if (ch === low) exact.push(c);
+    else if (ch.includes(low)) fuzzy.push(c);
+  }
+  return { exact, fuzzy, count: r.count, page, pageNum,
+           scanned: r.charts.length,
+           pages: Math.max(1, Math.ceil(r.count / pageNum)) };
+}
 
-  for (let page = 1; page <= maxPages; page++) {
+/** 连扫多页（给"聚合统计"用）。onProgress 每页回调一次，用于画进度与支持中断。
+ *  ⚠ 会真的打很多次 Phira 接口 —— 所以 maxPages 默认只给 10，
+ *    并且由调用方决定要不要继续（不替用户做"扫 67 页"这种决定）。 */
+export async function scanCharter(name, opts) {
+  const o = opts || {};
+  const from = Math.max(1, o.fromPage || 1);
+  const maxPages = Math.max(1, o.maxPages || 10);
+  const pageNum = Math.min(30, Math.max(1, o.pageNum || 30));
+  const seen = new Set(o.seen || []);
+  const exact = [], fuzzy = [];
+  let count = 0, pages = 1, done = 0;
+
+  for (let page = from; page < from + maxPages; page++) {
     let r;
-    try { r = await searchCharts(want, { page, pageNum: 30 }); }
-    catch (e) { if (page === 1) throw e; break; }
-    scanned += r.charts.length;
-    for (const c of r.charts) {
-      if (c == null || c.id == null || seen.has(c.id)) continue;
-      seen.add(c.id);
-      const ch = String(c.charter || '').trim();
-      if (ch.toLowerCase() === low) exact.push(c);
-      else if (ch.toLowerCase().includes(low)) fuzzy.push(c);
-    }
-    /* 翻到底了（没有下一页）或已经超过 count 就停 */
-    if (!r.charts.length || scanned >= r.count) break;
-    if (page === maxPages && scanned < r.count) truncated = true;
+    try { r = await getCharterPage(name, { page, pageNum }); }
+    catch (e) { if (page === from) throw e; break; }
+    count = r.count; pages = r.pages;
+    for (const c of r.exact) if (!seen.has(c.id)) { seen.add(c.id); exact.push(c); }
+    for (const c of r.fuzzy) if (!seen.has(c.id)) { seen.add(c.id); fuzzy.push(c); }
+    done = page;
+    if (typeof o.onProgress === 'function') o.onProgress({ page, pages, count, exact: exact.length, fuzzy: fuzzy.length });
+    if (!r.scanned || page >= pages) break;      /* 已经到底 */
+    if (o.signal && o.signal.aborted) break;
   }
   const byDiff = (a, b) => (+b.difficulty || 0) - (+a.difficulty || 0);
-  return { exact: exact.sort(byDiff), fuzzy: fuzzy.sort(byDiff), scanned, truncated };
+  return { exact: exact.sort(byDiff), fuzzy: fuzzy.sort(byDiff),
+           count, pages, lastPage: done, seen: [...seen],
+           truncated: done < pages };
 }

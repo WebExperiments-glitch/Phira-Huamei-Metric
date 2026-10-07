@@ -30,6 +30,7 @@ const NAV = [
   ['/app', '算定数', 'app'],
   ['/charter', '谱师', 'charter'],
   ['/user', '玩家', 'user'],
+  ['/data', '数据', 'data'],
 ];
 
 export function renderNav(active) {
@@ -84,6 +85,77 @@ export function when(t) {
   if (days === 1) return '昨天';
   if (days < 30) return days + ' 天前';
   return ymd;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+ * 分页组件 —— 全站共用
+ * ══════════════════════════════════════════════════════════════
+ * 三处都需要它：数据管理页要翻全库、谱师页要翻全部作品、
+ * 单谱成绩要翻全服记录。各写一份必然长成三个样子，所以抽到这里。
+ *
+ * @param {object} o
+ *   o.page / o.pages / o.total / o.pageSize
+ *   o.sizes   可选：每页条数选项，给了就渲染选择器
+ * 用 wirePager(el, onGo, onSize) 接线。
+ */
+export function pagerHTML(o) {
+  const page = Math.max(1, o.page || 1);
+  const pages = Math.max(1, o.pages || 1);
+  const total = o.total == null ? null : o.total;
+  const size = o.pageSize || 50;
+  const from = total == null ? null : (total === 0 ? 0 : (page - 1) * size + 1);
+  const to = total == null ? null : Math.min(total, page * size);
+
+  /* 页码窗口：首尾 + 当前±2，中间用 … 省略。
+     否则 649 行 / 每页 10 条 = 65 个页码，工具栏直接被撑爆。 */
+  const nums = [];
+  const push = v => { if (v >= 1 && v <= pages && !nums.includes(v)) nums.push(v); };
+  push(1);
+  for (let p = page - 2; p <= page + 2; p++) push(p);
+  push(pages);
+  nums.sort((a, b) => a - b);
+  const seq = [];
+  let prev = 0;
+  for (const v of nums) { if (v - prev > 1) seq.push('…'); seq.push(v); prev = v; }
+
+  const btn = (label, target, dis, title) =>
+    '<button class="pg" type="button" data-go="' + target + '"'
+    + (dis ? ' disabled' : '') + (title ? ' title="' + title + '"' : '') + '>' + label + '</button>';
+
+  return '<div class="pager">'
+    + '<div class="pginfo">'
+    + (total == null
+        ? '第 <b>' + page + '</b> 页'
+        : '第 <b>' + from + '–' + to + '</b> 条 · 共 <b>' + total + '</b> 条 · 第 <b>'
+          + page + '</b>/' + pages + ' 页')
+    + '</div>'
+    + '<div class="pgbtns">'
+    + btn('‹', page - 1, page <= 1, '上一页')
+    + seq.map(v => v === '…'
+        ? '<span class="pgecl">…</span>'
+        : '<button class="pg' + (v === page ? ' on' : '') + '" type="button" data-go="' + v + '">' + v + '</button>'
+      ).join('')
+    + btn('›', page + 1, page >= pages, '下一页')
+    + '</div>'
+    + (o.sizes && o.sizes.length
+        ? '<select class="pgsel" id="pgsize">'
+          + o.sizes.map(x => '<option value="' + x + '"' + (x === size ? ' selected' : '') + '>每页 '
+            + x + ' 条</option>').join('')
+          + '</select>'
+        : '')
+    + '</div>';
+}
+
+/** 给 pagerHTML 渲染出来的按钮接线。页面重渲染时旧监听会随元素一起丢掉，无需解绑。 */
+export function wirePager(root, onGo, onSize) {
+  if (!root) return;
+  root.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+    const v = parseInt(b.getAttribute('data-go'), 10);
+    if (v > 0) onGo(v);
+  }));
+  const sel = root.querySelector('#pgsize');
+  if (sel && onSize) sel.addEventListener('change', () => onSize(parseInt(sel.value, 10)));
 }
 
 /* ══════════════════════════════════════════════════════════════

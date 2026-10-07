@@ -118,7 +118,12 @@ export async function dbFetch(pathAndQuery, init, timeoutMs = 15000, maxBody = 8
       Object.assign({ headers: dbHeaders() }, init || {}, { signal: ctl.signal }));
     clearTimeout(timer);
     const txt = await r.text();
-    return { ok: r.ok, status: r.status, body: txt.slice(0, maxBody) };
+    /* ⚠ content-range 必须带出去：分页要有「总数」就得靠它
+       （配合 Prefer: count=exact，格式是 `0-49/649`）。
+       之前只回 ok/status/body，于是任何分页都只能是"猜"，
+       前端做出来的页码是假的。 */
+    return { ok: r.ok, status: r.status, body: txt.slice(0, maxBody),
+             contentRange: r.headers.get('content-range') };
   } catch (e) {
     clearTimeout(timer);
     return { ok: false, status: 0, error: String(e.message || e).slice(0, 200) };
@@ -195,6 +200,111 @@ export async function dbListAll(maxBody = 8 * 1024 * 1024) {
   }
   try { return JSON.parse(r.body); }
   catch { console.warn('[phm] 缓存响应解析失败'); return null; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 分页查询 phm_charts —— 「数据管理」页与对外只读接口共用
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么必须做真分页】
+ *   原来只有 `?ids=` 一个读法，于是任何"看全库"的需求都只能
+ *   `limit=100000` 一次拉回来 —— 649 行时没问题，几万行时就是
+ *   一次几十 MB 的响应，而且浏览器还要把它全部渲染出来。
+ *   分页不是"好看"，是"库变大之后还能用"。
+ *
+ * 【底层能力（实测过，不是猜的）】
+ *   网关是 PostgREST：
+ *     · limit / offset            ✅
+ *     · order=col.asc|desc        ✅（可加 .nullslast）
+ *     · 过滤 ilike / like / neq / not.is.null  ✅
+ *     · Prefer: count=exact       ✅ 回 206 + `Content-Range: 0-49/649`
+ *   ⚠ 不用它就没有总数，页码就是个假的。
+ *
+ * 【安全】排序字段与过滤字段必须是**白名单**。这里直接拼进 URL，
+ *   不做白名单就等于把查询表达式交给调用方（PostgREST 的 order 能写
+ *   列名与方向，拼错东西至少是 400，但白名单是零成本的正解）。 */
+
+export const SORTABLE = new Set(['chart_id', 'name', 'level', 'difficulty', 'ref_const',
+  'ref_official', 'ps_score', 'nps', 'notes', 'hold_ratio', 'speed_peak',
+  'engine_build', 'computed_at', 'verified_at']);
+export const LEVELS = ['EZ', 'HD', 'IN', 'AT', 'SP'];
+
+const qsEnc = (o) => Object.entries(o)
+  .filter(([, v]) => v != null && v !== '')
+  .map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+
+/** 分页查缓存。
+ *  @param opts.page      从 1 开始
+ *  @param opts.pageSize  每页条数（1..200，服务端夹紧）
+ *  @param opts.sort      白名单里的列名（默认 chart_id）
+ *  @param opts.order     'asc' | 'desc'
+ *  @param opts.q         曲名模糊搜索
+ *  @param opts.level     档位（EZ/HD/IN/AT/SP）
+ *  @param opts.only      过滤：'stale'（引擎版本过期）| 'official'（有官谱标度）| 'no_phm'（没算过）
+ *  @param opts.build     只保留这个 engine_build（与 only=stale 互斥）
+ *  @returns {rows,total,page,pageSize,pages} 或 null（读失败）
+ */
+export async function dbPageCharts(opts) {
+  const o = opts || {};
+  const pageSize = Math.min(200, Math.max(1, parseInt(o.pageSize, 10) || 50));
+  const page = Math.max(1, parseInt(o.page, 10) || 1);
+  const sort = SORTABLE.has(o.sort) ? o.sort : 'chart_id';
+  const dir = o.order === 'desc' ? 'desc' : 'asc';
+
+  const params = {
+    select: '*',
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
+    order: sort + '.' + dir + (sort === 'chart_id' ? '' : '.nullslast'),
+  };
+  if (o.q) params.name = 'ilike.*' + String(o.q).replace(/[*(),]/g, ' ').slice(0, 60) + '*';
+  if (o.level && LEVELS.includes(String(o.level).toUpperCase())) {
+    params.level = 'ilike.*' + String(o.level).toUpperCase() + '*';
+  }
+  if (o.only === 'official') params.ref_official = 'not.is.null';
+  else if (o.only === 'stale') params.or = '(engine_build.is.null,engine_build.neq.' + (o.build || '') + ')';
+  else if (o.build) params.engine_build = 'eq.' + o.build;
+
+  /* ⚠ 必须用 dbHeaders(...) 增补，不能直接传 `{headers:{Prefer:...}}` ——
+     dbFetch 里是 `Object.assign({headers: dbHeaders()}, init)`，浅合并会把
+     **整份认证头覆盖掉**，症状是静默 401（读不到数据还以为库是空的）。
+     这是这个文件里第二次踩浅合并（上一次是 dbFetch 的 body 截断）。 */
+  const r = await dbFetch('/phm_charts?' + qsEnc(params), {
+    headers: dbHeaders({ prefer: 'count=exact' }),
+  }, 20000, 6 * 1024 * 1024);
+  if (!r.ok || !r.body) return null;
+  let rows;
+  try { rows = JSON.parse(r.body); } catch { return null; }
+  if (!Array.isArray(rows)) return null;
+  /* Content-Range: 0-49/649 → 总行数在斜杠后面。拿不到就退化成"至少这么多"。 */
+  let total = null;
+  if (r.contentRange) {
+    const m = /\/(\d+|\*)$/.exec(r.contentRange);
+    if (m && m[1] !== '*') total = parseInt(m[1], 10);
+  }
+  if (total == null) total = (page - 1) * pageSize + rows.length;
+  return { rows, total, page, pageSize, pages: Math.max(1, Math.ceil(total / pageSize)) };
+}
+
+/** 全库汇总：给「数据管理」页顶部的数字。只用一个请求（select 子集 + count=exact）。 */
+export async function dbSummary() {
+  const all = await dbFetch('/phm_charts?select=chart_id,level,engine_build,ref_const,ref_official,difficulty'
+    + '&limit=100000', undefined, 25000, 12 * 1024 * 1024);
+  if (!all.ok || !all.body) return null;
+  let rows;
+  try { rows = JSON.parse(all.body); } catch { return null; }
+  if (!Array.isArray(rows)) return null;
+  const byBuild = {}, byLevel = {};
+  let withOfficial = 0, withConst = 0, withDiff = 0;
+  for (const r of rows) {
+    const b = r.engine_build || '(旧版/未标记)';
+    byBuild[b] = (byBuild[b] || 0) + 1;
+    const lv = (String(r.level || '').match(/EZ|HD|IN|AT|SP/i) || ['?'])[0].toUpperCase();
+    byLevel[lv] = (byLevel[lv] || 0) + 1;
+    if (r.ref_official != null) withOfficial++;
+    if (r.ref_const != null) withConst++;
+    if (+r.difficulty > 0) withDiff++;
+  }
+  return { total: rows.length, byBuild, byLevel, withOfficial, withConst, withDiff };
 }
 
 /* 已缓存的全部 chart_id（用于「跳过已有」，让批量任务可断点续跑）。

@@ -13,4 +13,8 @@ Disallow: /api/
 # /charter 是有意公开的（谱师的作品集本来就是给人看的），所以不挡。
 Disallow: /user
 
+# 数据管理页也不给爬：它是给人看运维状态的表格页，
+# 被搜索引擎收录只会带来无意义的抓取（而且它自己发了 noindex）。
+Disallow: /data
+
 Sitemap: https://phm.app.workbuddy.host/sitemap.xml

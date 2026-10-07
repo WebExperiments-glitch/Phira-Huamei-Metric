@@ -193,13 +193,14 @@ await goto('/charter', 2200);
     document.getElementById('q').value = 'Magazet';
     document.getElementById('go').click(); return 1;
   })()`);
-  const got = await until(`document.querySelectorAll('#out .stat').length >= 3`, 40000);
+  const got = await until(`document.querySelectorAll('#out .sum').length >= 3`, 60000);
   ok('渲染出谱师统计', got);
 
   const stats = await evalJS(`(function(){
     const out = {};
-    document.querySelectorAll('#out .stat').forEach(function(s){
-      out[s.querySelector('.k').textContent] = s.querySelector('.v').textContent;
+    document.querySelectorAll('#out .sum').forEach(function(el){
+      const k = el.querySelector('.k'), v = el.querySelector('.v');
+      if (k && v) out[k.textContent] = v.textContent;
     });
     return out;
   })()`);
@@ -237,6 +238,156 @@ await goto('/app', 2800);
   const searched = await until(`document.querySelector('#cout, #csmsg') &&
     (document.querySelector('#cout').textContent.trim().length > 10 || document.querySelector('#csmsg').textContent.trim().length > 5)`, 30000);
   ok('搜谱面仍然可用', searched);
+}
+
+
+/* ══════════════════════════════════════════════════════════
+ * 5) 分页：必须证明「翻页真的换了数据」
+ *    只画个页码、点了没反应，是最容易糊弄过去的形态 ——
+ *    所以每一条都**比对内容**，不看有没有按钮。
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[5] /data 数据管理 · 真分页');
+await goto('/data', 2600);
+{
+  let rows = 0;
+  for (let i = 0; i < 45 && !rows; i++) {
+    rows = await evalJS(`document.querySelectorAll('#tbl table tbody tr').length`).catch(() => 0);
+    if (!rows) await new Promise(r => setTimeout(r, 400));
+  }
+  ok('第一页渲染出行', rows > 0, rows + ' 行');
+
+  const info1 = await evalJS(`(document.querySelector('#pgwrap .pginfo')||{}).textContent.replace(/\s+/g,' ').trim()`);
+  ok('页码显示「共 N 条」的真实总数', /共\s*\d+\s*条/.test(String(info1)), info1);
+  const totalFromPage = Number((String(info1).match(/共\s*(\d+)\s*条/) || [])[1] || 0);
+
+  /* ⚠ 取 td:first-child（chart_id）。用 td.mono2 会一行命中三个单元格
+     （chart_id / 引擎 / 计算时间），那三个里有两个是恒定文本，
+     比对必然"重叠 98" —— 是测试写错了，不是分页坏了。 */
+  const idsBefore = await evalJS(`Array.prototype.map.call(
+    document.querySelectorAll('#tbl tbody tr td:first-child'), function(t){ return t.textContent.trim(); })`);
+
+  /* 翻到第 2 页 —— 内容必须**完全不同** */
+  await evalJS(`(function(){
+    const b = Array.prototype.find.call(document.querySelectorAll('#pgwrap .pg'),
+      function(x){ return x.textContent.trim() === '2'; });
+    if (b) b.click(); return 1;
+  })()`);
+  await new Promise(r => setTimeout(r, 2600));
+  const idsAfter = await evalJS(`Array.prototype.map.call(
+    document.querySelectorAll('#tbl tbody tr td:first-child'), function(t){ return t.textContent.trim(); })`);
+  const overlap = (idsBefore || []).filter(x => (idsAfter || []).includes(x)).length;
+  ok('翻到第 2 页后行内容变了（无重叠）', overlap === 0,
+    '重叠 ' + overlap + ' · before=' + JSON.stringify((idsBefore || []).slice(0, 3))
+    + ' after=' + JSON.stringify((idsAfter || []).slice(0, 3)));
+
+  const info2 = await evalJS(`(document.querySelector('#pgwrap .pginfo')||{}).textContent.replace(/\s+/g,' ').trim()`);
+  ok('页码信息同步到第 2 页', /第\s*2\s*\/\s*\d+\s*页/.test(String(info2)), info2);
+  ok('总数在翻页后不变', Number((String(info2).match(/共\s*(\d+)\s*条/) || [])[1] || -1) === totalFromPage,
+    'p1=' + totalFromPage + ' p2=' + info2);
+
+  /* 过滤：只留 AT 档 */
+  await evalJS(`(function(){ const s=document.getElementById('level'); s.value='AT';
+    s.dispatchEvent(new Event('change')); return 1; })()`);
+  await new Promise(r => setTimeout(r, 2200));
+  const atInfo = await evalJS(`(document.querySelector('#pgwrap .pginfo')||{}).textContent.replace(/\s+/g,' ').trim()`);
+  const atTotal = Number((String(atInfo).match(/共\s*(\d+)\s*条/) || [])[1] || -1);
+  ok('按档位过滤后总数变小', atTotal > 0 && atTotal < totalFromPage,
+    'AT=' + atTotal + ' 全部=' + totalFromPage);
+
+  /* 搜索 */
+  await evalJS(`(function(){ const s=document.getElementById('level'); s.value='';
+    s.dispatchEvent(new Event('change'));
+    const q=document.getElementById('q'); q.value='pandemic';
+    q.dispatchEvent(new Event('input')); return 1; })()`);
+  await new Promise(r => setTimeout(r, 2600));
+  const qInfo = await evalJS(`(document.querySelector('#pgwrap .pginfo')||{}).textContent.replace(/\s+/g,' ').trim()`);
+  const qTotal = Number((String(qInfo).match(/共\s*(\d+)\s*条/) || [])[1] || -1);
+  ok('搜曲名能收窄结果', qTotal >= 1 && qTotal < totalFromPage, 'q=' + qTotal);
+
+  /* 排序字段的注入尝试必须被服务端挡住（前端不该崩） */
+  const inj = await evalJS(`(async function(){
+    try { const r = await fetch('/api/charts?page=1&sort=password'); const j = await r.json();
+          return { status: r.status, err: !!j.error }; }
+    catch (e) { return { status: 0, err: false, msg: String(e) }; }
+  })()`);
+  ok('非法排序字段被服务端拒绝', inj && inj.status === 400 && inj.err === true, JSON.stringify(inj));
+}
+
+/* ══════════════════════════════════════════════════════════
+ * 6) 谱师页：扫描 + 客户端分页
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[6] /charter 谱师页 · 扫描与分页');
+await goto('/charter', 2200);
+{
+  await evalJS(`(function(){
+    document.getElementById('q').value = 'YanY';
+    document.getElementById('go').click(); return 1;
+  })()`);
+  const got = await until(`document.querySelectorAll('#out .sum').length >= 3`, 60000);
+  ok('扫描后渲染出汇总', got);
+
+  const rows = await evalJS(`document.querySelectorAll('#out table tbody tr').length`);
+  ok('列出作品', rows > 0, rows + ' 行');
+
+  const scanMeta = await evalJS(`(function(){
+    const el = document.querySelector('#out .chhead .mt');
+    return el ? el.textContent.replace(/\s+/g,' ').trim() : null;
+  })()`);
+  ok('显示「已扫 X/Y 页搜索结果」', /已扫\s*\d+\s*\/\s*\d+\s*页/.test(String(scanMeta)), scanMeta);
+
+  const pg = await evalJS(`(function(){
+    const el = document.querySelector('#pg1 .pginfo');
+    return el ? el.textContent.replace(/\s+/g,' ').trim() : null;
+  })()`);
+  ok('作品列表有分页信息', !!pg && /共\s*\d+\s*条/.test(pg), pg);
+
+  /* 继续扫描按钮：没扫完时必须出现 */
+  const needMore = await evalJS(`(function(){
+    const el = document.querySelector('#out .chhead .mt');
+    return /尚未扫完/.test(el ? el.textContent : '');
+  })()`);
+  ok('未扫完时明确标注（不假装完整）', needMore === true || /扫描完整/.test(String(scanMeta)),
+    'meta=' + scanMeta);
+}
+
+/* ══════════════════════════════════════════════════════════
+ * 7) 玩家页：全服记录分页
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[7] /user 玩家页 · 全服记录分页');
+await goto('/user?uid=2', 2600);
+{
+  const ready = await until(`document.querySelectorAll('#out .stat').length >= 4`, 35000);
+  ok('?uid= 深链能自动查询', ready);
+
+  await evalJS(`(function(){
+    document.getElementById('cid').value = '6766';
+    const s = document.getElementById('cmode'); s.value = 'all';
+    s.dispatchEvent(new Event('change'));
+    return 1;
+  })()`);
+  const got = await until(`document.querySelector('#cout table')`, 40000);
+  ok('全服记录表渲染出来', got);
+
+  const info = await evalJS(`(function(){
+    const el = document.querySelector('#cpg .pginfo');
+    return el ? el.textContent.replace(/\s+/g,' ').trim() : null;
+  })()`);
+  ok('全服记录有分页信息（真实总数）', !!info && /共\s*\d+\s*条/.test(info), info);
+
+  const before = await evalJS(`Array.prototype.map.call(
+    document.querySelectorAll('#cout tbody tr td:first-child'), function(t){ return t.textContent; })`);
+
+  await evalJS(`(function(){
+    const b = Array.prototype.find.call(document.querySelectorAll('#cpg .pg'),
+      function(x){ return x.textContent.trim() === '2'; });
+    if (b) b.click(); return 1;
+  })()`);
+  await new Promise(r => setTimeout(r, 3000));
+  const after = await evalJS(`Array.prototype.map.call(
+    document.querySelectorAll('#cout tbody tr td:first-child'), function(t){ return t.textContent; })`);
+  const overlap = (before || []).filter(x => (after || []).includes(x)).length;
+  ok('全服记录翻页后名次变了（无重叠）', overlap === 0,
+    'before=' + JSON.stringify((before || []).slice(0, 3)) + ' after=' + JSON.stringify((after || []).slice(0, 3)));
 }
 
 console.log('\n未捕获异常 / console.error ：' + errors.length);

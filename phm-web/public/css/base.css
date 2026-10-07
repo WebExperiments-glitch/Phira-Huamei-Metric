@@ -163,6 +163,24 @@ footer .fd { margin-top: 6px; }
 details summary { cursor: pointer; color: var(--fg2); font-size: 12.5px; }
 details summary:hover { color: var(--fg); }
 
+/* ── 分页器 ───────────────────────────────────────────────
+   数据管理页 / 谱师页 / 玩家页三处都用同一个组件（js/ui.js 的 pagerHTML），
+   所以样式也必须只有一份 —— 否则会出现"数据页的翻页键长得不一样"。 */
+.pager{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;
+  padding-top:12px;border-top:1px solid var(--line)}
+.pginfo{font-size:12.5px;color:var(--fg2);flex:1;min-width:150px}
+.pginfo b{color:var(--fg);font-variant-numeric:tabular-nums}
+.pgbtns{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.pg{background:var(--card2);border:1px solid var(--line2);color:var(--fg2);
+  border-radius:6px;min-width:30px;padding:4px 7px;font-size:12.5px;cursor:pointer;
+  font-family:inherit;font-variant-numeric:tabular-nums}
+.pg:hover:not(:disabled){border-color:var(--amber);color:var(--fg)}
+.pg:disabled{opacity:.35;cursor:not-allowed}
+.pg.on{background:var(--amber);color:#201705;border-color:var(--amber);font-weight:600}
+.pgecl{color:var(--fg3);padding:0 2px}
+.pgsel{background:var(--card2);border:1px solid var(--line2);color:var(--fg2);
+  border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit}
+
 /* ── 骨架屏 ───────────────────────────────────────────── */
 .skel { background: linear-gradient(90deg, var(--card2) 25%, var(--card3) 50%, var(--card2) 75%);
   background-size: 200% 100%; animation: sk 1.3s infinite; border-radius: 6px; height: 13px; }

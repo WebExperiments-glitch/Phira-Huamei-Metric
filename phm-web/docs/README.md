@@ -45,6 +45,7 @@ phm-web/
 │   ├── app.html               ← 工作台 /app（拖入 + 搜索 + 定数 + 分享卡）
 │   ├── charter.html           ← 谱师页 /charter（某谱师的全部作品）
 │   ├── user.html              ← 玩家页 /user（成绩 / RKS / 逐谱成绩）
+│   ├── data.html              ← 数据管理 /data（全库分页浏览、排序、过滤）
 │   ├── en.html                ← 英文版（给 X / 国际社区，只做「拖入 + 搜索 + 分享」三件事）
 │   ├── privacy.html           ← 隐私政策
 │   ├── 404.html               ← 错误页（服务端对未命中路径下发它，状态码仍是 404）

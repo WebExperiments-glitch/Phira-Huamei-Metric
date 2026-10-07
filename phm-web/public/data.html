@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.4.0">
+<title>数据管理 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="P.H.M. 共享定数缓存的数据管理：分页浏览、排序、过滤，查看每一行的双标度值与产生它的引擎版本。">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/css/base.css?v=V0.4.0">
+<style>
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin:12px 0}
+.sum{background:var(--card2);border-radius:10px;padding:10px 13px}
+.sum .k{font-size:11.5px;color:var(--fg3)}
+.sum .v{font-size:21px;font-variant-numeric:tabular-nums;margin-top:2px}
+.sum .n{font-size:11px;color:var(--fg3)}
+
+.bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin:10px 0 6px;background:var(--card2)}
+.bar i{display:flex;align-items:center;justify-content:center;font-size:11px;color:#0d1117;font-weight:600}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+.toolbar .inp{padding:6px 10px;font-size:13px}
+.toolbar select.inp{padding:6px 8px}
+
+table.tbl{font-size:12.5px}
+table.tbl th{cursor:pointer;user-select:none;white-space:nowrap;position:relative;padding-right:16px}
+table.tbl th:hover{color:var(--fg)}
+table.tbl th .ar{position:absolute;right:4px;opacity:.9}
+table.tbl th.no{cursor:default}
+table.tbl td{white-space:nowrap}
+table.tbl td.nm{max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.tier{display:inline-block;min-width:24px;text-align:center;padding:0 5px;border-radius:5px;
+  font-size:10.5px;font-weight:600;color:#0d1117}
+.mono2{font-family:var(--mono);font-size:11.5px;color:var(--fg3)}
+.gap-pos{color:var(--green);font-size:11px}
+.gap-neg{color:var(--red);font-size:11px}
+.stale{color:var(--amber);font-size:11px}
+
+</style>
+</head>
+<body>
+<div class="wrap wide">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:baseline">
+    <h2 style="margin:0">共享定数缓存 · 数据管理</h2>
+    <span class="dim2" style="font-size:12px" id="engchip">—</span>
+  </div>
+  <div class="sub">全站共享缓存里每一行都在这里。<b>只读</b> —— 写入只能由服务端复算后经凭据入库，这一页没有任何写入口。</div>
+  <div class="sumgrid" id="sum"></div>
+  <div class="bar" id="lbar"></div>
+  <div id="bmeta" class="dim2" style="font-size:11.5px"></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <input class="inp" id="q" placeholder="搜曲名…" autocomplete="off" style="min-width:170px">
+    <select class="inp" id="level">
+      <option value="">全部档位</option>
+      <option>EZ</option><option>HD</option><option>IN</option><option>AT</option><option>SP</option>
+    </select>
+    <select class="inp" id="only">
+      <option value="">全部分类</option>
+      <option value="official">有官谱标度</option>
+      <option value="stale">引擎版本过期</option>
+    </select>
+    <button class="btn sm" id="reset">重置</button>
+    <span class="dim2" style="font-size:12px;margin-left:auto" id="hint"></span>
+  </div>
+  <div id="tbl"><div class="empty">读取中…</div></div>
+  <div id="pgwrap"></div>
+</div>
+
+<footer>
+  <div>数据来源：本站云数据库 <span class="mono">phm_charts</span>（只读接口 <span class="mono">/api/charts</span>）。</div>
+  <div class="fd">总数来自数据库的 <span class="mono">Content-Range</span> 响应头（<span class="mono">Prefer: count=exact</span>），
+  是<b>真实总数</b>而不是"这一页有多少条"。排序字段走服务端白名单。</div>
+</footer>
+
+</div>
+
+<script type="module">
+import { renderNav, esc, f2, lvTag, tierColor, pagerHTML, wirePager } from '/js/ui.js?v=V0.4.0';
+
+renderNav('data');
+const $ = s => document.querySelector(s);
+
+/* 页面状态。全部集中在这里 —— 翻页 / 排序 / 过滤都只改这个对象再重渲染，
+   否则会出现"改了页码但筛选条件丢了"这类经典 bug。 */
+const S = { page: 1, pageSize: 50, sort: 'chart_id', order: 'asc', q: '', level: '', only: '' };
+const SIZES = [25, 50, 100, 200];
+const COLS = [
+  ['chart_id', 'ID', 'num'],
+  ['name', '曲名', ''],
+  ['level', '档', ''],
+  ['difficulty', '标称', 'r'],
+  ['ref_const', '社区共识', 'r'],
+  ['ref_official', '官谱标度', 'r'],
+  ['ps_score', 'PS', 'r'],
+  ['nps', 'NPS', 'r'],
+  ['notes', '物量', 'r'],
+  ['engine_build', '引擎', ''],
+  ['computed_at', '计算时间', ''],
+];
+
+let LAST = null;
+let reqSeq = 0;
+
+/* ── 汇总 ── */
+(async function summary() {
+  try {
+    const r = await fetch('/api/summary');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const s = await r.json();
+    $('#engchip').textContent = '当前引擎 ' + (s.engineVer || '—');
+    const stale = Object.entries(s.byBuild || {})
+      .filter(([k]) => k !== s.engineVer).reduce((a, [, n]) => a + n, 0);
+    const cell = (k, v, n) => '<div class="sum"><div class="k">' + k + '</div>'
+      + '<div class="v">' + v + '</div>' + (n ? '<div class="n">' + n + '</div>' : '') + '</div>';
+    $('#sum').innerHTML =
+      cell('缓存行数', s.total)
+      + cell('有双标度', s.withOfficial, (s.total ? Math.round(s.withOfficial / s.total * 100) : 0) + '% 含官谱标度')
+      + cell('有过标称', s.withDiff, '谱师填了难度')
+      + cell('过期行', stale, stale ? '引擎换代未重算' : '全部最新');
+    /* 档位分布条 */
+    const order = ['EZ', 'HD', 'IN', 'AT', 'SP', '?'];
+    const tl = s.total || 1;
+    $('#lbar').innerHTML = order.filter(t => (s.byLevel || {})[t]).map(t =>
+      '<i style="width:' + ((s.byLevel[t] / tl) * 100) + '%;background:' + tierColor(t) + ';color:#0d1117">'
+      + ((s.byLevel[t] / tl) > 0.07 ? t + ' ' + s.byLevel[t] : '') + '</i>').join('');
+    $('#bmeta').textContent = order.filter(t => (s.byLevel || {})[t])
+      .map(t => t + ' × ' + s.byLevel[t]).join('　·　');
+  } catch (e) {
+    $('#sum').innerHTML = '<div class="sum"><div class="k">汇总</div><div class="v">—</div>'
+      + '<div class="n">读取失败</div></div>';
+  }
+})();
+
+/* ── 表格 ── */
+async function fetchPage() {
+  const my = ++reqSeq;
+  $('#tbl').innerHTML = '<div class="empty">读取中…</div>';
+  const qs = new URLSearchParams({
+    page: S.page, pageSize: S.pageSize, sort: S.sort, order: S.order,
+  });
+  if (S.q) qs.set('q', S.q);
+  if (S.level) qs.set('level', S.level);
+  if (S.only) qs.set('only', S.only);
+  try {
+    const r = await fetch('/api/charts?' + qs);
+    const j = await r.json();
+    if (my !== reqSeq) return;                     /* 已有更新的请求在跑，丢弃本次 */
+    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    LAST = j;
+    render(j);
+    syncURL();
+  } catch (e) {
+    if (my !== reqSeq) return;
+    $('#tbl').innerHTML = '<div class="status err">读取失败：' + esc(e.message || e) + '</div>';
+    $('#pgwrap').innerHTML = '';
+  }
+}
+
+function render(j) {
+  const rows = j.rows || [];
+  $('#hint').textContent = rows.length + ' 行 · 每页 ' + j.pageSize;
+
+  if (!rows.length) {
+    $('#tbl').innerHTML = '<div class="empty">没有符合条件的行</div>';
+    $('#pgwrap').innerHTML = pagerHTML({ page: 1, pages: 1, total: 0, pageSize: j.pageSize, sizes: SIZES });
+    wirePager($('#pgwrap'), go, setSize);
+    return;
+  }
+
+  let h = '<table class="tbl"><thead><tr>';
+  for (const [key, label, cls] of COLS) {
+    const on = S.sort === key;
+    h += '<th class="' + cls + (key === 'computed_at' ? ' no' : '') + '" data-sort="' + key + '">'
+      + esc(label) + (on ? '<span class="ar">' + (S.order === 'asc' ? '↑' : '↓') + '</span>' : '') + '</th>';
+  }
+  h += '</tr></thead><tbody>';
+  for (const r of rows) {
+    const t = lvTag(r.level);
+    const d = +r.difficulty;
+    const hasD = d > 0 && d <= 20;
+    const pm = r.ref_const != null ? +r.ref_const : null;
+    const po = r.ref_official != null ? +r.ref_official : null;
+    /* 社区共识 vs 官谱标度之差 —— 这一列是这个工具最独有的信息 */
+    const gap = (pm != null && po != null) ? pm - po : null;
+    const stale = r.engine_build !== j.engineVer;
+    h += '<tr>'
+      + '<td class="num mono2">' + r.chart_id + '</td>'
+      + '<td class="nm" title="' + esc(r.name || '') + '">' + esc(String(r.name || '').slice(0, 38)) + '</td>'
+      + '<td><span class="tier" style="background:' + tierColor(t) + '">' + esc(t) + '</span></td>'
+      + '<td class="r num">' + (hasD ? f2(d) : '—') + '</td>'
+      + '<td class="r num" style="color:var(--amber)">' + f2(pm) + '</td>'
+      + '<td class="r num">' + f2(po)
+      + (gap != null ? ' <span class="' + (gap >= 0 ? 'gap-pos' : 'gap-neg') + '">'
+          + (gap >= 0 ? '+' : '') + gap.toFixed(1) + '</span>' : '') + '</td>'
+      + '<td class="r num">' + f2(r.ps_score) + '</td>'
+      + '<td class="r num">' + f2(r.nps) + '</td>'
+      + '<td class="r num">' + (r.notes == null ? '—' : r.notes) + '</td>'
+      + '<td class="mono2">' + (stale ? '<span class="stale" title="不是当前引擎算的">' + esc(r.engine_build || '旧版') + '</span>'
+          : '<span style="color:var(--green)">最新</span>') + '</td>'
+      + '<td class="mono2">' + esc(String(r.computed_at || '').replace('T', ' ').slice(5, 16)) + '</td>'
+      + '</tr>';
+  }
+  h += '</tbody></table>';
+  $('#tbl').innerHTML = h;
+
+  /* 表头排序：点同一个字段切换升降序 */
+  $('#tbl').querySelectorAll('th[data-sort]:not(.no)').forEach(th =>
+    th.addEventListener('click', () => {
+      const k = th.getAttribute('data-sort');
+      if (S.sort === k) S.order = S.order === 'asc' ? 'desc' : 'asc';
+      else { S.sort = k; S.order = 'desc'; }         /* 换字段时默认降序（数值列更常用） */
+      S.page = 1;
+      load();
+    }));
+
+  $('#pgwrap').innerHTML = pagerHTML({
+    page: j.page, pages: j.pages, total: j.total, pageSize: j.pageSize, sizes: SIZES,
+  });
+  wirePager($('#pgwrap'), go, setSize);
+}
+
+const go = p => { S.page = p; load(); };
+const setSize = n => { S.pageSize = n; S.page = 1; load(); };
+
+/* 过滤：输入防抖 300ms，别每敲一个字就打一次接口 */
+let deb;
+$('#q').addEventListener('input', e => {
+  clearTimeout(deb);
+  deb = setTimeout(() => { S.q = e.target.value.trim(); S.page = 1; load(); }, 320);
+});
+$('#level').addEventListener('change', e => { S.level = e.target.value; S.page = 1; load(); });
+$('#only').addEventListener('change', e => { S.only = e.target.value; S.page = 1; load(); });
+$('#reset').addEventListener('click', () => {
+  S.q = ''; S.level = ''; S.only = ''; S.page = 1; S.sort = 'chart_id'; S.order = 'asc';
+  $('#q').value = ''; $('#level').value = ''; $('#only').value = '';
+  load();
+});
+
+/* 统一入口：取数 + 同步 URL */
+function load() { return fetchPage(); }
+
+/* URL 同步：把当前视图写进地址栏，这样"第 7 页、只看 AT"可以直接分享/刷新。
+   用 replaceState 而不是 pushState —— 否则每翻一页都往历史里塞一条，返回键会很难用。 */
+function syncURL() {
+  const p = new URLSearchParams();
+  if (S.page !== 1) p.set('page', S.page);
+  if (S.pageSize !== 50) p.set('size', S.pageSize);
+  if (S.sort !== 'chart_id') p.set('sort', S.sort);
+  if (S.order !== 'asc') p.set('order', S.order);
+  if (S.q) p.set('q', S.q);
+  if (S.level) p.set('level', S.level);
+  if (S.only) p.set('only', S.only);
+  const qs = p.toString();
+  history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+}
+/* 从 URL 恢复初始状态 */
+(function initFromURL() {
+  const p = new URLSearchParams(location.search);
+  if (p.get('page')) S.page = Math.max(1, parseInt(p.get('page'), 10) || 1);
+  if (p.get('size') && SIZES.includes(+p.get('size'))) S.pageSize = +p.get('size');
+  if (p.get('sort')) S.sort = p.get('sort');
+  if (p.get('order') === 'desc') S.order = 'desc';
+  if (p.get('q')) { S.q = p.get('q'); $('#q').value = S.q; }
+  if (p.get('level')) { S.level = p.get('level'); $('#level').value = S.level; }
+  if (p.get('only')) { S.only = p.get('only'); $('#only').value = S.only; }
+})();
+
+load();
+</script>
+</body>
+</html>

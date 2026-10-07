@@ -120,6 +120,7 @@ const ROUTES = [
   { path: '/app', name: '工作台', sel: ['#drop', '#file', '#msg', '#out', '#csrch'], mod: 'engine' },
   { path: '/user', name: '玩家页', sel: ['#q', '#go', '#out', '#cands'], mod: 'phira' },
   { path: '/charter', name: '谱师页', sel: ['#q', '#go', '#out'], mod: 'phira' },
+  { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
 ];
 
 for (const R of ROUTES) {
@@ -140,8 +141,40 @@ for (const R of ROUTES) {
   ok('有版本号', info.ver === 'V0.4.0', 'ver=' + info.ver);
   ok('有页面标题', !!info.title && info.title.length > 3, info.title);
   ok('导航已渲染', info.hasNav === true);
-  ok('导航含 4 个入口', (info.navLinks || []).length >= 4, JSON.stringify(info.navLinks));
+  ok('导航含 5 个入口', (info.navLinks || []).length >= 5, JSON.stringify(info.navLinks));
   for (const sel of R.sel) ok('DOM ' + sel + ' 存在', info.dom[sel] === true);
+
+  if (R.mod === 'data') {
+    /* 数据管理页的核心是「真分页」：等第一页渲染出来，
+       并确认页码里写的是**真实总数**（而不是"这一页有多少条"）。 */
+    let got = 0;
+    for (let i = 0; i < 40 && !got; i++) {
+      got = await evalJS(`document.querySelectorAll('#tbl table tbody tr').length`).catch(() => 0);
+      if (!got) await new Promise(r => setTimeout(r, 400));
+    }
+    ok('表格渲染出行', got > 0, got + ' 行');
+    const pg = await evalJS(`(function(){
+      const el = document.querySelector('#pgwrap .pginfo');
+      return el ? el.textContent.replace(/\s+/g, ' ').trim() : null;
+    })()`);
+    ok('页码信息含真实总数', !!pg && /共\s*\d+\s*条/.test(pg), pg);
+    const navN = await evalJS(`document.querySelectorAll('#pgwrap [data-go]').length`);
+    ok('有翻页按钮', navN > 0, navN + ' 个');
+    /* 点排序表头必须真的换顺序（不是只画了个箭头） */
+    const firstBefore = await evalJS(`(document.querySelector('#tbl tbody tr td.mono2')||{}).textContent`);
+    await evalJS(`(function(){
+      const th = document.querySelector('#tbl th[data-sort="ref_const"]');
+      if (th) th.click(); return 1;
+    })()`);
+    await new Promise(r => setTimeout(r, 2200));
+    const sorted = await evalJS(`(function(){
+      const cells = document.querySelectorAll('#tbl tbody tr td:nth-child(5)');
+      return Array.prototype.map.call(cells, function(c){ return parseFloat(c.textContent); })
+        .filter(function(v){ return !isNaN(v); });
+    })()`);
+    const desc = sorted.length > 1 && sorted.every((v, i) => i === 0 || sorted[i - 1] >= v);
+    ok('点表头能按该列排序（降序）', desc, JSON.stringify(sorted.slice(0, 6)));
+  }
 
   if (R.mod === 'engine') {
     const st = await evalJS(`(function(){ try{ return PHM.status(); }catch(e){ return {err:String(e)}; } })()`);
