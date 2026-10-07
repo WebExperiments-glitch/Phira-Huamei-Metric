@@ -36,11 +36,14 @@ export const KEYS = Object.freeze({
   phiraUid:  'phm_phira_uid',
   lastUid:   'phm_last_uid',     /* 上次查询过的玩家 uid */
   ownPrefix: 'phm_own_',         /* + uid =「我声明这是本人的账号」 */
+  theme:     'phm_theme',        /* 外观："dark" / "light" / "auto" */
+  lang:      'phm_lang',         /* 界面语言："zh" / "en" */
 });
 
 /** 固定键（不含 own 前缀键）—— 用于清空与导出。 */
 export const PLAIN_KEYS = Object.freeze([
   KEYS.optin, KEYS.notice, KEYS.cid, KEYS.phiraName, KEYS.phiraUid, KEYS.lastUid,
+  KEYS.theme, KEYS.lang,
 ]);
 
 /** 给人看的名字。设置页直接渲染这张表，不再各处手写文案。 */
@@ -51,6 +54,8 @@ export const LABELS = Object.freeze({
   [KEYS.phiraName]: 'Phira 用户名（自动填充）',
   [KEYS.phiraUid]:  'Phira UID（自动填充）',
   [KEYS.lastUid]:   '上次查询的玩家',
+  [KEYS.theme]:     '外观主题',
+  [KEYS.lang]:      '界面语言',
 });
 
 /* ══════════════════════════════════════════════════════════════
@@ -202,6 +207,77 @@ export const cid = {
 };
 
 /* ══════════════════════════════════════════════════════════════
+ * 外观主题
+ * ══════════════════════════════════════════════════════════════
+ * 'auto' = 跟随系统。⚠ 真正写进 `<html data-theme>` 的**只有** dark/light，
+ * auto 会先被解析成具体值 —— 因为 CSS 只需要维护两套值，
+ * 不必再为 "auto + 系统是浅色" 写第三遍。
+ *
+ * 【为什么页面 <head> 里还有一段一模一样的内联脚本】
+ *   主题必须在**第一次绘制之前**就定好。模块是异步加载的，等它跑完，
+ *   用户已经看到默认色闪了一下（FOUC）。所以每页 <head> 里有一段同步的
+ *   最小实现，它只认 localStorage 里那个键；这里这份负责后续切换与
+ *   跟随系统变化。两边读的是**同一个键**（KEYS.theme）。 */
+export const THEME_MODES = ['auto', 'dark', 'light'];
+
+export function applyTheme(mode) {
+  const m = mode || theme.get();
+  const dark = theme.resolved(m);
+  try {
+    const el = document.documentElement;
+    el.setAttribute('data-theme', dark ? 'dark' : 'light');
+    el.setAttribute('data-theme-mode', m);
+  } catch (e) { /* 无 document 时（Node 测）忽略 */ }
+  return dark;
+}
+
+export const theme = {
+  get() { return get(KEYS.theme, 'auto'); },
+  set(m) { set(KEYS.theme, m); applyTheme(m); return true; },
+  /** 把 'auto' 解析成实际生效的 'dark' / 'light' */
+  resolved(m) {
+    const mode = m || theme.get();
+    if (mode === 'dark' || mode === 'light') return mode;
+    try {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch (e) { return 'dark'; }
+  },
+  apply: applyTheme,
+};
+
+/* 系统主题变化时，只有 'auto' 模式需要跟着变 */
+try {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onSys = function () { if (theme.get() === 'auto') applyTheme('auto'); };
+  if (mq.addEventListener) mq.addEventListener('change', onSys);
+  else if (mq.addListener) mq.addListener(onSys);       /* 老 Safari */
+} catch (e) { /* 忽略 */ }
+
+/* ── 界面语言 ──
+   默认**跟随浏览器**（不写死中文）：首次访问的中文用户看到中文，
+   英文用户看到英文，也省掉一次手动切换。用户手动选过就固定住。 */
+function guessLang() {
+  try {
+    const list = navigator.languages && navigator.languages.length
+      ? navigator.languages : [navigator.language || 'zh'];
+    for (const l of list) {
+      if (/^zh/i.test(l)) return 'zh';
+      if (/^en/i.test(l)) return 'en';
+    }
+    return 'zh';
+  } catch (e) { return 'zh'; }
+}
+
+export const LANGS = ['zh', 'en'];
+
+export const lang = {
+  get() { return get(KEYS.lang, null) || guessLang(); },
+  set(v) { set(KEYS.lang, v); return true; },
+  /** 用户是否手动选过（设置页用它显示"跟随浏览器"状态） */
+  explicit() { return get(KEYS.lang, null); },
+};
+
+/* ══════════════════════════════════════════════════════════════
  * 盘点 / 导出 / 清空 —— 设置页的「数据」区块用
  * ══════════════════════════════════════════════════════════════ */
 
@@ -246,6 +322,7 @@ try {
   window.PHM_SETTINGS = Object.freeze({
     KEYS, PLAIN_KEYS, LABELS, available,
     optin, notice, phira, lastUid, own, cid,
+    theme, lang, THEME_MODES, LANGS, applyTheme,
     inventory, exportAll, clearAll,
   });
 } catch (e) { /* 无 window 时跳过 */ }

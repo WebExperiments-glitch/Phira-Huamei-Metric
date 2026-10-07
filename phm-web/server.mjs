@@ -203,12 +203,14 @@ function sendFile(res, fp, longCache, req) {
     const isHtml = ext === '.html';
     /* 缓存策略：
        · HTML → no-cache，每次校验。它是唯一「内容会变」的入口，缓存了会看到旧页面。
-       · js/css/图片/参照集 → 长缓存 + immutable。前端用**版本化 URL**（/js/engine.js?v=…）
-         破缓存 —— 版本号一变 URL 就变，所以这里可以放心长缓存，
-         不需要再手工维护「改引擎要记得换 ?v=」这类同步点。
+       · 带 ?v= 的 js/css/图片/参照集 → 长缓存 + immutable。版本号一变 URL 就变，
+         所以可以放心长缓存，不需要再手工维护「改引擎要记得换 ?v=」这类同步点。
+       · **不带 ?v= 的 js / json → no-cache**。它们是模块间相对 import 的 URL，
+         长缓存既会让更新滞后，又会让同一模块产生两个实例（见调用处的注释）。
        · 其余（txt/xml 等）→ 1 小时，够用又不会卡住更新。 */
     const cc = isHtml ? 'no-cache'
-      : (longCache ? 'public, max-age=604800, immutable' : 'public, max-age=3600');
+      : (longCache ? 'public, max-age=604800, immutable'
+        : ((ext === '.js' || ext === '.json') ? 'no-cache' : 'public, max-age=3600'));
     const head = Object.assign({
       'content-type': MIME[ext] || 'application/octet-stream',
       'cache-control': cc,
@@ -523,9 +525,16 @@ const server = http.createServer(async (req, res) => {
   const fp = path.resolve(WEB_ROOT, rel);
   if (!fp.startsWith(WEB_ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
   /* js/css/图片内容稳定且前端用版本化 URL 引用 → 可以长缓存 */
-  /* ⚠ .json 也进长缓存：public/data/ref-com.json 是**生成物**，靠 ?v= 破缓存，
-    内容不会就地变。注意 data/ 目录里除了参照集没有别的东西（见 PUBLIC_DIRS）。 */
-  const longCache = /\.(js|css|png|svg|ico|webp|woff2|json)$/i.test(rel);
+  /* ⚠ 只有**带 ?v=** 的请求才长缓存。
+     ES 模块之间是用相对路径互相 import 的（`./ui.js`），那些 URL 没有查询串。
+     如果它们也被长缓存，会有两个后果：
+       1. 模块更新后用户一直吃旧版本；
+       2. 更隐蔽的：同一个模块被"带版本"和"不带版本"两种 URL 加载时，
+          浏览器会当成**两个不同的模块**，于是两份状态（语言、设置）分裂。
+          这个真踩过 —— 设置页切了语言，ui.js 里的导航不跟着变。
+     无查询串的 js / json 走 no-cache：每次协商，命中就是 304，开销很小。 */
+  const hasVer = /[?&]v=/.test(req.url || '');
+  const longCache = hasVer && /\.(js|css|png|svg|ico|webp|woff2|json)$/i.test(rel);
   /* 页面 HTML 一律 no-cache（sendFile 内部按扩展名判断），
      所以干净 URL 不需要额外处理缓存头。 */
   if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache, req);

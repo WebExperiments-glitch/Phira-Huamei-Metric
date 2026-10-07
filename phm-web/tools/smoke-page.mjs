@@ -134,7 +134,9 @@ for (const R of ROUTES) {
 
   const info = await evalJS(`(function(){
     const out = { ver: (document.querySelector('meta[name="app-version"]')||{}).content,
-                  title: document.title, hasNav: !!document.getElementById('nav') };
+                  title: document.title, hasNav: !!document.getElementById('nav'),
+                  theme: document.documentElement.getAttribute('data-theme'),
+                  lang: document.documentElement.getAttribute('data-lang') };
     out.dom = {};
     ${JSON.stringify(R.sel)}.forEach(function(s){ out.dom[s] = !!document.querySelector(s); });
     out.navLinks = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); });
@@ -149,6 +151,12 @@ for (const R of ROUTES) {
   ok('有页面标题', !!info.title && info.title.length > 3, info.title);
   ok('导航已渲染', info.hasNav === true);
   ok('导航含 6 个入口', (info.navLinks || []).length >= 6, JSON.stringify(info.navLinks));
+  /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
+     否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
+  ok('主题已初始化（防闪烁脚本生效）',
+    info.theme === 'dark' || info.theme === 'light', 'theme=' + info.theme);
+  ok('语言已标记到 <html>',
+    info.lang === 'zh' || info.lang === 'en', 'lang=' + info.lang);
   for (const sel of R.sel) ok('DOM ' + sel + ' 存在', info.dom[sel] === true);
 
   if (R.mod === 'data') {
@@ -245,12 +253,16 @@ for (const [p, name] of [['/privacy', '隐私政策'], ['/terms', '用户协议'
     const h1 = document.querySelector('h1');
     return { bg: b.backgroundColor, color: b.color,
              hasDoc: !!document.querySelector('.doc'),
+             theme: document.documentElement.getAttribute('data-theme'),
              h1: (h1 ? h1.textContent : '').trim().slice(0, 40),
              h2n: document.querySelectorAll('h2').length,
              sw: !!document.querySelector('.topbar nav a') };
   })()`);
   ok('用文档版式（.doc）', info.hasDoc === true);
-  ok('是浅色（长文阅读）', /255,\s*255,\s*255/.test(String(info.bg)), 'bg=' + info.bg);
+  /* 文档页现在**跟随站点主题**（深色下点进来不能"啪"地闪一屏白），
+     所以只断言"背景真的被主题令牌换掉了"，不再把它锁死成白色。 */
+  ok('背景跟随主题令牌', /rgb/.test(String(info.bg)) && info.bg !== 'rgba(0, 0, 0, 0)', 'bg=' + info.bg);
+  ok('文档页也应用了 data-theme', info.theme === 'dark' || info.theme === 'light', 'theme=' + info.theme);
   ok('有居中大标题', !!info.h1, info.h1);
   ok('分了章节（≥5 个 h2）', info.h2n >= 5, 'h2=' + info.h2n);
   ok('能在两份文档间切换', info.sw === true);

@@ -593,6 +593,73 @@ await goto('/settings', 2600);
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+ * 10) 主题与语言
+ *     这两件事最容易"看着能用但一半是坏的"：主题要能真的换掉颜色
+ *     （而不是只改个属性），语言要能换掉**动态生成**的内容
+ *     （静态部分 applyStatic 管，动态部分靠订阅重绘）。
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[10] 主题与语言 · 真的换了吗');
+await goto('/settings', 2600);
+{
+  const before = await evalJS(`(function(){
+    return { theme: document.documentElement.getAttribute('data-theme'),
+             bg: getComputedStyle(document.body).backgroundColor,
+             brand: getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() };
+  })()`);
+  ok('初始主题已定（dark/light）',
+    before.theme === 'dark' || before.theme === 'light', before.theme);
+
+  /* 切到与当前相反的那个，然后确认**计算后的背景色真的变了** */
+  const target = before.theme === 'dark' ? 'light' : 'dark';
+  await evalJS(`window.PHM_SETTINGS.theme.set(${JSON.stringify(target)})`);
+  await new Promise(r => setTimeout(r, 350));
+  const after = await evalJS(`(function(){
+    return { theme: document.documentElement.getAttribute('data-theme'),
+             bg: getComputedStyle(document.body).backgroundColor,
+             brand: getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() };
+  })()`);
+  ok('切换后 data-theme 变了', after.theme === target, after.theme);
+  ok('★ 背景色真的变了（不只是改属性）', after.bg !== before.bg,
+    before.bg + ' → ' + after.bg);
+  ok('★ 主色也跟着换（浅底上的琥珀要压深）', after.brand !== before.brand,
+    before.brand + ' → ' + after.brand);
+
+  /* 切回原主题，别把后面的测试环境搅乱 */
+  await evalJS(`window.PHM_SETTINGS.theme.set(${JSON.stringify(before.theme)})`);
+  await new Promise(r => setTimeout(r, 250));
+
+  /* ── 语言 ── */
+  const i18nReady = await evalJS(`!!(window.PHM_I18N && window.PHM_I18N.t)`);
+  ok('存在 i18n 钩子 PHM_I18N', i18nReady);
+
+  const dictInfo = await evalJS(`(function(){
+    const I = window.PHM_I18N;
+    return { zh: I.keys().length, enMissing: I.missing('en').length, navZh: I.t('nav.home') };
+  })()`);
+  ok('中文字典非空（≥40 条）', dictInfo.zh >= 40, 'zh=' + dictInfo.zh);
+  ok('英文字典覆盖完整（0 条缺失）', dictInfo.enMissing === 0, '缺 ' + dictInfo.enMissing + ' 条');
+
+  await evalJS(`window.PHM_I18N.setLang('en')`);
+  await new Promise(r => setTimeout(r, 500));
+  const enState = await evalJS(`(function(){
+    return { htmlLang: document.documentElement.getAttribute('lang'),
+             dataLang: document.documentElement.getAttribute('data-lang'),
+             nav: Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.textContent; }).join('|'),
+             h2: (document.querySelector('.ssec h2')||{}).textContent || '' };
+  })()`);
+  ok('切英文后 <html lang> = en', enState.htmlLang === 'en', enState.htmlLang);
+  ok('★ 导航真的变英文了', /Home/.test(enState.nav), enState.nav.slice(0, 60));
+  ok('★ 动态生成的标题也变了（订阅生效）',
+    /Privacy & data/.test(String(enState.h2)), enState.h2);
+
+  /* 切回中文，收尾 */
+  await evalJS(`window.PHM_I18N.setLang('zh')`);
+  await new Promise(r => setTimeout(r, 400));
+  const backZh = await evalJS(`Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.textContent; }).join('|')`);
+  ok('切回中文正常', /首页/.test(backZh), backZh.slice(0, 40));
+}
+
 console.log('\n未捕获异常 / console.error ：' + errors.length);
 errors.slice(0, 8).forEach(e => console.log('   ! ' + e));
 console.log('\n────────');

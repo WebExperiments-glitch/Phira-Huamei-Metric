@@ -3,12 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.7.0">
+<meta name="app-version" content="V0.8.0">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/css/base.css?v=V0.7.0">
+<!-- 主题：必须**同步内联**在样式表之前 —— 模块是异步的，等它跑完页面
+     已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。
+     读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.8.0">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -94,11 +100,11 @@
 <script type="module">
 import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager,
          tierBadge, accCell, constCell, glossaryHTML,
-         loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js?v=V0.7.0';
+         loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js';
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
-  from '/js/phira.js?v=V0.7.0';
+  from '/js/phira.js';
 /* 设置的真源 —— 键名不在这里硬写。见 /js/settings.js 顶部说明。 */
-import * as SET from '/js/settings.js?v=V0.7.0';
+import * as SET from '/js/settings.js';
 
 renderNav('user');
 document.getElementById('glossbox').innerHTML = glossaryHTML('u');
@@ -125,7 +131,7 @@ async function doSearch() {
       + '（同名/相似名很常见，这一步以前是自动选第一个，会导致看到别人的成绩）', 'warn');
     $('#cands').innerHTML = users.map((u, i) =>
       '<div class="cand" data-i="' + i + '">'
-      + (u.avatar ? '<img src="' + esc(u.avatar) + '" alt="" onerror="this.style.display=\'none\'">' : '')
+      + (u.avatar ? '<img src="' + esc(u.avatar) + '" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' : '')
       + '<div><div class="nm">' + esc(u.name) + '</div>'
       + '<div class="mt">UID ' + esc(u.id)
       + (u.joined ? ' · ' + String(u.joined).slice(0, 10) + ' 加入' : '')
@@ -180,7 +186,7 @@ function render() {
 
   let h = '<div class="card">';
   h += '<div class="pfuser">'
-    + (u.avatar ? '<img src="' + esc(u.avatar) + '" alt="" onerror="this.style.display=\'none\'">' : '')
+    + (u.avatar ? '<img src="' + esc(u.avatar) + '" alt="" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' : '')
     + '<div><div class="nm">' + esc(u.name) + '</div>'
     + '<div class="meta">UID ' + esc(u.id) + (joined ? ' · ' + joined + ' 加入' : '')
     + (u.bio ? '<br>' + esc(u.bio) : '') + '</div></div>'

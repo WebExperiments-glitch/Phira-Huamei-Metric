@@ -17,7 +17,8 @@
  *      彩色框越多越像广告。
  * ============================================================ */
 
-:root {
+/* 浅色是文档的默认形态（长文阅读 + 打印都以它为准） */
+:root, :root[data-theme="light"] {
   --paper:       #ffffff;
   --paper-soft:  #f6f7f9;   /* 代码/表头/摘要块的底 */
   --ink:         #1a1d21;   /* 正文（近黑，比纯黑柔和） */
@@ -28,6 +29,23 @@
   --link-hover:  #1d47a8;
   --mark:        #fff3cd;   /* 关键句高亮（淡黄） */
   --brand-deep:  #a8690a;   /* 白底上的品牌色 */
+}
+
+/* 深色：产品界面在深色时，文档也得跟着深。
+   否则从 /app 点进隐私政策会"啪"地闪出一整屏白，刺眼且割裂。
+   ⚠ 深色下 --brand-deep 反而回到**亮**琥珀 —— 它是"当前底色上的品牌色"，
+     深浅两套里都指向对比度够用的那一端。 */
+:root[data-theme="dark"] {
+  --paper:      #0b0d10;
+  --paper-soft: #14171c;
+  --ink:        #e9edf3;
+  --ink-soft:   #a9b3c0;
+  --ink-faint:  #6f7887;
+  --rule:       rgba(255,255,255,.10);
+  --link:       #6cb0f5;
+  --link-hover: #8ec4ff;
+  --mark:       rgba(240,176,63,.18);
+  --brand-deep: #f0b03f;
 }
 
 * { box-sizing: border-box; }

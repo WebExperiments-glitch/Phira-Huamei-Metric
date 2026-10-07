@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.7.0">
+<meta name="app-version" content="V0.8.0">
 <title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -23,7 +23,13 @@
 <meta name="twitter:description" content="拖入谱面包，浏览器内解析，给出可审计的双标度定数参考。谱面不会上传。">
 <meta name="twitter:image" content="https://phm.app.workbuddy.host/og.png">
 <meta name="theme-color" content="#0d1117">
-<link rel="stylesheet" href="/css/base.css?v=V0.7.0">
+<!-- 主题：必须**同步内联**在样式表之前 —— 模块是异步的，等它跑完页面
+     已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。
+     读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.8.0">
 <style>
 .hero{text-align:center;padding:22px 0 6px}
 .hero h1{font-size:30px;font-weight:400;letter-spacing:.5px;line-height:1.32}
@@ -52,6 +58,12 @@
 .st .v{font-size:20px;font-variant-numeric:tabular-nums}
 .st .k{font-size:11.5px;color:var(--fg3)}
 @media(max-width:520px){.demo{grid-template-columns:1fr}.hero h1{font-size:24px}}
+
+/* 卡片图标：改用内联 SVG。原来是 emoji —— 不同系统渲染差别极大，
+   而且一眼就是"模板味"（用户对这类痕迹很敏感）。 */
+.tile .ic svg{width:26px;height:26px;display:block;color:var(--brand)}
+.tile .ic{display:flex;align-items:center;justify-content:center;width:38px;height:38px;
+  border-radius:10px;background:var(--brand-soft);margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -60,33 +72,33 @@
 <nav id="nav"></nav>
 
 <div class="hero">
-  <h1>给 Phira 谱面一个<b>可审计</b>的难度参考</h1>
-  <p>拖入谱面包，浏览器里算出它的结构定数 —— <b>两个标度都告诉你</b>，<br>
+  <h1 data-i18n-html="home.h1">给 Phira 谱面一个<b>可审计</b>的难度参考</h1>
+  <p data-i18n-html="home.sub">拖入谱面包，浏览器里算出它的结构定数 —— <b>两个标度都告诉你</b>，<br>
   连同这个数字有多准。<b>谱面文件不会上传</b>，也不需要登录。</p>
   <div class="row" style="justify-content:center;margin-top:18px">
-    <a class="btn primary" href="/app" style="padding:10px 22px;font-size:15px">开始算定数 →</a>
-    <a class="btn" href="/charter" style="padding:10px 18px;font-size:15px">查谱师作品</a>
+    <a class="btn primary" href="/app" style="padding:10px 22px;font-size:15px"><span data-i18n="home.cta1">开始算定数</span> →</a>
+    <a class="btn" href="/charter" style="padding:10px 18px;font-size:15px"><span data-i18n="home.cta2">查谱师作品</span></a>
   </div>
 </div>
 
 <div class="tiles">
   <a class="tile" href="/app">
-    <div class="ic">📐</div>
-    <div class="t">算定数</div>
-    <div class="d">拖入 .pez / .zip 谱面包，或搜曲名点「算」。给出双标度定数与不确定范围。</div>
-    <div class="go">进入工作台 →</div>
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M9 9.5v10M15 9.5v10"/></svg></div>
+    <div class="t" data-i18n="home.tile1.t">算定数</div>
+    <div class="d" data-i18n="home.tile1.d">拖入 .pez / .zip 谱面包，或搜曲名点「算」。给出双标度定数与不确定范围。</div>
+    <div class="go"><span data-i18n="home.tile1.a">进入工作台</span> →</div>
   </a>
   <a class="tile" href="/charter">
-    <div class="ic">✍️</div>
-    <div class="t">查谱师</div>
-    <div class="d">输入谱师名，列出他/她的全部作品、档位分布，以及每张谱的 P.H.M. 定数。</div>
-    <div class="go">按谱师浏览 →</div>
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.2-4.2L16.6 4.4a2.2 2.2 0 013.1 3.1L8.3 18.8z"/><path d="M14.9 6.2l3 3"/></svg></div>
+    <div class="t" data-i18n="home.tile2.t">查谱师</div>
+    <div class="d" data-i18n="home.tile2.d">输入谱师名，列出他/她的全部作品、档位分布，以及每张谱的 P.H.M. 定数。</div>
+    <div class="go"><span data-i18n="home.tile2.a">按谱师浏览</span> →</div>
   </a>
   <a class="tile" href="/user">
-    <div class="ic">🎧</div>
-    <div class="t">查玩家</div>
-    <div class="d">输入用户名或 UID，看成绩、自算 RKS、最近游玩，并能查任意单谱的全部成绩。</div>
-    <div class="go">查询成绩 →</div>
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.6 19.8c.9-3.6 3.9-5.4 7.4-5.4s6.5 1.8 7.4 5.4"/></svg></div>
+    <div class="t" data-i18n="home.tile3.t">查玩家</div>
+    <div class="d" data-i18n="home.tile3.d">输入用户名或 UID，看成绩、自算 RKS、最近游玩，并能查任意单谱的全部成绩。</div>
+    <div class="go"><span data-i18n="home.tile3.a">查询成绩</span> →</div>
   </a>
 </div>
 
@@ -155,8 +167,11 @@
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.7.0';
+import { renderNav, esc, APP_VER, applyStatic, t, onLangChange } from '/js/ui.js';
 renderNav('home');
+/* 首页 hero / 入口卡片是静态 HTML，靠 data-i18n 批量替换 */
+applyStatic();
+onLangChange(function () { document.getElementById('verfoot').textContent = t('set.about.ver') + ' ' + APP_VER; });
 
 document.getElementById('verfoot').textContent = '版本 ' + APP_VER + '（开发者测试版）';
 

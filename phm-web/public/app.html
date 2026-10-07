@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.7.0">
+<meta name="app-version" content="V0.8.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -27,7 +27,13 @@
 <meta name="twitter:description" content="拖入谱面包，浏览器内解析，给出可审计的客观难度参考。谱面不会上传。">
 <meta name="twitter:image" content="https://phm.app.workbuddy.host/og.png">
 <meta name="theme-color" content="#0d1117">
-<link rel="stylesheet" href="/css/base.css?v=V0.7.0">
+<!-- 主题：必须**同步内联**在样式表之前 —— 模块是异步的，等它跑完页面
+     已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。
+     读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.8.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -580,7 +586,7 @@ border:1px solid var(--line);color:var(--fg3)}
 const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).content || "—";
 
 /* 共享导航（ui.js）。站点已经是多页了，四份手写的导航迟早对不上。 */
-import("/js/ui.js?v=" + encodeURIComponent(APP_VER)).then(function(m){
+import("/js/ui.js").then(function(m){
   m.renderNav("app");
   /* 术语表：反馈里最集中的一条是"官谱标度 / B19 / RKS / p99 像天书"。
      放在结果区上方而不是藏进「说明」里 —— 看不懂的人不会主动去找说明。 */
@@ -602,13 +608,13 @@ Object.assign(globalThis, __ENGINE);
    OPTN / saveOptin / noticeAgreed 之类只是**薄包装**，保留它们是为了
    不动原有的调用点，内部一律委托给 settings.js。
    ⚠ 以后加设置项：改 settings.js，不要在页面里再写一个 key。 */
-const __SET = await import("/js/settings.js?v=" + encodeURIComponent(APP_VER));
+const __SET = await import("/js/settings.js");
 
 /* 分享卡片模块（同样是版本化 URL，改版本号即破缓存）。
    抖音里链接点不了、X 上光发文字没人点 —— 能跨平台传播的只有图，
    所以「算完一张谱 → 导出体检卡」是传播链路里最关键的一环。 */
 const { exportCard, fromChartRow, fromReport } = await import(
-  "/js/sharecard.js?v=" + encodeURIComponent(APP_VER));
+  "/js/sharecard.js");
 
 /* ── 社区参照集（懒加载）──
    9,508 张 Phira 社区谱，约 730 KB（gzip 后约 200 KB）。**不随首屏加载** ——

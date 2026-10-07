@@ -92,7 +92,69 @@
   /* ── 动效：统一时长与缓动 ── */
   --ease: cubic-bezier(.4, 0, .2, 1);
 
+  /* 滚动条滑块（深浅两套要分开，见下方 .scrollbar 规则） */
+  --scroll-thumb: #20252d;
+
+  /* 导航毛玻璃的底色：半透明即可，模糊由 backdrop-filter 负责。
+     ⚠ 别做成完全不透明 —— 那样就只是"一块盖子"，没有毛玻璃的通透感。 */
+  --nav-veil: rgba(11,13,16,.72);
+
+  /* 让浏览器原生控件（表单、滚动条、自动填充）跟着主题走 —— 少了这行，
+     浅色主题里会出现深色的 select 下拉和白色滚动条 */
+  color-scheme: dark;
+
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 浅色主题 —— 语义名与深色**完全一致**，只换值，页面代码一行不改
+ * ══════════════════════════════════════════════════════════════
+ * 【两条换算纪律】
+ *   1. **主色必须压深。** 深色下的亮琥珀 #f0b03f 放到白底上对比度只有
+ *      约 1.8:1，正文里根本读不清。浅色环境统一用 #b8791a ——
+ *      它是"白底上的琥珀"，和 docs.css 的 --brand-deep 同一个值。
+ *      同理 --ok/--warn/--err/--info 全部换成浅底版本（GitHub 浅色色板）。
+ *   2. **层级仍是亮度阶梯，但方向反了。** 深色下"浮起来 = 更亮"；
+ *      浅色下"浮起来 = 更白 + 更淡的影"。所以 --card 是纯白，
+ *      而 --bg 必须**不是**纯白（#f7f8fa）—— 纯白底上放白卡片就分不出面，
+ *      这是浅色界面最常见的翻车点。
+ * ============================================================ */
+:root[data-theme="light"] {
+  --bg:    #f7f8fa;
+  --card:  #ffffff;
+  --card2: #f1f3f6;
+  --card3: #e7eaef;
+  --fg:    #1a1d21;
+  --fg2:   #4b535e;
+  --fg3:   #7c8592;
+  --fg4:   #a8b0ba;
+
+  --line:  rgba(0,0,0,.09);
+  --line2: rgba(0,0,0,.16);
+
+  --brand:      #b8791a;
+  --brand-soft: rgba(184,121,26,.11);
+  --brand-line: rgba(184,121,26,.34);
+  --brand-ink:  #ffffff;
+
+  --ok:   #1a7f37;
+  --warn: #9a6700;
+  --err:  #cf222e;
+  --info: #0969da;
+
+  --purple: #8250df;
+
+  --density: #0969da;
+  --pattern: #8250df;
+  --coord:   #b8791a;
+  --stamina: #1a7f37;
+
+  --sh1: 0 1px 2px rgba(16,24,40,.06);
+  --sh2: 0 8px 24px rgba(16,24,40,.10);
+
+  --scroll-thumb: rgba(0,0,0,.20);
+  --nav-veil: rgba(247,248,250,.78);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -122,14 +184,14 @@ body {
 ::selection { background: var(--brand-soft); color: var(--fg); }
 
 /* 滚动条：深色界面里它非常显眼，系统默认的浅色凹槽会立刻拉低质感 */
-* { scrollbar-width: thin; scrollbar-color: var(--card3) transparent; }
+* { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--card3); border-radius: 99px;
+  background: var(--scroll-thumb); border-radius: 99px;
   border: 2px solid transparent; background-clip: content-box;
 }
-::-webkit-scrollbar-thumb:hover { background: #2c333d; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--fg4); background-clip: content-box; }
 .wrap { max-width: 880px; margin: 0 auto; }
 .wrap.wide { max-width: 1100px; }
 a { color: var(--blue); text-decoration: none; }
@@ -140,10 +202,26 @@ a:hover { text-decoration: underline; }
 .dim2 { color: var(--fg3); }
 .nowrap { white-space: nowrap; }
 
-/* ── 顶部导航（所有页面共用）───────────────────────────── */
+/* ── 顶部导航（所有页面共用）─────────────────────────────
+   sticky + 毛玻璃：滚动时导航浮在内容上，用半透明底 + 模糊把后面的
+   内容"化开"，而不是拿一块不透明色盖住。⚠ 只在**滚动后**才启用
+   （加 .stuck 类）—— 一开始就带底会让首屏多出一条无色差的分割感。 */
 .nav {
+  position: sticky; top: 0; z-index: 20;
   display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
-  padding: 4px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 22px;
+  padding: 10px 0 14px; margin-bottom: 22px;
+  border-bottom: 1px solid transparent;
+  transition: background .22s var(--ease), border-color .22s var(--ease);
+}
+.nav.stuck {
+  background: var(--nav-veil);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+  border-bottom-color: var(--line);
+}
+/* 不支持 backdrop-filter 时（老浏览器）退回不透明底，别让文字糊在内容上 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nav.stuck { background: var(--bg); }
 }
 .nav .brand {
   font-size: 19px; letter-spacing: .3px; font-weight: 500; color: var(--fg);
@@ -226,25 +304,37 @@ td.r, th.r { text-align: right; }
 .pill.red { color: var(--red); border-color: rgba(229,83,75,.4); }
 .pill.purple { color: var(--purple); border-color: rgba(201,140,232,.4); }
 
-/* ── 状态条 ───────────────────────────────────────────── */
+/* ── 状态条 ───────────────────────────────────────────────
+   以前是 `border-left: 3px solid <彩色>` —— 那种彩色左边框是
+   "模板感/AI 感"最重的一种做法（用户专门截图点出来过）。
+   改成**中性卡片 + 一个小状态圆点**：信息量一样，安静得多。
+   ⚠ 新增状态样式时别再往左边框上想。 */
 .status {
-  padding: 9px 13px; border-radius: 8px; margin: 10px 0; font-size: 13px;
-  border-left: 3px solid var(--blue); background: var(--card2);
+  display: flex; gap: 9px; align-items: flex-start;
+  padding: 10px 13px; border-radius: var(--r); margin: 10px 0;
+  background: var(--card2); border: 1px solid var(--line);
+  font-size: 12.8px; line-height: 1.68; color: var(--fg2);
 }
-.status.ok { border-color: var(--green); }
-.status.warn { border-color: var(--amber); }
-.status.err { border-color: var(--red); }
+.status::before {
+  content: ""; flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--fg3); margin-top: 7px;
+}
+.status.ok::before   { background: var(--ok); }
+.status.warn::before { background: var(--warn); }
+.status.err::before  { background: var(--err); }
 .status:empty { display: none; }
 
-/* 「说清楚限制」的提示块 —— 这个项目里它出现的频率很高，所以做成组件 */
+/* 「说清楚限制」的提示块 —— 这个项目里出现频率很高，所以做成组件。
+   同样不用彩色左边框。需要提醒注意的用**主色柔光**而不是红色：
+   红色是"出错了"，而这里多数情况只是"要知道这件事"。 */
 .note {
-  padding: 11px 14px; border-radius: 9px; background: var(--card2);
-  border-left: 3px solid var(--amber); font-size: 12.8px; color: var(--fg2);
-  margin: 12px 0; line-height: 1.65;
+  padding: 12px 14px; border-radius: var(--r); background: var(--card2);
+  border: 1px solid var(--line);
+  font-size: 12.8px; color: var(--fg2); margin: 12px 0; line-height: 1.72;
 }
 .note b { color: var(--fg); }
-.note.info { border-color: var(--blue); }
-.note.warn { border-color: var(--red); }
+.note.info { background: var(--card2); }
+.note.warn { background: var(--brand-soft); border-color: var(--brand-line); }
 
 .empty { padding: 26px 10px; text-align: center; color: var(--fg3); font-size: 13px; }
 

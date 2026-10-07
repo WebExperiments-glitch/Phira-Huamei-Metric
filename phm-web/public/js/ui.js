@@ -9,8 +9,9 @@
  * ============================================================ */
 
 import { PHIRA_API } from './phira.js';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js';
 
-export { PHIRA_API };
+export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
 /* ── 版本号：唯一来源是各页 <head> 里的 <meta name="app-version"> ──
    页面版本与引擎版本是**两根轴**：APP_VER 是页面；ENGINE_VER 是算法，
@@ -28,25 +29,54 @@ export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}
    全部是**独立页面**而不是一个页面里的面板：面板方案下，链接没法直接
    指向"某人的成绩"，而分享链接恰恰是这个工具最主要的传播方式。 */
 const NAV = [
-  ['/', '首页', 'home'],
-  ['/app', '算定数', 'app'],
-  ['/charter', '谱师', 'charter'],
-  ['/user', '玩家', 'user'],
-  ['/data', '数据', 'data'],
-  ['/settings', '设置', 'settings'],
+  ['/', 'nav.home', 'home'],
+  ['/app', 'nav.app', 'app'],
+  ['/charter', 'nav.charter', 'charter'],
+  ['/user', 'nav.user', 'user'],
+  ['/data', 'nav.data', 'data'],
+  ['/settings', 'nav.settings', 'settings'],
 ];
 
+/* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */
+let _navActive = null;
+
+/* ── 导航滚动后启用毛玻璃 ──
+   用哨兵元素 + IntersectionObserver，而不是监听 scroll 每帧算位置
+   （后者在长列表页会明显掉帧）。哨兵贴在文档最顶端，
+   它一离开视口就说明页面滚了。 */
+let _stickyWired = false;
+function wireNavSticky() {
+  if (_stickyWired) return;
+  const nav = document.getElementById('nav');
+  if (!nav) return;
+  _stickyWired = true;
+  const apply = on => nav.classList.toggle('stuck', on);
+  try {
+    const s = document.createElement('div');
+    s.setAttribute('aria-hidden', 'true');
+    s.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none';
+    document.body.insertBefore(s, document.body.firstChild);
+    new IntersectionObserver(es => apply(!es[0].isIntersecting), { threshold: 0 }).observe(s);
+  } catch (e) {
+    apply(true);   /* 不支持就常驻毛玻璃，总比完全没有底好 */
+  }
+}
+
 export function renderNav(active) {
+  if (active) _navActive = active;
   const el = document.getElementById('nav');
   if (!el) return;
   el.className = 'nav';
   el.innerHTML = '<a class="brand" href="/">P.<b>H</b>.M.</a>'
-    + '<div class="links">' + NAV.map(([href, label, key]) =>
-      '<a href="' + href + '"' + (key === active ? ' class="on"' : '') + '>' + label + '</a>'
+    + '<div class="links">' + NAV.map(([href, key, act]) =>
+      '<a href="' + href + '"' + (act === _navActive ? ' class="on"' : '') + '>' + t(key) + '</a>'
     ).join('') + '</div>'
     + '<div class="spacer"></div>'
     + '<span class="ver">' + esc(APP_VER) + '</span>';
+  wireNavSticky();
 }
+
+onLangChange(function () { renderNav(); });
 
 /* ══════════════════════════════════════════════════════════════
  * 格式化
