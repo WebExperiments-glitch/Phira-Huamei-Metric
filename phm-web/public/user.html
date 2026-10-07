@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.4.0">
+<title>玩家成绩 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/css/base.css?v=V0.4.0">
+<style>
+.pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
+.pfuser .nm{font-size:19px;font-weight:500}
+.pfuser .meta{font-size:12.5px;color:var(--fg3);line-height:1.7}
+.pfuser .rks{margin-left:auto;text-align:right}
+.pfuser .rks b{font-size:30px;color:var(--amber);font-variant-numeric:tabular-nums}
+.pfuser .rks span{display:block;font-size:11.5px;color:var(--fg3);max-width:190px}
+
+/* 候选列表：重名时必须让用户自己选，绝不替他挑 */
+.cand{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line);background:var(--card2);cursor:pointer;margin-bottom:8px;
+  transition:border-color .12s}
+.cand:hover{border-color:var(--amber)}
+.cand img{width:40px;height:40px;border-radius:9px;object-fit:cover;background:var(--card)}
+.cand .nm{font-size:14.5px}
+.cand .mt{font-size:11.5px;color:var(--fg3)}
+.cand .rks{margin-left:auto;text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:var(--fg2)}
+.cand .rks b{font-size:16px;color:var(--amber)}
+
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}
+.stat{background:var(--card2);border-radius:10px;padding:10px 13px}
+.stat .k{font-size:11.5px;color:var(--fg3);letter-spacing:.03em}
+.stat .v{font-size:20px;font-variant-numeric:tabular-nums;margin-top:2px}
+
+.rkbox{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.rkbox .b{background:var(--card2);border-radius:11px;padding:12px 14px;border:1px solid var(--line)}
+.rkbox .b .k{font-size:11.5px;color:var(--fg3)}
+.rkbox .b .v{font-size:26px;font-variant-numeric:tabular-nums}
+.rkbox .b .n{font-size:11.5px;color:var(--fg3);margin-top:2px}
+.rkbox .main{border-color:rgba(232,163,61,.45)}
+.rkbox .main .v{color:var(--amber)}
+
+.barrow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+.barrow .i{width:22px;color:var(--fg3);text-align:right;font-variant-numeric:tabular-nums}
+.barrow .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barrow .a{width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--fg2)}
+.barrow .l{width:58px;text-align:right;font-variant-numeric:tabular-nums;color:var(--fg3)}
+.barrow .s{width:52px;text-align:right;font-variant-numeric:tabular-nums;color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <h2>查玩家成绩</h2>
+  <div class="sub">输入 Phira 用户名或纯数字 UID。只读公开数据，<b>不需要密码，也不会替你登录</b>。</div>
+  <div class="row">
+    <input class="inp" id="q" style="flex:1;min-width:180px" placeholder="用户名 或 UID（例如 168142）" autocomplete="off">
+    <button class="btn primary" id="go">查询</button>
+  </div>
+  <div class="status" id="msg"></div>
+  <div id="cands"></div>
+</div>
+
+<div id="out"></div>
+
+<div class="card" id="chartq" style="display:none">
+  <h3 style="margin-top:0">查「我在某张谱上的全部成绩」</h3>
+  <div class="sub">Phira 的成绩接口只给<b>最近 20 条</b>。但按<b>谱面</b>查询不受这个限制 —— 想知道某张谱你打过几次、最好多少，用这里。</div>
+  <div class="row">
+    <input class="inp" id="cid" style="flex:1;min-width:160px" placeholder="谱面 chart_id（纯数字）" autocomplete="off">
+    <button class="btn" id="cgo">查这张谱</button>
+  </div>
+  <div id="cout"></div>
+</div>
+
+<footer>
+  <div>数据来源：<b>Phira 公开 API</b>（<span class="mono">api.phira.cn</span>）· 只读 · 不登录 · 不收集任何个人信息。</div>
+  <div class="fd">本页不缓存玩家数据：每次查询都直接向 Phira 请求，关闭页面即无痕。</div>
+</footer>
+
+</div>
+
+<script type="module">
+import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when,
+         loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js?v=V0.4.0';
+import { resolveUser, getUserStats, getBestPool, getRecords, getCharts } from '/js/phira.js?v=V0.4.0';
+
+renderNav('user');
+const $ = s => document.querySelector(s);
+const msg = (t, kind) => { const e = $('#msg'); e.className = 'status' + (kind ? ' ' + kind : ''); e.innerHTML = t || ''; };
+const STATE = { user: null, stats: null, recent: null, capped: false, pool: null };
+
+/* ── 第一步：解析输入 → 候选 ──
+   关键修复：以前是 blind 取 results[0]，重名时会让用户看到**别人的**成绩，
+   还以为是"检测不到我"。现在永远列出候选，让用户自己认领。 */
+$('#go').addEventListener('click', doSearch);
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+async function doSearch() {
+  const raw = $('#q').value.trim();
+  if (!raw) { msg('先填用户名或 UID', 'err'); return; }
+  $('#out').innerHTML = ''; $('#cands').innerHTML = ''; $('#chartq').style.display = 'none';
+  STATE.user = null;
+  msg('查询中…（Phira API 是第三方，偶尔会慢）');
+  try {
+    const users = await resolveUser(raw);
+    if (users.length === 1) { await pick(users[0]); return; }
+    msg('找到 <b>' + users.length + '</b> 个匹配 —— <b>请点选你自己那个</b>。'
+      + '（同名/相似名很常见，这一步以前是自动选第一个，会导致看到别人的成绩）', 'warn');
+    $('#cands').innerHTML = users.map((u, i) =>
+      '<div class="cand" data-i="' + i + '">'
+      + (u.avatar ? '<img src="' + esc(u.avatar) + '" alt="" onerror="this.style.display=\'none\'">' : '')
+      + '<div><div class="nm">' + esc(u.name) + '</div>'
+      + '<div class="mt">UID ' + esc(u.id)
+      + (u.joined ? ' · ' + String(u.joined).slice(0, 10) + ' 加入' : '')
+      + (u.badges && u.badges.length ? ' · ' + esc(u.badges.join(' ')) : '') + '</div></div>'
+      + '<div class="rks">RKS <b>' + f2(u.rks) + '</b></div></div>').join('');
+    $('#cands').querySelectorAll('.cand').forEach(el =>
+      el.addEventListener('click', () => pick(users[+el.dataset.i])));
+  } catch (e) {
+    msg('查询失败：' + esc(e.message || e) + '（Phira API 可能临时不可用）', 'err');
+  }
+}
+
+/* ── 第二步：锁定某个用户，拉数据 ── */
+async function pick(u) {
+  STATE.user = u;
+  $('#cands').innerHTML = '';
+  $('#q').value = u.name;
+  try { localStorage.setItem('phm_last_uid', String(u.id)); } catch (e) {}
+  msg('读取成绩中…');
+  const [stats, pool, rec] = await Promise.all([
+    getUserStats(u.id),
+    getBestPool(u.id),
+    getRecords(u.id).catch(() => ({ records: [], capped: false })),
+  ]);
+  STATE.stats = stats; STATE.pool = pool; STATE.recent = rec.records; STATE.capped = rec.capped;
+
+  /* 补谱面信息（一次批量，失败就降级——不影响主体） */
+  const ids = [...new Set([].concat(
+    (rec.records || []).map(r => r.chart),
+    ((pool && pool.bestPool) || []).map(p => p.chart)))];
+  const [infos] = await Promise.all([getCharts(ids).catch(() => null), loadChartCache(ids)]);
+  const info = infos || {};
+  STATE.recent.forEach(r => { r.info = info[r.chart] || null; });
+  ((pool && pool.bestPool) || []).forEach(p => { p.info = info[p.chart] || null; });
+
+  msg('');
+  render();
+  $('#chartq').style.display = '';
+}
+
+function render() {
+  const u = STATE.user, st = STATE.stats;
+  const joined = String(u.joined || '').slice(0, 10);
+  const officialRks = +u.rks || 0;
+  const poolN = ((STATE.pool && STATE.pool.bestPool) || []).length;
+  const recs = STATE.recent || [];
+
+  let h = '<div class="card">';
+  h += '<div class="pfuser">'
+    + (u.avatar ? '<img src="' + esc(u.avatar) + '" alt="" onerror="this.style.display=\'none\'">' : '')
+    + '<div><div class="nm">' + esc(u.name) + '</div>'
+    + '<div class="meta">UID ' + esc(u.id) + (joined ? ' · ' + joined + ' 加入' : '')
+    + (u.bio ? '<br>' + esc(u.bio) : '') + '</div></div>'
+    + '<div class="rks"><b>' + f2(officialRks) + '</b>'
+    + '<span>Phira 官方 RKS<br>（客户端界面不显示，API 里有）</span></div></div>';
+
+  /* ── 账号总览：这里是「检测到了没」的正面回答 ── */
+  h += '<div class="statgrid">'
+    + stat('总游玩次数', st && st.numRecords != null ? st.numRecords : '—',
+           st && st.numRecords != null ? '这是账号全部记录数' : '拿不到统计')
+    + stat('平均准度', st && st.avgAccuracy != null ? pct(st.avgAccuracy * 100, 1) : '—', '')
+    + stat('官方 B19 条数', poolN, poolN ? '' : '服务端未计算')
+    + stat('本次可用成绩', recs.length, STATE.capped ? '撞上接口硬上限' : '')
+    + '</div>';
+
+  if (st && st.numRecords != null) {
+    h += '<div class="note info"><b>账号检测正常。</b>这个号在 Phira 上有 <b>' + st.numRecords
+      + '</b> 条游玩记录。下面如果显示的成绩很少，那是 <b>Phira 的接口限制</b>（只给最近 20 条），'
+      + '不是没查到你 —— 往页底看，那里能查<b>任意单张谱</b>的全部成绩。</div>';
+  }
+
+  /* ── 官方 RKS / B19 停摆说明（只在真的异常时才显示，不刷屏）── */
+  if (!officialRks && st && st.numRecords > 0) {
+    h += b19Note(st.numRecords, poolN);
+  } else if (officialRks > 0 && poolN && poolN < 19) {
+    h += '<div class="note">官方 bestPool 只有 <b>' + poolN + '</b> 条（标准是 19 + φ1）。'
+      + 'Phira 的 B19 只收录<b>已上架</b>谱面，你打的多半没上架。</div>';
+  }
+
+  /* ── P.H.M. RKS ── */
+  const src = poolN >= 3 ? ((STATE.pool && STATE.pool.bestPool) || []).map(p =>
+      ({ chart: p.chart, rks: p.rks, info: p.info }))
+    : recs;
+  const pm = phmRks(src.map(r => ({ chart: r.chart, rks: r.rks, acc: r.acc, accuracy: r.accuracy, info: r.info })));
+  if (pm) {
+    h += '<h3>P.H.M. RKS（官方停更后的替代值）</h3>';
+    h += '<div class="rkbox">'
+      + '<div class="b main"><div class="k">按实际条数平均</div><div class="v">' + f2(pm.fair) + '</div>'
+      + '<div class="n">样本少时更接近真实水平</div></div>'
+      + '<div class="b"><div class="k">官方 ÷20 口径</div><div class="v">' + f2(pm.official) + '</div>'
+      + '<div class="n">样本不足会被压低</div></div>'
+      + '<div class="b"><div class="k">计入条数</div><div class="v">' + pm.items.length + '</div>'
+      + '<div class="n">' + (pm.phi ? 'φ ' + esc(pm.phi.name.slice(0, 12)) : '无 φ 位') + '</div></div>'
+      + '</div>';
+    h += '<div class="note">' + RKS_NOTE
+      + '<br>定数来源：<b>P.H.M. ' + pm.phmN + ' 条</b> / Phira 标称 ' + pm.phiraN + ' 条'
+      + (pm.phmN ? '（P.H.M. 的是用谱面实际结构算的，比谱师自报准）'
+                 : '（还没算过 P.H.M. 定数 → 去「算定数」页拖入谱面包可逐张提升精度）') + '。</div>';
+
+    if (pm.items.length > 1) {
+      h += '<table><thead><tr><th>计入的单曲 rks</th><th>档</th><th class="r">准度</th>'
+        + '<th class="r">定数</th><th class="r">单曲 rks</th></tr></thead><tbody>';
+      for (const x of pm.items.slice(0, 12)) {
+        h += '<tr><td>' + esc(x.name.slice(0, 30)) + '</td>'
+          + '<td>' + esc(chartTier(x.chart) || '?') + '</td>'
+          + '<td class="r">' + (x.acc == null ? '—' : pct(x.acc, 2)) + '</td>'
+          + '<td class="r">' + f2(x.lv) + ' <span class="dim2">' + esc(x.src) + '</span></td>'
+          + '<td class="r" style="color:var(--amber)">' + f2(x.sr) + '</td></tr>';
+      }
+      h += '</tbody></table>';
+      if (pm.items.length > 12) h += '<div class="dim2" style="font-size:12px;margin-top:6px">… 共 ' + pm.items.length + ' 条</div>';
+    }
+  }
+  h += '</div>';
+
+  /* ── 最近游玩 ── */
+  h += '<div class="card"><h3 style="margin-top:0">最近游玩（每谱取最好一次）</h3>';
+  const agg = {};
+  for (const r of recs) {
+    const k = r.chart;
+    const a = accOf(r);
+    if (!agg[k]) agg[k] = { chart: k, acc: a, n: 0, last: r.time, info: r.info };
+    agg[k].n++;
+    if (a != null && (agg[k].acc == null || a > agg[k].acc)) agg[k].acc = a;
+    if (String(r.time) > String(agg[k].last)) agg[k].last = r.time;
+  }
+  const rows = Object.values(agg).sort((a, b) => String(b.last).localeCompare(String(a.last)));
+  if (!rows.length) {
+    h += '<div class="empty">这个号没有可读的成绩记录（可能一直离线游玩，或成绩未上传）</div>';
+  } else {
+    h += '<table><thead><tr><th>谱面</th><th>档</th><th class="r">最好准度</th>'
+      + '<th class="r">次数</th><th class="r">最近</th><th class="r">定数</th></tr></thead><tbody>';
+    for (const r of rows) {
+      const info = r.info || {};
+      const c = bestConst(r.chart, info);
+      const pit = cachedRow(r.chart);
+      h += '<tr><td>' + esc((info.name || ('#' + r.chart)).slice(0, 34)) + '</td>'
+        + '<td>' + esc(lvTag(info.level) || '?') + '</td>'
+        + '<td class="r">' + pct(r.acc, 2) + '</td>'
+        + '<td class="r">' + r.n + '</td>'
+        + '<td class="r dim">' + esc(when(r.last)) + '</td>'
+        + '<td class="r">' + (c ? f2(c.lv) : '—')
+        + (pit && pit.ref_const != null ? ' <span class="dim2">phm</span>' : '') + '</td></tr>';
+    }
+    h += '</tbody></table>';
+  }
+
+  /* ⚠ 这一段是整个页面的重点：把「20 条上限」这件事**说出来**。
+     以前不说，用户就会觉得「我玩了很多但检测不到」—— 工具的锅背得冤枉。 */
+  if (STATE.capped) {
+    h += '<div class="note warn"><b>为什么只有 ' + recs.length + ' 条？这不是查不到你。</b><br>'
+      + 'Phira 的 <span class="mono">/record?player=</span> 接口<b>只返回最近 20 条</b>，'
+      + '而且 <span class="mono">page</span> / <span class="mono">pageNum</span> 参数'
+      + '<b>实际上被服务端忽略</b>（实测翻页返回的 20 条 id 完全相同）。这是 Phira 侧的限制，网页端绕不过去。<br>'
+      + '<b>但按谱面查不受限制</b> —— 用下面的「查我在某张谱上的全部成绩」。'
+      + '另外账号总游玩次数是准的（上面那个 <b>' + (st && st.numRecords) + '</b>）。</div>';
+  }
+  h += '</div>';
+
+  $('#out').innerHTML = h;
+}
+
+function stat(k, v, n) {
+  return '<div class="stat"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>'
+    + (n ? '<div class="k" style="margin-top:2px">' + esc(n) + '</div>' : '') + '</div>';
+}
+function chartTier(cid) {
+  const r = cachedRow(cid);
+  return r && r.level ? lvTag(r.level) : null;
+}
+function b19Note(numRecords, poolN) {
+  return '<div class="note warn"><b>官方 RKS 是 0，且 B19 只有 ' + poolN + ' 条 —— 这不是你的问题。</b><br>'
+    + '实测抽样：多位<b>今天仍在游玩</b>的活跃玩家，bestPool 里最新的一条成绩全部停在 '
+    + '<b>2023 ~ 2026-03</b>，而他们的单曲排行榜名次天天在更新。'
+    + '⇒ <b>Phira 服务端的 RKS / B19 计算已经停摆</b>，2026 年之后注册的账号 bestPool 从开始就是空的。<br>'
+    + '这不影响你的成绩本身（排行榜是实时的），只是那个总 RKS 数字不会动了。'
+    + '所以本页另算一个 <b>P.H.M. RKS</b> 给你参考。</div>';
+}
+
+/* ── 按谱面查「我的全部成绩」 ──
+   这是绕过 20 条上限的唯一手段：`/record?player=&chart=` 不受限。 */
+$('#cgo').addEventListener('click', doChartQuery);
+$('#cid').addEventListener('keydown', e => { if (e.key === 'Enter') doChartQuery(); });
+
+async function doChartQuery() {
+  const out = $('#cout');
+  if (!STATE.user) { out.innerHTML = '<div class="status err">先在上面查一个账号</div>'; return; }
+  const cid = parseInt($('#cid').value.trim(), 10);
+  if (!(cid > 0)) { out.innerHTML = '<div class="status err">填一个纯数字的 chart_id</div>'; return; }
+  out.innerHTML = '<div class="status">查询中…</div>';
+  try {
+    const { records } = await getRecords(STATE.user.id, { chart: cid });
+    const [info] = await Promise.all([getCharts([cid]).catch(() => null), loadChartCache([cid])]);
+    if (!records.length) {
+      out.innerHTML = '<div class="status warn">这个号在 <b>#' + cid + '</b> 上没有记录。</div>';
+      return;
+    }
+    const c = info && info[cid];
+    const best = records.reduce((a, b) => (accOf(b) || 0) > (accOf(a) || 0) ? b : a);
+    const cc = bestConst(cid, c);
+    let h = '<div class="status ok">共 <b>' + records.length + '</b> 次游玩'
+      + (c ? '：《' + esc(c.name) + '》' + esc(c.level || '') : '')
+      + ' · 最好准度 <b>' + pct(accOf(best), 2) + '</b>'
+      + (cc ? ' · 定数 ' + f2(cc.lv) + '（' + cc.src + '）' : '')
+      + (cc && accOf(best) != null && accOf(best) >= 70
+          ? ' · 单曲 rks <b>' + f2(Math.pow((accOf(best) - 55) / 45, 2) * cc.lv) + '</b>' : '')
+      + '</div>';
+    h += '<table><thead><tr><th>时间</th><th class="r">准度</th><th class="r">Perfect</th>'
+      + '<th class="r">Good/Bad/Miss</th><th class="r">全连</th></tr></thead><tbody>';
+    for (const r of records.slice(0, 40)) {
+      h += '<tr><td class="dim">' + esc(when(r.time)) + '</td>'
+        + '<td class="r" style="color:' + ((accOf(r) || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">'
+        + pct(accOf(r), 2) + '</td>'
+        + '<td class="r">' + (r.perfect == null ? '—' : r.perfect) + '</td>'
+        + '<td class="r dim">' + [r.good, r.bad, r.miss].map(x => x == null ? '—' : x).join(' / ') + '</td>'
+        + '<td class="r">' + (r.full_combo ? '✓' : '') + '</td></tr>';
+    }
+    h += '</tbody></table>';
+    if (records.length > 40) h += '<div class="dim2" style="font-size:12px;margin-top:6px">… 共 ' + records.length + ' 条，只显示前 40</div>';
+    out.innerHTML = h;
+  } catch (e) {
+    out.innerHTML = '<div class="status err">查询失败：' + esc(e.message || e) + '</div>';
+  }
+}
+
+/* 回访：上次查过的 UID 预填（只是省一次输入，不自动查询） */
+try {
+  const last = localStorage.getItem('phm_last_uid');
+  if (last) $('#q').value = last;
+} catch (e) {}
+</script>
+</body>
+</html>

@@ -41,17 +41,23 @@ phm-web/
 │                                 （server.mjs 与 tools/ 共用同一份，别在别处再配一遍）
 │
 ├── public/                    ← 静态资源根目录（只有这里的内容会被送出）
-│   ├── index.html             ← 中文版（页面结构 + 全部前端逻辑）
+│   ├── index.html             ← 落地页 /（这是什么、双标度怎么读、入口）
+│   ├── app.html               ← 工作台 /app（拖入 + 搜索 + 定数 + 分享卡）
+│   ├── charter.html           ← 谱师页 /charter（某谱师的全部作品）
+│   ├── user.html              ← 玩家页 /user（成绩 / RKS / 逐谱成绩）
 │   ├── en.html                ← 英文版（给 X / 国际社区，只做「拖入 + 搜索 + 分享」三件事）
 │   ├── privacy.html           ← 隐私政策
 │   ├── 404.html               ← 错误页（服务端对未命中路径下发它，状态码仍是 404）
 │   ├── robots.txt             ← 禁爬 /api/（/api/analyze 是全站最贵的路径）
 │   ├── sitemap.xml
 │   ├── og.png / og-en.png     ← 分享卡片 1200×630（由 tools/make-og.mjs 生成）
-│   ├── css/                   ← （预留）
 │   ├── data/
 │   │   └── ref-com.json       ← 社区参照集 9,508 张（生成物，由 gen-ref.mjs 产出，懒加载）
+│   ├── css/
+│   │   └── base.css           ← 主题令牌 + 导航 + 通用组件（令牌的唯一来源）
 │   └── js/
+│       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
+│       ├── ui.js              ← 导航 / 格式化 / 缓存读取 / P.H.M. RKS
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源
 │       ├── ref-official.js    ← 官谱参照 1,037 张（生成物，由 gen-ref.mjs 产出）
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
@@ -62,7 +68,8 @@ phm-web/
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集 Ranked + Special）
 │   ├── reconcile-cache.mjs    ← ★ 缓存对账（抽样复算 / --recompute-stale / --fix，退出码可挂 CI）
 │   ├── verify-engine.mjs      ← ★ 引擎回归测试（改引擎后必跑；--net 比对真实基线）
-│   └── smoke-page.mjs         ← ★ 真页面冒烟（本机 Chrome + CDP；专拦"语法合法但运行时炸"）
+│   ├── smoke-page.mjs         ← ★ 4 条路由的页面对拍（本机 Chrome + CDP）
+│   └── verify-pages.mjs       ← ★★ 功能级页面测试（真浏览器**驱动 UI**，专拦"页面没报错但功能是坏的"）
 │
 └── docs/
     ├── README.md              ← 你正在看的
@@ -72,6 +79,10 @@ phm-web/
     ├── ENGINE-EXPERIMENT.md   ← ★ 引擎选型实验：为什么是 8 维 / 社区参照，以及所有被否掉的方案
     └── PROMOTION.md           ← 宣发手册（各平台差异、逐步操作、可复制文案）
 ```
+
+> **改前端请先看 `ARCHITECTURE.md` 的「站点结构」与「Phira 接口的硬限制」两节。**
+> 后者记的是实测出来的接口边界（例如"成绩只能拿最近 20 条"），
+> 不知道这些会写出必然不对劲的代码。
 
 > **页面版本号只有一处**：`index.html` / `en.html` 的 `<meta name="app-version">`。
 > 页头标签、页脚、`PHM.status()`、以及引擎与分享模块的缓存版本串都从它取 —— 改一处就够。

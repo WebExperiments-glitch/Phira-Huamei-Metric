@@ -1,4 +1,4 @@
-# P.H.M. Standard —— Phira 谱面难度参考（单页工具站）
+# P.H.M. Standard —— Phira 谱面难度参考
 User-agent: *
 Allow: /
 
@@ -6,5 +6,11 @@ Allow: /
 # /api/analyze 是全站最贵的路径：未命中缓存时要下载谱面包（最多 60MB）并跑完整引擎。
 # 让它被爬虫批量命中，等于把带宽和 CPU 白送出去。
 Disallow: /api/
+
+# 玩家页不给爬：它按 UID 展示某个人的成绩与游玩历史。
+# 这些数据在 Phira 站内是公开的，但**「公开可查」不等于「该被搜索引擎收录」** ——
+# 被 Google/Bing 索引之后，别人搜某个玩家名会直接搜出他的成绩单。
+# /charter 是有意公开的（谱师的作品集本来就是给人看的），所以不挡。
+Disallow: /user
 
 Sitemap: https://phm.app.workbuddy.host/sitemap.xml

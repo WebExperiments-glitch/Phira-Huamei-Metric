@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.4.0">
+<title>谱师作品 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="查 Phira 谱师的全部作品：按档位分布、平均定数，以及对每张谱的 P.H.M. 结构定数参考。">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/css/base.css?v=V0.4.0">
+<style>
+.chhead{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.chhead .nm{font-size:21px;font-weight:500}
+.chhead .mt{font-size:12.5px;color:var(--fg3)}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:14px 0}
+.stat{background:var(--card2);border-radius:10px;padding:10px 13px}
+.stat .k{font-size:11.5px;color:var(--fg3)}
+.stat .v{font-size:20px;font-variant-numeric:tabular-nums;margin-top:2px}
+
+/* 档位分布条 */
+.dist{display:flex;height:26px;border-radius:7px;overflow:hidden;margin:12px 0 6px;background:var(--card2)}
+.dist i{display:flex;align-items:center;justify-content:center;font-size:11.5px;color:#0d1117;font-weight:600;min-width:0}
+.distlg{display:flex;gap:12px;font-size:11.5px;color:var(--fg3);flex-wrap:wrap}
+.distlg span i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
+
+.tier{display:inline-block;min-width:26px;text-align:center;padding:1px 6px;border-radius:5px;
+  font-size:11px;font-weight:600;color:#0d1117}
+.pm{font-variant-numeric:tabular-nums;color:var(--amber)}
+.nopm{color:var(--fg3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <h2>查谱师作品</h2>
+  <div class="sub">输入谱师名，列出他/她在 Phira 上的全部作品，以及每张谱的 P.H.M. 结构定数（算过的会有）。</div>
+  <div class="row">
+    <input class="inp" id="q" style="flex:1;min-width:180px" placeholder="谱师名（例如 Magazet / YanY）" autocomplete="off">
+    <button class="btn primary" id="go">查询</button>
+  </div>
+  <div class="status" id="msg"></div>
+</div>
+
+<div id="out"></div>
+
+<footer>
+  <div>数据来源：<b>Phira 公开 API</b>（<span class="mono">api.phira.cn</span>）+ 本站共享定数缓存。</div>
+  <div class="fd">Phira 没有"按谱师查作品"的接口，本页是拿 <span class="mono">/chart?search=</span>
+  翻页后在本地按 <b>charter 字段精确匹配</b>筛出来的 —— 所以搜索结果里的"曲名命中"会被排除掉。</div>
+</footer>
+
+</div>
+
+<script type="module">
+import { renderNav, esc, f1, f2, lvTag, tierColor, loadChartCache, cachedRow } from '/js/ui.js?v=V0.4.0';
+import { getCharterCharts } from '/js/phira.js?v=V0.4.0';
+
+renderNav('charter');
+const $ = s => document.querySelector(s);
+const msg = (t, k) => { const e = $('#msg'); e.className = 'status' + (k ? ' ' + k : ''); e.innerHTML = t || ''; };
+
+/* ?name=xxx 直接查 —— 这样从谱面卡片点谱师名就能跳过来 */
+const pre = new URLSearchParams(location.search).get('name');
+if (pre) { $('#q').value = pre; }
+
+$('#go').addEventListener('click', run);
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+if (pre) run();
+
+let LAST = null;
+
+async function run() {
+  const name = $('#q').value.trim();
+  if (!name) { msg('先填谱师名', 'err'); return; }
+  msg('查询中…（Phira 没有按谱师查的接口，本页要翻几页再筛）');
+  $('#out').innerHTML = '';
+  try {
+    const r = await getCharterCharts(name, { maxPages: 6 });
+    LAST = r;
+    if (!r.exact.length && !r.fuzzy.length) {
+      msg('没找到 charter 里含「' + esc(name) + '」的谱面。注意 Phira 的谱师字段是自由文本，'
+        + '可能写成团队名或带后缀，试试短一点的关键词。', 'warn');
+      return;
+    }
+    msg('');
+    await loadChartCache(r.exact.map(c => c.id).concat(r.fuzzy.slice(0, 60).map(c => c.id)));
+    render(r, name);
+  } catch (e) {
+    msg('查询失败：' + esc(e.message || e) + '（Phira API 可能临时不可用）', 'err');
+  }
+}
+
+/* 排序与搜索面板 */
+let SORT = 'diff', FILTER = 'all';
+function render(r, name) {
+  const all = r.exact;
+  const dist = {}; for (const c of all) { const t = lvTag(c.level); dist[t] = (dist[t] || 0) + 1; }
+  const withDiff = all.filter(c => +c.difficulty > 0 && +c.difficulty <= 20);
+  const avg = withDiff.length ? withDiff.reduce((a, c) => a + (+c.difficulty), 0) / withDiff.length : null;
+  const pmRows = all.map(c => cachedRow(c.id)).filter(Boolean).filter(x => x.ref_const != null);
+  const pmAvg = pmRows.length ? pmRows.reduce((a, x) => a + (+x.ref_const), 0) / pmRows.length : null;
+
+  let h = '<div class="card">';
+  h += '<div class="chhead"><div><div class="nm">' + esc(name) + '</div>'
+    + '<div class="mt">Phira charter 字段精确匹配 · ' + all.length + ' 张作品'
+    + (r.truncated ? '（<span style="color:var(--amber)">只翻了前几页，可能不全</span>）' : '') + '</div></div></div>';
+
+  h += '<div class="statgrid">'
+    + stat('作品数', all.length)
+    + stat('标称定数均值', avg == null ? '—' : f2(avg), withDiff.length + ' 张有标称')
+    + stat('P.H.M. 定数均值', pmAvg == null ? '—' : f2(pmAvg), pmRows.length + ' 张已算')
+    + stat('最高标称', withDiff.length ? f2(Math.max(...withDiff.map(c => +c.difficulty))) : '—')
+    + '</div>';
+
+  /* 档位分布 */
+  const order = ['EZ', 'HD', 'IN', 'AT', 'SP', '?'];
+  const tot = all.length || 1;
+  h += '<div class="dist">' + order.filter(t => dist[t]).map(t =>
+    '<i style="width:' + (dist[t] / tot * 100) + '%;background:' + tierColor(t) + '" title="' + t + '">'
+    + (dist[t] / tot > 0.08 ? t + ' ' + dist[t] : '') + '</i>').join('') + '</div>';
+  h += '<div class="distlg">' + order.filter(t => dist[t]).map(t =>
+    '<span><i style="background:' + tierColor(t) + '"></i>' + t + ' × ' + dist[t] + '</span>').join('') + '</div>';
+
+  if (r.truncated) {
+    h += '<div class="note">这位谱师的作品超过了本页翻页上限（' + r.scanned + ' 条结果里筛出 '
+      + all.length + ' 张）。下面列出的可能不是全部 —— 想查更全可以换个更精确的谱师名。</div>';
+  }
+  h += '</div>';
+
+  /* 作品表 */
+  h += '<div class="card"><div class="row" style="margin-bottom:10px">'
+    + '<h3 style="margin:0;flex:1">作品列表</h3>'
+    + '<select class="inp" id="sort" style="padding:5px 9px;font-size:12.5px">'
+    + ['diff:标称定数 ↓', 'pm:P.H.M. 定数 ↓', 'name:曲名 A→Z', 'level:档位'].map(o => {
+        const [k, l] = o.split(':');
+        return '<option value="' + k + '"' + (k === SORT ? ' selected' : '') + '>' + l + '</option>';
+      }).join('') + '</select>'
+    + '<select class="inp" id="filter" style="padding:5px 9px;font-size:12.5px">'
+    + ['all:全部档位'].concat(order.filter(t => dist[t]).map(t => t + ':' + t)).map(o => {
+        const [k, l] = o.split(':');
+        return '<option value="' + k + '"' + (k === FILTER ? ' selected' : '') + '>' + l + '</option>';
+      }).join('') + '</select>'
+    + '</div>';
+
+  let list = all.slice();
+  if (FILTER !== 'all') list = list.filter(c => lvTag(c.level) === FILTER);
+  if (SORT === 'diff') list.sort((a, b) => (+b.difficulty || 0) - (+a.difficulty || 0));
+  else if (SORT === 'pm') list.sort((a, b) => {
+    const pa = cachedRow(a.id), pb = cachedRow(b.id);
+    return ((pb && pb.ref_const) || -1) - ((pa && pa.ref_const) || -1);
+  });
+  else if (SORT === 'name') list.sort((a, b) => String(a.name).localeCompare(String(b.name), 'zh'));
+  else list.sort((a, b) => order.indexOf(lvTag(a.level)) - order.indexOf(lvTag(b.level))
+    || (+b.difficulty || 0) - (+a.difficulty || 0));
+
+  h += '<table><thead><tr><th>曲名</th><th>档</th><th class="r">标称</th>'
+    + '<th class="r">P.H.M. 定数</th><th class="r">官谱标度</th><th class="r">物量</th></tr></thead><tbody>';
+  for (const c of list) {
+    const t = lvTag(c.level);
+    const row = cachedRow(c.id);
+    const pm = row && row.ref_const != null ? +row.ref_const : null;
+    const pmo = row && row.ref_official != null ? +row.ref_official : null;
+    const d = +c.difficulty;
+    /* 标称与 P.H.M. 差得多的，标出来 —— 这是这个工具最有信息量的地方之一 */
+    const gap = (pm != null && d > 0 && d <= 20) ? pm - d : null;
+    h += '<tr><td>' + esc(String(c.name).slice(0, 40)) + '</td>'
+      + '<td><span class="tier" style="background:' + tierColor(t) + '">' + esc(t) + '</span></td>'
+      + '<td class="r">' + (d > 0 && d <= 20 ? f2(d) : '—') + '</td>'
+      + '<td class="r ' + (pm == null ? 'nopm' : 'pm') + '">' + (pm == null ? '未算' : f2(pm))
+      + (gap != null && Math.abs(gap) >= 0.8
+          ? ' <span class="dim2" style="font-size:11px">' + (gap > 0 ? '+' : '') + f1(gap) + '</span>' : '')
+      + '</td>'
+      + '<td class="r dim">' + (pmo == null ? '—' : f2(pmo)) + '</td>'
+      + '<td class="r dim">' + (c.notes == null ? '—' : c.notes) + '</td></tr>';
+  }
+  h += '</tbody></table>';
+  const uncalc = list.filter(c => !cachedRow(c.id)).length;
+  if (uncalc) {
+    h += '<div class="note info">还有 <b>' + uncalc + '</b> 张没算过 P.H.M. 定数（显示「未算」）。'
+      + '去<a href="/app">算定数</a>页拖入谱面包，或点「算」让服务端下载计算，算完这里就会显示。</div>';
+  }
+  h += '</div>';
+
+  /* 模糊命中：单独放，别混进作品表 —— 否则"搜 Kevin 出来一堆不相干的谱"非常困惑 */
+  if (r.fuzzy.length) {
+    h += '<div class="card"><h3 style="margin-top:0">charter 里<b>包含</b>「' + esc(name) + '」但不是完全同名的 '
+      + r.fuzzy.length + ' 张</h3>'
+      + '<div class="sub">可能是团队名、带后缀的写法，或者别人的谱面说明里提到了这个名字。</div>'
+      + '<table><thead><tr><th>曲名</th><th>谱师</th><th>档</th><th class="r">标称</th></tr></thead><tbody>'
+      + r.fuzzy.slice(0, 30).map(c =>
+        '<tr><td>' + esc(String(c.name).slice(0, 34)) + '</td>'
+        + '<td class="dim">' + esc(c.charter) + '</td>'
+        + '<td>' + esc(lvTag(c.level)) + '</td>'
+        + '<td class="r">' + (+c.difficulty > 0 && +c.difficulty <= 20 ? f2(c.difficulty) : '—') + '</td></tr>').join('')
+      + '</tbody></table></div>';
+  }
+
+  $('#out').innerHTML = h;
+  $('#sort').addEventListener('change', e => { SORT = e.target.value; render(r, name); });
+  $('#filter').addEventListener('change', e => { FILTER = e.target.value; render(r, name); });
+}
+
+function stat(k, v, n) {
+  return '<div class="stat"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>'
+    + (n ? '<div class="k" style="margin-top:2px">' + esc(n) + '</div>' : '') + '</div>';
+}
+</script>
+</body>
+</html>

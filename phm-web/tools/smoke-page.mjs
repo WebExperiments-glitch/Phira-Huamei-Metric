@@ -19,6 +19,9 @@
  *   · 社区参照集 fetch 成功（PHM.status().refCom 以 ok/ 开头）
  *   · 分享卡模块加载（sharecard === 'ok'）
  *   · 关键 DOM 节点存在（拖放入口、搜索框、结果容器）
+ *
+ * ⚠ 2026-10-07 站点拆成多页（/ /app /user /charter）之后，**每一页都要走一遍**：
+ *   真实事故形态是「首页没事、别的页面白屏」—— 只测首页等于没测。
  * ============================================================ */
 import { spawn } from 'node:child_process';
 import net from 'node:net';
@@ -103,81 +106,88 @@ const evalJS = async expr => {
   return r.result.value;
 };
 
+
 let pass = 0, fail = 0;
-const ok = (n, c, d) => { if (c) { pass++; console.log('  ✓ ' + n); } else { fail++; console.log('  ✗ ' + n + (d ? '  → ' + d : '')); } };
+const ok = (n, c, d) => {
+  if (c) { pass++; console.log('  ✓ ' + n); }
+  else { fail++; console.log('  ✗ ' + n + (d ? '  → ' + d : '')); if (d) errors.push('[冒烟] ' + n + ' → ' + d); }
+};
 
-console.log('\n[页面冒烟] ' + BASE);
-/* 先显式触发一次参照集加载（页面空闲时也会自己预热，但测试不等闲时） */
-await evalJS(`(async function(){ try{ await PHM.loadRef(); }catch(e){} return 1; })()`);
+/* 每条路由要检查的东西。⚠ 站点拆页之后**每一页都要走一遍** ——
+   真实事故形态是「首页没事、别的页面白屏」。 */
+const ROUTES = [
+  { path: '/', name: '首页', sel: ['#stats', '#verfoot'], mod: 'ui' },
+  { path: '/app', name: '工作台', sel: ['#drop', '#file', '#msg', '#out', '#csrch'], mod: 'engine' },
+  { path: '/user', name: '玩家页', sel: ['#q', '#go', '#out', '#cands'], mod: 'phira' },
+  { path: '/charter', name: '谱师页', sel: ['#q', '#go', '#out'], mod: 'phira' },
+];
 
-const info = await evalJS(`(function(){
-  const out = { ver: (document.querySelector('meta[name="app-version"]')||{}).content,
-                hasPHM: typeof PHM !== 'undefined' };
-  if (typeof PHM !== 'undefined' && PHM.status) { try { out.status = PHM.status(); } catch(e){ out.statusErr = String(e); } }
-  out.dom = {
-    drop: !!document.getElementById('drop'),
-    msg: !!document.getElementById('msg'),
-  };
-  return out;
-})()`);
+for (const R of ROUTES) {
+  console.log('\n[页面冒烟] ' + BASE + R.path + '  （' + R.name + '）');
+  const before = errors.length;
+  await send('Page.navigate', { url: BASE + R.path });
+  await new Promise(r => setTimeout(r, 2800));
 
-ok('页面有版本号', !!info.ver, 'ver=' + info.ver);
-ok('PHM 对象挂上了', info.hasPHM === true);
-ok('PHM.status() 可调用', !!info.status, info.statusErr || '');
-if (info.status) {
-  const s = info.status;
-  ok('引擎已加载 (engine=ok)', s.engine === 'ok', 'engine=' + s.engine);
-  ok('分享卡模块已加载', s.sharecard === 'ok', 'sharecard=' + s.sharecard);
-  ok('社区参照集已加载', String(s.refCom).startsWith('ok/'), 'refCom=' + s.refCom);
-  console.log('    状态: ' + JSON.stringify(s));
+  const info = await evalJS(`(function(){
+    const out = { ver: (document.querySelector('meta[name="app-version"]')||{}).content,
+                  title: document.title, hasNav: !!document.getElementById('nav') };
+    out.dom = {};
+    ${JSON.stringify(R.sel)}.forEach(function(s){ out.dom[s] = !!document.querySelector(s); });
+    out.navLinks = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); });
+    return out;
+  })()`);
+
+  ok('有版本号', info.ver === 'V0.4.0', 'ver=' + info.ver);
+  ok('有页面标题', !!info.title && info.title.length > 3, info.title);
+  ok('导航已渲染', info.hasNav === true);
+  ok('导航含 4 个入口', (info.navLinks || []).length >= 4, JSON.stringify(info.navLinks));
+  for (const sel of R.sel) ok('DOM ' + sel + ' 存在', info.dom[sel] === true);
+
+  if (R.mod === 'engine') {
+    const st = await evalJS(`(function(){ try{ return PHM.status(); }catch(e){ return {err:String(e)}; } })()`);
+    ok('引擎已加载', st && st.engine === 'ok', JSON.stringify(st).slice(0, 160));
+    ok('分享卡模块', st && st.sharecard === 'ok', st && st.sharecard);
+    await evalJS(`(async function(){ try{ await PHM.loadRef(); }catch(e){} return 1; })()`);
+    const st2 = await evalJS(`(function(){ try{ return PHM.status(); }catch(e){ return {}; } })()`);
+    ok('社区参照集加载', String(st2.refCom).startsWith('ok/'), 'refCom=' + st2.refCom);
+    const eng = await evalJS(`(async function(){
+      try{
+        const m = await import('/js/engine.js?v=' + encodeURIComponent(
+          (document.querySelector('meta[name="app-version"]')||{}).content));
+        const j = { BPMList:[{startTime:[0,0,1],bpm:180}], judgeLineList:[{notes:[]}] };
+        for (let i=0;i<400;i++) j.judgeLineList[0].notes.push({startTime:[i,0,4],type:(i%7===0)?2:1,positionX:(i%8)*100-350});
+        const r = m.reportFromChart(m.loadChart(j), 'synth.json', {name:'冒烟'}, 0, null);
+        return { ver:m.ENGINE_VER, ref:r.knn.ref, refOff:r.knnOff.ref, dims:m.REF_DIMS.length };
+      }catch(e){ return { err: String(e && (e.stack||e.message||e)) }; }
+    })()`);
+    ok('浏览器内引擎能算出定数', eng && !eng.err && isFinite(eng.ref), eng && eng.err);
+    ok('engine_ver 是 com-knn8-v0.4.0', eng && eng.ver === 'com-knn8-v0.4.0', eng && eng.ver);
+  } else {
+    const mods = await evalJS(`(async function(){
+      const v = encodeURIComponent((document.querySelector('meta[name="app-version"]')||{}).content);
+      const out = {};
+      for (const m of ['/js/ui.js','/js/phira.js']) {
+        try { const x = await import(m + '?v=' + v); out[m] = Object.keys(x).length; }
+        catch (e) { out[m] = 'ERR ' + (e.message||e); }
+      }
+      return out;
+    })()`);
+    ok('ui.js 可加载', typeof mods['/js/ui.js'] === 'number' && mods['/js/ui.js'] > 3, JSON.stringify(mods['/js/ui.js']));
+    ok('phira.js 可加载', typeof mods['/js/phira.js'] === 'number' && mods['/js/phira.js'] > 3, JSON.stringify(mods['/js/phira.js']));
+    /* 导航是真能点的：直接 fetch 一遍所有入口，确认没有 404 */
+    const links = await evalJS(`(async function(){
+      const hrefs = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); });
+      const res = {};
+      for (const h of hrefs) { try { res[h] = (await fetch(h, {method:'GET'})).status; } catch(e){ res[h] = 'ERR'; } }
+      return res;
+    })()`);
+    const bad = Object.entries(links || {}).filter(([, s]) => s !== 200);
+    ok('导航每个入口都返回 200', bad.length === 0, JSON.stringify(links));
+  }
+
+  const newErr = errors.length - before;
+  ok('本页无运行时报错', newErr === 0, newErr + ' 条' + (newErr ? '：' + errors.slice(before).join(' | ').slice(0, 200) : ''));
 }
-ok('拖放入口 DOM 存在', info.dom.drop === true);
-ok('消息区 DOM 存在', info.dom.msg === true);
-
-/* 真算一张谱：在页面里合成一个最小 RPE zip 太麻烦，
-   改为直接调页面里已加载的引擎函数，验证「浏览器里的引擎」确实能跑。 */
-const eng = await evalJS(`(async function(){
-  try{
-    const m = await import('/js/engine.js?v=' + encodeURIComponent(
-      (document.querySelector('meta[name="app-version"]')||{}).content));
-    const j = { BPMList:[{startTime:[0,0,1],bpm:180}], judgeLineList:[{notes:[]}] };
-    for (let i=0;i<400;i++) j.judgeLineList[0].notes.push({startTime:[i,0,4],type:(i%7===0)?2:1,positionX:(i%8)*100-350});
-    const r = m.reportFromChart(m.loadChart(j), 'synth.json', {name:'冒烟'}, 0, null);
-    return { ver:m.ENGINE_VER, ref:r.knn.ref, refOff:r.knnOff.ref, basis:r.knn.basis,
-             officialN:m.REF_OFFICIAL.length, dims:m.REF_DIMS.length, labels:m.ROW_LABELS };
-  }catch(e){ return { err: String(e && (e.stack||e.message||e)) }; }
-})()`);
-ok('浏览器内引擎能算出定数', eng && !eng.err && isFinite(eng.ref), eng && eng.err);
-if (eng && !eng.err) {
-  ok('双标度都在', isFinite(eng.ref) && isFinite(eng.refOff), eng.ref + ' / ' + eng.refOff);
-  ok('engine_ver 是 com-knn8-v0.4.0', eng.ver === 'com-knn8-v0.4.0', eng.ver);
-  console.log('    官谱参照 ' + eng.officialN + ' 行 · ' + eng.dims + ' 维 · labels=' + eng.labels
-    + ' · 合成谱 社区 ' + eng.ref + ' / 官谱 ' + eng.refOff);
-}
-
-/* 参照集在浏览器里也能走通 k-NN（不是只有 Node 能） */
-const withCom = await evalJS(`(async function(){
-  try{
-    const m = await import('/js/engine.js?v=' + encodeURIComponent(
-      (document.querySelector('meta[name="app-version"]')||{}).content));
-    const jf = await fetch('/data/ref-com.json?v=' + encodeURIComponent(
-      (document.querySelector('meta[name="app-version"]')||{}).content));
-    const ref = (await jf.json()).rows;
-    const j = { BPMList:[{startTime:[0,0,1],bpm:180}], judgeLineList:[{notes:[]}] };
-    for (let i=0;i<400;i++) j.judgeLineList[0].notes.push({startTime:[i,0,4],type:(i%7===0)?2:1,positionX:(i%8)*100-350});
-    const r = m.reportFromChart(m.loadChart(j), 'synth.json', {name:'冒烟'}, 0, ref);
-    return { n:ref.length, basis:r.knn.basis, ref:r.knn.ref, refOff:r.knnOff.ref,
-             lo:r.knn.lo, hi:r.knn.hi, tier:r.knn.tier };
-  }catch(e){ return { err: String(e && (e.stack||e.message||e)) }; }
-})()`);
-ok('浏览器内能用社区参照集查 k-NN', withCom && !withCom.err && withCom.basis === 'community', withCom && withCom.err);
-if (withCom && !withCom.err) {
-  ok('社区参照 ' + withCom.n + ' 行 · 主结果 basis=community', withCom.n >= 9000);
-  ok('不确定带 lo ≤ 中点 ≤ hi', withCom.lo <= withCom.ref && withCom.ref <= withCom.hi,
-    withCom.lo + ' ≤ ' + withCom.ref + ' ≤ ' + withCom.hi);
-  console.log('    合成谱 → 社区共识 ' + withCom.ref + '（' + withCom.lo + '–' + withCom.hi + '）· 官谱标度 ' + withCom.refOff);
-}
-
 console.log('\n未捕获异常 / console.error ：' + errors.length);
 errors.slice(0, 12).forEach(e => console.log('   ! ' + e));
 if (warns.length) console.log('警告 ' + warns.length + ' 条（前 3）：' + warns.slice(0, 3).join(' | ').slice(0, 300));

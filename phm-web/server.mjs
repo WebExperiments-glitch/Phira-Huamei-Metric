@@ -149,7 +149,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
-const PUBLIC_FILES = new Set(['index.html', 'en.html', 'robots.txt', 'favicon.ico', 'privacy.html',
+const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html',
+  'en.html', 'robots.txt', 'favicon.ico', 'privacy.html',
   '404.html', 'sitemap.xml', 'og.png', 'og-en.png']);
 /* ⚠ PUBLIC_DIRS 每加一个目录，都是往互联网上多开一扇门。
    加 data/ 是为了 ref-com.json（社区参照集生成物，生成器只往这里写它）；
@@ -456,8 +457,17 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  /* ── 干净 URL ──
+     站点已经拆成多页（/app 工作台、/charter 谱师、/user 玩家），
+     但不想让用户看到 .html 后缀 —— 分享链接短一点、也少一个改动点
+     （换实现时 URL 不变）。映射是**显式白名单**，不是通配：
+     将来加页面必须同时加进 PUBLIC_FILES，不会因为忘了写路由就暴露文件。 */
+  const CLEAN = { '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
+                  '/privacy': 'privacy.html' };
+  const cleanHit = CLEAN[p];
+
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
-  const rel = p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, '');
+  const rel = cleanHit || (p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, ''));
   if (!isPublicPath(rel)) return send404(res);
   const fp = path.resolve(WEB_ROOT, rel);
   if (!fp.startsWith(WEB_ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
@@ -465,6 +475,8 @@ const server = http.createServer(async (req, res) => {
   /* ⚠ .json 也进长缓存：public/data/ref-com.json 是**生成物**，靠 ?v= 破缓存，
     内容不会就地变。注意 data/ 目录里除了参照集没有别的东西（见 PUBLIC_DIRS）。 */
   const longCache = /\.(js|css|png|svg|ico|webp|woff2|json)$/i.test(rel);
+  /* 页面 HTML 一律 no-cache（sendFile 内部按扩展名判断），
+     所以干净 URL 不需要额外处理缓存头。 */
   if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache, req);
   return send404(res);
 });
