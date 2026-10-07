@@ -1271,7 +1271,7 @@ async function submitPunch(idx){
   }
   msg.innerHTML+='<br><span style="color:var(--fg2)">正在匿名上传…</span>';
   try{
-    const ins=await cloudDB.from("phm_scores").insert({
+    const row={
       chart_name:txtOrNull(r.name||r.label,120),
       chart_diff:txtOrNull(r.knn?r.knn.tier:null,8),
       chart_level:txtOrNull(r.level,60),
@@ -1283,8 +1283,9 @@ async function submitPunch(idx){
       nps:numOrNull(r.feats&&r.feats.real_notes_per_second,0,200,4),
       engine_ver:"5d-knn-v0.3.2",
       client_id:clientId()
-    });
-    if(ins.error) throw ins.error;
+    };
+    const ins=await apiWrite("/api/scores",[row]);      /* 走服务端网关 */
+    if(!ins||!(ins.written>0)) throw new Error("服务端未写入");
     renderCount((window.PHM_COUNT||0)+1);   /* 计数就地 +1 */
     msg.innerHTML="✅ "+base
       +'<br><span style="color:var(--green)">已匿名上传，感谢帮我们校准定数</span>';
@@ -1803,11 +1804,12 @@ async function authChangePw(){
 }
 /* 公开统计（只显示聚合数，不暴露个体） */
 async function renderStats(){
-  const el=document.getElementById("pstats"); if(!el||!cloudDB) return;
+  const el=document.getElementById("pstats"); if(!el) return;
   try{
-    const r=await cloudDB.rpc("phm_stats");
-    if(r.error||!r.data){ el.style.display="none"; return; }
-    const s=r.data;
+    const r=await fetchTO("/api/stats",15000);          /* 走服务端网关 */
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const s=await r.json();
+    if(!s||s.error) throw new Error("stats error");
     el.innerHTML="📊 本站公开数据：账号 <b>"+s.profiles+"</b> 个 · 今日活跃 <b>"+s.active_1d
       +"</b> · 7 日活跃 <b>"+s.active_7d+"</b> · 已绑定 Phira <b>"+s.phira_bound
       +"</b> · 成绩数据 <b>"+s.scores+"</b> 条 · 定数缓存 <b>"+s.charts+"</b> 张";
@@ -1863,8 +1865,8 @@ async function contributeChart(rep){
       engine_ver:"5d-knn-v0.3.2"
     };
     if(payload.chart_id==null) return null;
-    const up=await cloudDB.from("phm_charts").upsert(payload,{onConflict:"chart_id"});
-    if(up.error) return null;
+    const up=await apiWrite("/api/contribute",[payload]);   /* 走服务端网关 */
+    if(!up||!(up.written>0)) return null;
     CHART_CACHE[hit.id]=payload;
     return {id:hit.id,name:hit.name};
   }catch(e){ return null; }
@@ -1931,6 +1933,34 @@ function renderPlayStat(s){
   el.style.display="";
 }
 
+/* 服务端写入网关（/api/*）：校验 + 限流 + 落库都在服务端做。
+   同域部署（Node 服务同时托管本页），所以无跨域问题。
+   ⚠ 服务端不可用时自动回退直连云数据库 —— Node 层是增强，不是单点故障。 */
+async function apiWrite(path,rows){
+  try{
+    const r=await fetchTO(path,20000,{method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({rows:rows})});
+    if(!r.ok){
+      let msg="HTTP "+r.status;
+      try{ const j=await r.json(); if(j&&(j.error||j.note)) msg=j.error||j.note; }catch(e){}
+      throw new Error(msg);
+    }
+    const j=await r.json();
+    if(j&&j.fail&&j.fail.length) throw new Error(String(j.fail[0]).slice(0,120));
+    return j;
+  }catch(e){
+    /* 回退：直连数据面（与旧行为一致，保证功能不中断） */
+    if(!cloudDB) throw e;
+    const isChart=path.indexOf("contribute")>=0;
+    const table=isChart?"phm_charts":"phm_scores";
+    const oc=isChart?"chart_id":"phira_user_id,chart_id";
+    const wr=await cloudWrite(table,rows,{batchSize:8,gap:450,onConflict:oc});
+    if(!wr.ok&&wr.fail.length) throw new Error(String(wr.fail[0]).slice(0,120));
+    return {written:wr.ok,fallback:true};
+  }
+}
+
 /* 页面级状态条（算定数/导入的进度与错误都显示在这里，绝不写进隐藏面板） */
 function csMsg(html,kind){
   const el=document.getElementById("csmsg"); if(!el) return;
@@ -1986,9 +2016,11 @@ async function computeChart(cid,btn,info){
       engine_ver:"5d-knn-v0.3.2"
     };
     if(payload.chart_id==null) throw new Error("谱号异常");
-    if(cloudDB){
-      const up=await cloudDB.from("phm_charts").upsert(payload);
-      if(up.error) csMsg("⚠ 定数已算出，但云端缓存写入失败："+esc(up.error.message),"warn");
+    try{
+      const up=await apiWrite("/api/contribute",[payload]);
+      if(!up||!(up.written>0)) csMsg("⚠ 定数已算出，但共享缓存写入未成功","warn");
+    }catch(ce){
+      csMsg("⚠ 定数已算出，但共享缓存写入失败："+esc((ce&&ce.message)||"网络异常"),"warn");
     }
     CHART_CACHE[cid]=payload;
     const rc=payload.ref_const;
@@ -2194,20 +2226,19 @@ async function pfImport(){
         .eq("phira_user_id",u.id).in("chart_id",cids);
       if(!ex.error) existN=(ex.data||[]).length;
     }catch(e){}
-    /* upsert + 分批 + 限流重试：唯一索引保证同一账号同一谱面只有一行 */
-    const wr=await cloudWrite("phm_scores",payload,{
-      batchSize:8, gap:450, onConflict:"phira_user_id,chart_id",
-      onProgress:function(t){ csMsg("正在写入 "+payload.length+" 条成绩… "+esc(t)); }
-    });
-    if(wr.ok===0&&wr.fail.length) throw new Error(wr.fail[0]);
-    const added=Math.max(0,wr.ok-existN);      /* 只有新增才算「收到」，更新不重复计数 */
-    let txt="✅ 已写入 "+wr.ok+" 条成绩（新增 "+added+" 条）";
+    /* 走服务端网关：分批 + 限流 + 校验都在服务端做（失败会自动回退直连） */
+    csMsg("正在写入 "+payload.length+" 条成绩…（服务端校验中）");
+    const wr=await apiWrite("/api/scores",payload);
+    const written=(wr&&wr.written)||0;
+    if(!written) throw new Error("服务端未写入任何行");
+    const added=Math.max(0,written-existN);      /* 只有新增才算「收到」，更新不重复计数 */
+    let txt="✅ 已写入 "+written+" 条成绩（新增 "+added+" 条）"
+      +(wr.fallback?"（直连模式）":"（经服务端网关）");
     if(existN>0) txt+="，其中 "+existN+" 条已存在 → 已更新为最新成绩";
-    if(wr.fail.length) txt+="；⚠ "+wr.fail.length+" 条失败（"+String(wr.fail[0]).slice(0,50)+"）";
     txt+="，感谢你帮定数公式变准！";
-    csMsg(txt,wr.fail.length?"warn":"ok");
+    csMsg(txt,"ok");
     btn.disabled=false;
-    btn.textContent="🔄 再导入一次（已写入 "+wr.ok+" 条）";   /* 保留入口，可重复点（upsert 幂等） */
+    btn.textContent="🔄 再导入一次（已写入 "+written+" 条）";   /* 保留入口，可重复点（upsert 幂等） */
     renderCount((window.PHM_COUNT||0)+added);
   }catch(e){
     btn.disabled=false;

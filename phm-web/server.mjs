@@ -26,6 +26,58 @@ function storeLoad() {
 }
 function storeSave(o) { try { fs.writeFileSync(STORE, JSON.stringify(o)); } catch {} }
 
+/* ── 云数据库（服务端复现浏览器调用方式）──
+ * 实测确认：认证头是 x-wb-webapp-access-key（=publishableKey），身份由 referer 判定。
+ * ⚠ 这意味着服务端与浏览器同为 anon 角色 —— 所以这一层是「统一入口」，不是「更高权限」。
+ * 真正的权限提升需要 service key，当前托管环境不提供。 */
+const DB = {
+  base: 'https://phm.app.workbuddy.host/.cloud/database/rest',
+  key: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b',
+  referer: 'https://phm.app.workbuddy.host/',
+  batch: 8,          /* 环境级限流约 25~40 并发触发，服务端同样要温和 */
+  gapMs: 400,
+};
+function dbHeaders(extra) {
+  return Object.assign({
+    'x-wb-webapp-access-key': DB.key,
+    'referer': DB.referer,
+    'content-type': 'application/json',
+    'prefer': 'resolution=merge-duplicates,return=minimal',
+  }, extra || {});
+}
+async function dbFetch(pathAndQuery, init, timeoutMs = 15000) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const r = await fetch(DB.base + pathAndQuery, Object.assign({ headers: dbHeaders() }, init || {}, { signal: ctl.signal }));
+    clearTimeout(timer);
+    const txt = await r.text();
+    return { ok: r.ok, status: r.status, body: txt.slice(0, 400) };
+  } catch (e) {
+    clearTimeout(timer);
+    return { ok: false, status: 0, error: String(e.message || e).slice(0, 200) };
+  }
+}
+/* 分批 upsert（与前端同策略：批 8 条 + 间隔 400ms） */
+async function dbUpsert(table, rows, onConflict) {
+  let ok = 0; const fails = [];
+  for (let i = 0; i < rows.length; i += DB.batch) {
+    const chunk = rows.slice(i, i + DB.batch);
+    const q = '/' + table + (onConflict ? '?on_conflict=' + encodeURIComponent(onConflict) : '');
+    let done = false;
+    for (let attempt = 1; attempt <= 3 && !done; attempt++) {
+      const r = await dbFetch(q, { method: 'POST', body: JSON.stringify(chunk) });
+      if (r.ok) { ok += chunk.length; done = true; break; }
+      const limited = r.status === 429 || /rate limit|exceeds|too many/i.test(r.body || '');
+      if (limited && attempt < 3) { await new Promise(s => setTimeout(s, 500 * attempt)); continue; }
+      fails.push(r.status + ' ' + String(r.body || r.error || '').slice(0, 120));
+      done = true;
+    }
+    if (i + DB.batch < rows.length) await new Promise(s => setTimeout(s, DB.gapMs));
+  }
+  return { ok, fail: fails.slice(0, 3) };
+}
+
 /* ── 业务校验：与前端 numOrNull 同一套规则，服务端重算一遍 ── */
 const LIMITS = {
   chart_id: [1, null], name: null, level: null, difficulty: [0, 25],
@@ -147,19 +199,37 @@ const server = http.createServer(async (req, res) => {
     }
     return send(res, 200, JSON.stringify(out));
   }
-  /* 写入网关：校验 + 限流（当前仅回显通过校验的行，不落库） */
+  /* 写入网关：校验 + 限流 + 落库 */
   if (p === '/api/contribute' || p === '/api/scores') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
     if (!rateOk(ip)) return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
     const body = await readBody(req);
     const rows = Array.isArray(body) ? body : (body && Array.isArray(body.rows) ? body.rows : null);
     if (!rows) return send(res, 400, JSON.stringify({ error: 'body must be an array or {rows:[]}' }));
+    if (rows.length > 500) return send(res, 413, JSON.stringify({ error: '单次最多 500 行' }));
+
+    const table = p === '/api/contribute' ? 'phm_charts' : 'phm_scores';
+    const onConflict = p === '/api/contribute' ? 'chart_id' : 'phira_user_id,chart_id';
     const required = p === '/api/contribute' ? ['chart_id', 'name'] : ['chart_name'];
     const clean = rows.map(r => sanitize(r, required)).filter(Boolean);
+
+    if (!clean.length) {
+      return send(res, 200, JSON.stringify({
+        received: rows.length, accepted: 0, rejected: rows.length, written: 0,
+        note: '全部未通过服务端校验，未写入',
+      }));
+    }
+    const wr = await dbUpsert(table, clean, onConflict);
     return send(res, 200, JSON.stringify({
       received: rows.length, accepted: clean.length, rejected: rows.length - clean.length,
-      note: '服务端校验网关（第一阶段：只校验不落库）', sample: clean.slice(0, 1),
+      written: wr.ok, fail: wr.fail.length ? wr.fail : undefined,
+      table, source: 'server-proxy',
     }));
+  }
+  /* 聚合统计（服务端转发 RPC，前端可不再直连） */
+  if (p === '/api/stats') {
+    const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
+    return send(res, r.ok ? 200 : 502, r.ok ? (r.body || '{}') : JSON.stringify({ error: 'stats unavailable', detail: r.body || r.error }));
   }
 
   /* 静态资源 */
