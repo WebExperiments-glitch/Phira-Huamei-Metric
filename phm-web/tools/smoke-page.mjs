@@ -140,14 +140,29 @@ for (const R of ROUTES) {
     out.dom = {};
     ${JSON.stringify(R.sel)}.forEach(function(s){ out.dom[s] = !!document.querySelector(s); });
     out.navLinks = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); });
+    /* 样式表的缓存键 —— 它必须与 app-version 是同一个串。
+       漏改一个就会出现"版本升了但 CSS 还是旧的长缓存"，
+       改了样式却在用户那儿看不到（开发时最容易被这个骗）。 */
+    const lk = document.querySelector('link[rel="stylesheet"][href*="?v="]');
+    out.cssV = lk ? (lk.getAttribute('href').split('?v=')[1] || null) : null;
     return out;
   })()`);
 
   /* 不写死版本号（写死的话每次升版本都要改测试，迟早漏），
-     只断言形态：V<数字>.<数字>.<数字>，且各页一致 */
-  ok('有版本号', /^V\d+\.\d+\.\d+$/.test(String(info.ver)), 'ver=' + info.ver);
+     只断言**形态**。形态是「四段式」—— 见 docs/ARCHITECTURE.md「版本策略」：
+       V0.9.2.0 → 小更新（纯前端效果）→ V0.9.2.1
+                 → UI 改动等      → V0.9.3.0（末位归零）
+     两段/三段的写法（V0.9 / V0.9.0）是**不合规**的，规范形式只有四段这一种。
+     ⚠ 所以这里必须卡 4 段，否则有人写回三段也没人拦。 */
+  ok('版本号是四段式（V{a}.{b}.{c}.{d}）',
+    /^V\d+\.\d+\.\d+\.\d+$/.test(String(info.ver)), 'ver=' + info.ver);
+  ok('版本号不是两段/三段（V0.9 / V0.9.0 都不合规）',
+    !/^V\d+(\.\d+){1,2}$/.test(String(info.ver)), 'ver=' + info.ver);
   if (!CC.ver) CC.ver = info.ver;
   else ok('各页版本号一致', CC.ver === info.ver, CC.ver + ' vs ' + info.ver);
+  /* 缓存键必须跟版本号同步 —— 这两处漏改任何一处都会"改了看不到" */
+  ok('样式表 ?v= 与 app-version 一致',
+    info.cssV == null || info.cssV === info.ver, 'cssV=' + info.cssV + ' ver=' + info.ver);
   ok('有页面标题', !!info.title && info.title.length > 3, info.title);
   ok('导航已渲染', info.hasNav === true);
   ok('导航含 6 个入口', (info.navLinks || []).length >= 6, JSON.stringify(info.navLinks));

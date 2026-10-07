@@ -312,16 +312,22 @@ td.r, th.r { text-align: right; }
    以前是 `border-left: 3px solid <彩色>` —— 那种彩色左边框是
    "模板感/AI 感"最重的一种做法（用户专门截图点出来过）。
    改成**中性卡片 + 一个小状态圆点**：信息量一样，安静得多。
+   ⚠ 圆点必须用 `position:absolute`，**不能用 flex 布局**：
+   消息内容是含 <br>/<b> 的 HTML，在 flex 容器里每个内联元素都会变成
+   独立 flex item —— 文字会被拆成一块块、在窄容器里逐字竖排。
+   这个坑真踩过：谱师页的提示整段变成竖排乱码。
    ⚠ 新增状态样式时别再往左边框上想。 */
 .status {
-  display: flex; gap: 9px; align-items: flex-start;
-  padding: 10px 13px; border-radius: var(--r); margin: 10px 0;
+  position: relative;
+  padding: 10px 13px 10px 31px;
+  border-radius: var(--r); margin: 10px 0;
   background: var(--card2); border: 1px solid var(--line);
   font-size: 12.8px; line-height: 1.68; color: var(--fg2);
 }
 .status::before {
-  content: ""; flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--fg3); margin-top: 7px;
+  content: ""; position: absolute; left: 14px; top: 15px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--fg3);
 }
 .status.ok::before   { background: var(--ok); }
 .status.warn::before { background: var(--warn); }

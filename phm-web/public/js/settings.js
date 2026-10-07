@@ -46,16 +46,25 @@ export const PLAIN_KEYS = Object.freeze([
   KEYS.theme, KEYS.lang,
 ]);
 
-/** 给人看的名字。设置页直接渲染这张表，不再各处手写文案。 */
+/** 本地存储表的行名 —— ⚠ 值是 **i18n 词条名**，不是给人看的字面量。
+ *
+ *  【为什么不能直接写中文】
+ *    这个文件是「**存**」的层（键名 + 读写 + 持久化），i18n 是「译」的层，
+ *    而 i18n.js 要 import 本文件拿 `lang` 存取器 —— 本文件一旦反过来
+ *    import i18n 就是**循环依赖**。所以这里只给键，翻译由页面做：
+ *      页面上写 `t(LABELS[k])`。
+ *    以前这里写的是中文字面量，于是设置页「本机存储」那一栏
+ *    切到英文后仍然是中文。 */
 export const LABELS = Object.freeze({
-  [KEYS.optin]:     '登录后自动上传成绩',
-  [KEYS.notice]:    '数据飞轮告知已确认',
-  [KEYS.cid]:       '匿名标识（用于把同一人的贡献归组）',
-  [KEYS.phiraName]: 'Phira 用户名（自动填充）',
-  [KEYS.phiraUid]:  'Phira UID（自动填充）',
-  [KEYS.lastUid]:   '上次查询的玩家',
-  [KEYS.theme]:     '外观主题',
-  [KEYS.lang]:      '界面语言',
+  [KEYS.optin]:     'set.store.optin',
+  [KEYS.notice]:    'set.store.notice',
+  [KEYS.cid]:       'set.store.cid',
+  [KEYS.phiraName]: 'set.store.phiraName',
+  [KEYS.phiraUid]:  'set.store.phiraUid',
+  [KEYS.lastUid]:   'set.store.lastUid',
+  /* 这两项名字与设置页的分区标题一致，直接复用已有词条，不再造一份 */
+  [KEYS.theme]:     'set.theme',
+  [KEYS.lang]:      'set.lang',
 });
 
 /* ══════════════════════════════════════════════════════════════
@@ -287,23 +296,29 @@ export const lang = {
  * 盘点 / 导出 / 清空 —— 设置页的「数据」区块用
  * ══════════════════════════════════════════════════════════════ */
 
-/** 列出本站实际存在哪些键（含 own 声明）。设置页据此展示「存了什么」。 */
+/** 列出本站实际存在哪些键（含 own 声明）。设置页据此展示「存了什么」。
+ *
+ *  @returns [{key, value, labelKey, vars}]
+ *    labelKey 是 i18n 词条名，vars 是插值变量 —— 页面自己调 `t(labelKey, vars)`。
+ *    本模块不碰 i18n（见 LABELS 上面的说明：会循环依赖）。 */
 export function inventory() {
   const rows = [];
   for (const k of PLAIN_KEYS) {
     const v = get(k, null);
-    if (v !== null) rows.push({ key: k, value: v, label: LABELS[k] || k });
+    if (v !== null) rows.push({ key: k, value: v, labelKey: LABELS[k] || k, vars: null });
   }
   for (const uid of own.list()) {
-    rows.push({ key: KEYS.ownPrefix + uid, value: '1', label: '本人账号声明 · UID ' + uid });
+    rows.push({ key: KEYS.ownPrefix + uid, value: '1', labelKey: 'set.store.own', vars: { uid } });
   }
   return rows;
 }
 
-/** 导出快照（JSON 对象）。只含设置，**不含任何凭据**。 */
+/** 导出快照（JSON 对象）。只含设置，**不含任何凭据**。
+ *  `_note` 是给人看的说明，所以直接写双语 —— 这个文件可能被任何人打开，
+ *  而它不经过 i18n（导出的是数据，不是界面）。 */
 export function exportAll() {
   const o = {
-    _note: 'P.H.M. 本地设置快照 —— 只含浏览器里存的那几项，不含账号凭据',
+    _note: 'P.H.M. local settings snapshot / 本地设置快照 — browser settings only, no credentials / 只含浏览器里存的那几项，不含账号凭据',
     _exportedAt: new Date().toISOString(),
     settings: {},
   };

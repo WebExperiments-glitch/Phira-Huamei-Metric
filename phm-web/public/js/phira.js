@@ -21,11 +21,13 @@ export const PHIRA_API = 'https://api.phira.cn';
  *    `{"count":0,"results":[{...Mivik...}]}` —— count=0 但 results 非空。
  *    ⇒ 永远不要用 count 判断"有没有找到"，一律看 results.length。
  *
- * 2. `/chart?search=` 同时匹配**曲名和谱师**，两者混在一起无法区分。
- *    ⇒ 想要"某谱师的作品"，必须自己在客户端按 charter 字段精确过滤。
+ * 2. ⚠ `/chart?search=` 同时匹配 **name + charter + description** 三个字段，
+ *    三者混在一起无法区分（见第 20 条）。
+ *    ⇒ 想要"某谱师的作品"，用 `?uploader=`（第 18 条），不要靠这个。
  *
- * 3. `/chart?charter=` / `?author=` 这类参数**不存在**（返回全量 9690 条，
- *    静默忽略而不是报错）。⇒ 别指望服务端帮你按谱师过滤。
+ * 3. `/chart?charter=` / `?author=` / `?userId=` 这类参数**不存在**（返回全量 9691 条，
+ *    静默忽略而不是报错）。⇒ 别指望服务端按谱师**文本**过滤。
+ *    ⚠ 但 `?uploader={数字 id}` 存在且有效 —— 见第 18 条。
  *
  * 4. ⚠️ `/record?player=` 只给**最近 20 条**，`page` / `pageNum` **完全无效**：
  *    分页参数在 OpenAPI 规范里写着，但处理器不认 —— 实测 page=0/1/2
@@ -85,6 +87,33 @@ export const PHIRA_API = 'https://api.phira.cn';
  *     多发现 1 张"最近 20 条里没有"的谱 ⇒ **确实有效**，但成本约 2s/张，
  *     想覆盖全部上架谱（631 张）得跑几分钟。适合做成**按需**的深度分析，
  *     不适合默认加载。
+ *
+ * ── 2026-10-07 补测：谱师搜索的真正解法 ────────────────────────────
+ *
+ * 18. ✅✅ `/chart?uploader={uid}` 是**服务端精确过滤**，不是被忽略的参数！
+ *     实测 `uploader=257272` → `{"count":2,"results":[…]}`，两条记录的
+ *     uploader 字段都等于 257272；`uploader=999999999` → `{"count":0,"results":[]}`；
+ *     抽样 5695 → 5 张、5775 → 1 张，`count` 与 `results.length` 自洽。
+ *     ⇒ 这条推翻了本文件里"陷阱 3"的悲观结论（`charter=`/`author=` 确实不存在，
+ *       但 `uploader=` 存在）。**这是「按谱师查作品」的正解**。
+ *     ⚠ `uploader` 是**用户 id**，不是 charter 文本 —— 所以要两步：
+ *       `/user?search={名}` 拿 id → `/chart?uploader={id}` 拿作品。
+ *     ⚠ 不能和 `search=` 组合：`uploader=257272&search=x` 返回空响应体。
+ *     ⚠ `pageNum` 上限同样是 30（`pageNum=100` 报 Too many entities）。
+ *     ⚠ 实测个人谱师的作品数是个位数到几十 —— 别为"上千张"做过度设计，
+ *       真出现超大 count 是异常，`getAllChartsByUploader` 的 maxPages 会兜住。
+ *
+ * 19. ⚠ `/user?search=` 是**子串**匹配且**忽略 page**：实测
+ *     `search=平方秒` 的第 1 页与第 2 页返回完全相同的 3 条。
+ *     ⇒ 用户搜索只能拿到"一页候选"，不能枚举 —— 恰好够用（让用户点选）。
+ *     ⚠ 中文近形字会搜不到：作者本体是「平方秒**和**立方吨」(id 257272)，
+ *       搜「平方秒**与**立方吨」只返回 2 个**同名仿号**，搜「平方秒」才找到本体。
+ *       ⇒ 页面上必须把候选**全列出来**，并且允许用户换更短的词。
+ *
+ * 20. ⚠ `/chart?search=` 匹配 **name + charter + description 三个字段**。
+ *     实测搜「平方」返回 59 条，绝大多数是**别人的谱面描述里写了他的感谢名单**
+ *     （例：`Eviternity` 的 description 写着「特别感谢b站@平方秒与立方吨」）。
+ *     ⇒ 把 search 命中一律当成"他的作品"是错的；必须按字段分类展示。
  * ────────────────────────────────────────────────────────────── */
 
 export class PhiraError extends Error {
@@ -247,44 +276,117 @@ export async function getCharts(ids) {
   return map;
 }
 
-/** 按谱师名扫**一页**搜索结果，并把结果分成「精确同名」与「仅包含」两类。
+/** ⭐ 某个账号**上传**的谱面（服务端精确过滤）。
  *
- *  为什么要分：`/chart?search=` 同时匹配**曲名**与**谱师**（陷阱 2），
- *  搜 "Kevin" 会出来一堆曲名带 kevin 的、谱师是别人的谱。混在一起看非常困惑。
+ *  这是「按谱师查作品」的正解 —— 见陷阱 18。
+ *  为什么不用 `/chart?search=` 翻页筛 charter：
+ *    ① charter 是**自由文本**，谱师常把团队名写进去（他的谱 charter 写
+ *       `SqrtSecond Chart Team`，而不是自己的名字），文本比对必然漏；
+ *    ② search 还命中 description，混进大量"别人的谱面感谢了他"的噪声；
+ *    ③ 翻页最多只能覆盖 Phira 结果集的前若干页，穷举不现实。
+ *  而 `uploader` 是**结构化外键**，一条 SQL 就精确了。
  *
- *  @returns {exact, fuzzy, count, page, pageNum}
- *    count 是 Phira 给的**总结果数**（用于算总页数 —— 真分页要靠它）
+ *  ⚠ 只能单账号、不能与 `search=` 组合（组合返回空响应）。
+ *  ⚠ 语义是"谁**上传**的"，不等于"charter 字段写了谁" —— 团队号代传、
+ *    谱面转让都会让两者不一致。所以页面上仍然要保留 charter 那条路径兜底。
+ */
+export async function getChartsByUploader(uid, opts) {
+  const o = opts || {};
+  const page = Math.max(1, o.page || 1);
+  const pageNum = Math.min(30, Math.max(1, o.pageNum || 30));
+  const j = await phGet('/chart?' + qs({ uploader: Number(uid), page, pageNum }));
+  if (Array.isArray(j)) return { charts: j, count: j.length, page, pageNum, pages: 1 };
+  const charts = (j && j.results) || [];
+  const count = (j && j.count) || 0;
+  return { charts, count, page, pageNum, pages: Math.max(1, Math.ceil(count / pageNum)) };
+}
+
+/** 拉某个账号上传的**全部**谱面（自动翻页）。
+ *  @param onProgress ({page, pages, got, count}) 每页回调一次
+ *  @param maxPages 保险丝 —— 30 × 10 = 300 张，个人谱师远够；再多就是异常了 */
+export async function getAllChartsByUploader(uid, opts) {
+  const o = opts || {};
+  const maxPages = Math.max(1, o.maxPages || 10);
+  const pageNum = Math.min(30, Math.max(1, o.pageNum || 30));
+  const out = [];
+  let count = 0, pages = 1, done = 0;
+  for (let page = 1; page <= maxPages; page++) {
+    let r;
+    try { r = await getChartsByUploader(uid, { page, pageNum }); }
+    catch (e) { if (page === 1) throw e; break; }   /* 第一页就失败 = 真失败；后续失败 = 拿到多少算多少 */
+    count = r.count; pages = r.pages;
+    for (const c of r.charts) out.push(c);
+    done = page;
+    if (typeof o.onProgress === 'function') o.onProgress({ page, pages, got: out.length, count });
+    if (!r.charts.length || page >= pages) break;
+  }
+  const byDiff = (a, b) => (+b.difficulty || 0) - (+a.difficulty || 0);
+  return { charts: out.sort(byDiff), count, pages, lastPage: done, truncated: done < pages };
+}
+
+/** 给账号候选排序 —— 只**排序**，绝不替用户选。
+ *  权重：同名 > 前缀相同 > 名字更短（更可能是本体）> RKS 高（更可能是活跃号）。
+ *  理由：实测「平方秒和立方吨」有 2 个同名仿号（`平方秒与立方吨` / `…吨.`），
+ *  盲取第一个会把用户带到**别人的档案**上 —— 这正是"我搜不到我自己"的来源。 */
+export function rankUserCands(users, name) {
+  const low = String(name || '').trim().toLowerCase();
+  const score = u => {
+    const n = String(u.name || '').toLowerCase();
+    let s = 0;
+    if (n === low) s -= 1000;                       /* 完全同名，排最前 */
+    if (n.startsWith(low)) s -= 200;                /* 前缀命中 */
+    s += Math.abs(n.length - low.length) * 3;       /* 长度越接近越像 */
+    if (!u.avatar) s += 40;                         /* 无头像的多半是小号/仿号 */
+    s -= Math.min(30, (+u.rks || 0));               /* 活跃号优先 */
+    if (u.bio) s -= 10;
+    return s;
+  };
+  return (users || []).slice().sort((a, b) => score(a) - score(b));
+}
+
+/** 按谱师名扫**一页**搜索结果，并把结果按**命中字段**分三类。
+ *
+ *  为什么必须分：`/chart?search=` 匹配 name + charter + description（第 20 条）。
+ *  实测搜「平方」59 条里，绝大多数是**别人的谱面描述里感谢了他**，
+ *  一条都不是他的作品。三者混在一起看，用户会以为"搜到了"其实全是噪声。
+ *
+ *  @returns {exact, fuzzy, mentioned, scanned, count, page, pageNum, pages}
+ *    exact     —— charter 字段与搜索词**完全相同**（最可能是本人/本团队）
+ *    fuzzy     —— charter 字段**包含**搜索词（团队名、带后缀的写法）
+ *    mentioned —— 只有 description（或曲名）提到，charter 完全不含 ⇒ **不是他的作品**
  */
 export async function getCharterPage(name, opts) {
   const o = opts || {};
   const want = String(name || '').trim();
   const page = Math.max(1, o.page || 1);
   const pageNum = Math.min(30, Math.max(1, o.pageNum || 30));
-  if (!want) return { exact: [], fuzzy: [], count: 0, page, pageNum };
+  if (!want) return { exact: [], fuzzy: [], mentioned: [], count: 0, page, pageNum, pages: 1, scanned: 0 };
   const r = await searchCharts(want, { page, pageNum });
   const low = want.toLowerCase();
-  const exact = [], fuzzy = [];
+  const exact = [], fuzzy = [], mentioned = [];
   for (const c of r.charts) {
     if (c == null || c.id == null) continue;
     const ch = String(c.charter || '').trim().toLowerCase();
     if (ch === low) exact.push(c);
     else if (ch.includes(low)) fuzzy.push(c);
+    else mentioned.push(c);      /* 命中的只能是 description / name */
   }
-  return { exact, fuzzy, count: r.count, page, pageNum,
+  return { exact, fuzzy, mentioned, count: r.count, page, pageNum,
            scanned: r.charts.length,
            pages: Math.max(1, Math.ceil(r.count / pageNum)) };
 }
 
-/** 连扫多页（给"聚合统计"用）。onProgress 每页回调一次，用于画进度与支持中断。
+/** 连扫多页 `/chart?search=`，把命中按**字段来源**分三类（见 getCharterPage）。
  *  ⚠ 会真的打很多次 Phira 接口 —— 所以 maxPages 默认只给 10，
- *    并且由调用方决定要不要继续（不替用户做"扫 67 页"这种决定）。 */
+ *    并且由调用方决定要不要继续（不替用户做"扫 67 页"这种决定）。
+ *  ⚠ 这条路是**兜底**，不是主路径 —— 主路径是 `getAllChartsByUploader`。 */
 export async function scanCharter(name, opts) {
   const o = opts || {};
   const from = Math.max(1, o.fromPage || 1);
   const maxPages = Math.max(1, o.maxPages || 10);
   const pageNum = Math.min(30, Math.max(1, o.pageNum || 30));
   const seen = new Set(o.seen || []);
-  const exact = [], fuzzy = [];
+  const exact = [], fuzzy = [], mentioned = [];
   let count = 0, pages = 1, done = 0;
 
   for (let page = from; page < from + maxPages; page++) {
@@ -292,15 +394,19 @@ export async function scanCharter(name, opts) {
     try { r = await getCharterPage(name, { page, pageNum }); }
     catch (e) { if (page === from) throw e; break; }
     count = r.count; pages = r.pages;
-    for (const c of r.exact) if (!seen.has(c.id)) { seen.add(c.id); exact.push(c); }
-    for (const c of r.fuzzy) if (!seen.has(c.id)) { seen.add(c.id); fuzzy.push(c); }
+    const push = (arr, c) => { if (!seen.has(c.id)) { seen.add(c.id); arr.push(c); } };
+    for (const c of r.exact) push(exact, c);
+    for (const c of r.fuzzy) push(fuzzy, c);
+    for (const c of r.mentioned) push(mentioned, c);
     done = page;
-    if (typeof o.onProgress === 'function') o.onProgress({ page, pages, count, exact: exact.length, fuzzy: fuzzy.length });
+    if (typeof o.onProgress === 'function') {
+      o.onProgress({ page, pages, count, exact: exact.length, fuzzy: fuzzy.length, mentioned: mentioned.length });
+    }
     if (!r.scanned || page >= pages) break;      /* 已经到底 */
     if (o.signal && o.signal.aborted) break;
   }
   const byDiff = (a, b) => (+b.difficulty || 0) - (+a.difficulty || 0);
-  return { exact: exact.sort(byDiff), fuzzy: fuzzy.sort(byDiff),
+  return { exact: exact.sort(byDiff), fuzzy: fuzzy.sort(byDiff), mentioned: mentioned.sort(byDiff),
            count, pages, lastPage: done, seen: [...seen],
            truncated: done < pages };
 }

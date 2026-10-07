@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.0">
+<meta name="app-version" content="V0.9.1.0">
 <title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -29,7 +29,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.1.0">
 <style>
 .hero{text-align:center;padding:22px 0 6px}
 .hero h1{font-size:30px;font-weight:400;letter-spacing:.5px;line-height:1.32}
@@ -103,27 +103,27 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <div class="card">
-  <h2>为什么是两个数字</h2>
-  <div class="sub">同一个谱面结构，在两份参照集上会得到两个值 —— 这不是"其中一个算错了"，而是两把不同的尺子。</div>
+  <h2 data-i18n="home.why.t">为什么是两个数字</h2>
+  <div class="sub" data-i18n-html="home.why.sub">同一个谱面结构，在两份参照集上会得到两个值 —— 这不是"其中一个算错了"，而是两把不同的尺子。</div>
   <div class="demo">
     <div class="dcard a">
-      <div class="k">社区共识</div>
+      <div class="k" data-i18n="home.dc.com.k">社区共识</div>
       <div class="v">15.6</div>
-      <div class="n">9,508 张 Phira 社区谱里最相近的 20 张<br>→ 站内谱师实际定价的共识</div>
+      <div class="n" data-i18n-html="home.dc.com.n">9,508 张 Phira 社区谱里最相近的 20 张<br>→ 站内谱师实际定价的共识</div>
     </div>
     <div class="dcard b">
-      <div class="k">官谱标度</div>
+      <div class="k" data-i18n="home.dc.off.k">官谱标度</div>
       <div class="v">16.1</div>
-      <div class="n">换成 1,037 张 Phigros 官谱<br>→ 与官方一致的绝对标度</div>
+      <div class="n" data-i18n-html="home.dc.off.n">换成 1,037 张 Phigros 官谱<br>→ 与官方一致的绝对标度</div>
     </div>
   </div>
-  <div class="note">
+  <div class="note" data-i18n-html="home.why.n1">
     <b>为什么必须印两个：</b>官谱和社区谱<b>结构分布本来就不同</b> ——
     社区谱定数中位 <b>15.1</b>，官谱 <b>10.6</b>；社区谱的长条占比只有官谱的 1/3、拖键是 5 倍。
     只印一个数字，社区谱师就会看到「我的 IN 14 被算成 11.6」那样对不上的结果。
     <b>把差距印出来，争议就变成了信息。</b>
   </div>
-  <div class="note info">
+  <div class="note info" data-i18n-html="home.why.n2">
     每个数都带<b>不确定范围</b>（那 20 张参照谱的定数跨度）。跨度大 = 这张谱的结构在参照集里
     没有紧密对应物，中点不该被当成结论 —— 所以卡片上会直接标出来。<br>
     实测（1,367 张留出社区谱）：<b>|偏差| 均值 0.820 · p90 1.40 · ≤1.0 命中 84.2%</b>。
@@ -132,33 +132,33 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
 <div class="card">
   <div class="row" style="justify-content:space-between;align-items:baseline">
-    <h2 style="margin:0">站点数据</h2>
-    <span class="dim2" style="font-size:12px" id="statNote">读取中…</span>
+    <h2 style="margin:0" data-i18n="home.stats.t">站点数据</h2>
+    <span class="dim2" style="font-size:12px" id="statNote" data-i18n="c.loading">读取中…</span>
   </div>
   <div class="stats" id="stats">
-    <div class="st"><div class="v skel" style="height:24px"></div><div class="k">定数缓存</div></div>
-    <div class="st"><div class="v skel" style="height:24px"></div><div class="k">社区参照</div></div>
-    <div class="st"><div class="v skel" style="height:24px"></div><div class="k">官谱参照</div></div>
-    <div class="st"><div class="v skel" style="height:24px"></div><div class="k">成绩记录</div></div>
+    <div class="st"><div class="v skel" style="height:24px"></div><div class="k" data-i18n="home.stats.cache">定数缓存</div></div>
+    <div class="st"><div class="v skel" style="height:24px"></div><div class="k" data-i18n="home.stats.com">社区参照</div></div>
+    <div class="st"><div class="v skel" style="height:24px"></div><div class="k" data-i18n="home.stats.off">官谱参照</div></div>
+    <div class="st"><div class="v skel" style="height:24px"></div><div class="k" data-i18n="home.stats.scores">成绩记录</div></div>
   </div>
 </div>
 
 <footer>
   <div class="row" style="justify-content:space-between">
-    <span>P.H.M. Standard · <span id="verfoot">开发者测试版</span> · GPL-3.0</span>
-    <span><a href="/app">算定数</a> · <a href="/charter">谱师</a> · <a href="/user">玩家</a>
+    <span>P.H.M. Standard · <span id="verfoot"></span> · GPL-3.0</span>
+    <span><a href="/app" data-i18n="nav.app">算定数</a> · <a href="/charter" data-i18n="nav.charter">谱师</a> · <a href="/user" data-i18n="nav.user">玩家</a>
       · <a href="#" id="langswitch" title="切换界面语言">English</a>
       · <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric" target="_blank" rel="noopener">GitHub</a></span>
   </div>
   <details style="margin-top:10px">
-    <summary>本工具的边界（点开看）</summary>
-    <div class="fd"><b>不判定「虚标」。</b>官方定数本身是人工标注，
+    <summary data-i18n="home.bounds.title">本工具的边界（点开看）</summary>
+    <div class="fd" data-i18n-html="home.bounds.b1"><b>不判定「虚标」。</b>官方定数本身是人工标注，
     同曲同物量的相邻难度定数差中位就有 <b>2.80 级</b>。在这个噪声水平下，
     没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」——
     <b>声称能区分就是造假</b>。</div>
-    <div class="fd"><b>社区共识不是客观真值。</b>它是 Phira 上谱师声明定数的共识，
+    <div class="fd" data-i18n-html="home.bounds.b2"><b>社区共识不是客观真值。</b>它是 Phira 上谱师声明定数的共识，
     反映的是"站内同类谱被判成多少"，不是绝对难度。官谱标度那一栏才是与官方可比的绝对标度。</div>
-    <div class="fd"><b>隐私。</b>核心链路（拖入谱面 → 解析 → 出定数）全程在本机浏览器内完成，
+    <div class="fd" data-i18n-html="home.bounds.b3"><b>隐私。</b>核心链路（拖入谱面 → 解析 → 出定数）全程在本机浏览器内完成，
     <b>谱面文件永不上传</b>。只有你在打卡区主动勾选时，才会把算出的结构特征
     （不含谱面文件本身）写入共享缓存。详见<a href="/privacy">隐私政策</a>。</div>
   </details>
@@ -172,9 +172,16 @@ import { renderNav, esc, APP_VER, applyStatic, t, onLangChange,
 renderNav('home');
 /* 首页 hero / 入口卡片是静态 HTML，靠 data-i18n 批量替换 */
 applyStatic();
-onLangChange(function () { document.getElementById('verfoot').textContent = t('set.about.ver') + ' ' + APP_VER; });
 
-document.getElementById('verfoot').textContent = '版本 ' + APP_VER + '（开发者测试版）';
+/* 页脚版本号 —— ⚠ 这里踩过一个坑：原来初始化写了一句硬编码中文
+   `verfoot.textContent = '版本 …（开发者测试版）'`，而 i18n 只在**语言变化时**
+   才更新它。于是英文用户刷新页面（onLangChange 不会触发）就会看到
+   一个英文页面上挂着一行中文版本号。修法：初始化和语言变化走**同一个**函数。 */
+function paintVer() {
+  document.getElementById('verfoot').textContent = t('foot.version', { v: APP_VER });
+}
+onLangChange(paintVer);
+paintVer();
 
 /* 语言切换：显示"另一种语言"的名字。
    ⚠ 以前这里链到 /en.html —— 一个**独立手写的英文页**。i18n 上线后它就是冗余：
@@ -184,7 +191,9 @@ document.getElementById('verfoot').textContent = '版本 ' + APP_VER + '（开�
 (function () {
   const ls = document.getElementById('langswitch');
   if (!ls) return;
-  const paint = function () { ls.textContent = currentLang() === 'zh' ? 'English' : '中文'; };
+  const paint = function () {
+    ls.textContent = t(currentLang() === 'zh' ? 'foot.lang' : 'foot.lang.back');
+  };
   ls.addEventListener('click', function (e) {
     e.preventDefault();
     setLang(currentLang() === 'zh' ? 'en' : 'zh');
@@ -193,7 +202,24 @@ document.getElementById('verfoot').textContent = '版本 ' + APP_VER + '（开�
   paint();
 })();
 
-/* 站点统计：从服务端读。失败就安静降级 —— 首页不该因为统计接口挂了而看起来像坏了。 */
+/* 站点统计：从服务端读。失败就安静降级 —— 首页不该因为统计接口挂了而看起来像坏了。
+   ⚠ 标签文案走 i18n，所以取数只做一次、**画**单独抽成 paintStats()：
+   语言一变就重画（数字不变，只换标签），否则英文模式下这一格会留中文。 */
+let STATS = null;      /* null = 还没取到；取到后才允许重画，免得把骨架屏冲掉 */
+function paintStats() {
+  const s = STATS;
+  const cell = (v, k) => '<div class="st"><div class="v">' + v + '</div><div class="k">' + esc(k) + '</div></div>';
+  document.getElementById('stats').innerHTML =
+    cell(s && s.cache != null ? s.cache : '—', t('home.stats.cache'))
+    + cell((s && s.refN) || '—', t('home.stats.com'))
+    + cell((s && s.officialN) || '—', t('home.stats.off'))
+    + cell(s && s.scores != null ? s.scores : '—', t('home.stats.scores'));
+  document.getElementById('statNote').textContent = (s && s.ok)
+    ? t('home.stats.live')
+    : t('home.stats.down');
+}
+onLangChange(function () { if (STATS) paintStats(); });
+
 (async function () {
   let s = null, refN = 0, officialN = null;
   try {
@@ -205,18 +231,17 @@ document.getElementById('verfoot').textContent = '版本 ' + APP_VER + '（开�
     officialN = (m.REF_OFFICIAL || []).length;     /* 从数据里数，不写死 */
   } catch (e) {}
   try {
-    const t = await (await fetch('/data/ref-com.json?v=' + encodeURIComponent(APP_VER))).json();
-    refN = (t.rows || []).length;
+    const j = await (await fetch('/data/ref-com.json?v=' + encodeURIComponent(APP_VER))).json();
+    refN = (j.rows || []).length;
   } catch (e) {}
-  const cell = (v, k) => '<div class="st"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>';
-  document.getElementById('stats').innerHTML =
-    cell(s && s.charts != null ? s.charts : '—', '定数缓存')
-    + cell(refN || '—', '社区参照')
-    + cell(officialN || '—', '官谱参照')
-    + cell(s && s.scores != null ? s.scores : '—', '成绩记录');
-  document.getElementById('statNote').textContent = s
-    ? '缓存由所有人共同贡献 · 实时'
-    : '统计接口暂时不可用（不影响使用）';
+  STATS = {
+    cache:    s && s.charts != null ? s.charts : null,
+    refN:     refN || null,
+    officialN: officialN || null,
+    scores:   s && s.scores != null ? s.scores : null,
+    ok:       !!s,
+  };
+  paintStats();
 })();
 </script>
 </body>

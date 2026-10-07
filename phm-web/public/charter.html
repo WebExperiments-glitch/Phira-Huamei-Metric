@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.0">
+<meta name="app-version" content="V0.9.1.0">
 <title>谱师作品 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 谱师的全部作品：按档位分布、平均定数，以及对每张谱的 P.H.M. 结构定数参考。支持分页浏览。">
@@ -14,11 +14,8 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.1.0">
 <style>
-.chhead{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.chhead .nm{font-size:21px;font-weight:500}
-.chhead .mt{font-size:12.5px;color:var(--fg3)}
 .sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:10px;margin:14px 0}
 .sum{background:var(--card2);border-radius:10px;padding:10px 13px}
 .sum .k{font-size:11.5px;color:var(--fg3)}
@@ -30,19 +27,30 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 .distlg{display:flex;gap:12px;font-size:11.5px;color:var(--fg3);flex-wrap:wrap}
 .distlg span i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
 
-.tier{display:inline-block;min-width:24px;text-align:center;padding:1px 5px;border-radius:5px;
-  font-size:10.5px;font-weight:600;color:var(--on-color)}
-.pm{font-variant-numeric:tabular-nums;color:var(--amber)}
+.pm{font-variant-numeric:tabular-nums;color:var(--brand)}
 .nopm{color:var(--fg3)}
 .dgap{font-size:11px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 10px}
 .toolbar select.inp{padding:5px 8px;font-size:12.5px}
 
-.prog{height:5px;border-radius:3px;background:var(--card2);overflow:hidden;margin:10px 0 6px}
-.prog i{display:block;height:100%;background:var(--amber);width:0;transition:width .2s}
-
 table.tbl{font-size:12.5px}
 table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+
+/* ── 候选账号 ── */
+.cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:9px;margin:12px 0 4px}
+.cand{display:flex;gap:10px;align-items:center;text-align:left;width:100%;
+  background:var(--card2);border:1px solid transparent;border-radius:10px;
+  padding:9px 11px;cursor:pointer;color:inherit;font:inherit;transition:border-color .15s,background .15s}
+.cand:hover{border-color:var(--brand-line,var(--border2))}
+.cand.on{border-color:var(--brand);background:var(--brand-soft)}
+.cand img,.cand .ph{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:var(--card)}
+.cand .ph{display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--fg3);font-weight:600}
+.cand .nm{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cand .mt{font-size:11px;color:var(--fg3);margin-top:2px}
+.cand .tag{font-size:10px;color:var(--brand);border:1px solid var(--brand);border-radius:5px;padding:0 5px;margin-left:6px}
+.cand .body{min-width:0;flex:1}
+.prog{height:4px;border-radius:3px;background:var(--card2);overflow:hidden;margin:10px 0 6px}
+.prog i{display:block;height:100%;background:var(--brand);width:0;transition:width .2s}
 </style>
 </head>
 <body>
@@ -51,15 +59,12 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 <nav id="nav"></nav>
 
 <div class="card">
-  <h2>查谱师作品</h2>
-  <div class="sub">输入谱师名，列出他/她在 Phira 上的作品与每张谱的 P.H.M. 定数。
-  Phira 没有「按谱师查」的接口，所以本页是<b>翻搜索结果再按 charter 字段精确筛</b>。</div>
+  <h2 data-i18n="ch.title"></h2>
+  <div class="sub" data-i18n-html="ch.sub"></div>
   <div class="row">
-    <input class="inp" id="q" style="flex:1;min-width:180px" placeholder="谱师名（例如 6thPecJam / YanY / Magazet）" autocomplete="off">
-    <button class="btn primary" id="go">扫描</button>
-    <button class="btn" id="more" style="display:none">继续扫描 ›</button>
+    <input class="inp" id="q" data-i18n-ph="ch.q.ph" style="flex:1;min-width:180px" autocomplete="off">
+    <button class="btn primary" id="go" data-i18n="ch.lookup"></button>
   </div>
-  <div class="prog" id="prog" style="display:none"><i id="progbar"></i></div>
   <div class="status" id="msg"></div>
 </div>
 
@@ -68,163 +73,290 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 <div class="card" id="glossbox"></div>
 
 <footer>
-  <div>数据来源：<b>Phira 公开 API</b> + 本站共享定数缓存。</div>
-  <div class="fd">Phira 的 <span class="mono">/chart?search=</span> 会<b>同时匹配曲名与谱师</b>，
-  所以本页分两栏：「精确同名」是他的作品，「仅包含」是名字里带这个词的别的谱 —— 不混在一起。</div>
+  <div data-i18n-html="ch.foot.src"></div>
+  <div class="fd" data-i18n-html="ch.foot.note"></div>
 </footer>
 
 </div>
 
 <script type="module">
 import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager,
-         tierBadge, glossaryHTML, loadChartCache, cachedRow }
-  from '/js/ui.js';
-import { scanCharter } from '/js/phira.js';
+         tierBadge, glossaryHTML, loadChartCache, cachedRow, applyStatic,
+         t, onLangChange } from '/js/ui.js';
+import { findUsers, getUser, rankUserCands, getAllChartsByUploader,
+         scanCharter } from '/js/phira.js';
 
 renderNav('charter');
+applyStatic();
 document.getElementById('glossbox').innerHTML = glossaryHTML('c');
-const $ = s => document.querySelector(s);
-const msg = (t, k) => { const e = $('#msg'); e.className = 'status' + (k ? ' ' + k : ''); e.innerHTML = t || ''; };
 
-/* 页面状态：扫描结果 + 列表视图（分页/排序/过滤）。
-   分开存的原因是——扫描很贵（要打好几次 Phira），
-   不能因为用户换了个排序就重新扫一遍。 */
-const SCAN = { name: '', exact: [], fuzzy: [], seen: [], count: 0, pages: 1, lastPage: 0, done: false };
+const $ = s => document.querySelector(s);
+const msg = (t2, k) => { const e = $('#msg'); e.className = 'status' + (k ? ' ' + k : ''); e.innerHTML = t2 || ''; };
+
+/* ══════════════════════════════════════════════════════════════
+ * 页面状态
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么和以前不一样】
+ *   以前只有一条路：翻 `/chart?search=` 的搜索结果，再拿 charter 字段做文本比对。
+ *   这条路会漏人（谱师常把团队名写进 charter），也会进一堆噪声
+ *   （search 还匹配 description，实测搜「平方」59 条里绝大多数是
+ *   别的谱面在说明里感谢他）。
+ *
+ *   现在的主路径是：
+ *     ① `/user?search={名}`  →  候选**账号**（带 id）
+ *     ② `/chart?uploader={id}` →  他**上传**的谱面，服务端精确过滤
+ *   ③ 兜底仍保留 charter 文本搜索，专治"谱面是别人代传"的情况。
+ */
+const ST = {
+  name: '', users: [], uid: null,
+  charts: [], chartTotal: null, chartDone: false,
+  fb: null,          /* null=没跑过；{exact,fuzzy,mentioned,lastPage,pages,count,seen,done,busy} */
+};
 const VIEW = { page: 1, pageSize: 25, sort: 'diff', filter: 'all' };
 const SIZES = [20, 25, 50, 100];
+const ORDER = ['EZ', 'HD', 'IN', 'AT', 'SP', '?'];
 
 const pre = new URLSearchParams(location.search).get('name');
 if (pre) $('#q').value = pre;
 
-$('#go').addEventListener('click', () => start(true));
-$('#more').addEventListener('click', () => start(false));
-$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') start(true); });
+$('#go').addEventListener('click', () => lookup($('#q').value));
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') lookup($('#q').value); });
 
-/* scroll 到顶：继续扫描后用户还在页底，看不到新进度条 */
-function setProg(pct) {
-  $('#prog').style.display = pct == null ? 'none' : '';
-  if (pct != null) $('#progbar').style.width = Math.max(2, pct * 100) + '%';
-}
-
-async function start(fresh) {
-  const name = $('#q').value.trim();
-  if (!name) { msg('先填谱师名', 'err'); return; }
-  if (fresh) {
-    SCAN.name = name; SCAN.exact = []; SCAN.fuzzy = []; SCAN.seen = [];
-    SCAN.count = 0; SCAN.pages = 1; SCAN.lastPage = 0; SCAN.done = false;
-    VIEW.page = 1;
-    $('#out').innerHTML = '';
-    $('#more').style.display = 'none';
-  }
-  if (SCAN.name !== name) { await start(true); return; }
-
-  $('#go').disabled = true; $('#more').disabled = true;
-  setProg(0);
-  msg('扫描中…（每页 30 条搜索结果，命中作品会即时显示）');
+/* ══════════════════════════════════════════════════════════════
+ * ① 找人  ② 取作品
+ * ══════════════════════════════════════════════════════════════ */
+async function lookup(raw) {
+  const name = String(raw || '').trim();
+  if (!name) { msg(t('ch.needname'), 'err'); return; }
+  ST.name = name; ST.users = []; ST.uid = null;
+  ST.charts = []; ST.chartTotal = null; ST.chartDone = false; ST.fb = null;
+  VIEW.page = 1;
+  $('#go').disabled = true;
+  msg(t('c.loading'));
+  render();
 
   try {
-    const need = SCAN.pages - SCAN.lastPage;
-    const chunk = Math.max(1, Math.min(fresh ? 10 : 10, need || 10));
-    const r = await scanCharter(name, {
-      fromPage: SCAN.lastPage + 1,
-      maxPages: chunk,
-      seen: SCAN.seen,
-      onProgress: p => {
-        setProg(p.page / Math.max(1, p.pages));
-        msg('扫描中… 第 <b>' + p.page + '/' + p.pages + '</b> 页（共 ' + p.count + ' 条搜索结果）'
-          + ' · 已筛出 <b>' + p.exact + '</b> 张作品');
-      },
-    });
-
-    SCAN.count = r.count; SCAN.pages = r.pages; SCAN.lastPage = r.lastPage;
-    SCAN.seen = r.seen;
-    /* 累积合并（scanCharter 只回本次新增的，去重后的全量在页面里拼） */
-    const have = new Set(SCAN.exact.map(c => c.id).concat(SCAN.fuzzy.map(c => c.id)));
-    for (const c of r.exact) if (!have.has(c.id)) { have.add(c.id); SCAN.exact.push(c); }
-    for (const c of r.fuzzy) if (!have.has(c.id)) { have.add(c.id); SCAN.fuzzy.push(c); }
-    SCAN.exact.sort((a, b) => (+b.difficulty || 0) - (+a.difficulty || 0));
-    SCAN.fuzzy.sort((a, b) => (+b.difficulty || 0) - (+a.difficulty || 0));
-    SCAN.done = SCAN.lastPage >= SCAN.pages;
-
-    setProg(null);
-    if (!SCAN.exact.length && !SCAN.fuzzy.length) {
-      if (SCAN.done) {
-        /* 反馈：「搜 平方秒和立方吨 出来 57 条但没一条 charter 对得上 → 气急败坏」。
-           光说"试试短一点"不够 —— 直接**把候选词算出来给他点**。 */
-        const cands = shortCands(name);
-        msg('Phira 上搜「' + esc(name) + '」共 <b>' + SCAN.count + '</b> 条结果，'
-          + '但没有一条的 <b>charter 字段含这个词</b>。<br>'
-          + 'Phira 的谱师字段是<b>自由文本</b>（可以写成团队名、带后缀、甚至写别人的名字），'
-          + '所以搜不到通常不是"这个人不存在"，而是<b>写法不一样</b>。'
-          + (cands.length ? '<br><b>试试这些更短的关键词：</b>'
-              + cands.map(c => '<button class="btn sm cand" data-n="' + esc(c) + '" style="margin:4px 4px 0 0">'
-                  + esc(c) + '</button>').join('') : '')
-          + (cands.length ? '<div style="margin-top:8px" class="dim2">如果某个词搜出来的结果里'
-              + '「charter 里包含」那一栏有他，点进去就能看到确切写法。</div>' : ''), 'warn');
-        $('#msg').querySelectorAll('button.cand').forEach(b =>
-          b.addEventListener('click', () => { $('#q').value = b.getAttribute('data-n'); start(true); }));
-      } else {
-        msg('这一批没筛到，但还有 ' + (SCAN.pages - SCAN.lastPage) + ' 页没扫 —— 点「继续扫描」。', 'warn');
-      }
-      $('#go').disabled = false;
-      $('#more').style.display = SCAN.done ? 'none' : '';
-      $('#more').disabled = false;
-      return;
-    }
-
-    /* 补 P.H.M. 定数（一次批量，失败不影响主体） */
-    msg('读取 P.H.M. 定数缓存…');
-    await loadChartCache(SCAN.exact.map(c => c.id));
-    msg('');
+    /* 纯数字 = UID 直查，省掉一次模糊搜索 */
+    const users = /^\d{1,12}$/.test(name)
+      ? [await getUser(name)].filter(Boolean)
+      : rankUserCands(await findUsers(name), name);
+    ST.users = users;
     render();
+    if (!users.length) { msg(''); return; }
+    await showWorks(await pickDefault(users));
   } catch (e) {
-    setProg(null);
-    msg('扫描失败：' + esc(e.message || e) + '（Phira API 可能临时不可用）', 'err');
+    msg(esc(t('ch.err', { e: e.message || e })) + esc(t('ch.err.hint')), 'err');
+  } finally {
+    $('#go').disabled = false;
   }
-  $('#go').disabled = false;
-  $('#more').disabled = false;
-  $('#more').style.display = SCAN.done ? 'none' : '';
 }
 
+/** 默认选中哪个候选。
+ *
+ *  【为什么不直接取相似度第一】
+ *    实测搜「平方」：排名第一的账号就叫「平方」（完全同名），名下 **0 张谱**；
+ *    真正有作品的是「平方秒和立方吨」。只按名字相似度选，用户会看到一个空列表，
+ *    然后得出"搜不到"的结论 —— 而这正是我们要修的体感。
+ *    所以按排名依次问一句"你有作品吗"，取第一个有的。
+ *
+ *  ⚠ 这只决定**默认选中**，不是替用户下结论 —— 全部候选仍然列出来可点。
+ *  ⚠ 只在前面几个里试（最多 3 次额外请求）；都没有就退回排名第一，
+ *    交给空态提示去解释原因。 */
+async function pickDefault(users) {
+  const MAX = 3;
+  for (const u of users.slice(0, MAX)) {
+    const r = await getAllChartsByUploader(u.id, { maxPages: 1 }).catch(() => null);
+    if (r && r.count > 0) return u.id;
+  }
+  return users[0].id;
+}
+
+async function showWorks(uid, skipStale) {
+  ST.uid = uid; ST.charts = []; ST.chartTotal = null; ST.chartDone = false;
+  VIEW.page = 1;
+  if (!skipStale) render();
+  try {
+    const r = await getAllChartsByUploader(uid, {
+      onProgress: p => { ST.chartTotal = p.count; render(); },
+    });
+    ST.charts = r.charts;
+    ST.chartTotal = r.count;
+    ST.chartDone = !r.truncated;
+    msg('');
+    /* 补 P.H.M. 定数（一次批量，失败不影响主体） */
+    if (ST.charts.length) await loadChartCache(ST.charts.map(c => c.id));
+  } catch (e) {
+    msg(esc(t('ch.err', { e: e.message || e })) + esc(t('ch.err.hint')), 'err');
+  }
+  render();
+}
+
+/* 兜底：按 charter 字段搜（老口径）。按需触发 —— 这是一串会打很多次的请求，
+   不能默认就跑。 */
+async function runFallback(fresh) {
+  const name = ST.name;
+  if (!name) return;
+  const f = ST.fb || (ST.fb = { exact: [], fuzzy: [], mentioned: [], seen: [], lastPage: 0, pages: 1, count: 0, done: false });
+  if (fresh) { f.exact = []; f.fuzzy = []; f.mentioned = []; f.seen = []; f.lastPage = 0; f.pages = 1; f.count = 0; f.done = false; }
+  if (f.busy) return;
+  f.busy = true; render();
+
+  const seen = new Set(f.seen);
+  const have = new Set([].concat(f.exact, f.fuzzy, f.mentioned).map(c => c.id));
+  try {
+    let last = f.lastPage;
+    for (let i = 0; i < 3 && !f.done; i++) {
+      const r = await scanCharter(name, {
+        fromPage: f.lastPage + 1, maxPages: 3, seen: [...seen],
+      });
+      f.count = r.count; f.pages = r.pages; f.lastPage = r.lastPage;
+      for (const k of ['exact', 'fuzzy', 'mentioned']) {
+        for (const c of r[k]) if (!have.has(c.id)) { have.add(c.id); f[k].push(c); }
+      }
+      f.done = f.lastPage >= f.pages;
+      if (r.lastPage === last) { f.done = true; break; }   /* 卡住 = 到底，别死循环 */
+      last = r.lastPage;
+      render();
+    }
+  } catch (e) {
+    msg(esc(t('ch.err', { e: e.message || e })), 'err');
+  }
+  f.busy = false; f.seen = [...seen];
+  render();
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 渲染
+ * ══════════════════════════════════════════════════════════════ */
 function render() {
-  const name = SCAN.name;
-  const all = SCAN.exact;
+  let h = '';
+  /* 搜完但一个候选都没有 —— 必须**明确说**，不能让页面空白。
+     空白会让人以为"还在加载"，而真相是"这个名字在账号库里不存在"。
+     这里也是给用户换词的地方：中文近形字（和/与）会让整个搜索失效。 */
+  if (ST.name && !ST.users.length) h += cardNotFound();
+  if (ST.users.length) h += cardCands();
+  if (ST.uid != null) h += cardWorks();
+  if (ST.users.length && ST.uid != null) h += cardFallback();
+  $('#out').innerHTML = h;
+
+  /* 事件重绑 —— 每次渲染 DOM 都是新的 */
+  $('#out').querySelectorAll('button.cand').forEach(b =>
+    b.addEventListener('click', () => showWorks(Number(b.getAttribute('data-uid')))));
+  /* 搜不到时给的候选短词：点一下就换个词重搜 */
+  $('#out').querySelectorAll('button.candtry').forEach(b =>
+    b.addEventListener('click', () => { $('#q').value = b.getAttribute('data-n'); lookup($('#q').value); }));
+  const fbgo = $('#fbgo');
+  if (fbgo) fbgo.addEventListener('click', () => runFallback(!ST.fb || ST.fb.done));
+  const fbreset = $('#fbreset');
+  if (fbreset) fbreset.addEventListener('click', () => runFallback(true));
+  const s = $('#sort');
+  if (s) s.addEventListener('change', e => { VIEW.sort = e.target.value; VIEW.page = 1; render(); });
+  const fl = $('#filter');
+  if (fl) fl.addEventListener('change', e => { VIEW.filter = e.target.value; VIEW.page = 1; render(); });
+  if ($('#pg1')) wirePager($('#pg1'),
+    p => { VIEW.page = p; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+    n => { VIEW.pageSize = n; VIEW.page = 1; render(); });
+}
+
+/* ── 一个候选账号都没有 ── */
+function cardNotFound() {
+  const cands = shortCands(ST.name);
+  return '<div class="card">'
+    + '<div class="note warn">' + esc(t('ch.cands.none', { n: ST.name })) + '<br>'
+    + esc(t('ch.cands.try')) + '</div>'
+    + (cands.length
+        ? '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:10px">'
+          + cands.map(c => '<button class="btn sm candtry" data-n="' + esc(c) + '">' + esc(c) + '</button>').join('')
+          + '</div>'
+        : '')
+    + '</div>';
+}
+
+/* ── 候选账号 ── */
+function cardCands() {
+  const name = ST.name;
+  let h = '<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline">'
+    + '<h3 style="margin:0">' + esc(t('ch.cands.title')) + '（' + ST.users.length + '）</h3>'
+    + '<span class="dim2" style="font-size:12px">' + esc(t('ch.cands.note')) + '</span></div>';
+  h += '<div class="cands">';
+  for (const u of ST.users) {
+    const on = u.id === ST.uid;
+    h += '<button class="cand' + (on ? ' on' : '') + '" data-uid="' + u.id + '">'
+      + (u.avatar
+          ? '<img src="' + esc(u.avatar) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
+          : '<span class="ph">' + esc(String(u.name || '?').slice(0, 1)) + '</span>')
+      + '<span class="body"><span class="nm">' + esc(u.name)
+      + (on ? '<span class="tag">' + esc(t('ch.cands.picked')) + '</span>' : '') + '</span>'
+      + '<span class="mt">' + esc(t('ch.cands.uid')) + ' ' + u.id
+      + ' · RKS ' + f2(u.rks)
+      + (u.follower_count ? ' · ' + esc(t('ch.cands.fans')) + ' ' + u.follower_count : '')
+      + '</span></span></button>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+/* ── 作品 ── */
+function cardWorks() {
+  const u = ST.users.find(x => x.id === ST.uid) || { name: ST.name };
+  const all = ST.charts;
   const dist = {};
-  for (const c of all) { const t = lvTag(c.level); dist[t] = (dist[t] || 0) + 1; }
+  for (const c of all) { const tg = lvTag(c.level); dist[tg] = (dist[tg] || 0) + 1; }
   const wd = all.filter(c => +c.difficulty > 0 && +c.difficulty <= 20);
   const avg = wd.length ? wd.reduce((a, c) => a + (+c.difficulty), 0) / wd.length : null;
   const pmRows = all.map(c => cachedRow(c.id)).filter(x => x && x.ref_const != null);
   const pmAvg = pmRows.length ? pmRows.reduce((a, x) => a + (+x.ref_const), 0) / pmRows.length : null;
-  const order = ['EZ', 'HD', 'IN', 'AT', 'SP', '?'];
 
-  let h = '<div class="card">';
-  h += '<div class="chhead"><div><div class="nm">' + esc(name) + '</div>'
-    + '<div class="mt">charter 精确同名 · 已扫 <b>' + SCAN.lastPage + '</b>/' + SCAN.pages
-    + ' 页搜索结果（共 ' + SCAN.count + ' 条）'
-    + (SCAN.done ? ' · <span style="color:var(--green)">扫描完整</span>'
-                 : ' · <span style="color:var(--amber)">尚未扫完</span>') + '</div></div></div>';
+  let h = '<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline">'
+    + '<h3 style="margin:0">' + esc(t('ch.works.title')) + ' · ' + esc(u.name) + '</h3>'
+    + '<span class="dim2" style="font-size:12px">'
+    + (ST.chartTotal == null ? esc(t('c.loading'))
+       : esc(t('ch.cands.charts', { n: ST.chartTotal }))
+         + (ST.chartDone ? ' · ' + esc(t('ch.works.done')) : ' · ' + esc(t('ch.works.partialmark'))))
+    + '</span></div>';
+
+  if (ST.chartTotal == null) {
+    h += '<div class="prog" id="prog"><i></i></div>'
+      + '<div class="dim2">' + esc(t('ch.works.loading')) + '</div></div>';
+    return h;
+  }
+  if (!all.length) {
+    /* 名下 0 张谱 ≠ 这个人不存在。两个常见原因都要说出来，
+       而且要把"换更短的词"做成**能点的按钮**：
+       实测用户输入「平方秒**与**立方吨」，账号库里只有「平方秒**和**立方吨」
+       （本体）和两个同名仿号 —— 一字之差，搜不到人，也会搜到空作品。 */
+    const cands = shortCands(ST.name);
+    h += '<div class="note info">' + esc(t('ch.works.empty')) + '<br>'
+      + esc(t('ch.works.empty.hint'))
+      + (cands.length ? '<br><br>' + esc(t('ch.works.empty.try'))
+          + '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">'
+          + cands.map(c => '<button class="btn sm candtry" data-n="' + esc(c) + '">' + esc(c) + '</button>').join('')
+          + '</div>' : '')
+      + '</div></div>';
+    return h;
+  }
 
   h += '<div class="sumgrid">'
-    + sum('作品数', all.length)
-    + sum('标称均值', avg == null ? '—' : f2(avg), wd.length + ' 张有标称')
-    + sum('P.H.M. 均值', pmAvg == null ? '—' : f2(pmAvg), pmRows.length + ' 张已算')
-    + sum('最高标称', wd.length ? f2(Math.max(...wd.map(c => +c.difficulty))) : '—')
+    + sum(t('ch.sum.works'), all.length)
+    + sum(t('ch.sum.avg'), avg == null ? '—' : f2(avg), t('ch.sum.nd', { n: wd.length }))
+    + sum(t('ch.sum.pm'), pmAvg == null ? '—' : f2(pmAvg), t('ch.sum.npm', { n: pmRows.length }))
+    + sum(t('ch.sum.max'), wd.length ? f2(Math.max(...wd.map(c => +c.difficulty))) : '—')
     + '</div>';
 
   const tot = all.length || 1;
-  h += '<div class="dist">' + order.filter(t => dist[t]).map(t =>
-    '<i style="width:' + (dist[t] / tot * 100) + '%;background:' + tierColor(t) + '" title="' + t + '">'
-    + ((dist[t] / tot) > 0.08 ? t + ' ' + dist[t] : '') + '</i>').join('') + '</div>';
-  h += '<div class="distlg">' + order.filter(t => dist[t]).map(t =>
-    '<span><i style="background:' + tierColor(t) + '"></i>' + t + ' × ' + dist[t] + '</span>').join('') + '</div>';
+  h += '<div class="dist">' + ORDER.filter(x => dist[x]).map(x =>
+    '<i style="width:' + (dist[x] / tot * 100) + '%;background:' + tierColor(x) + '" title="' + x + '">'
+    + ((dist[x] / tot) > 0.08 ? x + ' ' + dist[x] : '') + '</i>').join('') + '</div>';
+  h += '<div class="distlg">' + ORDER.filter(x => dist[x]).map(x =>
+    '<span><i style="background:' + tierColor(x) + '"></i>' + x + ' × ' + dist[x] + '</span>').join('') + '</div>';
 
-  if (!SCAN.done) {
-    h += '<div class="note">还有 <b>' + (SCAN.pages - SCAN.lastPage) + '</b> 页搜索结果没扫。'
-      + '上面这些数字只统计已扫到的部分 —— 点上方「继续扫描 ›」补齐。</div>';
+  if (!ST.chartDone) {
+    h += '<div class="note warn">' + esc(t('ch.works.partial', { n: all.length })) + '</div>';
+  } else {
+    h += '<div class="dim2" style="font-size:11.5px;margin-top:6px">' + esc(t('ch.sum.node')) + '</div>';
   }
-  h += '</div>';
 
-  /* 作品表 —— 客户端分页（扫描结果已经在内存里，没必要再请求） */
+  /* 列表：排序 / 过滤 / 分页 */
   let list = all.slice();
   if (VIEW.filter !== 'all') list = list.filter(c => lvTag(c.level) === VIEW.filter);
   if (VIEW.sort === 'diff') list.sort((a, b) => (+b.difficulty || 0) - (+a.difficulty || 0));
@@ -232,31 +364,33 @@ function render() {
     const pa = cachedRow(a.id), pb = cachedRow(b.id);
     return ((pb && pb.ref_const) || -1) - ((pa && pa.ref_const) || -1);
   });
-  else if (VIEW.sort === 'name') list.sort((a, b) => String(a.name).localeCompare(String(b.name), 'zh'));
-  else list.sort((a, b) => order.indexOf(lvTag(a.level)) - order.indexOf(lvTag(b.level))
+  else if (VIEW.sort === 'name') list.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  else list.sort((a, b) => ORDER.indexOf(lvTag(a.level)) - ORDER.indexOf(lvTag(b.level))
     || (+b.difficulty || 0) - (+a.difficulty || 0));
 
   const pages = Math.max(1, Math.ceil(list.length / VIEW.pageSize));
   if (VIEW.page > pages) VIEW.page = pages;
   const slice = list.slice((VIEW.page - 1) * VIEW.pageSize, VIEW.page * VIEW.pageSize);
 
-  h += '<div class="card"><div class="toolbar">'
-    + '<h3 style="margin:0;flex:1">作品列表（' + list.length + ' 张）</h3>'
+  h += '<h3 style="margin-top:20px">' + esc(t('ch.listtitle', { n: list.length })) + '</h3>'
+    + '<div class="toolbar">'
     + '<select class="inp" id="sort">'
-    + [['diff', '标称定数 ↓'], ['pm', 'P.H.M. 定数 ↓'], ['name', '曲名 A→Z'], ['level', '档位']]
-        .map(([k, l]) => '<option value="' + k + '"' + (k === VIEW.sort ? ' selected' : '') + '>' + l + '</option>').join('')
+    + [['diff', 'ch.sort.diff'], ['pm', 'ch.sort.pm'], ['name', 'ch.sort.name'], ['level', 'ch.sort.level']]
+        .map(([k, l]) => '<option value="' + k + '"' + (k === VIEW.sort ? ' selected' : '') + '>' + esc(t(l)) + '</option>').join('')
     + '</select>'
     + '<select class="inp" id="filter">'
-    + [['all', '全部档位']].concat(order.filter(t => dist[t]).map(t => [t, t]))
-        .map(([k, l]) => '<option value="' + k + '"' + (k === VIEW.filter ? ' selected' : '') + '>' + l + '</option>').join('')
+    + [['all', t('ch.filter.all')]].concat(ORDER.filter(x => dist[x]).map(x => [x, x]))
+        .map(([k, l]) => '<option value="' + k + '"' + (k === VIEW.filter ? ' selected' : '') + '>' + esc(l) + '</option>').join('')
     + '</select></div>';
 
-  if (!slice.length) h += '<div class="empty">这个筛选下没有作品</div>';
+  if (!slice.length) h += '<div class="empty">' + esc(t('ch.list.empty')) + '</div>';
   else {
-    h += '<table class="tbl"><thead><tr><th>曲名</th><th>档</th><th class="r">标称</th>'
-      + '<th class="r">P.H.M. 定数</th><th class="r">官谱标度</th><th class="r">物量</th></tr></thead><tbody>';
+    h += '<table class="tbl"><thead><tr><th>' + esc(t('c.chart')) + '</th><th>' + esc(t('c.tier')) + '</th>'
+      + '<th class="r">' + esc(t('ch.tbl.nominal')) + '</th>'
+      + '<th class="r">' + esc(t('ch.tbl.pm')) + '</th>'
+      + '<th class="r">' + esc(t('ch.tbl.official')) + '</th>'
+      + '<th class="r">' + esc(t('ch.tbl.notes')) + '</th></tr></thead><tbody>';
     for (const c of slice) {
-      const t = lvTag(c.level);
       const row = cachedRow(c.id);
       const pm = row && row.ref_const != null ? +row.ref_const : null;
       const pmo = row && row.ref_official != null ? +row.ref_official : null;
@@ -267,9 +401,9 @@ function render() {
       h += '<tr><td class="nm" title="' + esc(c.name) + '">' + esc(String(c.name).slice(0, 40)) + '</td>'
         + '<td>' + tierBadge(c.level) + '</td>'
         + '<td class="r">' + (hadD ? f2(d) : '—') + '</td>'
-        + '<td class="r ' + (pm == null ? 'nopm' : 'pm') + '">' + (pm == null ? '未算' : f2(pm))
+        + '<td class="r ' + (pm == null ? 'nopm' : 'pm') + '">' + (pm == null ? esc(t('ch.pm.none')) : f2(pm))
         + (gap != null && Math.abs(gap) >= 0.8
-            ? ' <span class="dgap" style="color:' + (gap > 0 ? 'var(--green)' : 'var(--red)') + '">'
+            ? ' <span class="dgap" style="color:' + (gap > 0 ? 'var(--ok)' : 'var(--err)') + '">'
               + (gap > 0 ? '+' : '') + f1(gap) + '</span>' : '') + '</td>'
         + '<td class="r dim">' + (pmo == null ? '—' : f2(pmo)) + '</td>'
         + '<td class="r dim">' + (c.notes == null ? '—' : c.notes) + '</td></tr>';
@@ -278,35 +412,79 @@ function render() {
   }
   h += '<div id="pg1">' + pagerHTML({ page: VIEW.page, pages, total: list.length, pageSize: VIEW.pageSize, sizes: SIZES }) + '</div>';
   const uncalc = list.filter(c => { const r = cachedRow(c.id); return !(r && r.ref_const != null); }).length;
-  if (uncalc) h += '<div class="note info">还有 <b>' + uncalc + '</b> 张在这个筛选下没算过 P.H.M. 定数。'
-    + '去<a href="/app">算定数</a>页拖入谱面包，或点「算」让服务端下载计算。</div>';
-  h += '</div>';
-
-  /* 模糊命中：单独一栏，最多列 40 条（这些不是他的作品，没必要全列） */
-  if (SCAN.fuzzy.length) {
-    h += '<div class="card"><h3 style="margin-top:0">charter 里<b>包含</b>「' + esc(name) + '」但不是完全同名的 '
-      + SCAN.fuzzy.length + ' 张</h3>'
-      + '<div class="sub">可能是团队名、带后缀的写法，或别人的谱面说明里提到了这个词。</div>'
-      + '<table class="tbl"><thead><tr><th>曲名</th><th>谱师</th><th>档</th><th class="r">标称</th></tr></thead><tbody>'
-      + SCAN.fuzzy.slice(0, 40).map(c =>
-        '<tr><td class="nm">' + esc(String(c.name).slice(0, 34)) + '</td>'
-        + '<td class="dim">' + esc(c.charter) + '</td>'
-        + '<td>' + tierBadge(c.level) + '</td>'
-        + '<td class="r">' + (+c.difficulty > 0 && +c.difficulty <= 20 ? f2(c.difficulty) : '—') + '</td></tr>').join('')
-      + '</tbody></table>'
-      + (SCAN.fuzzy.length > 40 ? '<div class="dim2" style="font-size:12px;margin-top:6px">… 共 ' + SCAN.fuzzy.length + ' 条</div>' : '')
-      + '</div>';
+  if (uncalc) {
+    h += '<div class="note info">' + t('ch.uncalc', { n: uncalc })
+      + '<a href="/app">' + esc(t('ch.uncalc.link')) + '</a>' + esc(t('ch.uncalc.tail')) + '</div>';
   }
+  h += '</div>';
+  return h;
+}
 
-  $('#out').innerHTML = h;
-  $('#sort').addEventListener('change', e => { VIEW.sort = e.target.value; VIEW.page = 1; render(); });
-  $('#filter').addEventListener('change', e => { VIEW.filter = e.target.value; VIEW.page = 1; render(); });
-  wirePager($('#pg1'), p => { VIEW.page = p; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+/* ── 兜底：按谱师字段搜 ── */
+function cardFallback() {
+  const f = ST.fb;
+  const name = ST.name;
+  let h = '<div class="card"><h3 style="margin-top:0">' + esc(t('ch.fb.title')) + '</h3>'
+    + '<div class="sub">' + t('ch.fb.desc') + '</div>';
+
+  if (!f) {
+    h += '<button class="btn" id="fbgo">' + esc(t('ch.fb.notrun')) + '</button></div>';
+    return h;
+  }
+  h += '<div class="row" style="gap:8px;align-items:center;margin-bottom:10px">'
+    + (f.busy ? '<span class="dim2">' + esc(t('ch.fb.running')) + '</span>'
+              : '<button class="btn sm" id="fbgo">' + esc(t('ch.fb.more')) + '</button>')
+    + (f.done ? '' : '<button class="btn sm" id="fbreset">' + esc(t('c.reset')) + '</button>')
+    + '<span class="dim2" style="font-size:11.5px">'
+    + esc(t('ch.fb.scanned', { a: f.lastPage, b: f.pages, c: f.count })) + '</span></div>';
+
+  h += bucket(t('ch.fb.exact', { n: name }), f.exact, false);
+  h += bucket(t('ch.fb.fuzzy', { n: name }), f.fuzzy, false);
+  if (!f.exact.length && !f.fuzzy.length) {
+    h += '<div class="note info">' + esc(t('ch.fb.none', { n: name })) + '</div>';
+  }
+  /* 「只在说明里提到」单独放最后，且明说不是他的作品 ——
+     这正是用户搜自己名字会搜到一堆不相干结果的来源。 */
+  if (f.mentioned.length) {
+    h += '<details style="margin-top:14px"><summary>'
+      + t('ch.fb.mentioned', { n: name }) + ' · ' + f.mentioned.length + '</summary>'
+      + '<div class="fd" style="margin:8px 0">' + t('ch.fb.mentioned.desc') + '</div>'
+      + tbl(f.mentioned.slice(0, 40), false) + '</details>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function bucket(title, arr, showDiff) {
+  if (!arr.length) return '';
+  return '<details open style="margin-top:12px"><summary>' + title + ' · ' + arr.length + '</summary>'
+    + tbl(arr.slice(0, 40), showDiff) + '</details>';
+}
+function tbl(arr, showDiff) {
+  return '<table class="tbl"><thead><tr><th>' + esc(t('c.chart')) + '</th><th>' + esc(t('c.charter')) + '</th>'
+    + '<th>' + esc(t('c.tier')) + '</th><th class="r">' + esc(t('ch.tbl.nominal')) + '</th>'
+    + (showDiff ? '<th class="r">' + esc(t('ch.tbl.pm')) + '</th>' : '') + '</tr></thead><tbody>'
+    + arr.map(c => '<tr><td class="nm" title="' + esc(c.name) + '">' + esc(String(c.name).slice(0, 34)) + '</td>'
+      + '<td class="dim">' + esc(c.charter) + '</td>'
+      + '<td>' + tierBadge(c.level) + '</td>'
+      + '<td class="r">' + (+c.difficulty > 0 && +c.difficulty <= 20 ? f2(c.difficulty) : '—') + '</td>'
+      + (showDiff ? '<td class="r dim">' + ((cachedRow(c.id) || {}).ref_const != null ? f2(cachedRow(c.id).ref_const) : '—') + '</td>' : '')
+      + '</tr>').join('')
+    + '</tbody></table>'
+    + (arr.length > 40 ? '<div class="dim2" style="font-size:12px;margin-top:6px">… +' + (arr.length - 40) + '</div>' : '');
+}
+
+function sum(k, v, n) {
+  return '<div class="sum"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>'
+    + (n ? '<div class="n">' + esc(n) + '</div>' : '') + '</div>';
 }
 
 /** 从搜不到的名字里生成候选短词。
- *  中文名按 2~4 字切；英文名按空格/大小写边界切。
- *  目的不是猜准，而是**给用户一个能点的起点** —— 让他知道"换个写法再试"是正常操作。 */
+ *  中文名按 2~4 字切；英文名按空格/大写边界切。
+ *  目的不是猜准，而是**给用户一个能点的起点** ——
+ *  实测最典型的失败是中文近形字：作者本体是「平方秒**和**立方吨」，
+ *  用户输入「平方秒**与**立方吨」就会一个账号都搜不到（只命中两个同名仿号）。
+ *  这时候能点的「平方秒」比一句"请换个词"有用得多。 */
 function shortCands(name) {
   const s0 = String(name || '').trim();
   const out = new Set();
@@ -326,12 +504,10 @@ function shortCands(name) {
   return [...out].filter(x => x.length >= 2).slice(0, 6);
 }
 
-function sum(k, v, n) {
-  return '<div class="sum"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>'
-    + (n ? '<div class="n">' + esc(n) + '</div>' : '') + '</div>';
-}
+/* 语言一变，页面里 JS 生成的内容必须自己重画（静态替换覆盖不到） */
+onLangChange(() => { applyStatic(); render(); });
 
-if (pre) start(true);
+if (pre) lookup(pre);
 </script>
 </body>
 </html>

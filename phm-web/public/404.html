@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.0">
+<meta name="app-version" content="V0.9.1.0">
 <meta name="robots" content="noindex">
 <title>404 · 页面不存在 — P.H.M. Standard</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
@@ -46,26 +46,35 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 <body>
 <div class="box">
   <div class="code">404</div>
-  <h1>这个页面不存在</h1>
-  <p>地址可能打错了，或者这个页面已经被移除。</p>
+  <h1 data-i18n="nf.title">这个页面不存在</h1>
+  <p data-i18n="nf.desc">地址可能打错了，或者这个页面已经被移除。</p>
   <code class="mono" id="p">—</code>
 
   <div class="acts">
-    <a class="btn p" href="/">← 回首页</a>
-    <a class="btn" href="/privacy">隐私政策</a>
+    <a class="btn p" href="/" data-i18n="nf.home">← 回首页</a>
+    <a class="btn" href="/privacy" data-i18n="foot.privacy">隐私政策</a>
     <a class="btn" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
        target="_blank" rel="noopener">GitHub</a>
   </div>
 
   <div class="tips">
-    <b>想查谱面定数？</b>首页有两种方式，都不需要注册：
+    <div data-i18n-html="nf.tips.intro"><b>想查谱面定数？</b>首页有两种方式，都不需要注册：</div>
     <ul>
-      <li>用顶部<b>搜索</b>框按曲名找，点「算」直接出定数（约 2–5 秒）；</li>
-      <li>或把 Phira <b>谱面包</b>（<code>.pez</code> / 含 <code>chart.json</code> 的 zip）
+      <li data-i18n-html="nf.tips.li1">用顶部<b>搜索</b>框按曲名找，点「算」直接出定数（约 2–5 秒）；</li>
+      <li data-i18n-html="nf.tips.li2">或把 Phira <b>谱面包</b>（<code>.pez</code> / 含 <code>chart.json</code> 的 zip）
           拖进首页虚线框，纯本机解析，<b>文件不会上传</b>。</li>
     </ul>
   </div>
 </div>
+<script type="module">
+/* 错误页本来是纯静态的；i18n 上线后需要这个模块来把 data-i18n 文案换掉。
+   本页没有 #nav（renderNav 遇到就空转），调它是为了和其它页保持同一套接线。
+   语言变化时静态替换不会自己重跑，所以要在 onLangChange 里再 applyStatic 一次。 */
+import { applyStatic, renderNav, onLangChange } from '/js/ui.js';
+renderNav();
+applyStatic();
+onLangChange(function () { applyStatic(); });
+</script>
 <script>
 /* 把出错路径回显出来 —— 但不直接拼 HTML，避免把 URL 当注入面 */
 var el = document.getElementById("p");

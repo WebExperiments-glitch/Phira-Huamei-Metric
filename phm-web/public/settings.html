@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.0">
+<meta name="app-version" content="V0.9.1.0">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.1.0">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -312,8 +312,8 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
       </div>
       <div class="sdesc" style="margin-top:12px" data-i18n="set.about.note"></div>
       <div class="sdesc">
-        <a href="/privacy">隐私政策 · Privacy</a> ·
-        <a href="/terms">用户协议 · Terms</a> ·
+        <a href="/privacy" data-i18n="foot.privacy"></a> ·
+        <a href="/terms" data-i18n="foot.terms"></a> ·
         <a href="/app">P.H.M. Standard</a>
       </div>
     </section>
@@ -560,7 +560,7 @@ function paintInventory() {
     return;
   }
   box.innerHTML = '<table class="kv">' + rows.map(r =>
-    '<tr><td class="k">' + esc(r.label) + '</td>'
+    '<tr><td class="k">' + esc(t(r.labelKey, r.vars)) + '</td>'
     + '<td class="v">' + esc(r.value) + '</td>'
     + '<td class="a"><code class="k">' + esc(r.key) + '</code></td></tr>').join('') + '</table>';
 }
@@ -574,7 +574,7 @@ $('#expBtn').addEventListener('click', function () {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     msg('phm-settings.json ✓', 'ok');
-  } catch (e) { msg('Export failed: ' + ((e && e.message) || ''), 'err'); }
+  } catch (e) { msg(esc(t('set.storage.exportfail', { e: (e && e.message) || '' })), 'err'); }
 });
 
 $('#cidReset').addEventListener('click', function () {

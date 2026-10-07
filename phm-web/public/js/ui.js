@@ -139,18 +139,18 @@ export function when(t) {
 /** 档位徽标。识别不出来显示「未标注」而不是 "?"。 */
 export function tierBadge(level, opts) {
   const o = opts || {};
-  const t = lvTag(level);
-  if (t === '?') {
-    return '<span class="pill" title="Phira 的难度档位是自由文本，这一栏没写成 EZ/HD/IN/AT/SP 的规范形式"'
-      + ' style="font-size:10.5px;padding:0 5px">未标注</span>';
+  const tg = lvTag(level);
+  if (tg === '?') {
+    return '<span class="pill" title="' + esc(t('tier.unmarked.tip')) + '"'
+      + ' style="font-size:10.5px;padding:0 5px">' + esc(t('tier.unmarked')) + '</span>';
   }
-  return '<span class="tier" style="background:' + tierColor(t) + '">' + t + '</span>';
+  return '<span class="tier" style="background:' + tierColor(tg) + '">' + tg + '</span>';
 }
 
 /** 准度展示。缺失时给出**原因**，不用横杠。 */
 export function accCell(v) {
   if (v == null || !isFinite(+v)) {
-    return '<span class="dim2" title="Phira 这条记录里没有准确率字段（通常是旧记录）">无记录值</span>';
+    return '<span class="dim2" title="' + esc(t('cell.acc.none.tip')) + '">' + esc(t('cell.acc.none')) + '</span>';
   }
   return pct(v, 2);
 }
@@ -158,8 +158,12 @@ export function accCell(v) {
 /** 标称定数展示。0 / 空 / 离群都算「没标」。 */
 export function constCell(d) {
   const n = +d;
-  if (!(n > 0)) return '<span class="dim2" title="谱师没有填标称定数（Phira 上这一栏可以为空）">未填</span>';
-  if (n > 20) return '<span class="dim2" title="这个值明显超出正常范围，多半是玩梗或填错了">' + f2(n) + '?</span>';
+  if (!(n > 0)) {
+    return '<span class="dim2" title="' + esc(t('cell.const.none.tip')) + '">' + esc(t('cell.const.none')) + '</span>';
+  }
+  if (n > 20) {
+    return '<span class="dim2" title="' + esc(t('cell.const.odd.tip')) + '">' + f2(n) + '?</span>';
+  }
   return f2(n);
 }
 
@@ -168,43 +172,23 @@ export function constCell(d) {
  * ══════════════════════════════════════════════════════════════
  * 反馈里最集中的一条：「官谱标度 / B19 / RKS / p99 这些黑话像天书」。
  * 做法不是把术语删掉（内行需要它们），而是**每个术语第一次出现时能点开看**。
- * 这份表被 /app 与 /user 共用，所以放在这里而不是各页复制一份。 */
-export const GLOSSARY = [
-  ['社区共识（主结果）',
-   '把你这张谱的结构特征，拿去和 <b>Phira 上 9,508 张社区谱</b>里最相近的 20 张比，'
-   + '看它们被标成多少定数。这是<b>谱师实际定价的共识</b>，最贴近你在 Phira 里看到的数字。'],
-  ['官谱标度',
-   '同一套算法，但参照集换成 <b>1,037 张 Phigros 官方谱</b>。'
-   + '这是与官方一致的<b>绝对</b>标度。两个标度会差 2~3 级是正常的 —— '
-   + '因为社区谱和官谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6）。'],
-  ['不确定范围',
-   '那 20 张参照谱的定数<b>最小值到最大值</b>。'
-   + '范围窄 = 参照集里有和你几乎一样的谱，结论硬；范围宽 = 没有紧密对应物，中点只能当粗略参照。'],
-  ['PS 负荷',
-   '本工具自己的负荷标度（0–20），由密度 / 结构 / 协调 / 持续四组加权合成。'
-   + '<b>和上面两个定数不同标度</b>，不要混着比。'],
-  ['标称定数',
-   'Phira 上谱师自己填的那个难度数字（你在游戏里看到的那个）。'
-   + '它是<b>人工填写</b>，不是测量值 —— 实测同曲同物量的相邻难度标注差中位就有 2.80 级。'],
-  ['RKS',
-   'Phira 的水平分。官方算法是「前 19 首单曲水平 + 1 个满分位，除以 20」。'
-   + '⚠️ <b>Phira 服务端的 RKS/B19 计算已经停摆</b>（实测抽样多位活跃玩家，'
-   + 'bestPool 最新成绩全停在 2023 ~ 2026-03），所以官方那个数常年不动。'
-   + '本站在官方停更后<b>按同一公式自算一个替代值</b>，并标注它是替代值。'],
-  ['B19',
-   '「Best 19」的简称 —— 官方取你最好的 19 个单曲成绩来算总 RKS。同上，这个链路已经停更。'],
-  ['p99 / 加权密度',
-   '把谱面按时间切成小段，算出每一秒的「有效物量」，p99 就是<b>只有最难的那 1% 时间能超过</b>的值。'
-   + '用来看「最密集的地方有多密」，比平均密度更能反映难度。'],
-  ['交叉手',
-   '同一只手需要连续跨过另一只手去击打的频率。Phira 里用相邻两键的横向位移来判断。'],
+ * 这份表被 /app、/charter、/user 共用，所以放在这里而不是各页复制一份。
+ *
+ * ⚠ 文案本身在 js/i18n/common.js 的 gloss.* 里（中英并排），这里只留**顺序**
+ *   —— 顺序是结构，不是文案；以前把中文字面量写在这里，等于每个术语都
+ *   没法翻译。 */
+export const GLOSS_KEYS = [
+  'consensus', 'official', 'range', 'ps', 'nominal', 'rks', 'b19', 'p99', 'cross',
 ];
 
 export function glossaryHTML(idPrefix) {
   const pid = idPrefix || 'g';
-  return '<details class="gloss"><summary>术语看不懂？点开这里（' + GLOSSARY.length + ' 条）</summary>'
-    + '<dl>' + GLOSSARY.map(([k, v]) =>
-        '<dt>' + esc(k) + '</dt><dd>' + v + '</dd>').join('') + '</dl></details>';
+  void pid;      /* 保留形参：调用方已经传了，改签名会牵动三处调用 */
+  return '<details class="gloss"><summary>'
+    + esc(t('gloss.summary', { n: GLOSS_KEYS.length })) + '</summary>'
+    + '<dl>' + GLOSS_KEYS.map(k =>
+        '<dt>' + esc(t('gloss.' + k + '.t')) + '</dt><dd>' + t('gloss.' + k + '.d') + '</dd>').join('')
+    + '</dl></details>';
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -245,22 +229,21 @@ export function pagerHTML(o) {
   return '<div class="pager">'
     + '<div class="pginfo">'
     + (total == null
-        ? '第 <b>' + page + '</b> 页'
-        : '第 <b>' + from + '–' + to + '</b> 条 · 共 <b>' + total + '</b> 条 · 第 <b>'
-          + page + '</b>/' + pages + ' 页')
+        ? t('pg.page', { n: page })
+        : t('pg.range', { a: from, b: to, c: total, p: page, q: pages }))
     + '</div>'
     + '<div class="pgbtns">'
-    + btn('‹', page - 1, page <= 1, '上一页')
+    + btn('‹', page - 1, page <= 1, t('pg.prev'))
     + seq.map(v => v === '…'
         ? '<span class="pgecl">…</span>'
         : '<button class="pg' + (v === page ? ' on' : '') + '" type="button" data-go="' + v + '">' + v + '</button>'
       ).join('')
-    + btn('›', page + 1, page >= pages, '下一页')
+    + btn('›', page + 1, page >= pages, t('pg.next'))
     + '</div>'
     + (o.sizes && o.sizes.length
         ? '<select class="pgsel" id="pgsize">'
-          + o.sizes.map(x => '<option value="' + x + '"' + (x === size ? ' selected' : '') + '>每页 '
-            + x + ' 条</option>').join('')
+          + o.sizes.map(x => '<option value="' + x + '"' + (x === size ? ' selected' : '') + '>'
+            + esc(t('pg.per', { n: x })) + '</option>').join('')
           + '</select>'
         : '')
     + '</div>';
@@ -381,7 +364,6 @@ export function accOf(r) {
   return null;
 }
 
-export const RKS_NOTE = '公式与 Phigros 官方一致（<span class="mono">((acc−55)/45)² × 定数</span>，'
-  + '前 19 条 + φ 位 ÷ 20）。<b>它不是官方 RKS 的复现</b>：'
-  + '官方 RKS/B19 计算在 Phira 服务端已经停摆（见下方说明），'
-  + '而本值只能基于我们拿得到的成绩，因此通常<b>偏低</b>。';
+/** RKS 说明。以前是一个常量字符串 —— 那样切语言时它不会变，
+ *  所以改成**函数**：每次调用现取，语言一变内容就跟着变。 */
+export function rksNote() { return t('rks.note'); }

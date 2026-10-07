@@ -68,6 +68,9 @@ const LS_OK = new Set([
   'public/js/settings.js',        // 真源，本来就该在这里读写
   'tools/verify-pages.mjs',       // 测试：故意塞外部键，验证"清空不误伤"
   'tools/smoke-page.mjs',
+  /* 这个工具**通过 CDP 在页面里**设 phm_lang，用来模拟"用户之前选过英文"。
+     它不是应用代码，不经过 settings.js，也不可能 —— 它跑在 Node 侧。 */
+  'tools/check-i18n-page.mjs',
 ]);
 for (const f of FILES) {
   if (LS_OK.has(f.rel)) continue;
@@ -264,6 +267,37 @@ for (const f of FILES) {
       add('未使用的导出', f.rel, line, `export ${name} 全站无人 import`,
         '导出了就表示"这是给外面用的"，但没人用 = 死接口，读者会误以为它在被依赖');
     }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 7.5) 敏感文件必须被 .gitignore 覆盖
+ * ══════════════════════════════════════════════════════════════
+ * 这条防的不是"现在泄露了"，而是"**哪天有人手滑**"。
+ * write-secret.txt 是 phm_charts / phm_scores 的唯一写权限；
+ * 仓库是公开的，`git add .` 一下就等于把写权限交给所有人。
+ * 光靠"记得别提交"不是防线，是运气。
+ */
+const MUST_IGNORE = [
+  'write-secret.txt',      // 定数缓存的写入凭据
+  '.phm-write-secret',     // 同一凭据的备选文件名
+  '.env',                  // 环境变量入口（真值放这里）
+  'server-store.json',     // 运行时状态：限流计数等，会随运行变化，不该入库
+];
+{
+  const gi = existsSync(path.join(ROOT, '.gitignore'))
+    ? readFileSync(path.join(ROOT, '.gitignore'), 'utf8') : '';
+  const lines = gi.split('\n').map(l => l.trim());
+  for (const f of MUST_IGNORE) {
+    if (!lines.includes(f)) {
+      add('敏感文件未忽略', '.gitignore', 0, `${f} 不在 .gitignore 里`,
+        '仓库是公开的：`git add .` 一下就可能把凭据或运行时状态提交上去');
+    }
+  }
+  /* 反向检查：.env.example 是模板，**必须**能提交（它是给人看的说明书） */
+  if (lines.includes('.env.example')) {
+    add('模板被误忽略', '.gitignore', 0, '.env.example 被忽略了（它应该被提交）',
+      '它是给人看的格式说明，不含真值；忽略它等于让接手的人不知道要配哪些变量');
   }
 }
 

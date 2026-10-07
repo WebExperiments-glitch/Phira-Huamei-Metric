@@ -333,40 +333,80 @@ await goto('/data', 2600);
 }
 
 /* ══════════════════════════════════════════════════════════
- * 6) 谱师页：扫描 + 客户端分页
+ * 6) 谱师页：按账号取作品（新流程）
+ * ──────────────────────────────────────────────────────────
+ * 用户报的 bug：「输入谱师名，搜不到他的作品」。
+ * 根因有两层，这一段两条都要挡住：
+ *   ① 旧实现翻 `/chart?search=` 再比对 charter 文本，但 charter 是**自由文本**
+ *      （实践里常写成团队名），而且那个接口还匹配 description —— 必然搜不到 + 满屏噪声。
+ *      新实现走 `/chart?uploader={id}`（服务端精确过滤）。
+ *   ② 中文近形字：输入「平方秒与立方吨」只会命中两个同名仿号（0 作品），
+ *      本体是「平方秒和立方吨」。所以页面必须在空态给出**能点的短词**。
+ *
+ * 用 UID 直查来断言主路径（UID 是稳定的），用名字查来断言近形字那条路。
  * ══════════════════════════════════════════════════════════ */
-console.log('\n[6] /charter 谱师页 · 扫描与分页');
+console.log('\n[6] /charter 谱师页 · 按账号 id 取作品');
+
+/* — 主路径：UID 直查（确定性最好） — */
+await goto('/charter?name=257272', 2200);
+{
+  const gotCand = await until(`document.querySelectorAll('#out .cand').length >= 1`, 45000);
+  ok('UID 直查给出候选账号', gotCand);
+
+  const gotWorks = await until(`document.querySelectorAll('#out table.tbl tbody tr').length >= 1`, 60000);
+  ok('★ 列出他上传的谱面（uploader 精确过滤）', gotWorks,
+    (await evalJS(`document.querySelectorAll('#out table.tbl tbody tr').length`)) + ' 行');
+
+  /* 取「上传 N 张 · 读取完整」那一个 —— 不能用 `.card .row span`（第一个命中的
+     是候选卡的说明文字）。按内容筛，别按位置筛。 */
+  const chip = await evalJS(`(function(){
+    var all = Array.prototype.map.call(
+      document.querySelectorAll('#out .card .row span'),
+      function(e){ return e.textContent.replace(/\\s+/g,' ').trim(); });
+    return all.filter(function(x){ return /(上传|uploaded)/.test(x); })[0] || null;
+  })()`);
+  ok('标明上传总数与读取状态', !!chip && /\d/.test(chip), chip);
+
+  const sums = await evalJS(`document.querySelectorAll('#out .sum').length`);
+  ok('渲染出汇总卡', sums >= 3, sums + ' 张');
+
+  const dist = await evalJS(`document.querySelectorAll('#out .dist i').length`);
+  ok('渲染出档位分布条', dist >= 1, dist + ' 段');
+
+  const hasFb = await evalJS(`!!document.getElementById('fbgo')`);
+  ok('存在「按谱师字段搜」兜底入口', hasFb);
+
+  /* 兜底搜：这是会打很多次的请求，所以必须**按需**触发，不该自动跑 */
+  const fbRanBefore = await evalJS(`!!document.querySelector('#out details')`);
+  ok('兜底搜索按需触发，不自动跑（省 Phira 请求）', fbRanBefore === false);
+}
+
+/* — 近形字：搜不到时必须给出能点的短词 — */
+await goto('/charter?name=平方秒与立方吨', 2500);
+{
+  const gotEmpty = await until(`!!document.querySelector('#out .note.warn, #out .note.info')`, 45000);
+  ok('近形字查不到时给出明确提示（不空白）', gotEmpty);
+
+  /* ⚠ 必须等 `.candtry` **自己**出现，不能拿 `.cand` 当等待条件 ——
+     候选卡先于"空作品"卡渲染，早一步断言会拿到空数组（假失败）。 */
+  await until(`!!document.querySelector('#out .candtry')`, 20000);
+  const tryBtns = await evalJS(`Array.from(document.querySelectorAll('#out .candtry')).map(function(b){ return b.textContent; })`);
+  ok('★ 给出可点的候选短词（用户不用自己想换什么词）', tryBtns.length > 0, JSON.stringify(tryBtns));
+}
+
+/* — 完全不存在：必须说"没有"，不能假装还在加载 — */
 await goto('/charter', 2200);
 {
   await evalJS(`(function(){
-    document.getElementById('q').value = 'YanY';
+    document.getElementById('q').value = 'zzzqqq_no_such_charter_xyz';
     document.getElementById('go').click(); return 1;
   })()`);
-  const got = await until(`document.querySelectorAll('#out .sum').length >= 3`, 60000);
-  ok('扫描后渲染出汇总', got);
-
-  const rows = await evalJS(`document.querySelectorAll('#out table tbody tr').length`);
-  ok('列出作品', rows > 0, rows + ' 行');
-
-  const scanMeta = await evalJS(`(function(){
-    const el = document.querySelector('#out .chhead .mt');
-    return el ? el.textContent.replace(/\s+/g,' ').trim() : null;
+  const said = await until(`!!document.querySelector('#out .note.warn')`, 45000);
+  const txt = await evalJS(`(function(){
+    const el = document.querySelector('#out .note.warn');
+    return el ? el.textContent.replace(/\\s+/g,' ').trim() : '';
   })()`);
-  ok('显示「已扫 X/Y 页搜索结果」', /已扫\s*\d+\s*\/\s*\d+\s*页/.test(String(scanMeta)), scanMeta);
-
-  const pg = await evalJS(`(function(){
-    const el = document.querySelector('#pg1 .pginfo');
-    return el ? el.textContent.replace(/\s+/g,' ').trim() : null;
-  })()`);
-  ok('作品列表有分页信息', !!pg && /共\s*\d+\s*条/.test(pg), pg);
-
-  /* 继续扫描按钮：没扫完时必须出现 */
-  const needMore = await evalJS(`(function(){
-    const el = document.querySelector('#out .chhead .mt');
-    return /尚未扫完/.test(el ? el.textContent : '');
-  })()`);
-  ok('未扫完时明确标注（不假装完整）', needMore === true || /扫描完整/.test(String(scanMeta)),
-    'meta=' + scanMeta);
+  ok('★ 搜不到就说搜不到（不是留一片空白）', said && txt.length > 4, txt.slice(0, 80));
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -737,6 +777,118 @@ await goto('/user?uid=2771878', 3000);
   ok('写入成功后按钮变成"再提交一次"（可重复点，upsert 幂等）',
     /再提交|全部进入/.test(String(btnTxt)), String(btnTxt));
 }
+
+/* ══════════════════════════════════════════════════════════
+ * 12) 双语覆盖 · 真的点入口 + 刷新不退化
+ * ──────────────────────────────────────────────────────────
+ * 用户报的 bug：「点页脚的 English 之后，整页还是中文」。
+ * 上一个版本只测了「调 API 切语言后 t() 变了」—— 那只证明机制能用，
+ * 既不证明页面翻全了，也不证明**入口**是通的。所以这里补三件以前漏测的事：
+ *   ① 真的去点 #langswitch（用户走的那条路），不是调 API
+ *   ② **刷新之后**页脚版本号不能掉回中文 —— 这是踩过的真坑：
+ *      index.html 初始化写了一句硬编码中文，而 i18n 只在"语言变化时"更新它，
+ *      于是英文用户一刷新就看到英文页面上挂着一行中文。
+ *   ③ 每页在英文模式下不能残留**已知的中文 UI 短语**
+ *      （挑的都是界面文案，不是曲名/谱师名这类数据，所以不会误报）
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[12] 双语覆盖 · 入口 / 刷新 / 每页锚点');
+
+/* 只看**可见文本**，且跳过 <script>/<style> ——
+   否则字典里的中文（在模块源码里）会被当成"页面残留中文"。 */
+const VISIBLE = `(function(){
+  var out = [];
+  var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  var n;
+  while ((n = w.nextNode())) {
+    var s = (n.nodeValue || '').trim();
+    if (!s) continue;
+    var el = n.parentElement;
+    if (!el) continue;
+    var tag = el.tagName.toLowerCase();
+    if (tag === 'script' || tag === 'style') continue;
+    var cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    out.push(s);
+  }
+  return out.join('\\n');
+})()`;
+
+const ZH_ANCHORS = [
+  ['/', '为什么是两个数字'],
+  ['/app', '把 Phira 谱面包拖到这里'],
+  ['/charter', '查谱师作品'],
+  ['/user', '查玩家成绩'],
+  ['/data', '共享定数缓存 · 数据管理'],
+  ['/settings', '外观与语言'],
+  ['/privacy', '我们收集什么'],
+  ['/terms', '服务说明'],
+];
+
+/* ① 清干净状态，回到中文 */
+await goto('/', 2500);
+await evalJS(`localStorage.removeItem('phm_lang')`);
+await goto('/', 2500);
+
+/* ② 真的点入口 */
+{
+  const before = await evalJS(`(function(){
+    var a = document.getElementById('langswitch');
+    return { exists: !!a, label: a ? a.textContent.trim() : '',
+             nav: (document.querySelector('#nav .links a')||{}).textContent || '' };
+  })()`);
+  ok('首页页脚有语言开关（#langswitch）', before.exists, JSON.stringify(before));
+  ok('中文时开关显示另一种语言的名字（English）', before.label === 'English', before.label);
+
+  await evalJS(`document.getElementById('langswitch').click()`);
+  await new Promise(r => setTimeout(r, 700));
+
+  /* ⚠ 选择器是 `#nav .links a` —— 导航里第一个 <a> 是**品牌链接**（P.H.M.），
+     用 `#nav a` 会查到它，于是断言永远失败（这个坑踩过一次）。 */
+  const after = await evalJS(`(function(){
+    return { lang: document.documentElement.getAttribute('data-lang'),
+             nav: (document.querySelector('#nav .links a')||{}).textContent || '',
+             label: (document.getElementById('langswitch')||{}).textContent || '',
+             ls: localStorage.getItem('phm_lang') };
+  })()`);
+  ok('★ 点一下真的切成英文（导航变英文）', after.lang === 'en' && after.nav === 'Home',
+    after.lang + '/' + after.nav);
+  ok('开关自身变成"中文"（提示切回去）', after.label === '中文', after.label);
+  ok('选择被持久化（刷新后还记得）', after.ls === 'en', String(after.ls));
+
+  /* ③ 刷新 —— 这里就是踩过的坑 */
+  await goto('/', 2500);
+  const reloaded = await evalJS(`(function(){
+    var vf = document.getElementById('verfoot');
+    return { lang: document.documentElement.getAttribute('data-lang'),
+             verfoot: vf ? vf.textContent.trim() : '',
+             nav: (document.querySelector('#nav .links a')||{}).textContent || '' };
+  })()`);
+  ok('★ 刷新后仍然是英文（不退回中文）', reloaded.lang === 'en' && reloaded.nav === 'Home',
+    reloaded.lang + '/' + reloaded.nav);
+  ok('★ 刷新后页脚版本号也是英文（曾经的初始化硬编码坑）',
+    !/[\u4e00-\u9fa5]/.test(reloaded.verfoot) && /Version/.test(reloaded.verfoot),
+    reloaded.verfoot);
+}
+
+/* ④ 每页锚点：英文模式下这些中文 UI 短语必须消失 */
+for (const [p, phrase] of ZH_ANCHORS) {
+  await goto(p, 3000);
+  const en = await evalJS(VISIBLE).catch(() => '');
+  const okEn = !String(en).includes(phrase);
+
+  /* 反向：中文模式下必须还在（别把翻译做成"两套都删了"） */
+  await evalJS(`(function(){try{localStorage.setItem('phm_lang','zh')}catch(e){}})()`);
+  await goto(p, 3000);
+  const zh = await evalJS(VISIBLE).catch(() => '');
+  const okZh = String(zh).includes(phrase);
+
+  ok('★ ' + p + ' 英文模式无残留中文 UI（"' + phrase + '"）', okEn,
+    okEn ? '' : '仍出现该短语');
+  ok('  ' + p + ' 中文模式该文案仍在', okZh, okZh ? '' : '中文里找不到该短语，可能翻坏了');
+
+  await evalJS(`(function(){try{localStorage.setItem('phm_lang','en')}catch(e){}})()`);
+}
+await evalJS(`localStorage.removeItem('phm_lang')`);
 
 console.log('\n未捕获异常 / console.error ：' + errors.length);
 errors.slice(0, 8).forEach(e => console.log('   ! ' + e));

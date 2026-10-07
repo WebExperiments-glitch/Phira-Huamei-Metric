@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.0">
+<meta name="app-version" content="V0.9.1.0">
 <title>数据管理 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 共享定数缓存的数据管理：分页浏览、排序、过滤，查看每一行的双标度值与产生它的引擎版本。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.1.0">
 <style>
 .sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin:12px 0}
 .sum{background:var(--card2);border-radius:10px;padding:10px 13px}
@@ -52,10 +52,10 @@ table.tbl td.nm{max-width:230px;overflow:hidden;text-overflow:ellipsis}
 
 <div class="card">
   <div class="row" style="justify-content:space-between;align-items:baseline">
-    <h2 style="margin:0">共享定数缓存 · 数据管理</h2>
+    <h2 style="margin:0" data-i18n="dt.title"></h2>
     <span class="dim2" style="font-size:12px" id="engchip">—</span>
   </div>
-  <div class="sub">全站共享缓存里每一行都在这里。<b>只读</b> —— 写入只能由服务端复算后经凭据入库，这一页没有任何写入口。</div>
+  <div class="sub" data-i18n-html="dt.sub"></div>
   <div class="sumgrid" id="sum"></div>
   <div class="bar" id="lbar"></div>
   <div id="bmeta" class="dim2" style="font-size:11.5px"></div>
@@ -63,92 +63,105 @@ table.tbl td.nm{max-width:230px;overflow:hidden;text-overflow:ellipsis}
 
 <div class="card">
   <div class="toolbar">
-    <input class="inp" id="q" placeholder="搜曲名…" autocomplete="off" style="min-width:170px">
+    <input class="inp" id="q" data-i18n-ph="dt.search.ph" autocomplete="off" style="min-width:170px">
     <select class="inp" id="level">
-      <option value="">全部档位</option>
+      <option value="" data-i18n="dt.filter.allTier"></option>
       <option>EZ</option><option>HD</option><option>IN</option><option>AT</option><option>SP</option>
     </select>
     <select class="inp" id="only">
-      <option value="">全部分类</option>
-      <option value="official">有官谱标度</option>
-      <option value="stale">引擎版本过期</option>
+      <option value="" data-i18n="dt.filter.allKind"></option>
+      <option value="official" data-i18n="dt.filter.official"></option>
+      <option value="stale" data-i18n="dt.filter.stale"></option>
     </select>
-    <button class="btn sm" id="reset">重置</button>
+    <button class="btn sm" id="reset" data-i18n="c.reset"></button>
     <span class="dim2" style="font-size:12px;margin-left:auto" id="hint"></span>
   </div>
-  <div id="tbl"><div class="empty">读取中…</div></div>
+  <div id="tbl"><div class="empty" data-i18n="dt.reading"></div></div>
   <div id="pgwrap"></div>
 </div>
 
 <footer>
-  <div>数据来源：本站云数据库 <span class="mono">phm_charts</span>（只读接口 <span class="mono">/api/charts</span>）。</div>
-  <div class="fd">总数来自数据库的 <span class="mono">Content-Range</span> 响应头（<span class="mono">Prefer: count=exact</span>），
-  是<b>真实总数</b>而不是"这一页有多少条"。排序字段走服务端白名单。</div>
+  <div data-i18n-html="dt.foot.src"></div>
+  <div class="fd" data-i18n-html="dt.foot.note"></div>
 </footer>
 
 </div>
 
 <script type="module">
-import { renderNav, esc, f2, lvTag, tierColor, pagerHTML, wirePager } from '/js/ui.js';
+import { renderNav, esc, f2, lvTag, tierColor, pagerHTML, wirePager,
+         applyStatic, t, onLangChange } from '/js/ui.js';
 
 renderNav('data');
+applyStatic();
 const $ = s => document.querySelector(s);
 
 /* 页面状态。全部集中在这里 —— 翻页 / 排序 / 过滤都只改这个对象再重渲染，
    否则会出现"改了页码但筛选条件丢了"这类经典 bug。 */
 const S = { page: 1, pageSize: 50, sort: 'chart_id', order: 'asc', q: '', level: '', only: '' };
 const SIZES = [25, 50, 100, 200];
+/* 列定义：第三列是**词条名**而不是字面量 —— 表头是 JS 渲染的，
+   写死中文的话切语言时不会变（本页踩过这个类别的坑）。 */
 const COLS = [
-  ['chart_id', 'ID', 'num'],
-  ['name', '曲名', ''],
-  ['level', '档', ''],
-  ['difficulty', '标称', 'r'],
-  ['ref_const', '社区共识', 'r'],
-  ['ref_official', '官谱标度', 'r'],
-  ['ps_score', 'PS', 'r'],
-  ['nps', 'NPS', 'r'],
-  ['notes', '物量', 'r'],
-  ['engine_build', '引擎', ''],
-  ['computed_at', '计算时间', ''],
+  ['chart_id', 'dt.col.chart_id', 'num'],
+  ['name', 'dt.col.name', ''],
+  ['level', 'dt.col.level', ''],
+  ['difficulty', 'dt.col.difficulty', 'r'],
+  ['ref_const', 'dt.col.ref_const', 'r'],
+  ['ref_official', 'dt.col.ref_official', 'r'],
+  ['ps_score', 'dt.col.ps_score', 'r'],
+  ['nps', 'dt.col.nps', 'r'],
+  ['notes', 'dt.col.notes', 'r'],
+  ['engine_build', 'dt.col.engine_build', ''],
+  ['computed_at', 'dt.col.computed_at', ''],
 ];
 
 let LAST = null;
 let reqSeq = 0;
 
 /* ── 汇总 ── */
+/* 数字只取一次（SUM），画的时候才取词条 —— 这样切语言只重画标签，不打接口。 */
+let SUM = null;
+
+function paintSummary() {
+  if (!SUM) return;
+  const s = SUM;
+  $('#engchip').textContent = t('dt.eng', { v: s.engineVer || '—' });
+  const stale = Object.entries(s.byBuild || {})
+    .filter(([k]) => k !== s.engineVer).reduce((a, [, n]) => a + n, 0);
+  const cell = (k, v, n) => '<div class="sum"><div class="k">' + esc(k) + '</div>'
+    + '<div class="v">' + v + '</div>' + (n ? '<div class="n">' + esc(n) + '</div>' : '') + '</div>';
+  $('#sum').innerHTML =
+    cell(t('dt.sum.rows'), s.total)
+    + cell(t('dt.sum.dual'), s.withOfficial,
+        t('dt.sum.dual.n', { p: s.total ? Math.round(s.withOfficial / s.total * 100) : 0 }))
+    + cell(t('dt.sum.diff'), s.withDiff, t('dt.sum.diff.n'))
+    + cell(t('dt.sum.stale'), stale, stale ? t('dt.sum.stale.n') : t('dt.sum.fresh.n'));
+  /* 档位分布条 */
+  const order = ['EZ', 'HD', 'IN', 'AT', 'SP', '?'];
+  const tl = s.total || 1;
+  $('#lbar').innerHTML = order.filter(x => (s.byLevel || {})[x]).map(x =>
+    '<i style="width:' + ((s.byLevel[x] / tl) * 100) + '%;background:' + tierColor(x) + ';color:var(--on-color)">'
+    + ((s.byLevel[x] / tl) > 0.07 ? x + ' ' + s.byLevel[x] : '') + '</i>').join('');
+  $('#bmeta').textContent = order.filter(x => (s.byLevel || {})[x])
+    .map(x => x + ' × ' + s.byLevel[x]).join('　·　');
+}
+
 (async function summary() {
   try {
     const r = await fetch('/api/summary');
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const s = await r.json();
-    $('#engchip').textContent = '当前引擎 ' + (s.engineVer || '—');
-    const stale = Object.entries(s.byBuild || {})
-      .filter(([k]) => k !== s.engineVer).reduce((a, [, n]) => a + n, 0);
-    const cell = (k, v, n) => '<div class="sum"><div class="k">' + k + '</div>'
-      + '<div class="v">' + v + '</div>' + (n ? '<div class="n">' + n + '</div>' : '') + '</div>';
-    $('#sum').innerHTML =
-      cell('缓存行数', s.total)
-      + cell('有双标度', s.withOfficial, (s.total ? Math.round(s.withOfficial / s.total * 100) : 0) + '% 含官谱标度')
-      + cell('有过标称', s.withDiff, '谱师填了难度')
-      + cell('过期行', stale, stale ? '引擎换代未重算' : '全部最新');
-    /* 档位分布条 */
-    const order = ['EZ', 'HD', 'IN', 'AT', 'SP', '?'];
-    const tl = s.total || 1;
-    $('#lbar').innerHTML = order.filter(t => (s.byLevel || {})[t]).map(t =>
-      '<i style="width:' + ((s.byLevel[t] / tl) * 100) + '%;background:' + tierColor(t) + ';color:var(--on-color)">'
-      + ((s.byLevel[t] / tl) > 0.07 ? t + ' ' + s.byLevel[t] : '') + '</i>').join('');
-    $('#bmeta').textContent = order.filter(t => (s.byLevel || {})[t])
-      .map(t => t + ' × ' + s.byLevel[t]).join('　·　');
+    SUM = await r.json();
+    paintSummary();
   } catch (e) {
-    $('#sum').innerHTML = '<div class="sum"><div class="k">汇总</div><div class="v">—</div>'
-      + '<div class="n">读取失败</div></div>';
+    $('#sum').innerHTML = '<div class="sum"><div class="k">' + esc(t('dt.sum.failTitle')) + '</div>'
+      + '<div class="v">—</div><div class="n">' + esc(t('dt.sum.fail')) + '</div></div>';
   }
 })();
 
 /* ── 表格 ── */
 async function fetchPage() {
   const my = ++reqSeq;
-  $('#tbl').innerHTML = '<div class="empty">读取中…</div>';
+  $('#tbl').innerHTML = '<div class="empty">' + esc(t('dt.reading')) + '</div>';
   const qs = new URLSearchParams({
     page: S.page, pageSize: S.pageSize, sort: S.sort, order: S.order,
   });
@@ -165,31 +178,31 @@ async function fetchPage() {
     syncURL();
   } catch (e) {
     if (my !== reqSeq) return;
-    $('#tbl').innerHTML = '<div class="status err">读取失败：' + esc(e.message || e) + '</div>';
+    $('#tbl').innerHTML = '<div class="status err">' + esc(t('dt.fail', { e: e.message || e })) + '</div>';
     $('#pgwrap').innerHTML = '';
   }
 }
 
 function render(j) {
   const rows = j.rows || [];
-  $('#hint').textContent = rows.length + ' 行 · 每页 ' + j.pageSize;
+  $('#hint').textContent = t('dt.hint', { a: rows.length, b: j.pageSize });
 
   if (!rows.length) {
-    $('#tbl').innerHTML = '<div class="empty">没有符合条件的行</div>';
+    $('#tbl').innerHTML = '<div class="empty">' + esc(t('dt.empty')) + '</div>';
     $('#pgwrap').innerHTML = pagerHTML({ page: 1, pages: 1, total: 0, pageSize: j.pageSize, sizes: SIZES });
     wirePager($('#pgwrap'), go, setSize);
     return;
   }
 
   let h = '<table class="tbl"><thead><tr>';
-  for (const [key, label, cls] of COLS) {
+  for (const [key, labelKey, cls] of COLS) {
     const on = S.sort === key;
     h += '<th class="' + cls + (key === 'computed_at' ? ' no' : '') + '" data-sort="' + key + '">'
-      + esc(label) + (on ? '<span class="ar">' + (S.order === 'asc' ? '↑' : '↓') + '</span>' : '') + '</th>';
+      + esc(t(labelKey)) + (on ? '<span class="ar">' + (S.order === 'asc' ? '↑' : '↓') + '</span>' : '') + '</th>';
   }
   h += '</tr></thead><tbody>';
   for (const r of rows) {
-    const t = lvTag(r.level);
+    const tg = lvTag(r.level);
     const d = +r.difficulty;
     const hasD = d > 0 && d <= 20;
     const pm = r.ref_const != null ? +r.ref_const : null;
@@ -200,17 +213,18 @@ function render(j) {
     h += '<tr>'
       + '<td class="num mono2">' + r.chart_id + '</td>'
       + '<td class="nm" title="' + esc(r.name || '') + '">' + esc(String(r.name || '').slice(0, 38)) + '</td>'
-      + '<td><span class="tier" style="background:' + tierColor(t) + '">' + esc(t) + '</span></td>'
+      + '<td><span class="tier" style="background:' + tierColor(tg) + '">' + esc(tg) + '</span></td>'
       + '<td class="r num">' + (hasD ? f2(d) : '—') + '</td>'
-      + '<td class="r num" style="color:var(--amber)">' + f2(pm) + '</td>'
+      + '<td class="r num" style="color:var(--brand)">' + f2(pm) + '</td>'
       + '<td class="r num">' + f2(po)
       + (gap != null ? ' <span class="' + (gap >= 0 ? 'gap-pos' : 'gap-neg') + '">'
           + (gap >= 0 ? '+' : '') + gap.toFixed(1) + '</span>' : '') + '</td>'
       + '<td class="r num">' + f2(r.ps_score) + '</td>'
       + '<td class="r num">' + f2(r.nps) + '</td>'
       + '<td class="r num">' + (r.notes == null ? '—' : r.notes) + '</td>'
-      + '<td class="mono2">' + (stale ? '<span class="stale" title="不是当前引擎算的">' + esc(r.engine_build || '旧版') + '</span>'
-          : '<span style="color:var(--green)">最新</span>') + '</td>'
+      + '<td class="mono2">' + (stale
+          ? '<span class="stale" title="' + esc(t('dt.stale.tip')) + '">' + esc(r.engine_build || t('dt.stale.old')) + '</span>'
+          : '<span style="color:var(--ok)">' + esc(t('dt.latest')) + '</span>') + '</td>'
       + '<td class="mono2">' + esc(String(r.computed_at || '').replace('T', ' ').slice(5, 16)) + '</td>'
       + '</tr>';
   }
@@ -280,6 +294,14 @@ function syncURL() {
 })();
 
 load();
+
+/* 语言一变：静态部分 applyStatic 处理，汇总卡与表头是 JS 画的，要自己重画。
+   ⚠ 只重画已有的数据（LAST / SUM），**不重新打接口** —— 切语言不该产生网络请求。 */
+onLangChange(function () {
+  applyStatic();
+  paintSummary();
+  if (LAST) render(LAST);
+});
 </script>
 </body>
 </html>
