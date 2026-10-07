@@ -164,8 +164,21 @@ console.log('\n[5] 参照集与 k-NN 结构');
   REF_DIMS.forEach((k, c) => { probeFeat[k] = probeRow[LBL + c]; });
   const self = knnReference(probeFeat, 0, REF_OFFICIAL, 'official');
   ok('用参照集自己的行去查 → 距离 0', self && self.d1 < 1e-9, 'd1=' + (self && self.d1));
-  ok('用参照集自己的行去查 → 中点 = 它自己的定数',
-    self && near(self.ref, probeRow[0], 1e-9), '得到 ' + (self && self.ref));
+  /* ⚠ 这条断言在 v0.5.0 换聚合方式时改过。
+     旧聚合是「加权下中位」—— 输出必然是某个邻居的**原值**，
+     所以自匹配能精确等于它自己的定数（那时这里断言 1e-9）。
+     现在换成「加权截尾均值」，结果会落在邻居取值的**区间内**而不必是端点，
+     所以断言改成两条更实在的：
+       ① 结果落在邻居的取值范围内（没有外推、没有凭空造数）
+       ② 结果离它自己的定数不远（最近的邻居就是它自己，权重最高）
+     这两条一样能抓住"坐标系错位"（那会让结果飞到 1~2 区间）。 */
+  const nearVals = null; /* 下面用 lo/hi 判区间 */
+  ok('用参照集自己的行去查 → 结果落在邻居取值区间内',
+    self && self.lo - 1e-9 <= self.ref && self.ref <= self.hi + 1e-9,
+    'ref=' + (self && self.ref) + ' 区间 ' + (self && self.lo) + '–' + (self && self.hi));
+  ok('用参照集自己的行去查 → 结果接近它自己的定数（≤1.0）',
+    self && Math.abs(self.ref - probeRow[0]) <= 1.0,
+    '得到 ' + (self && self.ref) + ' vs 自身 ' + probeRow[0]);
   ok('lo ≤ 中点 ≤ hi', self && self.lo <= self.ref + 1e-9 && self.ref <= self.hi + 1e-9);
   ok('档位与邻居一致（多数票）', self && self.tier === ['EZ', 'HD', 'IN', 'AT', 'SP'][probeRow[1]],
     '得到 ' + (self && self.tier));

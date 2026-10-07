@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.4.0">
+<meta name="app-version" content="V0.5.0">
 <title>谱师作品 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 谱师的全部作品：按档位分布、平均定数，以及对每张谱的 P.H.M. 结构定数参考。支持分页浏览。">
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/css/base.css?v=V0.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.5.0">
 <style>
 .chhead{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .chhead .nm{font-size:21px;font-weight:500}
@@ -59,6 +59,8 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 
 <div id="out"></div>
 
+<div class="card" id="glossbox"></div>
+
 <footer>
   <div>数据来源：<b>Phira 公开 API</b> + 本站共享定数缓存。</div>
   <div class="fd">Phira 的 <span class="mono">/chart?search=</span> 会<b>同时匹配曲名与谱师</b>，
@@ -68,11 +70,13 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager, loadChartCache, cachedRow }
-  from '/js/ui.js?v=V0.4.0';
-import { scanCharter } from '/js/phira.js?v=V0.4.0';
+import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager,
+         tierBadge, glossaryHTML, loadChartCache, cachedRow }
+  from '/js/ui.js?v=V0.5.0';
+import { scanCharter } from '/js/phira.js?v=V0.5.0';
 
 renderNav('charter');
+document.getElementById('glossbox').innerHTML = glossaryHTML('c');
 const $ = s => document.querySelector(s);
 const msg = (t, k) => { const e = $('#msg'); e.className = 'status' + (k ? ' ' + k : ''); e.innerHTML = t || ''; };
 
@@ -139,9 +143,20 @@ async function start(fresh) {
     setProg(null);
     if (!SCAN.exact.length && !SCAN.fuzzy.length) {
       if (SCAN.done) {
-        msg('Phira 上搜「' + esc(name) + '」共 ' + SCAN.count + ' 条结果，'
-          + '但<b>没有 charter 字段含这个词</b>的谱面。'
-          + '注意 Phira 的谱师字段是自由文本，可能写成团队名或带后缀 —— 试试短一点的关键词。', 'warn');
+        /* 反馈：「搜 平方秒和立方吨 出来 57 条但没一条 charter 对得上 → 气急败坏」。
+           光说"试试短一点"不够 —— 直接**把候选词算出来给他点**。 */
+        const cands = shortCands(name);
+        msg('Phira 上搜「' + esc(name) + '」共 <b>' + SCAN.count + '</b> 条结果，'
+          + '但没有一条的 <b>charter 字段含这个词</b>。<br>'
+          + 'Phira 的谱师字段是<b>自由文本</b>（可以写成团队名、带后缀、甚至写别人的名字），'
+          + '所以搜不到通常不是"这个人不存在"，而是<b>写法不一样</b>。'
+          + (cands.length ? '<br><b>试试这些更短的关键词：</b>'
+              + cands.map(c => '<button class="btn sm cand" data-n="' + esc(c) + '" style="margin:4px 4px 0 0">'
+                  + esc(c) + '</button>').join('') : '')
+          + (cands.length ? '<div style="margin-top:8px" class="dim2">如果某个词搜出来的结果里'
+              + '「charter 里包含」那一栏有他，点进去就能看到确切写法。</div>' : ''), 'warn');
+        $('#msg').querySelectorAll('button.cand').forEach(b =>
+          b.addEventListener('click', () => { $('#q').value = b.getAttribute('data-n'); start(true); }));
       } else {
         msg('这一批没筛到，但还有 ' + (SCAN.pages - SCAN.lastPage) + ' 页没扫 —— 点「继续扫描」。', 'warn');
       }
@@ -244,7 +259,7 @@ function render() {
       /* 标称与 P.H.M. 差得多就标出来 —— 这是这个工具最有信息量的地方之一 */
       const gap = (pm != null && hadD) ? pm - d : null;
       h += '<tr><td class="nm" title="' + esc(c.name) + '">' + esc(String(c.name).slice(0, 40)) + '</td>'
-        + '<td><span class="tier" style="background:' + tierColor(t) + '">' + esc(t) + '</span></td>'
+        + '<td>' + tierBadge(c.level) + '</td>'
         + '<td class="r">' + (hadD ? f2(d) : '—') + '</td>'
         + '<td class="r ' + (pm == null ? 'nopm' : 'pm') + '">' + (pm == null ? '未算' : f2(pm))
         + (gap != null && Math.abs(gap) >= 0.8
@@ -270,7 +285,7 @@ function render() {
       + SCAN.fuzzy.slice(0, 40).map(c =>
         '<tr><td class="nm">' + esc(String(c.name).slice(0, 34)) + '</td>'
         + '<td class="dim">' + esc(c.charter) + '</td>'
-        + '<td>' + esc(lvTag(c.level)) + '</td>'
+        + '<td>' + tierBadge(c.level) + '</td>'
         + '<td class="r">' + (+c.difficulty > 0 && +c.difficulty <= 20 ? f2(c.difficulty) : '—') + '</td></tr>').join('')
       + '</tbody></table>'
       + (SCAN.fuzzy.length > 40 ? '<div class="dim2" style="font-size:12px;margin-top:6px">… 共 ' + SCAN.fuzzy.length + ' 条</div>' : '')
@@ -281,6 +296,28 @@ function render() {
   $('#sort').addEventListener('change', e => { VIEW.sort = e.target.value; VIEW.page = 1; render(); });
   $('#filter').addEventListener('change', e => { VIEW.filter = e.target.value; VIEW.page = 1; render(); });
   wirePager($('#pg1'), p => { VIEW.page = p; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+}
+
+/** 从搜不到的名字里生成候选短词。
+ *  中文名按 2~4 字切；英文名按空格/大小写边界切。
+ *  目的不是猜准，而是**给用户一个能点的起点** —— 让他知道"换个写法再试"是正常操作。 */
+function shortCands(name) {
+  const s0 = String(name || '').trim();
+  const out = new Set();
+  /* 全角/半角分隔符都切 */
+  const parts = s0.split(/[\s·・\-—_（）()、,，.]+/).filter(Boolean);
+  for (const p of parts) {
+    if (p.length >= 2) out.add(p);
+    /* 中文：取前 2 / 3 字 */
+    if (/^[\u4e00-\u9fa5]{3,}$/.test(p)) { out.add(p.slice(0, 2)); out.add(p.slice(0, 3)); }
+    /* 英文：按大写边界切 CamelCase */
+    if (/^[A-Za-z][A-Za-z0-9]{3,}$/.test(p)) {
+      const m = p.match(/[A-Z][a-z0-9]+/g);
+      if (m && m.length > 1) m.forEach(x => out.add(x));
+    }
+  }
+  out.delete(s0);
+  return [...out].filter(x => x.length >= 2).slice(0, 6);
 }
 
 function sum(k, v, n) {

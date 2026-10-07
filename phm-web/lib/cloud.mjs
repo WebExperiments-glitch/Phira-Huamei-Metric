@@ -261,8 +261,12 @@ export async function dbPageCharts(opts) {
     params.level = 'ilike.*' + String(o.level).toUpperCase() + '*';
   }
   if (o.only === 'official') params.ref_official = 'not.is.null';
+  /* ⚠ `build` **只在 only=stale 时**才有意义（它是"拿谁当基准来判过期"）。
+     曾经写成 `else if (o.build) engine_build = eq.<build>` —— 而 server 无条件传了 build，
+     于是换引擎的那一刻，整个列表会**静默变成 0 行**（所有行都还不等于新版本号）。
+     这种"条件写松了导致空结果"的 bug 不会报错，只会让人以为库里没数据。
+     2026-10-07 被 smoke 测试抓到（缓存还没重算时正好暴露）。 */
   else if (o.only === 'stale') params.or = '(engine_build.is.null,engine_build.neq.' + (o.build || '') + ')';
-  else if (o.build) params.engine_build = 'eq.' + o.build;
 
   /* ⚠ 必须用 dbHeaders(...) 增补，不能直接传 `{headers:{Prefer:...}}` ——
      dbFetch 里是 `Object.assign({headers: dbHeaders()}, init)`，浅合并会把

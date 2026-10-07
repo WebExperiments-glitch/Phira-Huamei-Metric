@@ -311,6 +311,25 @@ await goto('/data', 2600);
     catch (e) { return { status: 0, err: false, msg: String(e) }; }
   })()`);
   ok('非法排序字段被服务端拒绝', inj && inj.status === 400 && inj.err === true, JSON.stringify(inj));
+
+  /* ⚠ 这一条是给一个**真出过的 bug** 立的哨兵：
+     dbPageCharts 曾经把 engine_build 过滤写成 `else if (o.build)`，
+     而服务端**无条件**传了 build —— 于是换引擎的那一刻，整个列表
+     会静默变成 0 行（所有行都还不等于新版本号）。不报错、不崩，
+     只是"看起来库里没数据"。缓存还没重算时正好暴露。
+     断言：不带任何过滤的分页，总数必须 > 0，且与 /api/summary 的总数一致。 */
+  const bare = await evalJS(`(async function(){
+    try {
+      const r = await fetch('/api/charts?page=1&pageSize=5&sort=chart_id');
+      const j = await r.json();
+      const s2 = await (await fetch('/api/summary')).json();
+      return { status: r.status, total: j.total, rows: (j.rows||[]).length,
+               sumTotal: s2.total, ver: j.engineVer };
+    } catch (e) { return { err: String(e) }; }
+  })()`);
+  ok('不带过滤的分页返回全部数据（换引擎后也不能空）',
+    bare && bare.total > 0 && bare.rows > 0 && bare.total === bare.sumTotal,
+    JSON.stringify(bare));
 }
 
 /* ══════════════════════════════════════════════════════════

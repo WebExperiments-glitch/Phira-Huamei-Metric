@@ -108,6 +108,8 @@ const evalJS = async expr => {
 
 
 let pass = 0, fail = 0;
+/* 跨页共享的观察值（例如「各页版本号是否一致」） */
+const CC = {};
 const ok = (n, c, d) => {
   if (c) { pass++; console.log('  ✓ ' + n); }
   else { fail++; console.log('  ✗ ' + n + (d ? '  → ' + d : '')); if (d) errors.push('[冒烟] ' + n + ' → ' + d); }
@@ -138,7 +140,11 @@ for (const R of ROUTES) {
     return out;
   })()`);
 
-  ok('有版本号', info.ver === 'V0.4.0', 'ver=' + info.ver);
+  /* 不写死版本号（写死的话每次升版本都要改测试，迟早漏），
+     只断言形态：V<数字>.<数字>.<数字>，且各页一致 */
+  ok('有版本号', /^V\d+\.\d+\.\d+$/.test(String(info.ver)), 'ver=' + info.ver);
+  if (!CC.ver) CC.ver = info.ver;
+  else ok('各页版本号一致', CC.ver === info.ver, CC.ver + ' vs ' + info.ver);
   ok('有页面标题', !!info.title && info.title.length > 3, info.title);
   ok('导航已渲染', info.hasNav === true);
   ok('导航含 5 个入口', (info.navLinks || []).length >= 5, JSON.stringify(info.navLinks));
@@ -194,7 +200,9 @@ for (const R of ROUTES) {
       }catch(e){ return { err: String(e && (e.stack||e.message||e)) }; }
     })()`);
     ok('浏览器内引擎能算出定数', eng && !eng.err && isFinite(eng.ref), eng && eng.err);
-    ok('engine_ver 是 com-knn8-v0.4.0', eng && eng.ver === 'com-knn8-v0.4.0', eng && eng.ver);
+    /* 不写死具体版本号 —— 只断言形态正确（换引擎时不必改测试） */
+    ok('engine_ver 形态正确',
+      !!(eng && /^[a-z0-9]+-[a-z0-9]+-v\d+\.\d+\.\d+$/.test(String(eng.ver))), eng && eng.ver);
   } else {
     const mods = await evalJS(`(async function(){
       const v = encodeURIComponent((document.querySelector('meta[name="app-version"]')||{}).content);

@@ -23,10 +23,12 @@
  * ============================================================ */
 "use strict";
 import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js';
-/* 引擎版本 —— 全站唯一来源。改打分/参照/维度就必须改它。
+/* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
+ * com-trim15-v0.5.0：聚合从「加权下中位」换成「加权截尾均值（15%）」——
+ *   中位误差 0.500→0.453、均值误差 0.820→0.816，输出分辨率 104→1332 个不同值。
  * ⚠ 版本号一变，历史缓存里 ref_const 与新区间的可比性就断了，
  *   必须重算（tools/warm-cache.mjs --force + tools/reconcile-cache.mjs）。 */
-export const ENGINE_VER = 'com-knn8-v0.4.0';
+export const ENGINE_VER = 'com-trim15-v0.5.0';
 /* 官谱参照（向后兼容既有调用方：攻坚测试探针、tools/*.mjs 都在用它） */
 export const OFFICIAL_REF = REF_OFFICIAL;
 export { REF_DIMS, REF_OFFICIAL, ROW_LABELS };
@@ -589,13 +591,41 @@ export function knnReference(f, spPeak, refRows, basis, excludeId) {
   dists.sort((a, b) => a[0] - b[0]);
   const near = dists.slice(0, K_NEIGHBORS);
   const scale = Math.max(near[near.length - 1][0], 1e-6);
-  /* 加权中位：比加权平均抗离群 —— 官谱定数本身是人工标注，噪声 2.8 级，
-     用均值会让一张标错的谱把结论整个拽走。 */
+  /* ══ 聚合：加权**截尾均值**（去掉按定数排序后首尾各 15% 权重，再加权平均）══
+     一度用的是加权中位数。换掉的原因是可测量的（见 docs/ENGINE-EXPERIMENT.md）：
+
+       方案              |偏差|中位  |偏差|均值    p90    ≤1.0    唯一输出值数
+       加权下中位            0.500      0.820   1.40   84.2%      104
+       加权截尾均值          0.453      0.816   1.41   81.8%     1332   ← 现在用这个
+       加权平均              0.521      0.872   1.62   77.0%     1325
+       插值分位              0.464      0.818   1.40   82.9%      920
+
+     中位数的问题**不在准确度，在分辨率**：它的输出必然是某个邻居的真实取值，
+     而 Phira 上谱师声明的定数在 14/15/16 有巨大尖峰（"15" 一档就占 12%）。
+     结果是 650 张谱只产出 **104 个不同数字**、14.6% 恰好是整数 ——
+     连算几张都会看到同一个 15.0，看起来像没算。
+     截尾均值把唯一输出提到 1332（12.8 倍）、整数占比降到 0.0%，
+     同时中位数误差与均值误差都**变好**（0.500→0.453 / 0.820→0.816）。
+     只付了 ≤1.0 命中率 84.2%→81.8%（−2.4pp）的代价。
+
+     为什么是"截尾"而不是直接平均：官谱/社区定数都是人工标注、噪声约 2.8 级，
+     直接平均会被一张标错的谱整个拽走（实测：加权平均的 p90 从 1.41 恶化到 1.62）。
+     砍掉两端各 15% 权重等于"先扔掉最极端的 3 张再平均"，抗离群与连续兼得。 */
+  const TRIM = 0.15;
   const pairs = near.map(([d, i]) => [idx.rows[i][0], Math.exp(-((d / scale) ** 2) * BANDWIDTH)])
     .sort((a, b) => a[0] - b[0]);
   let tot = 0; for (const p of pairs) tot += p[1];
-  let acc = 0, mid = pairs[pairs.length - 1][0];
-  for (const p of pairs) { acc += p[1]; if (acc >= tot / 2) { mid = p[0]; break; } }
+  const cut = tot * TRIM;
+  const mid = (function () {
+    let acc = 0, sw = 0, sv = 0;
+    for (const [v, w] of pairs) {
+      const lo = acc, hi = acc + w; acc = hi;
+      /* 与 [cut, tot-cut] 区间的重叠权重 —— 被截到一半的两端邻居按比例计入 */
+      const keep = Math.min(hi, tot - cut) - Math.max(lo, cut);
+      if (keep > 0) { sw += keep; sv += v * keep; }
+    }
+    return sw > 0 ? sv / sw : pairs[Math.floor(pairs.length / 2)][0];
+  })();
   /* 档位：邻居里出现最多的那个（只是给个"这谱大概是什么难度"的直觉） */
   const lvCount = {};
   near.forEach(([, i]) => { const lv = idx.rows[i][1]; lvCount[lv] = (lvCount[lv] || 0) + 1; });

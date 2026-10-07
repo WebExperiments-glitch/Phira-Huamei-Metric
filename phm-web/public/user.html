@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.4.0">
+<meta name="app-version" content="V0.5.0">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/css/base.css?v=V0.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.5.0">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -82,6 +82,8 @@
   <div id="cout"></div>
 </div>
 
+<div class="card" id="glossbox"></div>
+
 <footer>
   <div>数据来源：<b>Phira 公开 API</b>（<span class="mono">api.phira.cn</span>）· 只读 · 不登录 · 不收集任何个人信息。</div>
   <div class="fd">本页不缓存玩家数据：每次查询都直接向 Phira 请求，关闭页面即无痕。</div>
@@ -91,11 +93,13 @@
 
 <script type="module">
 import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager,
-         loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js?v=V0.4.0';
+         tierBadge, accCell, constCell, glossaryHTML,
+         loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js?v=V0.5.0';
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
-  from '/js/phira.js?v=V0.4.0';
+  from '/js/phira.js?v=V0.5.0';
 
 renderNav('user');
+document.getElementById('glossbox').innerHTML = glossaryHTML('u');
 const $ = s => document.querySelector(s);
 const msg = (t, kind) => { const e = $('#msg'); e.className = 'status' + (kind ? ' ' + kind : ''); e.innerHTML = t || ''; };
 const STATE = { user: null, stats: null, recent: null, capped: false, pool: null };
@@ -259,14 +263,28 @@ function render() {
       const c = bestConst(r.chart, info);
       const pit = cachedRow(r.chart);
       h += '<tr><td>' + esc((info.name || ('#' + r.chart)).slice(0, 34)) + '</td>'
-        + '<td>' + esc(lvTag(info.level) || '?') + '</td>'
-        + '<td class="r">' + pct(r.acc, 2) + '</td>'
+        + '<td>' + tierBadge(info.level) + '</td>'
+        + '<td class="r">' + accCell(r.acc) + '</td>'
         + '<td class="r">' + r.n + '</td>'
         + '<td class="r dim">' + esc(when(r.last)) + '</td>'
-        + '<td class="r">' + (c ? f2(c.lv) : '—')
+        + '<td class="r">' + (c ? f2(c.lv) : '<span class="dim2">未算</span>')
         + (pit && pit.ref_const != null ? ' <span class="dim2">phm</span>' : '') + '</td></tr>';
     }
     h += '</tbody></table>';
+    /* 反馈里最扎心的一条：「成绩单里的档全是问号、准度全是横杠，逼死强迫症」。
+       格子空着不是我们的锅，但**不解释就是我们的锅**。 */
+    const missTier = rows.filter(r => lvTag((r.info || {}).level) === '?').length;
+    const missAcc = rows.filter(r => r.acc == null).length;
+    if (missTier || missAcc) {
+      h += '<div class="note info"><b>有些格子是空的，原因在这里：</b><ul style="margin:6px 0 0 16px">'
+        + (missTier ? '<li><b>档位显示「未标注」' + missTier + ' 处</b> —— Phira 的难度档位是<b>自由文本</b>字段，'
+            + '这几张谱的谱师没写成 EZ / HD / IN / AT / SP 的规范形式，所以识别不出来。'
+            + '<b>不是数据缺失，是原始数据本身不规范</b>。</li>' : '')
+        + (missAcc ? '<li><b>准度显示「无记录值」' + missAcc + ' 处</b> —— 这些是早期记录，'
+            + 'Phira 只在记录里存了分数、没存准确率。</li>' : '')
+        + '<li>标称定数显示「未填」= 谱师没在 Phira 上填那个数字（这一栏允许为空）。</li>'
+        + '</ul></div>';
+    }
   }
 
   /* ⚠ 这一段是整个页面的重点：把「20 条上限」这件事**说出来**。
@@ -361,7 +379,7 @@ async function renderMine(cid, out) {
   for (const x of records) {
     const a = accOf(x);
     h += '<tr><td class="dim">' + esc(when(x.time)) + '</td>'
-      + '<td class="r" style="color:' + ((a || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">' + pct(a, 2) + '</td>'
+      + '<td class="r" style="color:' + ((a || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">' + accCell(a) + '</td>'
       + '<td class="r">' + (x.perfect == null ? '—' : x.perfect) + '</td>'
       + '<td class="r dim">' + [x.good, x.bad, x.miss].map(v => v == null ? '—' : v).join(' / ') + '</td>'
       + '<td class="r">' + (x.full_combo ? '✓' : '') + '</td></tr>';
@@ -406,7 +424,7 @@ async function renderAll(cid, out) {
       + '<td>' + (x.player == null ? '—'
           : '<a href="/user?uid=' + x.player + '">#' + x.player + '</a>')
           + (mine ? ' <span class="pill amber">你</span>' : '') + '</td>'
-      + '<td class="r" style="color:' + ((a || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">' + pct(a, 2) + '</td>'
+      + '<td class="r" style="color:' + ((a || 0) >= 100 ? 'var(--amber)' : 'var(--fg)') + '">' + accCell(a) + '</td>'
       + '<td class="r dim">' + (x.score == null ? '—' : x.score) + '</td>'
       + '<td class="r dim">' + (x.perfect == null ? '—' : x.perfect) + '</td>'
       + '<td class="r dim">' + (x.miss == null ? '—' : x.miss) + '</td>'

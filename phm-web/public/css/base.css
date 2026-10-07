@@ -181,6 +181,19 @@ details summary:hover { color: var(--fg); }
 .pgsel{background:var(--card2);border:1px solid var(--line2);color:var(--fg2);
   border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit}
 
+/* ── 术语表 ─────────────────────────────────────────────
+   反馈最集中的一条：「官谱标度 / B19 / RKS / p99 这些黑话像天书」。
+   做法不是删术语（内行要用），而是点开就能看。 */
+.gloss{margin:12px 0 0;font-size:12.8px}
+.gloss dl{margin:10px 0 0;padding-left:2px}
+.gloss dt{color:var(--amber);font-weight:600;margin-top:10px;font-size:13px}
+.gloss dd{color:var(--fg2);margin:3px 0 0;line-height:1.72}
+.gloss summary{font-size:13px}
+
+/* ── 档位徽标（能识别就上色，识别不了显示「未标注」而不是 ?）── */
+.tier{display:inline-block;min-width:24px;text-align:center;padding:1px 5px;border-radius:5px;
+  font-size:10.5px;font-weight:600;color:#0d1117}
+
 /* ── 骨架屏 ───────────────────────────────────────────── */
 .skel { background: linear-gradient(90deg, var(--card2) 25%, var(--card3) 50%, var(--card2) 75%);
   background-size: 200% 100%; animation: sk 1.3s infinite; border-radius: 6px; height: 13px; }

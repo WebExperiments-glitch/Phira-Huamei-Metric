@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.4.0">
+<meta name="app-version" content="V0.5.0">
 <title>数据管理 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 共享定数缓存的数据管理：分页浏览、排序、过滤，查看每一行的双标度值与产生它的引擎版本。">
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/css/base.css?v=V0.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.5.0">
 <style>
 .sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin:12px 0}
 .sum{background:var(--card2);border-radius:10px;padding:10px 13px}
@@ -83,7 +83,7 @@ table.tbl td.nm{max-width:230px;overflow:hidden;text-overflow:ellipsis}
 </div>
 
 <script type="module">
-import { renderNav, esc, f2, lvTag, tierColor, pagerHTML, wirePager } from '/js/ui.js?v=V0.4.0';
+import { renderNav, esc, f2, lvTag, tierColor, pagerHTML, wirePager } from '/js/ui.js?v=V0.5.0';
 
 renderNav('data');
 const $ = s => document.querySelector(s);

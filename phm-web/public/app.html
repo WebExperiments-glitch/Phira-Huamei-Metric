@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.4.0">
+<meta name="app-version" content="V0.5.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -27,7 +27,7 @@
 <meta name="twitter:description" content="拖入谱面包，浏览器内解析，给出可审计的客观难度参考。谱面不会上传。">
 <meta name="twitter:image" content="https://phm.app.workbuddy.host/og.png">
 <meta name="theme-color" content="#0d1117">
-<link rel="stylesheet" href="/css/base.css?v=V0.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.5.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -486,6 +486,8 @@ border:1px solid var(--line);color:var(--fg3)}
      fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg> GitHub</a>
 </div>
 
+<div class="card" id="glossbox"></div>
+
 <div id="out"></div>
 
 <div class="pstats" id="pstats" style="display:none"></div>
@@ -577,6 +579,10 @@ const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).conte
 /* 共享导航（ui.js）。站点已经是多页了，四份手写的导航迟早对不上。 */
 import("/js/ui.js?v=" + encodeURIComponent(APP_VER)).then(function(m){
   m.renderNav("app");
+  /* 术语表：反馈里最集中的一条是"官谱标度 / B19 / RKS / p99 像天书"。
+     放在结果区上方而不是藏进「说明」里 —— 看不懂的人不会主动去找说明。 */
+  var g = document.getElementById("glossbox");
+  if (g) g.innerHTML = m.glossaryHTML("a");
 });
 
 /* ── 引擎桥接 ──
@@ -728,7 +734,11 @@ function card(r,idx){
       +'</span></div>':'')
     +(vague?'<div class="vague">⚠ 这 '+((kn.n20)||0)+' 张参照谱的定数横跨 <b>'
       +f1(kn.lo)+'–'+f1(kn.hi)+'</b>（相差 '+span.toFixed(1)+'）—— 说明这张谱的结构'
-      +'在'+basisDesc+'里<b>没有紧密对应物</b>。这个中点只能当粗略参照，别当作结论。</div>':'')
+      +'在'+basisDesc+'里<b>没有紧密对应物</b>，中点只能当粗略参照。<br>'
+      +'<b>这种时候该看什么：</b>'
+      +'① 看它更靠近范围的两端哪一头（说明它偏向同类里偏难还是偏易的那批）；'
+      +'② 点开下面的「最相近 5 张」自己核对名字 —— 如果你觉得哪张根本不像，那这个数就不该信；'
+      +'③ 换一个标度看另一栏（社区共识与官谱标度往往一宽一窄）。</div>':'')
     +'<div class="scale"><i style="left:0;width:'+pos(kn.ref).toFixed(1)
     +'%"></i></div>'
     +'<div class="tick"><span style="left:0">0</span>'
