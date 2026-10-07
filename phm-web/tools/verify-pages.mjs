@@ -409,6 +409,99 @@ await goto('/user?uid=2', 2600);
     'before=' + JSON.stringify((before || []).slice(0, 3)) + ' after=' + JSON.stringify((after || []).slice(0, 3)));
 }
 
+/* ══════════════════════════════════════════════════════════
+ * 8) /app 账号页：密码强度策略
+ *    起因：用户问「我注册了一个账号，我的密码有泄露风险吗」。
+ *    加固：设置密码的下限 6 位 → 10 位，并拦住纯数字 / 纯小写。
+ *    ⚠ 两条必须同时成立，缺一不可：
+ *      a) 新密码要够强；
+ *      b) **登录路径绝不能校验强度** —— 否则 6 位的老账号被自己锁在门外。
+ *    所以这里既有正向断言，也有一条反向断言。
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[8] /app 账号页 · 密码策略');
+await goto('/app', 3000);
+{
+  const SRC = await (await fetch(BASE + '/app')).text();
+
+  const hook = await evalJS(`!!(window.PHM_PW && typeof window.PHM_PW.check === 'function')`);
+  ok('存在密码策略钩子 PHM_PW', hook);
+
+  const min = await evalJS(`window.PHM_PW ? window.PHM_PW.min : -1`);
+  ok('最小长度 = 10（不再是 6）', min === 10, 'min=' + min);
+
+  const c = await evalJS(`(function(){
+    const f = window.PHM_PW.check;
+    return {
+      p5:      f('12345'),
+      p6digit: f('123456'),
+      p10digit:f('1234567890'),
+      p10low:  f('abcdefghij'),
+      good:    f('Huamei2026x')
+    };
+  })()`);
+  ok('拒绝 5 位密码', !!c.p5, String(c.p5));
+  ok('拒绝 6 位纯数字', !!c.p6digit, String(c.p6digit));
+  ok('拒绝 10 位纯数字', !!c.p10digit, String(c.p10digit));
+  ok('拒绝 10 位纯小写', !!c.p10low, String(c.p10low));
+  ok('放行字母 + 数字混合', c.good === '', JSON.stringify(c.good));
+
+  /* 源码哨兵：改回 6 位下限会被这条拦住（曲线拟合那处 length<6 不是密码） */
+  const leftover = (SRC.match(/至少\s*6\s*位/g) || []).length;
+  ok('源码里没有残留的「至少 6 位」', leftover === 0, '命中 ' + leftover + ' 处');
+
+  /* login 分支里不许出现 pwWarn */
+  const iLogin = SRC.indexOf('AUTH.mode==="login"');
+  const iSignup = SRC.indexOf('AUTH.mode==="signup"');
+  const loginBlock = (iLogin >= 0 && iSignup > iLogin) ? SRC.slice(iLogin, iSignup) : null;
+  ok('login 分支调用了 pwWarn？（必须为否）', loginBlock !== null && !/pwWarn/.test(loginBlock),
+    loginBlock === null ? '源码结构变了，找不到 login 分支' : 'login 分支含 pwWarn');
+
+  /* 设置密码的三个入口都要走 pwWarn */
+  const uses = (SRC.match(/pwWarn\(/g) || []).length;
+  ok('pwWarn 被 ≥3 个设置入口调用（注册/重置/改密）', uses >= 3, '调用点 ' + uses + ' 个（含定义 1 处）');
+
+  /* 正向的行为验证：改密表单（隐藏但存在于 DOM）填短密码 → 应被 UI 拒绝。
+     不会触网 —— 因为 pwWarn 在调用 API 之前就 return 了。 */
+  const rejMsg = await evalJS(`(function(){
+    const old = document.getElementById('aold'), nw = document.getElementById('anew');
+    if (!old || !nw) return '@@noform';
+    old.value = 'whatever-old'; nw.value = '123456';
+    const f = document.getElementById('afChpw');
+    f.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    return new Promise(function(res){ setTimeout(function(){
+      const m = document.getElementById('amsg2');
+      res(m ? m.textContent : '@@nomsg');
+    }, 1200); });
+  })()`);
+  ok('改密填 6 位密码被当场拒绝（UI 路径真的接上了）',
+    /至少\s*10\s*位|纯数字/.test(String(rejMsg)), String(rejMsg).slice(0, 80));
+
+  /* 反向断言：登录 tab 用 6 位密码，**不能**被前端强度提示拦下。
+     用一个必然不存在的邮箱 —— 只会拿到「邮箱或密码不对」，不会登进谁的账号。 */
+  await evalJS(`document.getElementById('atab-login').click()`);
+  await new Promise(r => setTimeout(r, 300));
+  const phLogin = await evalJS(`document.getElementById('apw').getAttribute('placeholder')`);
+  ok('登录 tab 的 placeholder 不写「至少 10 位」（不误导老用户）',
+    !/至少\s*10\s*位/.test(String(phLogin)), String(phLogin));
+
+  await evalJS(`(function(){
+    document.getElementById('aemail').value = 'phm-probe-does-not-exist@example.invalid';
+    document.getElementById('apw').value = '123456';
+    return 1;
+  })()`);
+  await evalJS(`document.getElementById('asubmit').click()`);
+  const gotReply = await until(`(function(){ const m=document.getElementById('amsg'); return !!m && m.textContent.length>0; })()`, 25000);
+  if (gotReply) {
+    const msg = String(await evalJS(`document.getElementById('amsg').textContent`));
+    ok('登录 6 位密码不被强度提示拦下（老账号能登）',
+      !/至少\s*10\s*位|纯数字|纯小写/.test(msg), msg.slice(0, 70));
+  } else {
+    /* 没联网 / 被限流时退回源码证据，避免测试因网络变脆 */
+    ok('登录 6 位密码不被强度提示拦下（源码证据）',
+      loginBlock !== null && !/pwWarn/.test(loginBlock), '未拿到回执，已退回源码断言');
+  }
+}
+
 console.log('\n未捕获异常 / console.error ：' + errors.length);
 errors.slice(0, 8).forEach(e => console.log('   ! ' + e));
 console.log('\n────────');

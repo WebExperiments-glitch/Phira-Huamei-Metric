@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.5.0">
+<meta name="app-version" content="V0.5.1">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -27,7 +27,7 @@
 <meta name="twitter:description" content="拖入谱面包，浏览器内解析，给出可审计的客观难度参考。谱面不会上传。">
 <meta name="twitter:image" content="https://phm.app.workbuddy.host/og.png">
 <meta name="theme-color" content="#0d1117">
-<link rel="stylesheet" href="/css/base.css?v=V0.5.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.5.1">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -409,7 +409,7 @@ border:1px solid var(--line);color:var(--fg3)}
       <input id="aemail" type="email" autocomplete="email" placeholder="you@example.com"></div>
 
     <div class="afield" id="apwWrap"><label for="apw" id="apwLabel">密码</label>
-      <input id="apw" type="password" autocomplete="current-password" placeholder="至少 6 位"></div>
+      <input id="apw" type="password" autocomplete="current-password" placeholder="至少 10 位，建议字母+数字"></div>
 
     <div class="afield" id="acodeWrap" style="display:none">
       <label for="acode">邮箱验证码</label>
@@ -440,7 +440,7 @@ border:1px solid var(--line);color:var(--fg3)}
         <div class="afield"><label for="aold">当前密码</label>
           <input id="aold" type="password" autocomplete="current-password"></div>
         <div class="afield"><label for="anew">新密码</label>
-          <input id="anew" type="password" autocomplete="new-password" placeholder="至少 6 位"></div>
+          <input id="anew" type="password" autocomplete="new-password" placeholder="至少 10 位，建议字母+数字"></div>
         <button type="submit" id="achpwGo" class="aprimary">确认修改</button>
         </form>
       </div>
@@ -1626,15 +1626,20 @@ function authSetMode(m){
   const pwInp=document.getElementById("apw");
   if(m==="login"){
     pwW.style.display=""; cdW.style.display="none";
-    pwL.textContent="密码"; if(pwInp) pwInp.setAttribute("autocomplete","current-password");
+    pwL.textContent="密码";
+    /* ⚠ 登录**不校验强度**（老账号可能是短密码，拦了就登不进来）——
+       placeholder 也必须换掉，否则会误导老用户以为「至少 10 位」是硬要求 */
+    if(pwInp){ pwInp.setAttribute("autocomplete","current-password"); pwInp.setAttribute("placeholder","你的密码"); }
     sub.textContent="登录";
   }else if(m==="signup"){
     pwW.style.display=""; cdW.style.display="";
-    pwL.textContent="设置密码"; if(pwInp) pwInp.setAttribute("autocomplete","new-password");
+    pwL.textContent="设置密码";
+    if(pwInp){ pwInp.setAttribute("autocomplete","new-password"); pwInp.setAttribute("placeholder","至少 10 位，建议字母+数字"); }
     sub.textContent="注册";
   }else{
     pwW.style.display=""; cdW.style.display="none";
-    pwL.textContent="新密码"; if(pwInp) pwInp.setAttribute("autocomplete","new-password");
+    pwL.textContent="新密码";
+    if(pwInp){ pwInp.setAttribute("autocomplete","new-password"); pwInp.setAttribute("placeholder","至少 10 位，建议字母+数字"); }
     sub.textContent="重置密码";
   }
   aMsg(""); aMsg("","" ,"amsg2");
@@ -1658,6 +1663,18 @@ async function authSend(){
     },1000);
   }catch(e){ aMsg("发送失败："+(e&&e.message||"网络异常"),"err"); btn.disabled=false; }
 }
+/* 密码强度检查 —— 只在「设置新密码」时用（注册 / 重置 / 改密）。
+   ⚠ 登录路径故意不走这里：老账号可能是 6 位密码，登录时必须放行。
+   返回空串 = 通过，否则返回给用户看的中文原因。 */
+function pwWarn(pw){
+  if(pw.length<10) return "密码至少 10 位（6 位密码离线破解只要几分钟）";
+  if(/^\d+$/.test(pw)) return "纯数字密码太弱 —— 建议字母 + 数字混着来";
+  if(/^[a-z]+$/.test(pw)) return "纯小写字母还是偏弱 —— 加个数字或大写字母吧";
+  return "";
+}
+/* 只读测试钩子：让 verify-pages.mjs 能真的断言密码策略，而不是靠 grep 源码。
+   纯函数、无副作用、不含任何敏感信息（策略本身就写在 placeholder 上）。 */
+window.PHM_PW = Object.freeze({ min: 10, check: pwWarn });
 async function authSubmit(){
   const email=(document.getElementById("aemail").value||"").trim();
   const pw=document.getElementById("apw").value||"";
@@ -1674,7 +1691,7 @@ async function authSubmit(){
       const p=AUTH.pending;
       if(!p||p.email!==email){ aMsg("请先点「获取验证码」","err"); btn.disabled=false; return; }
       if(!code){ aMsg("请填邮箱里收到的验证码","err"); btn.disabled=false; return; }
-      if(pw.length<6){ aMsg("密码至少 6 位","err"); btn.disabled=false; return; }
+      const _w=pwWarn(pw); if(_w){ aMsg(_w,"err"); btn.disabled=false; return; }
       const r=await cloud.auth.verifyOtp({
         email:p.email, verificationId:p.verificationId,
         isExistingUser:p.isExistingUser, token:code,
@@ -1694,7 +1711,7 @@ async function authSubmit(){
         btn.disabled=false; return;
       }
       if(!code){ aMsg("请填收到的重置验证码","err"); btn.disabled=false; return; }
-      if(pw.length<6){ aMsg("新密码至少 6 位","err"); btn.disabled=false; return; }
+      const _w=pwWarn(pw); if(_w){ aMsg(_w,"err"); btn.disabled=false; return; }
       const done=await AUTH.resetChallenge.updateUser({nonce:code,password:pw});
       if(done.error){ aMsg("重置失败："+(done.error.message||"验证码不对"),"err"); btn.disabled=false; return; }
       AUTH.resetChallenge=null;
@@ -1772,7 +1789,7 @@ async function authUnbind(){
 async function authChangePw(){
   const o=document.getElementById("aold").value||"", n=document.getElementById("anew").value||"";
   if(!o||!n){ aMsg("请填当前密码和新密码","err","amsg2"); return; }
-  if(n.length<6){ aMsg("新密码至少 6 位","err","amsg2"); return; }
+  const _w=pwWarn(n); if(_w){ aMsg(_w,"err","amsg2"); return; }
   const r=await cloud.auth.resetPasswordForOld({oldPassword:o,newPassword:n});
   if(r.error){ aMsg("修改失败："+(r.error.message||"当前密码不对"),"err","amsg2"); return; }
   aMsg("密码已修改","ok","amsg2");
