@@ -29,6 +29,7 @@ const COPY = {
     tag: 'Phira / Phigros 谱面难度参考',
     ref: '参考定数', ps: 'PS 负荷', official: '标称定数', dev: '偏差',
     nps: '每秒物量', notes: '物量', hold: '长条占比', charter: '谱师',
+    range: '不确定范围',
     footnote: '5 维特征 + 1,037 张官谱 k-NN · 纯浏览器内计算 · 谱面文件不上传',
     site: '不判定「虚标」，只给数字和它的不确定度',
   },
@@ -36,10 +37,17 @@ const COPY = {
     tag: 'An auditable difficulty reference for Phira charts',
     ref: 'Reference', ps: 'Load (PS)', official: 'Rated', dev: 'Drift',
     nps: 'Notes/s', notes: 'Notes', hold: 'Holds', charter: 'Charter',
+    range: 'range',
     footnote: '5 features + k-NN over 1,037 official charts · runs in your browser · charts never uploaded',
     site: 'We do not call anything mis-rated. We publish numbers and their uncertainty.',
   },
 };
+
+/* 「不确定范围」文案：20 个参照官谱的定数跨度。没有就不印。 */
+function rangeOf(d, L) {
+  if (d.lo == null || d.hi == null) return null;
+  return L.range + ' ' + (+d.lo).toFixed(1) + '–' + (+d.hi).toFixed(1);
+}
 
 /* ── 数据适配：把两种来源归一成同一张卡要的东西 ── */
 
@@ -67,6 +75,10 @@ export function fromReport(r) {
     level: r.level || '',
     charter: r.charter || (f.charter || ''),
     ref: num(kn.ref),
+    /* 不确定范围：20 个参照官谱的定数跨度。
+       卡片上必须带上它 —— 只印一个中点数字等于假装精确，
+       而这张图会被发到群里、被谱师看到。 */
+    lo: num(kn.lo), hi: num(kn.hi),
     official: official(r.difficulty != null ? r.difficulty : f.difficulty),
     ps: num(r.ps && r.ps.total),
     nps: num(f.real_notes_per_second),
@@ -158,7 +170,7 @@ function drawWide(c, d, L) {
 
   const dev = (d.ref != null && d.official != null) ? +(d.ref - d.official).toFixed(2) : null;
   const cells = [
-    { k: L.ref, v: fx(d.ref, 2), col: AMBER, big: 66 },
+    { k: L.ref, v: fx(d.ref, 2), col: AMBER, big: 62, sub: rangeOf(d, L) },
     { k: L.ps, v: fx(d.ps, 2), col: BLUE, big: 46 },
     { k: L.official, v: fx(d.official, 2), col: FG2, big: 46 },
     { k: L.dev, v: dev == null ? '—' : (dev > 0 ? '+' : '') + dev.toFixed(2), col: dev == null ? FG3 : (dev >= 0 ? AMBER : BLUE), big: 46 },
@@ -167,7 +179,8 @@ function drawWide(c, d, L) {
   cells.forEach((cell, i) => {
     const cx = P + colW * i + 34;
     text(c, cell.k, cx, y + 46, { size: 20, color: FG3 });
-    text(c, cell.v, cx, y + 118, { size: cell.big, weight: 500, color: cell.col });
+    text(c, cell.v, cx, y + 112, { size: cell.big, weight: 500, color: cell.col });
+    if (cell.sub) text(c, cell.sub, cx, y + 146, { size: 15, color: FG3 });
     if (i) { c.strokeStyle = LINE; c.beginPath(); c.moveTo(P + colW * i, y + 30); c.lineTo(P + colW * i, y + h - 30); c.stroke(); }
   });
 
@@ -196,9 +209,12 @@ function drawTall(c, d, L) {
   const meta = [d.level, d.charter && (L.charter + ' ' + d.charter)].filter(Boolean).join('   ·   ');
   if (meta) text(c, meta, P, metaY, { size: 34, color: FG2 });
 
-  /* 主数字：参考定数 */
+  /* 主数字：参考定数。右侧并排印不确定范围 —— 竖版是发抖音的，
+     只说一个中点数字最容易被截图拿去吵「你凭什么说我谱 11.6」。 */
   text(c, L.ref, P, metaY + 112, { size: 34, color: FG3 });
   text(c, fx(d.ref, 2), P, metaY + 268, { size: 168, weight: 500, color: AMBER });
+  const rg = rangeOf(d, L);
+  if (rg) text(c, rg, P + 430, metaY + 268, { size: 26, color: FG3 });
 
   /* 次级数字两列 */
   const dev = (d.ref != null && d.official != null) ? +(d.ref - d.official).toFixed(2) : null;

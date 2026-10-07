@@ -175,6 +175,11 @@ padding-top:12px;border-top:1px dashed var(--line)}
 padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 .sbtn:hover{border-color:var(--amber);color:var(--amber);background:var(--card)}
 .sbtn:disabled{opacity:.45;cursor:default}
+/* 不确定度提示：当 20 张参照官谱的定数跨度 ≥3 时出现。
+   目的不是免责，是把「这个数有多硬」如实说出来。 */
+.vague{margin-top:10px;padding:9px 12px;border-left:3px solid var(--amber);
+background:var(--card2);border-radius:0 8px 8px 0;font-size:12px;color:var(--fg2);line-height:1.7}
+.vague b{color:var(--amber)}
 /* 下载按钮（搜索结果 / Phira 表共用）：网页端无法直读 Phira CDN，只能下载后拖入 */
 .dlbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
 border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
@@ -614,6 +619,10 @@ function card(r,idx){
   const f=r.feats;
   const tier=kn.tier||"?";
   const tcol=TIER_COLOR[tier]||"var(--fg)";
+  /* 不确定度：20 个参照官谱的定数跨度。跨度越大，说明这张谱的结构
+     在官谱里越没有紧密对应物，中点数字就越不该被当成结论。 */
+  const span=(kn.hi!=null&&kn.lo!=null)?(kn.hi-kn.lo):null;
+  const vague=span!=null&&span>=3.0;
   const bars=GROUPS.map(function(g){
     return '<div class="g '+g[0]+'"><div class="t"><span>'+g[1]
       +'</span><b>'+f2(ps.g[g[0]])+'</b></div><div class="bar"><i style="width:'
@@ -642,7 +651,11 @@ function card(r,idx){
     +'<div class="ps"><span class="tierbadge" style="background:'+tcol
     +'">'+esc(tier)+'</span>'
     +'<span class="num" style="color:'+tcol+'">'+f1(kn.ref)+'</span>'
-    +'<span class="u">参考定数 · 官谱 1,037 条中结构最相近 20 张</span></div>'
+    +'<span class="u">参考定数 · 官谱 1,037 条中结构最相近 '+((kn.n20)||0)+' 张'
+    +(kn.lo!=null?'　·　不确定范围 <b>'+f1(kn.lo)+'–'+f1(kn.hi)+'</b>':'')+'</span></div>'
+    +(vague?'<div class="vague">⚠ 这 '+((kn.n20)||0)+' 张参照官谱的定数横跨 <b>'
+      +f1(kn.lo)+'–'+f1(kn.hi)+'</b>（相差 '+span.toFixed(1)+'）—— 说明这张谱的结构'
+      +'在官谱里<b>没有紧密对应物</b>。这个中点只能当粗略参照，别当作结论。</div>':'')
     +'<div class="scale"><i style="left:0;width:'+pos(kn.ref).toFixed(1)
     +'%"></i></div>'
     +'<div class="tick"><span style="left:0">0</span>'

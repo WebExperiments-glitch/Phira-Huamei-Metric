@@ -538,8 +538,21 @@ export function knnReference(f,spPeak){
     lvCount[lv]=(lvCount[lv]||0)+1;});
   let tier="?",bestC=-1;
   for(const lv in lvCount) if(lvCount[lv]>bestC){bestC=lvCount[lv];tier=lv;}
-  return {ref:mid, tier:tier, near:near.slice(0,5).map(function(d2){
-    return {name:d2[1][0],level:d2[1][1],diff:d2[1][2]};})};
+  /* ★ 把「不确定度」也带出去 —— 这是这个工具最该公开的东西。
+     20 个邻居的定数跨度就是这个数的不确定范围：跨度大 = 模型自己也没把握。
+     只给一个中点数字（"你的谱是 11.6"）是不诚实的，因为那 20 个邻居
+     可能从 9.5 横跨到 14.5 —— 单看中点等于假装精确。 */
+  const d20=near.map(function(d2){return d2[1][2];})
+    .filter(function(v){return typeof v==="number"&&isFinite(v);})
+    .sort(function(a,b){return a-b;});
+  return {ref:mid, tier:tier,
+    lo:d20.length?d20[0]:null, hi:d20.length?d20[d20.length-1]:null,
+    /* 邻居的中位与四分位跨度：用来判断「这个结论有多硬」 */
+    q1:d20.length?d20[Math.floor(d20.length*0.25)]:null,
+    q3:d20.length?d20[Math.floor(d20.length*0.75)]:null,
+    n20:d20.length,
+    near:near.slice(0,5).map(function(d2){
+      return {name:d2[1][0],level:d2[1][1],diff:d2[1][2]};})};
 }
 
 /* ── 线速峰值（speedEvents |value| 最大值，eventLayers + 顶层）── */
