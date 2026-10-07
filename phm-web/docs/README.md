@@ -51,8 +51,9 @@ phm-web/
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
 ├── tools/
-│   ├── make-og.mjs            ← 重新生成分享卡片（改文案后跑一次）
-│   └── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集 Ranked + Special）
+│   ├── make-og.mjs            ← 重新生成分享卡片（改文案后跑一次，--en 出英文版）
+│   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集 Ranked + Special）
+│   └── verify-engine.mjs      ← ★ 引擎回归测试（改解析后必跑；--net 比对真实基线）
 │
 └── docs/
     ├── README.md              ← 你正在看的
@@ -162,25 +163,43 @@ localhost 上会被服务端的 Origin 校验拒绝 —— 这是设计如此，
 
 **加功能前先自问：这段代码在 Node 里能跑吗？**
 
+### 1.5 支持哪些谱面格式（选文件靠**内容嗅探**，不靠后缀名）
+
+| 格式 | 形态 | 怎么认出来 |
+|---|---|---|
+| **RPE**（Re:PhiEdit，社区主流） | JSON，顶层有 `judgeLineList` | 内容以 `{` 开头且含 `judgeLineList` |
+| **PGR**（Phigros 官谱） | JSON，判定线里带 `notesAbove/Below` | 同上，走 `loadChart` 的另一条分支 |
+| **PEC**（PhiEditer，行式文本） | 第 1 行整数、第 2 行 `bp …` | `isPecText()` |
+| **PBC** | 二进制，经 prpr-pbc 编译 | ❌ 暂不支持 |
+
+⚠ **绝对不要改成按后缀名选文件。** Phira 上确实存在
+「文件名叫 `.json`、内容其实是 PEC」的包（Re:PhiEdit 的「导出为旧 PEC 格式」就是这样）。
+按后缀名选会让这些谱直接判成「包里没有谱面文件」—— 实测金标集 631 张里
+**131 张（20.8%）** 因此算不出来，补上 PEC 后**全部通过**。
+
+新增格式时只需要做一件事：把它归一成
+`{notes, real, dur, bpm, nlines, ev}`，然后交给 `reportFromChart()`，
+特征提取与打分完全复用。
+
 ### 2. 改完引擎一定要真实执行一次
 
 历史上出过这样的事故：编辑时把 `=>` 的 `>` 吃掉了，变成 `en=({...})` ——
 这是**合法语法**（把对象赋值给变量），`node --check` 和新 Function 都检查不出来，
 但运行时会抛 `ReferenceError`，导致线上**所有谱面解析失败**。
 
-**所以**：任何解析相关改动，必须真实跑一张谱面：
+**所以**：任何解析相关改动，都要跑回归测试：
 
 ```bash
 cd phm-web
-node --input-type=module -e "
-  import { analyzeChart } from './public/js/engine.js';
-  import fs from 'node:fs';
-  const f = fs.readdirSync('../谱面数据包').filter(x=>x.endsWith('.zip'))[0];
-  const b = fs.readFileSync('../谱面数据包/'+f);
-  const r = (await analyzeChart(b.buffer.slice(b.byteOffset, b.byteOffset+b.byteLength), f)).find(x=>!x.error);
-  console.log(r ? '通过: ref='+r.knn.ref : '失败');
-"
+node tools/verify-engine.mjs          # 离线合成用例，秒级，不联网
+node tools/verify-engine.mjs --net    # 额外拉真实谱面比对基线值
 ```
+
+退出码非 0 表示挂了 —— 可以直接接进 CI 或 pre-commit。
+
+**`--net` 为什么关键**：它拿的是**服务端已复核入库**的期望值（Pandemic 16.6、
+Quon 1125 音符 / 108 Hold 等）。这些基线一挂，说明线上所有已缓存定数都失效了，
+必须重新跑 `warm-cache`。
 
 **语法检查 ≠ 功能验证。**
 

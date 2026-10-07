@@ -50,6 +50,7 @@ export function zipParse(buf){
   }
   return {files:entries.map(en=>({
     name:en.name,
+    size:en.usize,          /* 解压后大小 —— 用来判断「哪个文件才像谱面」 */
     read:async ()=>{
       const lp=en.lho;
       if(dv.getUint32(lp,true)!==0x04034b50) throw new Error("本地头损坏: "+en.name);
@@ -141,6 +142,138 @@ export function makeBpmList(ranges){
     const e=this.el[lo]; return e[1]+(beats-e[0])*(60.0/e[2]);
   }};
 }
+/* ============================================================
+ * PEC（PhiEditer Chart）—— 行式文本谱面格式
+ * ============================================================
+ * 【为什么必须有】
+ *   Phira 上大量谱面是 PEC，而且**存在「文件名是 .json、内容其实是 PEC」的包**
+ *   （Re:PhiEdit 的「导出为旧 PEC 格式」就会这样）。
+ *   只按后缀名选文件会直接判成「包里没有 .json 谱面文件」或「JSON 解析失败」——
+ *   实测金标集 631 张里有 **131 张（20.8%）** 因此算不出来。
+ *
+ * 【格式】对照 Phigros Wiki / Phigros 自制谱 Wiki：
+ *   第 1 行  整数 = offset + 175（毫秒）。**实测不是判定线数**
+ *            （样本里 30 / 175 / 0 都出现过，而最大判定线索引分别是 29 / 30 / 29）。
+ *            它是全局时间平移，不影响任何相对特征 → 直接忽略。
+ *   bp <拍> <bpm>                       速度
+ *   cp <线> <拍> <x> <y>                位置（x 0..2048，y 0..1400）
+ *   cm <线> <起拍> <终拍> <x> <y> <缓动>  移动
+ *   cd <线> <拍> <度数> / cr <线> <起> <终> <度> <缓动>      旋转
+ *   ca <线> <拍> <不透明度> / cf <线> <起> <终> <不透明度>    透明度
+ *   cv <线> <拍> <速度>                  变速（运动步长 0.05 拍）
+ *   n1 <线> <拍> <x> <朝向> <假>             Tap
+ *   n2 <线> <起拍> <终拍> <x> <朝向> <假>     Hold
+ *   n3 … Flick    n4 … Drag
+ *   音符行后面可能各跟一行 `# <速度>` 与 `& <宽度>`，属于该音符的属性。
+ *
+ * 【两处量纲换算（都实测过，不是猜的）】
+ *   ① x：RPE 的坐标系是 **±675**（实测 5 张谱最大 |positionX| 为 585/450/500/495/526，
+ *      且取值都是 1350/20=67.5 的整数倍）；PEC 是 **±1024**。
+ *      → `x_rpe = x_pec × 675/1024`。这一步不能省：交叉手判据是 `|Δx| > 3.0`，
+ *        量纲错了这个特征就全废（而它进 PS 的「结构」项）。
+ *   ② cv 速度：wiki 实测「RPE 的 10 ≈ PEC 的 17.111」→ `÷ 1.7111`。
+ *      这一维只喂 k-NN 的第 5 维（线速峰值），且 RPE 那一路本来就有大量离群值
+ *      （库里 49% 的谱面 speed_peak > 2000），属于最不可靠的一维。
+ * ============================================================ */
+const PEC_X2RPE = 675 / 1024;
+const PEC_CV2RPE = 1 / 1.7111;
+
+/* 判据取自 PhiZone Player：第 1 行是纯整数、第 2 行以 bp 开头 */
+export function isPecText(txt) {
+  if (!txt || typeof txt !== 'string') return false;
+  const ls = txt.split(/\r?\n/);
+  if (!/^\s*-?\d+\s*$/.test(ls[0] || '')) return false;
+  return /^\s*bp\s/i.test(ls[1] || '') || /^\s*bp\s/i.test(ls[2] || '');
+}
+
+export function parsePec(txt) {
+  const ls = String(txt).split(/\r?\n/);
+  const bps = [];
+  const raw = [];
+  const lineSeen = new Set();
+  let spPeak = 0, cvCount = 0, rotCount = 0, alphaCount = 0, moveDisp = 0;
+
+  for (let i = 0; i < ls.length; i++) {
+    const s = ls[i].trim();
+    if (!s) continue;
+    const sp = s.indexOf(' ');
+    const tag = (sp < 0 ? s : s.slice(0, sp)).toLowerCase();
+    if (tag === '#' || tag === '&') continue;          /* 音符属性行，特征用不到 */
+
+    if (tag === 'bp') {
+      const a = s.split(/\s+/);
+      const beat = parseFloat(a[1]), bpm = parseFloat(a[2]);
+      if (isFinite(beat) && isFinite(bpm) && bpm > 0) bps.push({ t: beat, bpm });
+      continue;
+    }
+    if (tag === 'cv') {
+      const a = s.split(/\s+/);
+      const v = parseFloat(a[3]);
+      if (isFinite(v)) spPeak = Math.max(spPeak, Math.abs(v) * PEC_CV2RPE);
+      cvCount++;
+      continue;
+    }
+    if (tag === 'cm') {                                 /* 只进明细展示，不进评分 */
+      const a = s.split(/\s+/);
+      const x = parseFloat(a[3]), y = parseFloat(a[4]);
+      if (isFinite(x) && isFinite(y)) {
+        moveDisp += Math.abs((x - 1024) / 1024 * 675) * 880
+          + Math.abs((y - 700) / 700 * 675) * 880;
+      }
+      continue;
+    }
+    if (tag === 'cd' || tag === 'cr') { rotCount++; continue; }
+    if (tag === 'ca' || tag === 'cf') { alphaCount++; continue; }
+
+    if (/^n[1-4]$/.test(tag)) {
+      const a = s.split(/\s+/);
+      const ln = parseInt(a[1], 10);
+      const type = +tag.slice(1);                       /* 与 RPE 的 1/2/3/4 一致 */
+      let beat, x, fake;
+      if (type === 2) {
+        /* ⚠ n2 比 n1/n3/n4 多一个「结束拍数」，字段整体后移一位：
+           n2 <线> <起拍> <终拍> <x> <朝向> <假>
+           曾经把 x 当成 a[3]（终拍）、把「朝向」当成「假音符」标记读，
+           结果一百多个 hold 被当成假音符丢掉，长条占比从 9.6% 掉到 0.4%。 */
+        beat = parseFloat(a[2]); x = parseFloat(a[4]); fake = parseInt(a[6], 10) === 1;
+      } else {
+        /* n1/n3/n4 <线> <拍> <x> <朝向> <假> */
+        beat = parseFloat(a[2]); x = parseFloat(a[3]); fake = parseInt(a[5], 10) === 1;
+      }
+      if (!isFinite(beat) || !isFinite(x)) continue;
+      if (ln >= 0) lineSeen.add(ln);
+      raw.push({ line: ln < 0 ? 0 : ln, beat, type, x: x * PEC_X2RPE, fake });
+    }
+  }
+
+  if (!raw.length) throw new Error('PEC 里没有音符');
+  if (!bps.length) bps.push({ t: 0, bpm: 120 });
+  bps.sort((p, q) => p.t - q.t);
+  const merged = [];                                    /* 同拍重复的 bp 合并，避免零长段 */
+  for (const b of bps) {
+    const last = merged[merged.length - 1];
+    if (last && Math.abs(last.t - b.t) < 1e-9) last.bpm = b.bpm;
+    else merged.push({ t: b.t, bpm: b.bpm });
+  }
+  const bl = makeBpmList(merged.map(b => ({ t: b.t, bpm: b.bpm })));
+  const notes = raw.map(n => ({
+    sec: bl.tb(n.beat),
+    tick: Math.round(n.beat * 32),
+    type: n.type, x: n.x, line: n.line, fake: n.fake,
+  }));
+  notes.sort((a, b) => a.sec - b.sec || a.tick - b.tick);
+  const real = notes.filter(n => !n.fake);
+  if (!real.length) throw new Error('PEC 里没有真实音符');
+  const secs = real.map(n => n.sec);
+  const dur = Math.max(1e-3, Math.max.apply(null, secs) - Math.min.apply(null, secs));
+  return {
+    notes, real, dur, bpm: merged[0].bpm,
+    nlines: Math.max(1, lineSeen.size ? Math.max.apply(null, [...lineSeen]) + 1 : 1),
+    ev: { move: moveDisp, rot: rotCount, dis: alphaCount, tempo: new Array(cvCount).fill(0) },
+    spPeak,
+  };
+}
+
 export function loadChart(j){
   const lines=j.judgeLineList||[];
   if(!lines.length) throw new Error("没有 judgeLineList（不是 RPE/PGR 谱面）");
@@ -463,12 +596,34 @@ export function psScore(f){
   return {total:20*(0.40*g.density+0.30*g.pattern+0.15*g.coord+0.15*g.stamina),g:g};
 }
 
+/* 从「已归一化的谱面」构建报告 —— RPE/PGR 与 PEC 三条路共用同一套特征与打分。
+   有了它，「支持新格式」就只是「把新格式归一成 {notes,real,dur,bpm,nlines,ev}」这一件事。 */
+function reportFromChart(r,name,meta,spPeak){
+  const ts=r.real.map(n=>n.sec), ty=r.real.map(n=>n.type);
+  const f=Object.assign({},
+    strainFeatures(ts,ty), rhythmFeatures(ts),
+    extractDims(r.real,r.ev,r.dur,r.bpm,r.nlines));
+  f.notes_all=r.notes.length;
+  const ps=psScore(f);
+  const sp=(spPeak==null?0:spPeak);
+  const knn=knnReference(f,sp);
+  return {name:meta.name||name, level:meta.level||knn.tier||"", charter:meta.charter||"",
+    feats:f, ps:ps, knn:knn, spPeak:sp, bpm:r.bpm};
+}
+
 /* ── analyze(fileBytes, fileName) → 报告对象数组 ── */
 export async function analyzeChart(buf,fileName){
   const zip=zipParse(buf);
   const reports=[];
-  const chartEntries=zip.files.filter(x=>/\.json$/i.test(x.name));
-  if(!chartEntries.length) throw new Error("包里没有 .json 谱面文件");
+  /* ⚠ 谱面文件靠**内容嗅探**，不靠后缀名。
+     Phira 上确实存在「文件名叫 .json、内容其实是 PEC」的包
+     （Re:PhiEdit 的「导出为旧 PEC 格式」就是这样），按后缀名会直接判错。
+     先把媒体/资源排除掉，剩下的不多了，逐个读进来嗅。 */
+  const MEDIA=/\.(mp3|ogg|wav|flac|m4a|aac|opus|jpg|jpeg|png|gif|webp|bmp|mp4|mov|webm|avi|ttf|otf|woff2?|pbc|pdb|dll|exe|zip|7z|rar)$/i;
+  const cands=zip.files.filter(x=>!MEDIA.test(x.name))
+    .sort((a,b)=>(b.size||0)-(a.size||0))    /* 谱面通常是包里最大的那个文本文件 */
+    .slice(0,12);                            /* 最多看 12 个，别把整包都读了 */
+  if(!cands.length) throw new Error("包里没有可解析的文件");
   let meta={};
   const yml=zip.files.find(x=>/info\.ya?ml$/i.test(x.name));
   if(yml){
@@ -480,30 +635,31 @@ export async function analyzeChart(buf,fileName){
             charter:pick(/^charter:\s*(.+)$/m)};
     }catch(e){}
   }
-  for(const en of chartEntries){
-    let j;
-    const raw=await en.read();
-    let txt=new TextDecoder("utf-8").decode(raw);
+  for(const en of cands){
+    let txt;
+    try{ txt=new TextDecoder("utf-8").decode(await en.read()); }
+    catch(e){ continue; }                    /* 解压失败（二进制等）→ 跳过，不是错误 */
     if(txt.charCodeAt(0)===0xFEFF) txt=txt.slice(1);
+
+    if(isPecText(txt.slice(0,512))){
+      try{
+        const r=parsePec(txt);
+        reports.push(Object.assign(reportFromChart(r,en.name,meta,r.spPeak),{file:fileName}));
+      }catch(e){
+        reports.push({file:fileName,name:en.name,error:"PEC 解析失败: "+e.message});
+      }
+      continue;
+    }
+    /* 不是 PEC 又不以 { 开头 → info.txt / .csv / yml 之类，静默跳过（别制造假报错）*/
+    if(txt.trimStart()[0]!=="{") continue;
+    let j;
     try{ j=JSON.parse(txt); }
     catch(e){ reports.push({file:fileName,name:en.name,error:"JSON 解析失败: "+e.message}); continue; }
-    if(!j.judgeLineList) continue;              // 非 RPE 谱面（如 meta json）
+    if(!j.judgeLineList) continue;           /* 非 RPE/PGR 谱面（如 meta json） */
     const r=loadChart(j);
-    const ts=r.real.map(n=>n.sec), ty=r.real.map(n=>n.type);
-    const f=Object.assign({},
-      strainFeatures(ts,ty), rhythmFeatures(ts),
-      extractDims(r.real,r.ev,r.dur,r.bpm,r.nlines));
-    f.notes_all=r.notes.length;
-    const ps=psScore(f);
-    const spPeak=speedPeakOfChart(j);
-    const knn=knnReference(f,spPeak);
-    if(meta.name) r.title=meta.name;
-    if(meta.charter) r.charter=meta.charter;
-    reports.push({file:fileName,name:meta.name||en.name,
-      level:meta.level||knn.tier||"", charter:meta.charter||"",
-      feats:f,ps:ps,knn:knn,spPeak:spPeak,bpm:r.bpm});
+    reports.push(Object.assign(reportFromChart(r,en.name,meta,speedPeakOfChart(j)),{file:fileName}));
   }
-  if(!reports.length) throw new Error("没有找到可解析的 RPE 谱面");
+  if(!reports.length) throw new Error("包里没有找到可解析的谱面（支持 RPE / PGR / PEC）");
   return reports;
 }
 

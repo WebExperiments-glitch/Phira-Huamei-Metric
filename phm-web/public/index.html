@@ -1409,7 +1409,7 @@ function renderChartSearch(kw){
         +'<span class="csid">#'+c.id+'</span>'
         +'<span class="csname" title="'+esc(c.name)+'">'+esc(c.name)+'</span>'
         +'<span class="cslv">'+esc(lvShort(c.level)||"-")+'</span>'
-        +'<span class="csdif">'+(c.difficulty!=null?(+c.difficulty).toFixed(2):"-")+'</span>'
+        +'<span class="csdif">'+(c.difficulty>0?(+c.difficulty).toFixed(2):"—")+'</span>'
         +'<span class="csflag">'+(c.ranked?'<i class="ok">上架</i>':'未上架')+'</span>'
         +'<span class="cspm">'+(mine!=null
           ?'<b title="P.H.M. 结构定数（来自共享缓存）">'+mine.toFixed(2)+'</b>'

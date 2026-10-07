@@ -51,7 +51,7 @@ export function fromChartRow(row, extra) {
     level: o.level || '',
     charter: o.charter || '',
     ref: num(o.ref_const),
-    official: num(o.difficulty),
+    official: official(o.difficulty),
     ps: num(o.ps_score),
     nps: num(o.nps),
     notes: num(o.notes),
@@ -67,7 +67,7 @@ export function fromReport(r) {
     level: r.level || '',
     charter: r.charter || (f.charter || ''),
     ref: num(kn.ref),
-    official: num(r.difficulty != null ? r.difficulty : f.difficulty),
+    official: official(r.difficulty != null ? r.difficulty : f.difficulty),
     ps: num(r.ps && r.ps.total),
     nps: num(f.real_notes_per_second),
     notes: num(f.notes_real),
@@ -76,6 +76,10 @@ export function fromReport(r) {
 }
 
 const num = v => (v == null || v === '' || !isFinite(+v)) ? null : +v;
+/* ⚠ Phira 上不少谱面的标称定数字段是 0（谱师没填）。
+   直接拿来算偏差会得到「偏差 = 参考定数」这种荒唐结果（实测有 +16.8 的），
+   还会污染统计。0 不是合法定数，一律当「无标称」。 */
+const official = v => { const n = num(v); return (n != null && n > 0) ? n : null; };
 const fx = (v, n) => v == null ? '—' : (+v).toFixed(n);
 
 /* ── 绘制工具 ── */

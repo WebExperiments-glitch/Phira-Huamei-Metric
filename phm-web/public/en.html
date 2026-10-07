@@ -273,7 +273,7 @@ function renderList(rows) {
     return '<div class="lrow"><span class="id">#' + c.id + '</span>'
       + '<span class="nm" title="' + esc(c.name) + '">' + esc(c.name) + '</span>'
       + '<span class="lv">' + esc(c.level || '') + '</span>'
-      + '<span class="dif">' + (c.difficulty != null ? (+c.difficulty).toFixed(2) : '—') + '</span>'
+      + '<span class="dif">' + (c.difficulty > 0 ? (+c.difficulty).toFixed(2) : '—') + '</span>'
       + '<span class="pm">' + (got && got.ref_const != null
         ? '<b>' + (+got.ref_const).toFixed(2) + '</b>'
           + '<button class="sbtn" type="button" data-cid="' + c.id + '" data-mode="wide" title="Share card (landscape)">L</button>'
