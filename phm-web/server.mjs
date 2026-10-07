@@ -7,7 +7,16 @@
  *   3. 服务端自有的持久化（JSON 文件），用于限流计数与可信统计
  *
  * 为什么需要它：前端直连数据面时，任何规则都能被绕过；这里把「写」收归一处，
- * 至少做到校验与限流。注意它与前端同权限（anon），所以是「规范」不是「强制防线」。
+ * 至少做到校验与限流。
+ *
+ * ⚠ 权限真相（实测过，别再想当然）：
+ *   网关与浏览器持同一把 publishableKey、同为 anon，连 Referer 都能被非浏览器客户端伪造，
+ *   所以**网关无法在数据库层面被区分出来**。因此最初「网关是唯一写入口」只是**规范**，
+ *   不是防线 —— 攻击者绕开网关直连 REST 一样能写能改（实测 201/204）。
+ *
+ *   真正的封堵靠 **phm_put_chart()**（SECURITY DEFINER + 写入凭据）：
+ *   已对 anon / authenticated 撤销 phm_charts 的 INSERT/UPDATE/DELETE，
+ *   数据库侧只剩「带凭据的 RPC」这一条写路径。凭据只在本进程内，不进前端产物。
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -33,8 +42,8 @@ function storeSave(o) { try { fs.writeFileSync(STORE, JSON.stringify(o)); } catc
 
 /* ── 云数据库（服务端复现浏览器调用方式）──
  * 实测确认：认证头是 x-wb-webapp-access-key（=publishableKey），身份由 referer 判定。
- * ⚠ 这意味着服务端与浏览器同为 anon 角色 —— 所以这一层是「统一入口」，不是「更高权限」。
- * 真正的权限提升需要 service key，当前托管环境不提供。 */
+ * ⚠ 这意味着服务端与浏览器同为 anon 角色 —— 所以这一层**不是**「更高权限」。
+ * 服务端唯一真正的特权来自下面那把写入凭据（配合 SECURITY DEFINER 函数）。 */
 const DB = {
   base: 'https://phm.app.workbuddy.host/.cloud/database/rest',
   key: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b',
@@ -42,6 +51,45 @@ const DB = {
   batch: 8,          /* 环境级限流约 25~40 并发触发，服务端同样要温和 */
   gapMs: 400,
 };
+
+/* ── 写入凭据：phm_charts / phm_scores 唯一写路径的钥匙 ──
+ * anon / authenticated 对两张表的 INSERT/UPDATE/DELETE 已被撤销，
+ * 直连 REST 写库一律 42501（实测：朴素投毒 / 伪造 server-verified / 改权威值 全部 401）。
+ * 只剩 phm_put_chart() / phm_put_scores() 这一条路，而它要求带上这把凭据。
+ *
+ * ⚠ 凭据**不写在源码里** —— 仓库是公开的，硬编码等于把钥匙挂在门上。
+ *   读取顺序：环境变量 PHM_WRITE_SECRET → 同目录 write-secret.txt（已 gitignore）。
+ *   都没有 → 空串 → 所有写入失败，但**服务本身照常可用**：
+ *   /api/analyze 仍会返回算好的定数，只是标注 cacheWrite.ok=false。
+ *   这是刻意的 fail-closed：宁可不缓存，也绝不留一条不带凭据的写后门。
+ *
+ * 轮换：`UPDATE phm_secrets SET v='<新值>' WHERE k='writer'` 并同步改本地文件 ——
+ * 两端必须同时换，只换一边会立刻 42501（同样是 fail-closed，不会静默降级）。 */
+function loadWriteSecret() {
+  const fromEnv = (process.env.PHM_WRITE_SECRET || '').trim();
+  if (fromEnv) return fromEnv;
+  for (const name of ['write-secret.txt', '.phm-write-secret']) {
+    try {
+      const v = fs.readFileSync(path.join(ROOT, name), 'utf8').trim();
+      if (v) return v;
+    } catch { /* 没有就试下一个 */ }
+  }
+  console.warn('[phm] ⚠ 未配置写入凭据（PHM_WRITE_SECRET 或 write-secret.txt）'
+    + ' —— 定数照常可算，但无法写入共享缓存');
+  return '';
+}
+const WRITE_SECRET = loadWriteSecret();
+
+/* phm_charts 的唯一写入口。
+ * ⚠ 刻意不做 fallback —— 失败就失败，绝不退回到直连写库（那等于自毁这条防线）。 */
+async function dbPutChart(row) {
+  const r = await dbFetch('/rpc/phm_put_chart', {
+    method: 'POST',
+    body: JSON.stringify({ p_secret: WRITE_SECRET, p_row: row }),
+  });
+  if (r.ok) return { ok: 1, fail: [] };
+  return { ok: 0, fail: [String(r.status) + ' ' + String(r.body || r.error || '').slice(0, 120)] };
+}
 function dbHeaders(extra) {
   return Object.assign({
     'x-wb-webapp-access-key': DB.key,
@@ -63,15 +111,18 @@ async function dbFetch(pathAndQuery, init, timeoutMs = 15000) {
     return { ok: false, status: 0, error: String(e.message || e).slice(0, 200) };
   }
 }
-/* 分批 upsert（与前端同策略：批 8 条 + 间隔 400ms） */
-async function dbUpsert(table, rows, onConflict) {
+/* 成绩写库：同样只走受凭据保护的 RPC（anon 对 phm_scores 的 INSERT/UPDATE 已撤销）。
+   保留分批（批 8）+ 遇 429 退避重试 —— 环境级限流实测约 25~40 并发触发。 */
+async function dbPutScores(rows) {
   let ok = 0; const fails = [];
   for (let i = 0; i < rows.length; i += DB.batch) {
     const chunk = rows.slice(i, i + DB.batch);
-    const q = '/' + table + (onConflict ? '?on_conflict=' + encodeURIComponent(onConflict) : '');
     let done = false;
     for (let attempt = 1; attempt <= 3 && !done; attempt++) {
-      const r = await dbFetch(q, { method: 'POST', body: JSON.stringify(chunk) });
+      const r = await dbFetch('/rpc/phm_put_scores', {
+        method: 'POST',
+        body: JSON.stringify({ p_secret: WRITE_SECRET, p_rows: chunk }),
+      });
       if (r.ok) { ok += chunk.length; done = true; break; }
       const limited = r.status === 429 || /rate limit|exceeds|too many/i.test(r.body || '');
       if (limited && attempt < 3) { await new Promise(s => setTimeout(s, 500 * attempt)); continue; }
@@ -120,6 +171,10 @@ function sanitize(row, required) {
  * 文件读改写必须串行（并发请求会互相覆盖丢计数）；
  * 同时加全局桶，防止 X-Forwarded-For 被伪造时无限刷。 */
 const RL_WINDOW = 60_000, RL_MAX = 30, RL_GLOBAL_MAX = 240;
+/* /api/analyze 的独立配额 —— 它是全站最贵的路径（下载 60MB + 同步跑引擎）。
+   分开计数，避免它把普通写入的配额吃光，也便于单独调严。 */
+const ANALYZE_PER_IP = 10, ANALYZE_GLOBAL = 60, ANALYZE_INFLIGHT = 3;
+let analyzeInflight = 0;
 let storeQueue = Promise.resolve();
 function withStore(fn) {
   const run = storeQueue.then(() => {
@@ -240,9 +295,8 @@ const server = http.createServer(async (req, res) => {
     if (!rows) return send(res, 400, JSON.stringify({ error: 'body must be an array or {rows:[]}' }));
     if (rows.length > 500) return send(res, 413, JSON.stringify({ error: '单次最多 500 行' }));
 
-    const table = p === '/api/contribute' ? 'phm_charts' : 'phm_scores';
-    const onConflict = p === '/api/contribute' ? 'chart_id' : 'phira_user_id,chart_id';
-    const required = p === '/api/contribute' ? ['chart_id', 'name'] : ['chart_name'];
+    /* 走到这里的只剩 /api/scores（contribute 已在上面的分支 return） */
+    const required = ['chart_name'];
     const clean = rows.map(r => sanitize(r, required)).filter(Boolean);
 
     if (!clean.length) {
@@ -277,7 +331,7 @@ const server = http.createServer(async (req, res) => {
             continue;
           }
           /* 差异在容差内 = 客户端引擎过期 → 仍用服务端值写入 */
-          const wr = await dbUpsert('phm_charts', [trusted], 'chart_id');
+          const wr = await dbPutChart(trusted);
           if (wr.ok > 0) {
             verified++;
             if (diffs.length) {
@@ -300,11 +354,11 @@ const server = http.createServer(async (req, res) => {
       }));
     }
 
-    const wr = await dbUpsert(table, clean, onConflict);
+    const wr = await dbPutScores(clean);
     return send(res, 200, JSON.stringify({
       received: rows.length, accepted: clean.length, rejected: rows.length - clean.length,
       written: wr.ok, fail: wr.fail.length ? wr.fail : undefined,
-      table, source: 'server-proxy',
+      table: 'phm_scores', source: 'server-proxy',
     }));
   }
   /* 聚合统计（服务端转发 RPC，前端可不再直连） */
@@ -322,28 +376,74 @@ const server = http.createServer(async (req, res) => {
    * 这三步可以合成一步。
    *
    * 安全性：本接口**不接收任何客户端算出来的数值**，只用 chart_id，
-   * 由服务端自己下载、自己算、自己入库 —— 与复核链路同一套可信来源。 */
+   * 由服务端自己下载、自己算、自己入库 —— 与复核链路同一套可信来源。
+   *
+   * ⚠ 这个接口是全站**代价最高**的路径：未命中缓存时要下载最多 60MB 的谱面包
+   *   并跑完整引擎（zipParse 是同步计算，会阻塞事件循环）。因此它有**三重**约束：
+   *   ① 每 IP 每分钟 10 次（比写入接口更严）
+   *   ② 全局在途分析最多 3 个 —— 超出直接 503，让调用方稍后重试
+   *   ③ 复用全局每分钟配额，防止有人换 IP 刷
+   *   没有这三条时，枚举未缓存 chart_id 就能放大带宽/内存/CPU 到打死本进程。 */
   if (p === '/api/analyze') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
-    if (!rateOk(ip)) return send(res, 429, JSON.stringify({ error: '请求太频繁，请稍后再试' }));
+
+    const box = await withStore(s => {
+      const now = Date.now();
+      s.hits = s.hits || {};
+      for (const k of Object.keys(s.hits)) {
+        const arr = (s.hits[k] || []).filter(t => now - t < RL_WINDOW);
+        if (arr.length) s.hits[k] = arr; else delete s.hits[k];
+      }
+      const key = 'A:' + ip;
+      const arr = s.hits[key] || [];
+      let global = 0;
+      for (const k of Object.keys(s.hits)) if (k[0] === 'A:') global += s.hits[k].length;
+      if (arr.length >= ANALYZE_PER_IP) return { ok: false, why: 'per-ip' };
+      if (global >= ANALYZE_GLOBAL) return { ok: false, why: 'global' };
+      arr.push(now); s.hits[key] = arr;
+      return { ok: true };
+    });
+    if (!box.ok) {
+      return send(res, 429, JSON.stringify({
+        error: box.why === 'per-ip'
+          ? '算得太频繁了（每分钟最多 ' + ANALYZE_PER_IP + ' 次），请稍后再试'
+          : '当前请求过多，请稍后再试',
+      }));
+    }
+    if (analyzeInflight >= ANALYZE_INFLIGHT) {
+      return send(res, 503, JSON.stringify({
+        error: '服务器正在计算其他谱面（最多同时 ' + ANALYZE_INFLIGHT + ' 个），请几秒后重试',
+        retryAfter: 3,
+      }));
+    }
+
     const body = await readBody(req);
     const cid = body && Number(body.chart_id);
     if (!Number.isInteger(cid) || cid < 1) {
       return send(res, 400, JSON.stringify({ error: 'chart_id 无效' }));
     }
+    analyzeInflight++;
     try {
       const ex = await dbFetch('/phm_charts?chart_id=eq.' + cid + '&select=*');
       if (ex.ok && ex.body && ex.body !== '[]') {
         return send(res, 200, JSON.stringify({ cached: true, data: JSON.parse(ex.body)[0] }));
       }
       const trusted = await recompute(cid);
-      const wr = await dbUpsert('phm_charts', [trusted], 'chart_id');
+      const wr = await dbPutChart(trusted);
+      /* 写缓存失败**不该毁掉这次计算**：值是服务端算的、本身正确，
+         只是没能共享给别人。照常把结果返回，但把失败显式带出去 ——
+         既不静默降级，也不让用户白等一次下载。 */
       if (!wr.ok) {
-        return send(res, 502, JSON.stringify({ error: '算好了但写入缓存失败', detail: String(wr.fail[0] || '').slice(0, 120) }));
+        return send(res, 200, JSON.stringify({
+          cached: false, data: trusted,
+          cacheWrite: { ok: false, detail: String(wr.fail[0] || '').slice(0, 120) },
+        }));
       }
-      return send(res, 200, JSON.stringify({ cached: false, data: trusted }));
+      return send(res, 200, JSON.stringify({ cached: false, data: trusted, cacheWrite: { ok: true } }));
     } catch (e) {
       return send(res, 502, JSON.stringify({ error: String(e.message || e).slice(0, 140) }));
+    } finally {
+      analyzeInflight--;
     }
   }
 

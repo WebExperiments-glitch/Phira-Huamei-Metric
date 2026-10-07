@@ -31,8 +31,13 @@
 | `computed_at` | timestamptz | 默认 `now()` |
 | `verified_at` | timestamptz | **服务端复核时间**（客户端直写的历史行为 `null`） |
 
-**写入规则**：只经 `POST /api/contribute` → `lib/review.mjs` 复核后写入，
-落库值一律取自**服务端复算结果**。已有行直接跳过，客户端改不动。
+**写入规则**：客户端只经 `POST /api/contribute` 或 `POST /api/analyze` 提交 **chart_id**，
+服务端（`lib/review.mjs`）自己下载谱面复算，落库值**一律取自服务端复算结果**。
+已有行直接跳过，客户端改不动。
+
+**但「走网关」只是规范，不是权限** —— 网关与浏览器同为 `anon`，连 Referer 都能伪造。
+真正的门在数据库：`anon` / `authenticated` 对这张表的 `INSERT/UPDATE/DELETE` **已全部撤销**，
+唯一的写路径是下面那把**需要写入凭据**的 `phm_put_chart()`。
 
 ---
 
@@ -61,6 +66,22 @@
 唯一索引：`(phira_user_id, chart_id)` —— 同一玩家同一谱只留一行（upsert 目标）。
 
 > ⚠ 该表含玩家身份信息，**已撤销匿名 SELECT**（见下）。对外只走聚合 RPC。
+> 写入同样只留 `phm_put_scores()` 一条受凭据保护的路径。
+
+---
+
+### `phm_secrets` — 写入凭据（不可达表）
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `k` | text **主键** | 固定为 `'writer'` |
+| `v` | text NOT NULL | 网关持有的写入凭据 |
+
+**RLS 已开、策略一条不留、`REVOKE ALL FROM PUBLIC, anon, authenticated`** ——
+对 REST 接口而言这张表**完全不可达**（读也不行）。
+只有 `SECURITY DEFINER` 函数以属主身份才读得到。
+
+> 轮换方式见 SECURITY.md「写入凭据怎么轮换」。
 
 ---
 
@@ -83,10 +104,15 @@
 
 | 函数 | 返回 | 用途 |
 |---|---|---|
+| `phm_put_chart(secret text, row jsonb)` | `jsonb` | ★ 写定数缓存（**唯一写路径**，需凭据） |
+| `phm_put_scores(secret text, rows jsonb)` | `jsonb` | ★ 写成绩（**唯一写路径**，需凭据） |
 | `phm_stats()` | `json` | 全局聚合：账号数、今日/7日/30日活跃、绑定数、成绩数、缓存数 |
 | `phm_plays(name_in text)` | `json` | 某谱的玩家表现：`{n, avg, min, max, med, oc}` |
 | `phm_mine(uid_in bigint, ids_in bigint[])` | `integer` | 某玩家在给定谱号里已有几条 |
 | `phm_touch()` | `void` | 原子更新本人档案的 `last_seen` 与 `visits` |
+
+两个写函数内部**自己填 `engine_ver` / `verified_at` / `computed_at`**，
+调用方传什么都不算数 —— 伪造权威标记这条路根本不存在（实测过）。
 
 **设计原则**：所有 SECURITY DEFINER 函数都
 ① `SET search_path = public` ② `REVOKE ALL FROM PUBLIC` ③ 只 `GRANT EXECUTE` 给需要的角色。
@@ -99,24 +125,45 @@
 
 | 对象 | anon / authenticated | 说明 |
 |---|---|---|
-| `phm_charts` | SELECT ✅ INSERT ✅ UPDATE ✅ | 前端要读缓存；写入经网关 |
-| `phm_scores` | **SELECT ❌** INSERT ✅ UPDATE ✅ | **已撤销全表读**，改走聚合 RPC |
+| `phm_charts` | **SELECT ✅ / INSERT ❌ / UPDATE ❌ / DELETE ❌** | 前端要读缓存；写入只能走 `phm_put_chart()` |
+| `phm_scores` | **SELECT ❌ INSERT ❌ UPDATE ❌** | 全表读已撤销；写入只能走 `phm_put_scores()` |
+| `phm_secrets` | **全部 ❌（表不可达）** | 写入凭据，只有 SECURITY DEFINER 函数读得到 |
 | `phm_profiles` | 仅本人（`owner_id = auth.uid()`）| 三道 RLS 全开且限本人 |
-| 所有表 | **DELETE ❌** | 匿名不可删（防恶意清库） |
-| `phm_stats` / `phm_plays` / `phm_mine` | EXECUTE ✅ | 聚合接口 |
+| `phm_stats` / `phm_plays` / `phm_mine` | EXECUTE ✅ | 聚合接口，只回数字 |
+| `phm_put_chart` / `phm_put_scores` | EXECUTE ✅（**但需凭据**）| 无凭据 = 42501 |
 | `phm_touch` | EXECUTE ✅（仅 authenticated）| 需要登录 |
 
-### 为什么 `phm_scores` 的 INSERT 收不掉
+> 「DELETE ❌」也适用于 `service_role` 之外的常规角色；数据库侧另有 CHECK 约束兜住取值范围。
 
-服务端网关与浏览器**用的是同一把 `publishableKey`**，同为 `anon` 角色 ——
-托管环境不提供 service key。所以：
+### 怎么把写权限收回来的（2026-10-07）
 
-- 如果撤销 `anon` 的 INSERT → **服务端也写不了**，导入功能全断
-- 因此只能保留写权限，靠**网关校验 + 服务端复核**降低风险
+原先的困境：网关与浏览器**同一把 `publishableKey`、同为 `anon`**，托管环境不给 service key
+→ 撤销 `anon` 的写权限会连服务端一起断掉。
 
-**这是当前托管能力的硬限制**，不是设计疏漏。
-托管方一旦提供 service key，就能把写权限收归服务端：
-撤销 `anon` 的 INSERT/UPDATE，网关改用高权限凭据 —— 届时无需改动前端。
+**破局点：`SECURITY DEFINER` 函数不需要 service key。**
+函数以**属主**（`cloudbase_postgres_postgres_*`）身份运行，天然绕过 RLS，
+再把「你有没有资格写」变成函数体内的**凭据比对**：
+
+```sql
+CREATE FUNCTION phm_put_chart(p_secret text, p_row jsonb)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE s text;
+BEGIN
+  SELECT v INTO s FROM phm_secrets WHERE k = 'writer';
+  IF s IS NULL OR p_secret IS NULL OR p_secret <> s THEN
+    RAISE EXCEPTION 'unauthorized writer' USING ERRCODE = '42501';
+  END IF;
+  INSERT INTO phm_charts (...) VALUES (...)
+  ON CONFLICT (chart_id) DO UPDATE SET ...;
+  RETURN jsonb_build_object('ok', true);
+END $$;
+```
+
+于是可以放心地 `REVOKE INSERT, UPDATE, DELETE ... FROM anon, authenticated`
+—— 因为网关手里的凭据能开这把锁，而**任何人绕开网关直连 REST 都写不进去**。
+
+> 凭据本身**不入库、不进源码**：它只活在 `write-secret.txt`（gitignore）或环境变量里。
+> 保管与轮换见 SECURITY.md「写入凭据放哪、怎么轮换」。
 
 ---
 

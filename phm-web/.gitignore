@@ -1,2 +1,7 @@
 server-store.json
 node_modules/
+
+# ⚠ 写入凭据 —— 绝不入库。仓库是公开的，进去等于把 phm_charts / phm_scores
+#   的唯一写权限交给所有人。轮换方法见 docs/SECURITY.md。
+write-secret.txt
+.phm-write-secret

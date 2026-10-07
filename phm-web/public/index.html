@@ -134,7 +134,8 @@ border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;li
 .pmhint b{color:var(--fg2)}
 /* 谱面搜索 */
 /* 搜索结果列表 */
-.cshead{font-size:11.5px;color:var(--fg3);margin:10px 0 5px;display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+/* 不用 space-between —— 宽屏时提示会被推到最右边，和「找到 N 张」拉得老远，读起来断成两截 */
+.cshead{font-size:11.5px;color:var(--fg3);margin:10px 0 5px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 .cshead b{color:var(--fg)}
 .cslist{display:flex;flex-direction:column;gap:1px}
 .csrow{display:flex;gap:8px;align-items:center;font-size:11.5px;padding:4px 6px;border-radius:6px}
@@ -336,7 +337,7 @@ border:1px solid var(--line);color:var(--fg3)}
 <div class="wrap">
 <header>
   <h1><b>P.H.M.</b> Standard</h1>
-  <span class="ver">V0.3.2 · 开发者测试版</span>
+  <span class="ver">V0.3.3 · 开发者测试版</span>
   <div class="hsearch">
     <input id="csrch" placeholder="搜谱面：曲名 / 谱师" maxlength="40" autocomplete="off">
     <button id="cgo" type="button" title="搜索 Phira 谱面">搜索</button>
@@ -444,11 +445,11 @@ border:1px solid var(--line);color:var(--fg3)}
   <div>线上引擎：<b>5 维 log1p 特征</b>（NPS / 长条占比 / 物量 / 纵连 / 线速峰值）
   + 1,037 张官谱 k-NN ·
   源码 <a class="link"
-  href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm/PHM-Standard.html"
-  target="_blank" rel="noopener">phm/PHM-Standard.html</a> ·
+  href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/public/index.html"
+  target="_blank" rel="noopener">phm-web/public/index.html</a> ·
   <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
   target="_blank" rel="noopener">GitHub</a> ·
-  版本 V0.3.2（开发者测试版，正式版会重新计算）· GPL-3.0</div>
+  版本 V0.3.3（开发者测试版，正式版会重新计算）· GPL-3.0</div>
   <details>
     <summary>PS 是什么？本工具的边界与隐私（点开看）</summary>
     <div class="fd"><b>两个数不是一回事，别混用</b>：<b>参考定数</b>是与官谱定数同标度的估计
@@ -723,12 +724,14 @@ window.addEventListener("unhandledrejection",function(ev){
     }
   }catch(e){}
 });
-/* 面板开关（供委托与外部调用） */
+/* 面板开关（供委托与外部调用）
+   ⚠ 两个面板互斥：同时开着会各占一整块，用户不知道在看哪个（曾经就是这样）。 */
 function togglePanel(force){
   const p=document.getElementById("ppanel"); if(!p) return;
   const show=(typeof force==="boolean")?force:(p.style.display==="none");
   p.style.display=show?"":"none";
   if(show){
+    const a=document.getElementById("authpanel"); if(a) a.style.display="none";
     let last=null;
     try{ last=localStorage.getItem("phm_phira_uid")||localStorage.getItem("phm_phira_name"); }catch(e){}
     const inp=document.getElementById("pname");
@@ -743,7 +746,12 @@ document.addEventListener("click",async function(e){
     /* ── P.H.M. 账号 ── */
     if(t.closest("#authBtn")){
       const p=document.getElementById("authpanel");
-      if(p) p.style.display=(p.style.display==="none"?"":"none");
+      if(p){
+        const show=(p.style.display==="none");
+        p.style.display=show?"":"none";
+        /* 与「连接 Phira」面板互斥 —— 见 togglePanel 的注释 */
+        if(show){ const q=document.getElementById("ppanel"); if(q) q.style.display="none"; }
+      }
       return;
     }
     if(t.closest("#aclose")){ const p=document.getElementById("authpanel"); if(p) p.style.display="none"; return; }
@@ -787,8 +795,11 @@ document.addEventListener("click",async function(e){
       const url=dl.getAttribute("data-file");
       const nm=dl.getAttribute("data-name")||"谱面";
       if(!url){ csMsg("这张谱面没有可下载的文件（可能已下架）","err"); return; }
+      /* ⚠ 协议白名单：data-file 来自 Phira API，esc() 只防了属性注入，
+         防不住 javascript: / data: 这类协议。不校验就等于把 <a href> 交给远端决定。 */
+      if(!/^https?:\/\//i.test(url)){ csMsg("谱面文件地址异常（非 http/https），已拦截","err"); return; }
       const a=document.createElement("a");
-      a.href=url; a.target="_blank"; a.rel="noopener";
+      a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
       document.body.appendChild(a); a.click(); a.remove();
       csMsg("📥 正在下载《"+esc(nm)+"》 —— 下完后把 zip <b>拖到下面的虚线框</b>，"
         +"本页会自动算出定数，并顺带存进共享缓存。","ok");
@@ -1692,7 +1703,10 @@ async function analyzeByChartId(cid,btn){
     csMsg("✅ 《"+esc(d.name||"")+"》 → P.H.M. 定数 <b>"
       +(d.ref_const!=null?(+d.ref_const).toFixed(2):"—")+"</b>"
       +(d.ps_score!=null?" · PS 负荷 "+(+d.ps_score).toFixed(2):"")
-      +(j.cached?" ·（来自共享缓存）":" · 由服务端计算并已存入共享缓存"),"ok");
+      +(j.cached?" ·（来自共享缓存）"
+        :(j.cacheWrite&&j.cacheWrite.ok===false
+          ?" · 由服务端计算（⚠ 但这次没能写进共享缓存）"
+          :" · 由服务端计算并已存入共享缓存")),"ok");
   }catch(e){
     csMsg("算定数失败："+esc((e&&e.message)||"网络异常")
       +"<br>可以改用右边的 <b>📥</b> 手动下载，再把 zip 拖到下面虚线框用本机引擎算。","err");
