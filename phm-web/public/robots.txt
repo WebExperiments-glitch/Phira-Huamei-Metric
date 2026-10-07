@@ -1,2 +1,10 @@
+# P.H.M. Standard —— Phira 谱面难度参考（单页工具站）
 User-agent: *
 Allow: /
+
+# 接口不给爬。
+# /api/analyze 是全站最贵的路径：未命中缓存时要下载谱面包（最多 60MB）并跑完整引擎。
+# 让它被爬虫批量命中，等于把带宽和 CPU 白送出去。
+Disallow: /api/
+
+Sitemap: https://phm.app.workbuddy.host/sitemap.xml

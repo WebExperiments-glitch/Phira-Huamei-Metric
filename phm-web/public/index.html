@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.H.M. Standard · V0.3.2</title>
+<!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
+     曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
+<meta name="app-version" content="V0.3.3">
+<title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="P.H.M. —— Phira / Phigros 谱面定数参考工具。拖入谱面包即出客观定数参考，解析全在浏览器里完成，谱面文件不上传。">
@@ -12,7 +15,17 @@
 <meta property="og:title" content="P.H.M. Standard —— Phira 谱面难度参考">
 <meta property="og:description" content="拖入谱面包，浏览器内解析，给出可审计的客观难度参考。谱面不会上传。">
 <meta property="og:url" content="https://phm.app.workbuddy.host/">
-<meta name="twitter:card" content="summary">
+<!-- 分享卡片（发到 QQ / B站 / 群里要好看的预览图）。1200×630 是所有平台的通用尺寸。
+     图由 tools/ 里的脚本渲染生成，改文案时记得重新生成。 -->
+<meta property="og:image" content="https://phm.app.workbuddy.host/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="P.H.M. Standard —— Phira 谱面难度参考，示例：参考定数 15.70 / PS 负荷 11.41 / 标称 16.20">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="P.H.M. Standard —— Phira 谱面难度参考">
+<meta name="twitter:description" content="拖入谱面包，浏览器内解析，给出可审计的客观难度参考。谱面不会上传。">
+<meta name="twitter:image" content="https://phm.app.workbuddy.host/og.png">
 <meta name="theme-color" content="#0d1117">
 <style>
 :root{--bg:#0d1117;--card:#161b22;--card2:#1c2330;--fg:#e6edf3;--fg2:#9aa7b4;--fg3:#6b7684;
@@ -167,6 +180,11 @@ color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card);margin-to
 #drop:hover{border-color:var(--blue);background:var(--card2)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:19px;font-weight:700;color:var(--fg);margin-bottom:7px}
+/* 「谱面包是什么」——新用户最容易卡在这（不知道文件从哪来） */
+#drop .what{font-size:11.5px;color:var(--fg3);margin-top:12px;line-height:1.7;
+max-width:440px;margin-left:auto;margin-right:auto}
+#drop .what b{color:var(--fg2)}
+#drop .what code{background:var(--card2);border-radius:4px;padding:1px 4px;font-size:11px}
 #drop input{display:none}
 /* 第二层入口：进阶功能不抢第一屏，但要能一眼发现 */
 .morebar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;
@@ -337,7 +355,7 @@ border:1px solid var(--line);color:var(--fg3)}
 <div class="wrap">
 <header>
   <h1><b>P.H.M.</b> Standard</h1>
-  <span class="ver">V0.3.3 · 开发者测试版</span>
+  <span class="ver" id="verchip">开发者测试版</span>
   <div class="hsearch">
     <input id="csrch" placeholder="搜谱面：曲名 / 谱师" maxlength="40" autocomplete="off">
     <button id="cgo" type="button" title="搜索 Phira 谱面">搜索</button>
@@ -360,6 +378,7 @@ border:1px solid var(--line);color:var(--fg3)}
       <button type="button" id="atab-reset">找回密码</button>
     </div>
 
+    <form id="afGuest" novalidate>
     <div class="afield"><label for="aemail">邮箱</label>
       <input id="aemail" type="email" autocomplete="email" placeholder="you@example.com"></div>
 
@@ -375,8 +394,9 @@ border:1px solid var(--line);color:var(--fg3)}
     </div>
 
     <div class="arow">
-      <button type="button" id="asubmit" class="aprimary">登录</button>
+      <button type="submit" id="asubmit" class="aprimary">登录</button>
     </div>
+    </form>
     <div class="amsg" id="amsg"></div>
   </div>
 
@@ -390,11 +410,13 @@ border:1px solid var(--line);color:var(--fg3)}
     <div class="achpw">
       <button type="button" id="achpwBtn" class="alink">修改密码</button>
       <div id="achpwForm" style="display:none">
+        <form id="afChpw" novalidate>
         <div class="afield"><label for="aold">当前密码</label>
           <input id="aold" type="password" autocomplete="current-password"></div>
         <div class="afield"><label for="anew">新密码</label>
           <input id="anew" type="password" autocomplete="new-password" placeholder="至少 6 位"></div>
-        <button type="button" id="achpwGo" class="aprimary">确认修改</button>
+        <button type="submit" id="achpwGo" class="aprimary">确认修改</button>
+        </form>
       </div>
     </div>
     <div class="amsg" id="amsg2"></div>
@@ -421,6 +443,11 @@ border:1px solid var(--line);color:var(--fg3)}
   <div class="big">把 Phira 谱面包拖到这里</div>
   <div>或点击选择文件 · 支持 .pez / .zip · 可一次多个</div>
   <input id="file" type="file" accept=".pez,.zip" multiple>
+  <div class="what"><b>谱面包是什么？</b>就是 Phira 里下载的谱面文件（<code>.pez</code>），
+  或者解压后含 <code>chart.json</code> 的 <code>.zip</code>。
+  在 Phira 的谱面详情里点下载，或从别人分享的网盘拿到 ——
+  <b>拖进来就会自动解析，文件不会上传</b>。<br>
+  懒得下载？直接用上面的<b>搜索</b>框按曲名找，点「算」即可。</div>
 </div>
 <div class="note" id="msg"></div>
 
@@ -449,7 +476,7 @@ border:1px solid var(--line);color:var(--fg3)}
   target="_blank" rel="noopener">phm-web/public/index.html</a> ·
   <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
   target="_blank" rel="noopener">GitHub</a> ·
-  版本 V0.3.3（开发者测试版，正式版会重新计算）· GPL-3.0</div>
+  <span id="verfoot">版本（开发者测试版，正式版会重新计算）</span>· GPL-3.0</div>
   <details>
     <summary>PS 是什么？本工具的边界与隐私（点开看）</summary>
     <div class="fd"><b>两个数不是一回事，别混用</b>：<b>参考定数</b>是与官谱定数同标度的估计
@@ -509,11 +536,39 @@ border:1px solid var(--line);color:var(--fg3)}
   integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
   crossorigin="anonymous"></script>
 <script type="module">
+/* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
+   页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。
+   ⚠ 注意区分两根轴：APP_VER 是本页面版本；engine_ver（"5d-knn-…"）是
+   **算法**版本、会被写进数据行 —— 引擎没改动就不要动 engine_ver。 */
+const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).content || "—";
+
 /* ── 引擎桥接 ──
-   引擎以 ESM 提供（浏览器与 Node 共用）。这里把它摊到全局作用域，
-   下面的代码继续直接调用 zipParse / knnReference / analyzeChart 等，无需改写。 */
-import * as __ENGINE from "/js/engine.js";
+   引擎以 ESM 提供（浏览器与 Node 共用）。用**动态 import + 版本查询串**加载：
+   版本一变 URL 就变，天然破缓存 —— 于是「改版本号」和「让用户拿到新引擎」是同一件事，
+   不必再手工维护一个容易忘记同步的 ?v=（服务端因此可以放心地长缓存 js）。
+   加载后摊到全局，下面的代码照旧直接调用 zipParse / analyzeChart 等，无需改写。 */
+const __ENGINE = await import("/js/engine.js?v=" + encodeURIComponent(APP_VER));
 Object.assign(globalThis, __ENGINE);
+
+(function fillVersion(){
+  const c = document.getElementById("verchip");
+  if (c) c.textContent = APP_VER + " · 开发者测试版";
+  const f = document.getElementById("verfoot");
+  if (f) f.textContent = "版本 " + APP_VER + "（开发者测试版，正式版会重新计算）";
+})();
+
+/* 登录 / 改密表单的 submit 接线。
+   输入框必须待在 <form> 里 —— 否则浏览器会刷
+   "Password field is not contained in a form" 警告，密码管理器也认不出这是登录表单。
+   这里只做「回车 = 点提交按钮」，实际逻辑仍走原有的 click 委托。 */
+["afGuest", "afChpw"].forEach(function(id){
+  const f = document.getElementById(id); if (!f) return;
+  f.addEventListener("submit", function(ev){
+    ev.preventDefault();                 /* 单页应用，别让浏览器真去提交跳转 */
+    const btn = f.querySelector(".aprimary");
+    if (btn) btn.click();
+  });
+});
 
 /* ═══ UI 工具层 ═══
    并入本 module：原来它是独立的 <script>，与下面的主逻辑处于不同作用域，
@@ -885,7 +940,7 @@ try{
 window.PHM = window.PHM || {};
 window.PHM.status = function(){
   return {
-    ver: "V0.3.2",
+    ver: APP_VER,
     engine: typeof analyzeChart === "function" ? "ok" : "missing",
     sdk: typeof window.WorkBuddyCloud,
     cloud: cloud ? "ok" : "null",
@@ -1088,10 +1143,29 @@ function pfMsg(t,col){
             :(/⚠/.test(plain)?"warn":"");
   csMsg(esc(plain),kind);
 }
-function pfGet(p){
-  return fetchTO(PHIRA_API+p,15000,{headers:{"Accept":"application/json"}}).then(function(r){
-    if(!r.ok) throw new Error("Phira API "+r.status);
-    return r.json();});
+/* Phira 公开 API 取数（只读）。
+   ⚠ api.phira.cn 是第三方，偶尔超时/限流 —— 实测搜索会卡满 15s 后失败。
+   所以这里带一次重试 + 退避：网络抖动时用户不必自己再点一次。
+   注意重试只针对**可重试**的失败（超时、网络错误、5xx、429）；
+   4xx（除了 429）说明请求本身有问题，重试没意义。 */
+async function pfGet(p,retries){
+  const max = retries == null ? 1 : retries;
+  let lastErr = null;
+  for (let attempt = 0; attempt <= max; attempt++) {
+    if (attempt) await new Promise(function(s){ setTimeout(s, 600 * attempt); });
+    try {
+      const r = await fetchTO(PHIRA_API + p, 15000, { headers: { "Accept": "application/json" } });
+      if (r.ok) return await r.json();
+      lastErr = new Error("Phira API " + r.status);
+      const retriable = r.status === 429 || r.status >= 500;
+      if (!retriable) throw lastErr;
+    } catch (e) {
+      lastErr = (e instanceof Error) ? e : new Error(String(e));
+      /* fetchTO 抛出的超时/网络错误也属于可重试 */
+      if (/Phira API (4\d\d)/.test(lastErr.message) && !/429/.test(lastErr.message)) throw lastErr;
+    }
+  }
+  throw lastErr || new Error("Phira API 不可用");
 }
 /* 限并发执行（备用：批量端点不可用时降级） */
 function pfPoolRun(items,limit,fn){
@@ -1252,7 +1326,12 @@ async function chartSearch(){
     }
     renderChartSearch(kw);
   }catch(e){
-    csMsg("搜索失败："+esc((e&&e.message)||"网络异常"),"err");
+    /* 搜索强依赖 api.phira.cn（第三方，会超时/限流）。失败时必须给出
+       **不依赖网络的替代路径** —— 否则用户就卡在这一步了（本页引擎是纯本机的）。 */
+    csMsg("搜索失败："+esc((e&&e.message)||"网络异常")
+      +"<br>Phira 搜索接口偶尔超时或限流，已自动重试过一次。"
+      +"可以再点一次「搜索」；或者点下面的虚线框选本地谱面包 —— "
+      +"<b>本机解析不联网也能出定数</b>。","err");
   }
   btn.disabled=false;
 }
@@ -1548,7 +1627,15 @@ async function renderStats(){
     if(s.scores>0)        parts.push("成绩数据 <b>"+s.scores+"</b> 条");
     if(s.charts>0)        parts.push("定数缓存 <b>"+s.charts+"</b> 张");
     if(!parts.length){ el.style.display="none"; return; }
-    el.innerHTML="📊 本站公开数据："+parts.join(" · ");
+    /* ⚠ 样本量必须写出来。产品定位就是「不吹牛」，那展示聚合数字时也一样 ——
+       成绩样本还少的时候，平均/中位波动很大，不标清楚等于在暗示它很硬。 */
+    const thin=(s.scores||0)<200;
+    el.innerHTML="📊 本站公开数据："+parts.join(" · ")
+      +(thin
+        ? "<br>⚠ 样本量还小（成绩 "+(s.scores||0)+" 条）："
+          +"<b>玩家表现统计（平均 / 中位）波动大，仅供参考</b>。"
+          +"多导入几条成绩就是在帮它变准。"
+        : "");
     el.style.display="";
   }catch(e){ el.style.display="none"; }
 }

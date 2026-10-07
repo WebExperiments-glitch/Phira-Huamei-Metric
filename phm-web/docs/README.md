@@ -38,10 +38,16 @@ phm-web/
 ├── public/                    ← 静态资源根目录（只有这里的内容会被送出）
 │   ├── index.html             ← 页面结构 + 全部前端逻辑（模块化的单文件）
 │   ├── privacy.html           ← 隐私政策
-│   ├── robots.txt
+│   ├── 404.html               ← 错误页（服务端对未命中路径下发它，状态码仍是 404）
+│   ├── robots.txt             ← 禁爬 /api/（/api/analyze 是全站最贵的路径）
+│   ├── sitemap.xml
+│   ├── og.png                 ← 分享卡片 1200×630（由 tools/make-og.mjs 生成）
 │   ├── css/                   ← （预留）
 │   └── js/
 │       └── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源
+│
+├── tools/
+│   └── make-og.mjs            ← 重新生成分享卡片（改文案后跑一次）
 │
 └── docs/
     ├── README.md              ← 你正在看的
@@ -49,6 +55,11 @@ phm-web/
     ├── DATA-MODEL.md          ← 表结构、RPC、权限（改数据库先看这个）
     └── SECURITY.md            ← 信任边界、风险清单、已知限制
 ```
+
+> **版本号只有一处**：`index.html` 里的 `<meta name="app-version">`。
+> 页头标签、页脚、`PHM.status()`、以及引擎的缓存版本串都从它取 —— 改一处就够。
+> 别在别处再写死版本（曾经 `<title>` / 页头 / 页脚 / README 四处各一份，改一处忘三处）。
+> ⚠ `engine_ver`（`"5d-knn-…"`）是**另一根轴**：它是算法版本、会被写进数据行，引擎没改动就不要动。
 
 **按任务找文件：**
 

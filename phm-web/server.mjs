@@ -206,9 +206,28 @@ function rateOk(ip) {
   });
 }
 
+/* /api/stats 的配额。
+   它是只读的、便宜的，但没有理由允许被高频刷（审计实测连发 5 次全部 200）。
+   页面只在加载时调一次，60 次/分钟/IP 绰绰有余。
+   键前缀 'S:' 与写入('' 前缀)、分析('A:' 前缀)分开计数，互不挤占。 */
+const STATS_PER_IP = 60;
+function statsOk(ip) {
+  return withStore((s) => {
+    const now = Date.now();
+    s.hits = s.hits || {};
+    const key = 'S:' + ip;
+    const arr = (s.hits[key] || []).filter(t => now - t < RL_WINDOW);
+    if (arr.length >= STATS_PER_IP) { s.hits[key] = arr; return false; }
+    arr.push(now);
+    s.hits[key] = arr;
+    return true;
+  });
+}
+
 const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
+  '.xml': 'application/xml; charset=utf-8',
   '.ico': 'image/x-icon', '.webp': 'image/webp' };
 
 /* ⚠ 静态白名单 —— 只允许这些文件被送出。
@@ -216,7 +235,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
-const PUBLIC_FILES = new Set(['index.html', 'robots.txt', 'favicon.ico', 'privacy.html']);
+const PUBLIC_FILES = new Set(['index.html', 'robots.txt', 'favicon.ico', 'privacy.html',
+  '404.html', 'sitemap.xml', 'og.png']);
 const PUBLIC_DIRS = ['js/', 'css/'];                       /* 只暴露这两个子目录 */
 const SAFE_EXT = new Set(['.js', '.css', '.png', '.svg', '.ico', '.webp', '.woff2']);
 function isPublicPath(rel) {
@@ -257,14 +277,34 @@ function send(res, code, body, type) {
   }, SEC_HEADERS));
   res.end(body);
 }
-function sendFile(res, fp) {
+function sendFile(res, fp, longCache) {
   try {
     const buf = fs.readFileSync(fp);
     const ext = path.extname(fp).toLowerCase();
     const isHtml = ext === '.html';
+    /* 缓存策略：
+       · HTML → no-cache，每次校验。它是唯一「内容会变」的入口，缓存了会看到旧页面。
+       · js/css/图片 → 长缓存 + immutable。前端用**版本化 URL**（/js/engine.js?v=…）
+         破缓存 —— 版本号一变 URL 就变，所以这里可以放心长缓存，
+         不需要再手工维护「改引擎要记得换 ?v=」这类同步点。
+       · 其余（txt/xml 等）→ 1 小时，够用又不会卡住更新。 */
+    const cc = isHtml ? 'no-cache'
+      : (longCache ? 'public, max-age=604800, immutable' : 'public, max-age=3600');
     res.writeHead(200, Object.assign({
       'content-type': MIME[ext] || 'application/octet-stream',
-      'cache-control': isHtml ? 'no-cache' : 'public, max-age=3600',
+      'cache-control': cc,
+    }, SEC_HEADERS));
+    res.end(buf);
+  } catch { send404(res); }
+}
+/* 404 交一张真正的错误页（原来只回纯文本 "not found"，没有导航也没有回首页的路）。
+   ⚠ 用 text/html + 状态码 404 下发；页面自身带 noindex，不该被搜索引擎收录。 */
+function send404(res) {
+  try {
+    const buf = fs.readFileSync(path.join(WEB_ROOT, '404.html'));
+    res.writeHead(404, Object.assign({
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
     }, SEC_HEADERS));
     res.end(buf);
   } catch { send(res, 404, 'not found', 'text/plain; charset=utf-8'); }
@@ -363,6 +403,11 @@ const server = http.createServer(async (req, res) => {
   }
   /* 聚合统计（服务端转发 RPC，前端可不再直连） */
   if (p === '/api/stats') {
+    if (!(await statsOk(ip))) {
+      return send(res, 429, JSON.stringify({
+        error: '请求过于频繁（每分钟最多 ' + STATS_PER_IP + ' 次）',
+      }));
+    }
     const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
     return send(res, r.ok ? 200 : 502, r.ok ? (r.body || '{}') : JSON.stringify({ error: 'stats unavailable', detail: r.body || r.error }));
   }
@@ -449,11 +494,13 @@ const server = http.createServer(async (req, res) => {
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
   const rel = p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, '');
-  if (!isPublicPath(rel)) return send(res, 404, 'not found', 'text/plain; charset=utf-8');
+  if (!isPublicPath(rel)) return send404(res);
   const fp = path.resolve(WEB_ROOT, rel);
   if (!fp.startsWith(WEB_ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
-  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp);
-  return send(res, 404, 'not found', 'text/plain; charset=utf-8');
+  /* js/css/图片内容稳定且前端用版本化 URL 引用 → 可以长缓存 */
+  const longCache = /\.(js|css|png|svg|ico|webp|woff2)$/i.test(rel);
+  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache);
+  return send404(res);
 });
 
 /* 请求级超时：出站 fetch 有 15s 上限，入站此前没有 —— 慢连接可以挂住进程 */
