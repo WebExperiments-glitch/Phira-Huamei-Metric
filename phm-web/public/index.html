@@ -1016,6 +1016,7 @@ window.PHM.status = function(){
   return {
     ver: APP_VER,
     engine: typeof analyzeChart === "function" ? "ok" : "missing",
+    sharecard: typeof exportCard === "function" ? "ok" : "missing",
     sdk: typeof window.WorkBuddyCloud,
     cloud: cloud ? "ok" : "null",
     cloudDB: cloudDB ? "ok" : "null",

@@ -55,6 +55,9 @@ _check.js
 # ── 本地归档与测试数据（不入库）──
 _archive/
 谱面数据包/
+# 外部审计的攻坚测试工作区（probe/repo/report/site，408 个文件）——
+# 里面有整份仓库与站点的副本，属于第三方审计产物，不该混进版本历史
+攻坚测试/
 
 # ── WorkBuddy sites 本地绑定文件 ──
 .wbapp_*.genie

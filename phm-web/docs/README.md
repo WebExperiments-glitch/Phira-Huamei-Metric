@@ -59,7 +59,8 @@ phm-web/
     ├── README.md              ← 你正在看的
     ├── ARCHITECTURE.md        ← 数据流、分层、设计取舍
     ├── DATA-MODEL.md          ← 表结构、RPC、权限（改数据库先看这个）
-    └── SECURITY.md            ← 信任边界、风险清单、已知限制
+    ├── SECURITY.md            ← 信任边界、风险清单、已知限制
+    └── PROMOTION.md           ← 宣发手册（各平台差异、逐步操作、可复制文案）
 ```
 
 > **版本号只有一处**：`index.html` 里的 `<meta name="app-version">`。
@@ -73,11 +74,13 @@ phm-web/
 |---|---|
 | 难度算法 / 特征 / k-NN | `public/js/engine.js` |
 | 页面交互 / 渲染 | `public/index.html`（找对应函数名） |
+| 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |
 | 数据库表或权限 | `docs/DATA-MODEL.md` → 然后用 MCP 执行 SQL |
 | 隐私相关文案 | `public/privacy.html` + `index.html` 里的设置面板 |
+| 要发帖子 / 写宣发文案 | `docs/PROMOTION.md` |
 
 ---
 
