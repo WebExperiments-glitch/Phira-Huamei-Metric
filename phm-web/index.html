@@ -292,6 +292,17 @@ font-size:12px;color:var(--fg2);line-height:1.75}
 /* 公开统计条 */
 .pstats{margin:10px 0 0;font-size:11.5px;color:var(--fg3);line-height:1.8}
 .pstats b{color:var(--fg2)}
+/* 设置区（页脚） */
+.setbox{margin-top:9px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.setbox .alink{font-size:12px}
+.setpanel{margin-top:9px;padding:11px 14px;border-radius:9px;background:var(--card2);width:100%}
+.setrow{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--fg2);
+cursor:pointer;line-height:1.5;user-select:none}
+.setrow input{margin:3px 0 0;accent-color:var(--blue);cursor:pointer;flex:0 0 auto}
+.setrow b{color:var(--fg)}
+.setnote{margin-top:8px;padding-top:7px;border-top:1px dashed var(--line);
+font-size:11px;color:var(--fg3);line-height:1.7}
+.setnote b{color:var(--fg2)}
 /* 数据飞轮产出：玩家表现条 */
 .playstat{margin:10px 0 2px;padding:9px 13px;border-radius:9px;background:var(--card2);
 border-left:3px solid var(--blue);font-size:12px;color:var(--fg2);line-height:1.65}
@@ -325,7 +336,8 @@ border:1px solid var(--line);color:var(--fg3)}
      target="_blank" rel="noopener" title="GitHub 仓库 · Phira-Huamei-Metric"
      aria-label="GitHub 仓库"><svg viewBox="0 0 16 16" width="17" height="17"
      fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
-  <div class="slogan">拖入谱面包 → 立刻得到一个<b>客观的难度参考</b>。解析全部在你的浏览器里完成，<b>谱面不会被上传</b>。</div>
+  <div class="slogan">拖入谱面包 → 立刻得到一个<b>客观的难度参考</b>。解析全部在你的浏览器里完成，<b>谱面不会被上传</b>。<br>
+  <span style="color:var(--fg3)">登录 Phira 后，成绩数据会自动上传用于校准定数 —— 可在页面底部「⚙ 设置」里关闭。</span></div>
 </header>
 
 <div class="authbox" id="authpanel" style="display:none">
@@ -439,6 +451,19 @@ border:1px solid var(--line);color:var(--fg3)}
     <div class="fd">连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>；
     输入过的用户名 / UID 只存在你浏览器本地（localStorage）用于下次自动填充，不会随请求发出。</div>
   </details>
+  <div class="setbox">
+    <button type="button" id="setBtn" class="alink">⚙ 设置</button>
+    <a class="link" href="/privacy.html" target="_blank" rel="noopener">隐私政策</a>
+  </div>
+  <div class="setpanel" id="setPanel" style="display:none">
+    <label class="setrow"><input type="checkbox" id="setAuto">
+      <span>登录 Phira 后<b>自动上传</b>成绩数据 —— 用于校准定数参考</span></label>
+    <div class="setnote">关闭后全部回到本机计算，<b>不会发出任何数据</b>（拖谱面、算 RKS、搜索都不受影响）。<br>
+    上传内容：Phira UID 与用户名、谱面名、定数、ACC、单曲 RKS。<b>不会上传</b>密码 / 邮箱 / 谱面文件本身。<br>
+    对外的统计只有聚合数字，其他人看不到你的 UID 或用户名。需要删除已上传的数据，请在
+    <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues"
+    target="_blank" rel="noopener">GitHub Issues</a> 提一条。</div>
+  </div>
 </footer>
 </div>
 
@@ -1119,6 +1144,12 @@ document.addEventListener("click",async function(e){
       return;
     }
     if(t.closest("#achpwGo")){ await authChangePw(); return; }
+    /* ── 设置面板 ── */
+    if(t.closest("#setBtn")){
+      const sp=document.getElementById("setPanel");
+      if(sp) sp.style.display=(sp.style.display==="none"?"":"none");
+      return;
+    }
     /* ── 面板与功能 ── */
     if(t.closest("#phiraBtn")){ togglePanel(); return; }
     if(t.closest("#pclose")){ const p=document.getElementById("ppanel"); if(p) p.style.display="none"; return; }
@@ -1166,6 +1197,16 @@ document.addEventListener("keydown",async function(e){
 /* 上传开关（偏好持久化；与「算 RKS」解耦，不影响本机计算） */
 document.addEventListener("change",function(e){
   try{
+    /* 设置面板：自动上传总开关 */
+    if(e.target&&e.target.id==="setAuto"){
+      const on=!!e.target.checked;
+      saveOptin(on);
+      csMsg(on
+        ? "✅ 已开启自动上传 —— 登录 Phira 后会把成绩数据贡献给数据飞轮，帮定数公式变准。"
+        : "已关闭自动上传 —— 之后全部在本机计算，<b>不会发出任何数据</b>（功能照常）。",
+        on?"ok":"warn");
+      return;
+    }
     if(!e.target||e.target.id!=="popt") return;
     const on=!!e.target.checked;
     saveOptin(on);
@@ -1208,14 +1249,43 @@ function clientId(){
     try{ localStorage.setItem("phm_cid",v); }catch(e){} }
   return v;
 }
-/* 上传偏好：**默认关闭**（隐私优先）；用户主动勾选才上传，之后记住选择 */
+/* ── 数据贡献偏好 ──
+ * 产品定位：随走即用的小工具 —— 登录 Phira 后**自动**贡献成绩数据，让定数飞轮转起来。
+ * 但「自动」不等于「静默」：首次上传前会弹一次明确告知（涉及 Phira UID 与用户名），
+ * 用户不同意就直接关掉自动上传；同意后可在页面底部「设置」里随时改。 */
 window.PHM_OPTIN=(function(){
-  try{ const v=localStorage.getItem("phm_optin"); return v==="1"; }
-  catch(e){ return false; }
+  try{ const v=localStorage.getItem("phm_optin"); return v===null?true:v==="1"; }
+  catch(e){ return true; }
 })();
 function saveOptin(on){
   window.PHM_OPTIN=on;
   try{ localStorage.setItem("phm_optin",on?"1":"0"); }catch(e){}
+}
+const NOTICE_KEY="phm_notice_v1";
+function noticeAgreed(){ try{ return localStorage.getItem(NOTICE_KEY)==="1"; }catch(e){ return false; } }
+function agreeNotice(){ try{ localStorage.setItem(NOTICE_KEY,"1"); }catch(e){} }
+/* 首次上传前的明确告知。不同意 → 自动关闭上传，回到纯本机计算。 */
+function ensureNotice(){
+  if(noticeAgreed()) return true;
+  let ok=false;
+  try{
+    ok=confirm(
+      "P.H.M. 会在你登录 Phira 后自动上传成绩数据，用于校准难度参考。\n\n"
+      +"【会上传】\n"
+      +"  · 你的 Phira UID 与用户名\n"
+      +"  · 谱面名、标称定数、你的 ACC 与单曲 RKS\n\n"
+      +"【不会上传】\n"
+      +"  · 密码、邮箱、账号权限\n"
+      +"  · 谱面文件本身（解析全部在你本机完成）\n\n"
+      +"【用途】统计各谱的实际难度分布、改进定数参考；对外的只有聚合数字，\n"
+      +"       其他人看不到你的 UID 或用户名。\n"
+      +"【不想上传】选「取消」，自动上传会被关掉，功能照常用。\n"
+      +"       之后也可以随时在页面底部「⚙ 设置」重新打开。\n\n"
+      +"详见《隐私政策》（页面底部有链接）。是否同意？"
+    );
+  }catch(e){ ok=false; }
+  if(ok) agreeNotice(); else saveOptin(false);
+  return ok;
 }
 /* 单曲 rks（Phigros/Phira 社区公式）：((acc−55)/45)²×定数，acc<70 记 0 */
 function songRks(cst,accPct){
@@ -1838,6 +1908,11 @@ async function renderStats(){
   renderStats();
 })();
 
+/* 同步设置面板里的自动上传开关状态 */
+(function(){
+  try{ const c=document.getElementById("setAuto"); if(c) c.checked=OPTN(); }catch(e){}
+})();
+
 /* ── 拖入谱面 → 匹配 Phira chart_id → 把结构定数写进共享缓存 ──
    这是「全站共享定数池」真正能转起来的路径：
    CORS 挡住了后台直读，但用户主动拖入的文件完全合法可用；
@@ -2153,14 +2228,21 @@ async function pfSearch(){
     await loadChartCache(rows.map(function(r){return r.chart;}));
     pfMsg("");
     pfRender();
+    /* 随走即用：查到 Phira 账号后自动贡献成绩数据（首次会先弹告知；可在底部设置关闭） */
+    if(OPTN() && ensureNotice()){
+      setTimeout(function(){ try{pfImport(true);}catch(e){} },120);
+    }
   }catch(e){
     pfMsg("查询失败："+(e&&e.message?e.message:"网络异常")+"（Phira API 可能临时不可用）","var(--red)");
   }
   btn.disabled=false;
 }
 
-async function pfImport(){
-  const btn=$("#pimport"); if(!btn) return;
+async function pfImport(auto){
+  const real=$("#pimport");
+  if(!auto && !real) return;                 /* 手动模式必须有按钮 */
+  /* 自动模式下没有按钮可操作：用一个空壳兜住，省得每个分支都判空 */
+  const btn=real||{};
   if(!cloudDB){ pfMsg("云服务未连上，无法导入","var(--red)"); return; }
   btn.disabled=true;
   const rows=PF.rows, u=PF.user, isBest=(PF.mode==="best");
@@ -2208,15 +2290,20 @@ async function pfImport(){
   if(!payload.length){ csMsg("没有可写入的有效成绩（谱号或用户信息缺失）","err"); btn.disabled=false; return; }
   /* 隐私：导入会把 Phira UID 与用户名写进公开数据池 —— 先明确列出字段并征得同意。
      （此前这条路径没有独立同意，和「不含账号昵称」的文案冲突，已修） */
-  const okGo=confirm(
-    "即将把 "+payload.length+" 条成绩上传到公开数据飞轮：\n\n"
-    +"· 谱名、等级、标称定数\n"
-    +"· 你的 ACC、单曲 RKS\n"
-    +"· 你的 Phira UID（#"+u.id+"）与用户名（"+u.name+"）—— 用于区分不同玩家\n\n"
-    +"以上都是 Phira 站内本来就公开的信息，不含密码、邮箱或任何私密数据。\n"
-    +"数据会汇总用于校准定数公式。继续吗？");
-  if(!okGo){ csMsg("已取消导入 —— 没有上传任何数据","warn"); btn.disabled=false; return; }
-  csMsg("正在写入…");
+  /* 自动模式不弹确认 —— 首次告知已在 ensureNotice() 里做过（不同意就已关掉自动上传） */
+  if(!auto){
+    const okGo=confirm(
+      "即将把 "+payload.length+" 条成绩上传到公开数据飞轮：\n\n"
+      +"· 谱名、等级、标称定数\n"
+      +"· 你的 ACC、单曲 RKS\n"
+      +"· 你的 Phira UID（#"+u.id+"）与用户名（"+u.name+"）—— 用于区分不同玩家\n\n"
+      +"以上都是 Phira 站内本来就公开的信息，不含密码、邮箱或任何私密数据。\n"
+      +"数据会汇总用于校准定数公式。继续吗？");
+    if(!okGo){ csMsg("已取消导入 —— 没有上传任何数据","warn"); btn.disabled=false; return; }
+    csMsg("正在写入…");
+  }else{
+    csMsg("正在自动上传成绩数据（用于校准定数）…");
+  }
   try{
     /* 先查出已存在的条数（同账号 + 同谱面），给出提示。
        走 phm_mine RPC —— 只回一个计数，不再拉取整行。 */

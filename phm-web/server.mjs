@@ -155,7 +155,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    之前只做了「路径不以 ROOT 开头则拒」，结果 server.mjs / package.json /
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是本次安全修复的核心。 */
-const PUBLIC_FILES = new Set(['index.html', 'robots.txt', 'favicon.ico']);
+const PUBLIC_FILES = new Set(['index.html', 'robots.txt', 'favicon.ico', 'privacy.html']);
 
 /* 安全响应头（此前只有 nosniff，等于裸奔） */
 const SEC_HEADERS = {
