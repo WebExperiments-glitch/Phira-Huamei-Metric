@@ -4,212 +4,178 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>隐私政策 · P.H.M. Standard</title>
-<meta name="description" content="P.H.M. Standard 隐私政策：收集什么、用途、存储、你的权利。">
+<meta name="description" content="P.H.M. Standard 隐私政策：我们收集什么、如何使用、如何存储、你拥有哪些权利。">
 <meta name="robots" content="index,follow">
-<style>
-:root{
-  --bg:#0d1117; --card:#161b22; --card2:#1c2330; --line:#2a313c;
-  --fg:#e6edf3; --fg2:#9aa7b4; --fg3:#6e7b8a;
-  --amber:#e8a33d; --blue:#5aa2e8; --green:#5fd38d; --red:#e8705a;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.75 -apple-system,BlinkMacSystemFont,
-"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-padding:28px 20px 60px;max-width:760px;margin:0 auto}
-h1{font-size:22px;margin:0 0 6px}
-h1 b{color:var(--amber)}
-h2{font-size:16px;margin:26px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
-h3{font-size:14px;margin:16px 0 6px;color:var(--amber)}
-p,li{color:var(--fg2)}
-b{color:var(--fg)}
-a{color:var(--blue);text-decoration:none}
-a:hover{text-decoration:underline}
-code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;
-background:var(--card2);padding:1px 5px;border-radius:5px;color:var(--fg)}
-.meta{color:var(--fg3);font-size:12.5px;margin-bottom:20px}
-.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
-.box.warn{border-left:3px solid var(--amber)}
-.box.ok{border-left:3px solid var(--green)}
-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
-th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--fg2);font-weight:600;background:var(--card2)}
-td{color:var(--fg2)}
-ul{padding-left:20px}
-.back{display:inline-block;margin-bottom:18px;font-size:13px}
-footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);
-font-size:12px;color:var(--fg3);line-height:1.8}
-</style>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/docs.css?v=V0.7.0">
 </head>
 <body>
+<div class="doc">
 
-<a class="back" href="/">← 返回 P.H.M. Standard</a>
+  <div class="topbar">
+    <a class="back" href="/">← 返回 P.H.M. Standard</a>
+    <nav>
+      <a href="/privacy" class="on">隐私政策</a>
+      <a href="/terms">用户协议</a>
+    </nav>
+  </div>
 
-<h1><b>P.H.M.</b> Standard 隐私政策</h1>
-<div class="meta">版本 v1.0 · 生效日期 2026-10-07 · 适用站点 <span class="mono">phm.app.workbuddy.host</span></div>
+  <h1><b>P.H.M.</b> Standard 隐私政策</h1>
+  <div class="meta">版本 v1.1 · 生效日期 2026-10-07 · 适用站点 <code>phm.app.workbuddy.host</code></div>
 
-<div class="box ok">
-<b>一句话概括：</b>你的<b>谱面文件永远不会离开你的设备</b>；只有当你查询<b>你自己确认过的 Phira 账号</b>时，
-才会把<b>成绩数据</b>（Phira UID、用户名、谱面名、定数、ACC、单曲 RKS）自动上传用于校准定数参考。
-<b>这可以在页面底部「⚙ 设置」里一键关闭</b>，关闭后<b>不会上传任何贡献内容</b>。
+  <div class="lead">
+    <p><b>一句话概括：</b>你的<b>谱面文件永远不会离开你的设备</b>；只有当你查询
+    <b>你自己确认过的 Phira 账号</b>时，才会把成绩数据（Phira UID、用户名、谱面名、定数、ACC、单曲 RKS）
+    自动上传，用于校准定数参考。<mark>这可以在<a href="/settings">设置</a>里一键关闭</mark>，
+    关闭后不会上传任何贡献内容。</p>
+  </div>
+
+  <h2>1. 我们收集什么</h2>
+
+  <h3>1.1 你主动拖入的谱面文件 —— 文件本身不收集</h3>
+  <p>谱面解析（ZIP 解压、谱面结构分析、特征提取、定数计算）<b>全部在你的浏览器内完成</b>。
+  谱面文件本身<b>不会上传、不会留存、不会离开你的设备</b>。</p>
+  <p>在你允许自动上传的前提下，会离开设备的只有<b>由该谱面计算出的结构特征</b>，它们不含谱面内容本身：</p>
+  <ul>
+    <li>谱面名与标称定数</li>
+    <li>物量、每秒音符数（NPS）、长条占比、纵连均值、线速峰值</li>
+    <li>计算得到的参考定数与负荷分（PS）</li>
+  </ul>
+  <p>这条路径<b>不需要登录</b>，也<b>不需要你点按钮</b> —— 拖入谱面时自动完成贡献。
+  但它受<a href="/settings">设置</a>里那个开关统一控制：<b>关闭自动上传后，拖入谱面不会产生任何上传。</b></p>
+
+  <h3>1.2 查询 Phira 账号时的成绩数据 —— 仅对本人账号，且可关闭</h3>
+  <p>当你在页面里输入 Phira 用户名或 UID 并查询时：</p>
+  <ul>
+    <li><b>首次遇到某个 UID</b>：会问你一次「这是你自己的账号吗」——
+        答「是」才把它记为本人账号；答「否」则只查看、不上传</li>
+    <li>对<b>已确认的本人账号</b>：自动上传成绩数据（见下表）</li>
+  </ul>
+  <p><b>为什么要多问一句：</b>本工具<b>无法验证 Phira 账号的所有权</b>（Phira 未提供第三方授权登录）。
+  如果不加确认，任何访问者都能把某个公开玩家的成绩复制进数据集，那样所有统计都会失真 ——
+  所以只对你自己声明过的账号自动上传。</p>
+
+  <table>
+  <tr><th>收集项</th><th>说明</th></tr>
+  <tr><td>Phira UID 与用户名</td><td>用于区分不同玩家，避免同一份成绩被重复计数</td></tr>
+  <tr><td>谱面名、标称定数</td><td>用于关联成绩与谱面</td></tr>
+  <tr><td>你的 ACC、单曲 RKS</td><td>用于分析「同一标称定数下玩家实际表现的分布」</td></tr>
+  <tr><td>一个随机假名标识 <code>client_id</code></td><td>
+  用于区分不同来源的贡献。<b>这是假名化标识、不是匿名</b> ——
+  同一浏览器贡献的多条数据可以被关联起来。我们不会把它与你的真实身份绑定，
+  但请知悉它并非不可关联。</td></tr>
+  </table>
+
+  <p><b>不会收集</b>：密码、邮箱、Phira 账号的登录凭据或任何操作权限。查询只读 Phira 的公开数据接口
+  （<code>api.phira.cn</code>），<b>不要求也不接受你的 Phira 密码</b>。</p>
+
+  <h3>1.3 本地存储（仅存在你自己的浏览器里）</h3>
+  <p>以下信息只存在你浏览器的 <code>localStorage</code> 里，不会自动上传：</p>
+  <ul>
+    <li>你输入过的 Phira 用户名 / UID（用于下次自动填充）</li>
+    <li>自动上传开关的状态、首次告知的确认状态</li>
+    <li>一个随机生成的 <code>client_id</code>（8 位随机串，用于区分匿名打卡来源）</li>
+    <li>P.H.M. 账号的登录会话（若你注册了邮箱账号）</li>
+  </ul>
+
+  <h3>1.4 账号系统（可选）</h3>
+  <p>只有你主动注册时才涉及。使用邮箱 + 密码，用于：登录、绑定 Phira 账号、查看与修改你自己的资料。
+  账号相关的数据（邮箱、密码哈希）由 WorkBuddy 云服务的认证模块存储，
+  我们<b>无法读取你的明文密码</b>。</p>
+
+  <h2>2. 收集来做什么</h2>
+  <ul>
+    <li><b>校准定数参考</b>：统计同一标称定数下玩家 ACC 的分布，识别标称与实际难度的偏离</li>
+    <li><b>共享定数缓存</b>：让其他人搜到同一张谱时不必重复下载与计算</li>
+    <li><b>展示聚合统计</b>：如「成绩数据 N 条」「定数缓存 N 张」这类总数</li>
+  </ul>
+  <p>我们不将这些数据用于广告、画像，或向第三方出售。</p>
+
+  <h2>3. 对外可见性</h2>
+  <p><b>其他人看不到你的 UID 或用户名。</b>成绩明细表（<code>phm_scores</code>）已<b>撤销匿名读取权限</b>。
+  外部只能通过两个聚合接口取数，且它们<b>只返回统计量</b>：</p>
+  <ul>
+    <li><code>phm_plays(谱面名)</code> → 该谱的<b>条数 / 平均 / 中位 / 最低 / 最高 ACC</b></li>
+    <li><code>phm_stats()</code> → 全局总数（账号数、活跃数、成绩总数等）</li>
+  </ul>
+  <p>两者都不返回任何一条具体的个人记录。</p>
+
+  <h2>4. 存储与安全</h2>
+  <ul>
+    <li>数据存储在 <b>WorkBuddy 云服务</b>（中国大陆境内）的 PostgreSQL 数据库中</li>
+    <li>谱面文件不上传，因此不存在谱面内容的存储风险</li>
+    <li>写入必须经过本站服务端网关的字段校验与速率限制</li>
+    <li><b>我们不保证绝对安全</b> —— 任何网络服务都存在被攻击的可能。请不要上传任何敏感信息</li>
+  </ul>
+  <p>更完整的技术细节（信任边界、已修复与已知的局限）见仓库中的
+  <code>docs/SECURITY.md</code>。</p>
+
+  <h2>5. 你的权利</h2>
+  <table>
+  <tr><th>权利</th><th>怎么做</th></tr>
+  <tr><td>关闭上传</td><td><a href="/settings">设置</a> → 关闭「自动上传」。<b>立即生效</b>，之后不再上传谱面结构特征与成绩数据</td></tr>
+  <tr><td>撤回首次同意</td><td><a href="/settings">设置</a> → 撤回确认。下次上传前会重新征求你的同意</td></tr>
+  <tr><td>清空本地数据</td><td><a href="/settings#storage">设置 · 本机存储</a> → 一键清空（不影响服务器数据）</td></tr>
+  <tr><td>只查看、不贡献</td><td>查询 Phira 账号时回答「不是我的账号」，即只查看、不上传</td></tr>
+  <tr><td>删除已上传的数据</td><td>见下方「如何安全地联系我们」</td></tr>
+  <tr><td>导出你的数据</td><td>同上，可申请导出</td></tr>
+  <tr><td>注销账号</td><td>同上（当前版本尚未提供自助注销入口，需人工处理）</td></tr>
+  </table>
+
+  <h3>如何安全地联系我们（请不要在公开 Issue 里写隐私信息）</h3>
+  <p>本站的公开协作区（GitHub Issues）是<b>任何人都能看到的</b>。为了请求删除数据而在那里贴出你的
+  Phira UID 或邮箱，等于把你的隐私标识公开 —— 这正是我们要避免的。请改用下面任一方式：</p>
+  <ul>
+    <li><b>GitHub 私密安全报告</b>（推荐，仅仓库维护者可见）：<br>
+    <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/security/advisories/new" target="_blank" rel="noopener">
+    github.com/WebExperiments-glitch/Phira-Huamei-Metric/security/advisories/new</a></li>
+    <li>若该入口不可用，可先在公开 Issue 里<b>只说「需要删除我的数据」</b>，
+    等维护者回复后再通过私密渠道交换标识信息</li>
+  </ul>
+  <p>我们收到请求后会删除对应记录，并在完成后回复确认。处理时间为收到请求后的 7 个工作日内。</p>
+
+  <h2>6. 未成年人</h2>
+  <p>本工具面向音游玩家群体，<b>可能存在未满 14 周岁的使用者</b>。</p>
+  <p>如果你是未满 14 周岁的未成年人，请<b>在监护人的陪同下阅读本政策，并取得监护人的同意后</b>
+  再使用登录与数据上传功能。若监护人不同意，请关闭自动上传或不要登录 Phira。</p>
+  <p>监护人如发现未成年人未经同意上传了信息，可通过上述私密渠道联系我们删除。</p>
+
+  <h2>7. 第三方服务</h2>
+  <table>
+  <tr><th>服务</th><th>用途</th><th>你的数据</th></tr>
+  <tr><td>Phira 公开 API（api.phira.cn）</td><td>查询谱面与玩家公开资料</td>
+      <td>仅发送你查询的用户名 / UID；服务端日志由 Phira 控制</td></tr>
+  <tr><td>WorkBuddy 云服务</td><td>数据库、认证、静态托管</td>
+      <td>存储上述成绩数据与账号信息</td></tr>
+  <tr><td>jsDelivr CDN</td><td>加载云 SDK 脚本</td>
+      <td>会看到你的 IP，属常规 CDN 行为；脚本已用 SRI 完整性校验钉死版本</td></tr>
+  </table>
+
+  <h2>8. 我们不做什么</h2>
+  <ul>
+    <li>不使用 Cookie 做跨站追踪（本站在浏览器本地只使用 <code>localStorage</code>）</li>
+    <li>不接入任何广告或数据分析 SDK</li>
+    <li>不推断、不判定「谱师虚标」—— 本工具只给难度参考</li>
+    <li>不向任何第三方出售或分享你的个人信息</li>
+  </ul>
+
+  <h2>9. 政策变更</h2>
+  <p>本政策如有更新，会修改页面顶部的版本号与生效日期。涉及收集范围扩大的变更，
+  会在站内显著位置提示，并重置「首次告知」状态以重新征求你的同意。</p>
+  <p>本页 v1.1 相对 v1.0 为<b>排版改版</b>：收集范围、用途与你的权利均无变化。</p>
+
+  <h2>10. 联系方式</h2>
+  <p>隐私相关问题、数据删除请求、投诉与建议：<br>
+  <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues" target="_blank" rel="noopener">
+  github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues</a></p>
+  <p>项目源码（GPL-3.0）见<a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric" target="_blank" rel="noopener">同一仓库</a>。</p>
+
+  <footer>
+    P.H.M. Standard · 开发者测试版 · GPL-3.0<br>
+    本工具不判定「虚标」，只提供可审计的难度参考。Phira 官方定数自身标注噪声约 2.80 级。<br>
+    相关文档：<a href="/terms">用户协议</a> · <a href="/settings">设置</a> · <a href="/">返回首页</a>
+  </footer>
+
 </div>
-
-<div class="box warn">
-<b>关于「关闭」的准确含义</b>，这里写清楚，避免误解：
-<ul>
-  <li><b>关闭后不会上传的</b>：谱面结构特征、Phira 成绩数据、你主动填写的打卡记录</li>
-  <li><b>关闭后仍会发生的</b>：页面加载时会请求本站的<b>聚合统计数字</b>（如「成绩总数 N 条」）
-      —— 这是显示统计条所需，不含任何个人信息</li>
-  <li><b>关闭后不受影响的</b>：拖入谱面解析、算 RKS、搜索 Phira 谱面、查看公开资料 —— 全部照常</li>
-</ul>
-</div>
-
-<h2>1. 我们收集什么</h2>
-
-<h3>1.1 你主动拖入的谱面文件 —— 文件本身不收集</h3>
-<p>谱面解析（ZIP 解压、谱面结构分析、特征提取、定数计算）<b>全部在你的浏览器内完成</b>。
-谱面文件本身<b>不会上传、不会留存、不会离开你的设备</b>。</p>
-<p>在<b>你允许自动上传</b>的前提下，会离开设备的只有<b>由该谱面计算出的结构特征</b>（如下），
-它们不含谱面内容本身：</p>
-<ul>
-  <li>谱面名与标称定数</li>
-  <li>物量、每秒音符数（NPS）、长条占比、纵连均值、线速峰值</li>
-  <li>计算得到的参考定数与负荷分（PS）</li>
-</ul>
-<div class="box warn">
-这条路径<b>不需要登录</b>，也<b>不需要你点按钮</b> —— 拖入谱面时自动完成贡献。
-但它<b>受「⚙ 设置」里那个开关统一控制</b>：关闭自动上传后，拖入谱面<b>不会</b>产生任何上传。
-</div>
-
-<h3>1.2 查询 Phira 账号时的成绩数据 —— 仅对本人账号，且可关闭</h3>
-<p>当你在页面里输入 Phira 用户名或 UID 并查询时：</p>
-<ul>
-  <li><b>首次遇到某个 UID</b>：会问你一次「这是你自己的账号吗」——
-      答「是」才把它记为本人账号；答「否」则只查看、不上传</li>
-  <li>对<b>已确认的本人账号</b>：自动上传成绩数据（见下表）</li>
-</ul>
-<div class="box warn">
-<b>为什么要多问一句：</b>本工具<b>无法验证 Phira 账号的所有权</b>（Phira 未提供第三方授权登录）。
-如果不加确认，任何访问者都能把某个公开玩家的成绩复制进数据集，
-那样所有统计都会失真 —— 所以只对<b>你自己声明过的账号</b>自动上传。
-</div>
-<table>
-<tr><th>收集项</th><th>说明</th></tr>
-<tr><td>Phira UID 与用户名</td><td>用于区分不同玩家，避免同一份成绩被重复计数</td></tr>
-<tr><td>谱面名、标称定数</td><td>用于关联成绩与谱面</td></tr>
-<tr><td>你的 ACC、单曲 RKS</td><td>用于分析「同一标称定数下玩家实际表现的分布」</td></tr>
-<tr><td>一个随机假名标识 <span class="mono">client_id</span></td><td>
-用于区分不同来源的贡献。<b>这是假名化标识、不是匿名</b> ——
-同一浏览器贡献的多条数据可以被关联起来。我们不会把它与你的真实身份绑定，
-但请知悉它并非不可关联。</td></tr>
-</table>
-<p><b>不会收集</b>：密码、邮箱、Phira 账号的登录凭据或任何操作权限。查询只读 Phira 的公开数据接口
-（<span class="mono">api.phira.cn</span>），<b>不要求也不接受你的 Phira 密码</b>。</p>
-
-<h3>1.3 本地存储（仅存在你自己的浏览器里）</h3>
-<p>以下信息只存在你浏览器的 <span class="mono">localStorage</span> 里，不会自动上传：</p>
-<ul>
-  <li>你输入过的 Phira 用户名 / UID（用于下次自动填充）</li>
-  <li>自动上传开关的状态、首次告知的确认状态</li>
-  <li>一个随机生成的 <span class="mono">client_id</span>（8 位随机串，用于区分匿名打卡来源）</li>
-  <li>P.H.M. 账号的登录会话（若你注册了邮箱账号）</li>
-</ul>
-
-<h3>1.4 账号系统（可选）</h3>
-<p>只有你主动注册时才涉及。使用邮箱 + 密码，用于：登录、绑定 Phira 账号、查看与修改你自己的资料。
-账号相关的数据（邮箱、密码哈希）由 WorkBuddy 云服务的认证模块存储，
-我们<b>无法读取你的明文密码</b>。</p>
-
-<h2>2. 收集来做什么</h2>
-<ul>
-  <li><b>校准定数参考</b>：统计同一标称定数下玩家 ACC 的分布，识别标称与实际难度的偏离</li>
-  <li><b>共享定数缓存</b>：让其他人搜到同一张谱时不必重复下载与计算</li>
-  <li><b>展示聚合统计</b>：如「成绩数据 N 条」「定数缓存 N 张」这类总数</li>
-</ul>
-<p>我们不将这些数据用于广告、画像、或向第三方出售。</p>
-
-<h2>3. 对外可见性</h2>
-<div class="box ok">
-<b>其他人看不到你的 UID 或用户名。</b>
-<p>成绩明细表（<span class="mono">phm_scores</span>）已<b>撤销匿名读取权限</b>。
-外部只能通过两个聚合接口取数，且它们<b>只返回统计量</b>：</p>
-<ul>
-  <li><span class="mono">phm_plays(谱面名)</span> → 该谱的 <b>条数 / 平均 / 中位 / 最低 / 最高 ACC</b></li>
-  <li><span class="mono">phm_stats()</span> → 全局总数（账号数、活跃数、成绩总数等）</li>
-</ul>
-<p>两者都不返回任何一条具体的个人记录。</p>
-</div>
-
-<h2>4. 存储与安全</h2>
-<ul>
-  <li>数据存储在 <b>WorkBuddy 云服务</b>（中国大陆境内）的 PostgreSQL 数据库中</li>
-  <li>谱面文件不上传，因此不存在谱面内容的存储风险</li>
-  <li>写入必须经过本站服务端网关的字段校验与速率限制</li>
-  <li>我们<b>不保证绝对安全</b> —— 任何网络服务都存在被攻击的可能。请不要上传任何敏感信息</li>
-</ul>
-
-<h2>5. 你的权利</h2>
-<table>
-<tr><th>权利</th><th>怎么做</th></tr>
-<tr><td>关闭上传</td><td>页面底部「⚙ 设置」→ 取消勾选。<b>立即生效</b>，之后不再上传谱面结构特征与成绩数据</td></tr>
-<tr><td>撤回首次同意</td><td>同上。关闭后如需重新开启，随时可以再勾上</td></tr>
-<tr><td>只查看、不贡献</td><td>查询 Phira 账号时回答「不是我的账号」，即只查看、不上传</td></tr>
-<tr><td>删除已上传的数据</td><td>见下方「如何安全地联系我们」</td></tr>
-<tr><td>导出你的数据</td><td>同上，可申请导出</td></tr>
-<tr><td>注销账号</td><td>同上（当前版本尚未提供自助注销入口，需人工处理）</td></tr>
-</table>
-
-<div class="box warn">
-<b>如何安全地联系我们（请不要在公开 Issue 里写隐私信息）</b>
-<p>本站的公开协作区（GitHub Issues）是<b>任何人都能看到的</b>。
-为了请求删除数据而在那里贴出你的 Phira UID 或邮箱，等于把你的隐私标识公开 ——
-这正是我们要避免的。请改用下面任一方式：</p>
-<ul>
-  <li><b>GitHub 私密安全报告</b>（推荐，仅仓库维护者可见）：<br>
-  <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/security/advisories/new" target="_blank" rel="noopener">
-  github.com/WebExperiments-glitch/Phira-Huamei-Metric/security/advisories/new</a></li>
-  <li>若该入口不可用，可先在公开 Issue 里<b>只说「需要删除我的数据」</b>，
-  等维护者回复后再通过私密渠道交换标识信息</li>
-</ul>
-<p>我们收到请求后会删除对应记录，并在完成后回复确认。处理时间为收到请求后的 7 个工作日内。</p>
-</div>
-
-<h2>6. 未成年人</h2>
-<div class="box warn">
-<p>本工具面向音游玩家群体，<b>可能存在未满 14 周岁的使用者</b>。</p>
-<p>如果你是未满 14 周岁的未成年人，请<b>在监护人的陪同下阅读本政策，并取得监护人的同意后</b>
-再使用登录与数据上传功能。若监护人不同意，请关闭自动上传或不要登录 Phira。</p>
-<p>监护人如发现未成年人未经同意上传了信息，可通过上述 Issues 渠道联系我们删除。</p>
-</div>
-
-<h2>7. 第三方服务</h2>
-<table>
-<tr><th>服务</th><th>用途</th><th>你的数据</th></tr>
-<tr><td>Phira 公开 API（api.phira.cn）</td><td>查询谱面与玩家公开资料</td><td>仅发送你查询的用户名 / UID；服务端日志由 Phira 控制</td></tr>
-<tr><td>WorkBuddy 云服务</td><td>数据库、认证、静态托管</td><td>存储上述成绩数据与账号信息</td></tr>
-<tr><td>jsDelivr CDN</td><td>加载云 SDK 脚本</td><td>会看到你的 IP，属常规 CDN 行为</td></tr>
-</table>
-
-<h2>8. 不做什么</h2>
-<ul>
-  <li>不使用 Cookie 做跨站追踪（本站在浏览器本地只使用 localStorage）</li>
-  <li>不接入任何广告或数据分析 SDK</li>
-  <li>不推断、不判定「谱师虚标」—— 本工具只给难度参考，详见首页说明</li>
-  <li>不向任何第三方出售或分享你的个人信息</li>
-</ul>
-
-<h2>9. 政策变更</h2>
-<p>本政策如有更新，会修改页面顶部的版本号与生效日期。涉及收集范围扩大的变更，
-会在站内显著位置提示，并重置「首次告知」状态以重新征求你的同意。</p>
-
-<h2>10. 联系方式</h2>
-<p>隐私相关问题、数据删除请求、投诉与建议：<br>
-<a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues" target="_blank" rel="noopener">github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues</a></p>
-<p>项目源码（GPL-3.0）：<a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric" target="_blank" rel="noopener">同仓库</a></p>
-
-<footer>
-P.H.M. Standard · 开发者测试版 · GPL-3.0<br>
-本工具不判定「虚标」，只提供可审计的难度参考。官方定数自身标注噪声约 2.80 级。
-</footer>
-
 </body>
 </html>

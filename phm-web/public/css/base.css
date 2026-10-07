@@ -9,31 +9,89 @@
  *
  * 深色单一主题（不做浅色切换：这个工具的使用场景是夜里看谱，而且
  * 分享卡片也是深色的，浅色页面会让导出图显得突兀）。
+ * —— 这一点和 Kimi 官网一致：它的界面也只有单一深色，没有浅色变体。
+ *
+ * ══════════════════════════════════════════════════════════════
+ * 视觉三原则（对着 DeepSeek / Kimi / z.ai 的设计体系抄回来的）
+ * ──────────────────────────────────────────────────────────────
+ * 1. **只有一个主色。** DeepSeek 的设计分析里写得很直白：
+ *    "no-secondary-accent"。色相越多越像工具，越少越沉得住。
+ *    本站主色 = 琥珀 --brand（见下），它只用于
+ *    「关键动作 + 品牌标识」，其余一律中性色。
+ *    ⚠ 新增 UI 时先问：这个颜色**必须**是主色吗？能用中性色就别上色。
+ * 2. **层级靠亮度，不靠色相。** Kimi：「hierarchy through luminance
+ *    contrast rather than hue」。所以 --bg / --card / --card2 / --card3
+ *    是一条**亮度阶梯**，用哪一层取决于元素"浮"多高，而不是它是什么功能。
+ * 3. **靠边框分面，少用阴影。** Kimi 用 0.5px 白边框做 "optical
+ *    definition without visual weight"。本站边框统一走半透明
+ *    rgba(255,255,255,.075) —— 半透明的好处是**自动适配任何底色层次**，
+ *    不用为每种 surface 各配一个边框色。
+ * ══════════════════════════════════════════════════════════════
+ * ⚠ 旧变量名（--amber / --blue / --green / --red / --purple）全部保留，
+ *   只是重新指向新语义色。页面里大量在用，改名前先别删。
  * ============================================================ */
 
 :root {
-  --bg: #0d1117;
-  --card: #161b22;
-  --card2: #1c2330;
-  --card3: #212936;
-  --fg: #e6edf3;
-  --fg2: #9aa7b4;
-  --fg3: #6b7684;
-  --line: #2a313c;
-  --line2: #333c49;
-  --amber: #e8a33d;
-  --blue: #5aa2e8;
-  --green: #4cc38a;
-  --red: #e5534b;
-  --purple: #c98ce8;
+  /* ── 中性色：一条亮度阶梯（不是功能分类）── */
+  --bg:    #0b0d10;      /* 画布：最底 */
+  --card:  #12151a;      /* 卡片：浮一层 */
+  --card2: #181c22;      /* 次级面 / 行悬浮 */
+  --card3: #20252d;      /* 输入框 / 激活态：浮最高 */
+  --fg:    #e9edf3;      /* 主文字 */
+  --fg2:   #a3adbb;      /* 次要文字 */
+  --fg3:   #6f7887;      /* 弱化文字 / 标签 */
+  --fg4:   #4c535f;      /* 占位符 / 极弱 */
 
-  --density: #5aa2e8;
-  --pattern: #c98ce8;
-  --coord: #e8a33d;
-  --stamina: #4cc38a;
+  /* 半透明边框 —— 见原则 3 */
+  --line:  rgba(255,255,255,.075);
+  --line2: rgba(255,255,255,.13);
 
-  --r: 10px;
-  --r2: 14px;
+  /* ── 主色：琥珀（全站唯一强调色，见原则 1）── */
+  --brand:      #f0b03f;
+  --brand-soft: rgba(240,176,63,.14);   /* 底色：选中/高亮行 */
+  --brand-line: rgba(240,176,63,.38);   /* 描边：focus ring / 选中边框 */
+  --brand-ink:  #201705;                /* 主色底上的文字（深色，保证对比） */
+
+  /* ── 语义色：降饱和，别抢注意力 ── */
+  --ok:   #3fb950;
+  --warn: #d29922;
+  --err:  #f85149;
+  --info: #58a6ff;
+
+  /* 旧名映射（兼容现有页面，语义不变） */
+  --amber:  var(--brand);
+  --blue:   var(--info);
+  --green:  var(--ok);
+  --red:    var(--err);
+  --purple: #b083f0;
+
+  /* 四组负荷配色（图表专用：要能互相区分，但整体降饱和） */
+  --density: #58a6ff;
+  --pattern: #b083f0;
+  --coord:   #f0b03f;
+  --stamina: #3fb950;
+
+  /* ── 圆角：只用这四档 ── */
+  --r-sm: 6px;
+  --r:    10px;
+  --r2:   14px;
+  --r3:   18px;
+
+  /* ── 间距：8px 网格（小值 4px 起）── */
+  --sp1: 4px;  --sp2: 8px;  --sp3: 12px; --sp4: 16px;
+  --sp5: 24px; --sp6: 32px; --sp7: 48px;
+
+  /* ── 字阶：只用这几档，别临时写 13.7px ── */
+  --t-xs:  11.5px; --t-sm:  12.5px; --t-base: 13.5px; --t-md: 15px;
+  --t-lg:  18px;   --t-xl:  22px;   --t-2xl:  28px;   --t-3xl: 36px;
+
+  /* ── 阴影：深色下极淡（原则 3：主要靠边框分面）── */
+  --sh1: 0 1px 2px rgba(0,0,0,.35);
+  --sh2: 0 6px 20px rgba(0,0,0,.45);
+
+  /* ── 动效：统一时长与缓动 ── */
+  --ease: cubic-bezier(.4, 0, .2, 1);
+
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
 }
 
@@ -42,10 +100,36 @@
 body {
   background: var(--bg);
   color: var(--fg);
-  font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* 字体栈把 -apple-system 提到最前：Apple 设备用 SF，Windows 退回 Segoe UI。
+     行高 1.65 是给 CJK 留的 —— DeepSeek 的设计体系里明确写了
+     「1.6 body line-height，deliberate CJK accommodation」。 */
+  font: 14px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   padding: 20px 20px 56px;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* 焦点环：键盘用户必须看得见，鼠标点出来则不需要（:focus-visible）。
+   深色界面缺了它，"没打磨过"的感觉立刻出来。 */
+:focus-visible {
+  outline: 2px solid var(--brand-line);
+  outline-offset: 2px;
+}
+
+/* 选中文字：用主色的柔和变体，别用系统默认的亮蓝 */
+::selection { background: var(--brand-soft); color: var(--fg); }
+
+/* 滚动条：深色界面里它非常显眼，系统默认的浅色凹槽会立刻拉低质感 */
+* { scrollbar-width: thin; scrollbar-color: var(--card3) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--card3); border-radius: 99px;
+  border: 2px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #2c333d; background-clip: content-box; }
 .wrap { max-width: 880px; margin: 0 auto; }
 .wrap.wide { max-width: 1100px; }
 a { color: var(--blue); text-decoration: none; }
@@ -59,46 +143,56 @@ a:hover { text-decoration: underline; }
 /* ── 顶部导航（所有页面共用）───────────────────────────── */
 .nav {
   display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
-  padding: 4px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 18px;
+  padding: 4px 0 14px; border-bottom: 1px solid var(--line); margin-bottom: 22px;
 }
 .nav .brand {
-  font-size: 19px; letter-spacing: .4px; font-weight: 400; color: var(--fg);
-  margin-right: 10px; text-decoration: none;
+  font-size: 19px; letter-spacing: .3px; font-weight: 500; color: var(--fg);
+  margin-right: 12px; text-decoration: none;
 }
-.nav .brand b { color: var(--amber); }
+.nav .brand b { color: var(--brand); }
 .nav .brand:hover { text-decoration: none; }
-.nav .links { display: flex; gap: 4px; flex-wrap: wrap; align-items: baseline; }
+.nav .links { display: flex; gap: 3px; flex-wrap: wrap; align-items: baseline; }
 .nav .links a {
-  color: var(--fg2); padding: 4px 11px; border-radius: 7px; font-size: 13.5px;
+  color: var(--fg2); padding: 5px 11px; border-radius: var(--r-sm); font-size: 13.5px;
   text-decoration: none; border: 1px solid transparent;
+  transition: color .14s var(--ease), background .14s var(--ease);
 }
 .nav .links a:hover { color: var(--fg); background: var(--card2); text-decoration: none; }
-.nav .links a.on { color: var(--amber); background: var(--card2); border-color: var(--line); }
+/* 当前页：主色的柔和底 + 柔和描边。
+   （用主色是对的 —— 它表示"你在哪"，属于关键状态，不是装饰。） */
+.nav .links a.on {
+  color: var(--brand); background: var(--brand-soft); border-color: var(--brand-line);
+}
 .nav .spacer { flex: 1; }
-.nav .ver { font-size: 11.5px; color: var(--fg3); }
+.nav .ver { font-size: var(--t-xs); color: var(--fg3); }
 
 /* ── 卡片 / 面板 ──────────────────────────────────────── */
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r2);
-  padding: 18px 20px; margin-bottom: 14px;
+  padding: 20px 22px; margin-bottom: 14px;
 }
-.card h2 { font-size: 17px; font-weight: 500; margin-bottom: 4px; word-break: break-word; }
-.card h3 { font-size: 14.5px; font-weight: 600; color: var(--fg2); margin: 16px 0 8px; }
-.card .sub { font-size: 12.5px; color: var(--fg3); margin-bottom: 12px; }
+.card h2 { font-size: var(--t-lg); font-weight: 600; margin-bottom: 5px; word-break: break-word; }
+.card h3 { font-size: 14.5px; font-weight: 600; color: var(--fg2); margin: 18px 0 8px; }
+.card .sub { font-size: var(--t-sm); color: var(--fg3); margin-bottom: 12px; }
 
 /* ── 按钮 ─────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: 8px; cursor: pointer;
+  padding: 7px 14px; border-radius: 9px; cursor: pointer;
   border: 1px solid var(--line2); background: var(--card2); color: var(--fg);
   font-size: 13.5px; font-family: inherit; line-height: 1.4;
-  transition: border-color .12s, background .12s;
+  transition: border-color .14s var(--ease), background .14s var(--ease),
+              color .14s var(--ease);
 }
-.btn:hover:not(:disabled) { border-color: var(--amber); background: var(--card3); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn.primary { background: var(--amber); color: #201705; border-color: var(--amber); font-weight: 600; }
-.btn.primary:hover:not(:disabled) { background: #f0b355; }
-.btn.sm { padding: 4px 9px; font-size: 12.5px; border-radius: 6px; }
+.btn:hover:not(:disabled) { border-color: var(--brand-line); background: var(--card3); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary {
+  background: var(--brand); color: var(--brand-ink);
+  border-color: var(--brand); font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) { background: #f7bd5a; border-color: #f7bd5a; }
+.btn.sm { padding: 4px 10px; font-size: var(--t-sm); border-radius: var(--r-sm); }
 .btn.ghost { background: transparent; }
 
 /* ── 输入 ─────────────────────────────────────────────── */

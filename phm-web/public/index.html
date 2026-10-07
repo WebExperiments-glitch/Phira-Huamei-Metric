@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.6.0">
+<meta name="app-version" content="V0.7.0">
 <title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -23,7 +23,7 @@
 <meta name="twitter:description" content="拖入谱面包，浏览器内解析，给出可审计的双标度定数参考。谱面不会上传。">
 <meta name="twitter:image" content="https://phm.app.workbuddy.host/og.png">
 <meta name="theme-color" content="#0d1117">
-<link rel="stylesheet" href="/css/base.css?v=V0.6.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.7.0">
 <style>
 .hero{text-align:center;padding:22px 0 6px}
 .hero h1{font-size:30px;font-weight:400;letter-spacing:.5px;line-height:1.32}
@@ -148,14 +148,14 @@
     反映的是"站内同类谱被判成多少"，不是绝对难度。官谱标度那一栏才是与官方可比的绝对标度。</div>
     <div class="fd"><b>隐私。</b>核心链路（拖入谱面 → 解析 → 出定数）全程在本机浏览器内完成，
     <b>谱面文件永不上传</b>。只有你在打卡区主动勾选时，才会把算出的结构特征
-    （不含谱面文件本身）写入共享缓存。详见<a href="/privacy.html">隐私政策</a>。</div>
+    （不含谱面文件本身）写入共享缓存。详见<a href="/privacy">隐私政策</a>。</div>
   </details>
 </footer>
 
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.6.0';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.7.0';
 renderNav('home');
 
 document.getElementById('verfoot').textContent = '版本 ' + APP_VER + '（开发者测试版）';

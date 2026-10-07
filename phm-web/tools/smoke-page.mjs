@@ -230,6 +230,33 @@ for (const R of ROUTES) {
   const newErr = errors.length - before;
   ok('本页无运行时报错', newErr === 0, newErr + ' 条' + (newErr ? '：' + errors.slice(before).join(' | ').slice(0, 200) : ''));
 }
+
+/* ── 法务文档页：不在主导航里，但必须可访问、且是**浅色阅读版式** ──
+   为什么单独检查颜色：长文（隐私政策 / 用户协议）跟产品界面走深色是错的 ——
+   白底黑字才适合连续阅读、也才打印得出来。这条断言就是防止将来有人
+   顺手把 docs.css 改成深色，把一份正式文本变回"营销页"。 */
+for (const [p, name] of [['/privacy', '隐私政策'], ['/terms', '用户协议']]) {
+  console.log('\n[文档页] ' + BASE + p + '  （' + name + '）');
+  const before = errors.length;
+  await send('Page.navigate', { url: BASE + p });
+  await new Promise(r => setTimeout(r, 1800));
+  const info = await evalJS(`(function(){
+    const b = getComputedStyle(document.body);
+    const h1 = document.querySelector('h1');
+    return { bg: b.backgroundColor, color: b.color,
+             hasDoc: !!document.querySelector('.doc'),
+             h1: (h1 ? h1.textContent : '').trim().slice(0, 40),
+             h2n: document.querySelectorAll('h2').length,
+             sw: !!document.querySelector('.topbar nav a') };
+  })()`);
+  ok('用文档版式（.doc）', info.hasDoc === true);
+  ok('是浅色（长文阅读）', /255,\s*255,\s*255/.test(String(info.bg)), 'bg=' + info.bg);
+  ok('有居中大标题', !!info.h1, info.h1);
+  ok('分了章节（≥5 个 h2）', info.h2n >= 5, 'h2=' + info.h2n);
+  ok('能在两份文档间切换', info.sw === true);
+  ok('本页无运行时报错', errors.length - before === 0);
+}
+
 console.log('\n未捕获异常 / console.error ：' + errors.length);
 errors.slice(0, 12).forEach(e => console.log('   ! ' + e));
 if (warns.length) console.log('警告 ' + warns.length + ' 条（前 3）：' + warns.slice(0, 3).join(' | ').slice(0, 300));

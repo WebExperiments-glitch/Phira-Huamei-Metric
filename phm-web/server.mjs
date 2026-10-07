@@ -151,7 +151,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
-  'settings.html', 'en.html', 'robots.txt', 'favicon.ico', 'privacy.html',
+  'settings.html', 'en.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
   '404.html', 'sitemap.xml', 'og.png', 'og-en.png']);
 /* ⚠ PUBLIC_DIRS 每加一个目录，都是往互联网上多开一扇门。
    加 data/ 是为了 ref-com.json（社区参照集生成物，生成器只往这里写它）；
@@ -513,7 +513,8 @@ const server = http.createServer(async (req, res) => {
      （换实现时 URL 不变）。映射是**显式白名单**，不是通配：
      将来加页面必须同时加进 PUBLIC_FILES，不会因为忘了写路由就暴露文件。 */
   const CLEAN = { '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
-                  '/data': 'data.html', '/settings': 'settings.html', '/privacy': 'privacy.html' };
+                  '/data': 'data.html', '/settings': 'settings.html',
+                  '/privacy': 'privacy.html', '/terms': 'terms.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

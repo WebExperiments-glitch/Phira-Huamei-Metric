@@ -1,0 +1,136 @@
+/* ============================================================
+ * css/docs.css —— 法务 / 说明类长文档的排版（浅色）
+ * ============================================================
+ * 【为什么单独一份，而且不开深色】
+ *   产品界面是深色（夜里看谱），但**长文档不该跟着深色**：
+ *   白底黑字的正文更适合连续阅读、也适合打印和存档。
+ *   参考对象是 DeepSeek 的用户协议 —— 大标题居中、编号章节、
+ *   宽阔行距、**没有彩色装饰框**，关键约束靠加粗和淡黄高亮标出来。
+ *   （本站以前的隐私政策是深色 + 绿框 + 橙框，看着像营销页，
+ *     不像一份可以拿去存档的正式文本。）
+ *
+ * 【两条排版纪律】
+ *   1. **不在浅底上直接用品牌琥珀。** #f0b03f 在白底上的对比度只有
+ *      约 1.8:1，正文里根本读不清。浅色环境里品牌色统一压深成
+ *      --brand-deep（#a8690a），它才是"白底上的琥珀"。
+ *   2. **不用彩色左边框盒子。** 靠字号、间距、细线和加粗建立层级，
+ *      彩色框越多越像广告。
+ * ============================================================ */
+
+:root {
+  --paper:       #ffffff;
+  --paper-soft:  #f6f7f9;   /* 代码/表头/摘要块的底 */
+  --ink:         #1a1d21;   /* 正文（近黑，比纯黑柔和） */
+  --ink-soft:    #464e59;   /* 段落正文 */
+  --ink-faint:   #878f9a;   /* 元信息 / 页脚 */
+  --rule:        #e6e9ed;   /* 细线 */
+  --link:        #2d5fd0;
+  --link-hover:  #1d47a8;
+  --mark:        #fff3cd;   /* 关键句高亮（淡黄） */
+  --brand-deep:  #a8690a;   /* 白底上的品牌色 */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  /* 行高 1.78：长文阅读的标准区间（1.6~1.8），也给 CJK 留足行距 */
+  font: 15px/1.78 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 820px; margin: 0 auto; padding: 30px 24px 96px; }
+
+/* ── 顶部：返回 + 文档间切换 ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding-bottom: 16px; margin-bottom: 40px; border-bottom: 1px solid var(--rule);
+  font-size: 13.5px;
+}
+.topbar .back { color: var(--ink-soft); text-decoration: none; }
+.topbar .back:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { color: var(--ink-faint); text-decoration: none; }
+.topbar nav a:hover { color: var(--ink-soft); }
+.topbar nav a.on { color: var(--ink); font-weight: 600; }
+
+/* ── 标题层级 ── */
+h1 {
+  font-size: 30px; line-height: 1.35; font-weight: 700; text-align: center;
+  letter-spacing: -.3px; margin: 0 0 18px; color: var(--ink);
+}
+h1 b { color: var(--brand-deep); }
+.meta { color: var(--ink-faint); font-size: 13px; margin-bottom: 34px; }
+.meta code { font-size: 12px; }
+
+h2 {
+  font-size: 19px; font-weight: 700; margin: 42px 0 12px; color: var(--ink);
+  padding-bottom: 9px; border-bottom: 1px solid var(--rule);
+}
+h3 { font-size: 15.5px; font-weight: 600; margin: 26px 0 8px; color: var(--ink); }
+
+/* ── 正文 ── */
+p { margin: 0 0 15px; color: var(--ink-soft); }
+b, strong { color: var(--ink); font-weight: 600; }
+ul, ol { margin: 0 0 15px; padding-left: 22px; color: var(--ink-soft); }
+li { margin: 6px 0; }
+li::marker { color: var(--ink-faint); }
+
+a { color: var(--link); text-decoration: none; border-bottom: 1px solid rgba(45,95,208,.3); }
+a:hover { color: var(--link-hover); border-bottom-color: currentColor; }
+
+code, .mono {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .88em;
+  background: var(--paper-soft); border: 1px solid var(--rule);
+  padding: 1px 5px; border-radius: 4px; color: #2a3038;
+}
+
+/* 关键句高亮 —— DeepSeek 那种淡黄底，代替"红色警告框" */
+mark, .hl { background: var(--mark); color: var(--ink); padding: 1px 3px; border-radius: 2px; }
+
+/* 摘要块：淡灰底、无边框、无彩色，只是把开头那段和其他内容分开 */
+.lead {
+  background: var(--paper-soft); border-radius: 10px;
+  padding: 18px 20px; margin: 0 0 34px; font-size: 14.5px; line-height: 1.8;
+}
+.lead p:last-child { margin-bottom: 0; }
+
+/* ── 表格 ── */
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+th, td {
+  text-align: left; padding: 10px 12px; vertical-align: top;
+  border: 1px solid var(--rule); color: var(--ink-soft);
+}
+th { background: var(--paper-soft); color: var(--ink); font-weight: 600; }
+
+/* ── 页脚 ── */
+footer {
+  margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--rule);
+  font-size: 13px; color: var(--ink-faint); line-height: 1.85;
+}
+
+/* ── 窄屏 ── */
+@media (max-width: 620px) {
+  .doc { padding: 22px 16px 72px; }
+  h1 { font-size: 24px; }
+  h2 { font-size: 17.5px; margin-top: 34px; }
+  body { font-size: 14.5px; }
+  table { font-size: 13px; }
+  th, td { padding: 8px 9px; }
+  .topbar nav { gap: 13px; }
+}
+
+/* ── 打印：正式文档应该能干净地打印出来 ── */
+@media print {
+  body { font-size: 11.5pt; }
+  .topbar { display: none; }
+  a { color: var(--ink); border-bottom: none; }
+  /* 打印时把链接地址显出来，纸上点不了 */
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .82em; color: var(--ink-faint); }
+  h2 { page-break-after: avoid; }
+  .lead, table { page-break-inside: avoid; }
+}
