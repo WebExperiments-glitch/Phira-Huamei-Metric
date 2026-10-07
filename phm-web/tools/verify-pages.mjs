@@ -660,6 +660,47 @@ await goto('/settings', 2600);
   ok('切回中文正常', /首页/.test(backZh), backZh.slice(0, 40));
 }
 
+/* ══════════════════════════════════════════════════════════
+ * 11) /user 数据飞轮 · 一键提交
+ *     这个入口曾经存在（app.html 的玩家面板里），面板迁到本页后
+ *     随休眠代码一起被删掉了 —— 用户会发现"数据飞轮转不动了"。
+ *     所以这条断言测的是**端到端真的写入**，不是"按钮在不在"。
+ *     ⚠ 它会真的往公开数据集写一次（真实公开成绩，upsert 幂等）。
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[11] /user 数据飞轮 · 一键提交');
+await goto('/user?uid=2771878', 3000);
+{
+  const ready = await until(`document.querySelectorAll('#out .stat').length >= 4`, 40000);
+  ok('账号已加载（可以提交了）', ready);
+
+  const hasBtn = await evalJS(`!!document.getElementById('impbtn')`);
+  ok('存在「全部进入数据飞轮」按钮', hasBtn);
+
+  const desc = await evalJS(`(function(){
+    const e = document.querySelector('.impbar .dim2');
+    return e ? e.textContent.replace(/\\s+/g,' ').trim() : '';
+  })()`);
+  ok('按钮旁写明了会上传什么（含 Phira UID、不含密码）',
+    /Phira UID/.test(desc) && /不含密码/.test(desc), String(desc).slice(0, 70));
+
+  /* 确认框：headless 里不覆盖会直接卡住 */
+  await evalJS(`window.confirm = function(){ return true; };`);
+  await evalJS(`document.getElementById('impbtn').click()`);
+
+  const done = await until(`(function(){
+    const e = document.getElementById('impmsg');
+    return !!e && /已写入|失败|没有可提交/.test(e.textContent);
+  })()`, 45000);
+  const resMsg = await evalJS(`(document.getElementById('impmsg')||{}).textContent`);
+  ok('★ 提交有明确回执（请求真的发出去了）', done, String(resMsg).slice(0, 90));
+  ok('★ 服务端确认写入（不是"点了就算"）',
+    /已写入\s*\d+\s*条/.test(String(resMsg)), String(resMsg).slice(0, 90));
+
+  const btnTxt = await evalJS(`(document.getElementById('impbtn')||{}).textContent`);
+  ok('写入成功后按钮变成"再提交一次"（可重复点，upsert 幂等）',
+    /再提交|全部进入/.test(String(btnTxt)), String(btnTxt));
+}
+
 console.log('\n未捕获异常 / console.error ：' + errors.length);
 errors.slice(0, 8).forEach(e => console.log('   ! ' + e));
 console.log('\n────────');

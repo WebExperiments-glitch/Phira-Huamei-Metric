@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.8.1">
+<meta name="app-version" content="V0.8.2">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.8.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.8.2">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -58,6 +58,10 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 /* 拉取时刻那一行：让"数据有多新"变成看得见的事实，而不是要用户猜 */
 .fetchline{font-size:12px;color:var(--fg3);margin:10px 0 2px}
 .fetchline a{color:var(--brand)}
+
+/* 数据飞轮入口：按钮 + 说明 + 结果条 */
+.impbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0 4px}
+.impbar .dim2{font-size:12px;line-height:1.6;flex:1;min-width:220px}
 </style>
 </head>
 <body>
@@ -278,6 +282,15 @@ function render() {
 
   /* ── 最近游玩 ── */
   h += '<div class="card"><h3 style="margin-top:0">最近游玩（每谱取最好一次）</h3>';
+  /* ── 数据飞轮入口 ──
+     一键把这批成绩提交到公开数据集。⚠ 这是**用户主动点击**才发生的上传，
+     所以它不受「自动上传」开关约束（那个开关管的是"自动"）——
+     但必须弹确认，并如实列出会传什么。 */
+  h += '<div class="impbar">'
+    + '<button class="btn primary" type="button" id="impbtn">全部进入数据飞轮</button>'
+    + '<span class="dim2">把这批成绩（谱名、等级、ACC、单曲 RKS、Phira UID）提交到公开数据集，'
+    + '用于校准定数；都是 Phira 站内本来就公开的信息，不含密码或邮箱。</span>'
+    + '</div><div class="status" id="impmsg"></div>';
   const agg = {};
   for (const r of recs) {
     const k = r.chart;
@@ -343,6 +356,124 @@ function render() {
     e.preventDefault();
     if (STATE.user) pick(STATE.user);
   });
+
+  /* 数据飞轮按钮：每次重渲染都是新元素，所以要重新接线；
+     结果消息存在 STATE 里，重渲染后照样显示。 */
+  const ib = document.getElementById('impbtn');
+  if (ib) {
+    if (STATE.impBtnLabel) ib.textContent = STATE.impBtnLabel;
+    ib.addEventListener('click', function () { importToFlywheel(); });
+  }
+  if (STATE.impMsg) impMsg(STATE.impMsg.text, STATE.impMsg.kind);
+}
+
+/* ══════════ 数据飞轮：把这批成绩提交入库 ══════════
+   这是 app.html 里那个「导入数据飞轮」按钮的**替代实现** ——
+   玩家面板迁到本页之后，那条入口随休眠代码一起被删掉了，这里补回来。
+
+   与原版的两点差别：
+     · 数据源改成 STATE.recent（最近 20 条），按谱去重取最好一次，与上表口径一致
+     · 单曲 RKS 这里能**真算**（用 bestConst 取定数），原版在 recent 模式下传 null
+
+   隐私边界（与原版一致，别放松）：
+     · 只有**用户主动点按钮**才发生；「自动上传」开关管的是自动路径，不影响这里
+     · 提交前必须弹确认，并逐项列出会传什么
+     · 传的都是 Phira 站内本来就公开的信息（谱名、等级、ACC、UID/用户名）
+*/
+function impMsg(text, kind) {
+  STATE.impMsg = { text: text, kind: kind || '' };
+  const el = document.getElementById('impmsg');
+  if (el) { el.textContent = text || ''; el.className = 'status' + (kind ? ' ' + kind : ''); }
+}
+
+async function postRows(path, rows) {
+  const ctl = new AbortController();
+  const timer = setTimeout(function () { ctl.abort(); }, 20000);
+  try {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ rows: rows }),
+      signal: ctl.signal,
+      cache: 'no-store',
+    });
+    if (!r.ok) {
+      let m = 'HTTP ' + r.status;
+      try { const j = await r.json(); if (j && (j.error || j.note)) m = j.error || j.note; } catch (e) {}
+      throw new Error(m);
+    }
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+
+async function importToFlywheel() {
+  const u = STATE.user;
+  if (!u) return;
+  const btn = document.getElementById('impbtn');
+
+  /* 按谱去重取最好一次 —— 与上面那张表的口径保持一致 */
+  const agg = {};
+  for (const r of STATE.recent || []) {
+    const k = r.chart;
+    const a = accOf(r);
+    if (!agg[k]) agg[k] = { chart: k, acc: a, info: r.info };
+    if (a != null && (agg[k].acc == null || a > agg[k].acc)) {
+      agg[k].acc = a; agg[k].info = r.info || agg[k].info;
+    }
+  }
+
+  const payload = Object.keys(agg).map(function (k) {
+    const x = agg[k], inf = x.info || {};
+    const lv = bestConst(x.chart, inf);
+    const lvn = lv ? lv.lv : null;
+    let srk = null;
+    if (x.acc != null && x.acc >= 70 && lvn != null) {
+      const t2 = (x.acc - 55) / 45;
+      srk = +(t2 * t2 * lvn).toFixed(3);
+    }
+    return {
+      chart_name: String(inf.name || ('谱面 #' + x.chart)).slice(0, 120),
+      chart_diff: lvTag(inf.level) || null,
+      chart_level: inf.level ? String(inf.level).slice(0, 60) : null,
+      official_const: (+inf.difficulty > 0 && +inf.difficulty <= 25) ? +(+inf.difficulty).toFixed(3) : null,
+      acc: x.acc != null ? +x.acc.toFixed(4) : null,
+      song_rks: srk,
+      chart_id: +x.chart || null,
+      phira_user_id: +u.id || null,
+      phira_user_name: String(u.name || '').slice(0, 60),
+      source: 'phira-recent',
+      client_id: SET.cid.get(),
+    };
+  }).filter(function (x) {
+    /* 关键字段缺失的条目剔除 —— 批量写入时一条非法会导致整批失败 */
+    return x.chart_id != null && x.phira_user_id != null && x.chart_name;
+  });
+
+  if (!payload.length) { impMsg('没有可提交的有效成绩（谱号或账号信息缺失）', 'err'); return; }
+
+  const ok = confirm(
+    '即将把 ' + payload.length + ' 条成绩提交到公开数据集：\n\n'
+    + '· 谱名、等级、标称定数\n'
+    + '· 你的 ACC（该谱最好一次）与单曲 RKS\n'
+    + '· Phira UID #' + u.id + ' 与用户名「' + (u.name || '') + '」—— 用于区分不同玩家\n\n'
+    + '这些都是 Phira 站内本来就公开的信息，不含密码或邮箱。\n'
+    + '数据会汇总用于校准定数公式。继续吗？'
+  );
+  if (!ok) { impMsg('已取消，没有提交任何数据', ''); return; }
+
+  if (btn) btn.disabled = true;
+  impMsg('正在提交 ' + payload.length + ' 条…（服务端校验中）');
+  try {
+    const r = await postRows('/api/scores', payload);
+    const w = (r && r.written) || 0;
+    if (!w) throw new Error((r && r.note) || '服务端未写入任何行');
+    impMsg('✅ 已写入 ' + w + ' 条成绩，感谢你帮定数公式变准！', 'ok');
+    STATE.impBtnLabel = '🔄 再提交一次';
+    if (btn) btn.textContent = STATE.impBtnLabel;
+  } catch (e) {
+    impMsg('提交失败：' + ((e && e.message) || '网络异常'), 'err');
+  }
+  if (btn) btn.disabled = false;
 }
 
 function stat(k, v, n) {
