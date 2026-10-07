@@ -6,7 +6,14 @@
 <title>P.H.M. Standard · V0.3.2</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="P.H.M. —— Phira / Phigros 谱面定数参考工具。拖入谱面包即出客观定数，可与 Phira 账号联动查看 RKS 与最好成绩。">
+<meta name="description" content="P.H.M. —— Phira / Phigros 谱面定数参考工具。拖入谱面包即出客观定数参考，解析全在浏览器里完成，谱面文件不上传。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="P.H.M. Standard">
+<meta property="og:title" content="P.H.M. Standard —— Phira 谱面难度参考">
+<meta property="og:description" content="拖入谱面包，浏览器内解析，给出可审计的客观难度参考。谱面不会上传。">
+<meta property="og:url" content="https://phm.app.workbuddy.host/">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0d1117">
 <style>
 :root{--bg:#0d1117;--card:#161b22;--card2:#1c2330;--fg:#e6edf3;--fg2:#9aa7b4;--fg3:#6b7684;
 --line:#2a313c;--amber:#e8a33d;--blue:#5aa2e8;--green:#4cc38a;--red:#e5534b;
@@ -140,6 +147,10 @@ border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;li
 .csflag i.ok{color:var(--green);font-style:normal}
 .cspm{flex:none;width:44px;text-align:right}
 .cspm b{color:var(--amber);font-variant-numeric:tabular-nums}
+/* 下载按钮（搜索结果 / Phira 表共用）：网页端无法直读 Phira CDN，只能下载后拖入 */
+.dlbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
+border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
+.dlbtn:hover{border-color:var(--blue);color:var(--fg);background:var(--card)}
 .csfoot{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
 font-size:11.5px;color:var(--fg3);line-height:1.6}
 .csfoot b{color:var(--fg2)}
@@ -399,27 +410,34 @@ border:1px solid var(--line);color:var(--fg3)}
 <div id="out"></div>
 
 <footer>
-  <div>方法与验收脚本见仓库 <a class="link"
-  href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/tools/phm_standard.py"
-  target="_blank" rel="noopener">tools/phm_standard.py</a> ·
-  源码 <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
+  <div>线上引擎：<b>5 维 log1p 特征</b>（NPS / 长条占比 / 物量 / 纵连 / 线速峰值）
+  + 1,037 张官谱 k-NN ·
+  源码 <a class="link"
+  href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm/PHM-Standard.html"
+  target="_blank" rel="noopener">phm/PHM-Standard.html</a> ·
+  <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
   target="_blank" rel="noopener">GitHub</a> ·
-  版本 V0.3.2（正式版发布后重新计算）· GPL-3.0</div>
+  版本 V0.3.2（开发者测试版，正式版会重新计算）· GPL-3.0</div>
   <details>
     <summary>PS 是什么？本工具的边界与隐私（点开看）</summary>
-    <div class="fd"><b>PS</b> 是 P.H.M. Standard 难度标度（0–20），由四个负荷组加权合成：
+    <div class="fd"><b>两个数不是一回事，别混用</b>：<b>参考定数</b>是与官谱定数同标度的估计
+    （你可以拿它和 Phira 的标称定数直接比）；<b>PS</b> 是本工具自己的负荷标度（0–20），
+    衡量操作与读取负荷，<b>与官方定数不同标度</b>。</div>
+    <div class="fd"><b>PS</b> 由四个负荷组加权合成：
     <span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>，
     每个维度经饱和函数归一，每一分都能追溯到卡片上的明细。</div>
     <div class="fd"><b>PS 与官方定数无关</b> —— 官方定数是人工标注（实测标注噪声约 2.80 级），
-    PS 是独立标度；它与人类共识排序的一致性已验收（Spearman ρ = 0.92）。
-    <b>本工具不判定「虚标」</b>：在这个噪声水平下，没有任何工具能区分「谱师标错」和「官方也会这么标」。</div>
-    <div class="fd"><b>结果里的「参考定数」</b>来自 1,037 张官谱的 k-NN 匹配（5 维：密度 / 长条占比 /
-    物量 / 纵连 / 线速峰值）—— 它是<b>同类官谱的定数中位</b>，不是预测值，也不带不确定度声明。</div>
-    <div class="fd"><b>隐私</b>：谱面解析 100% 在你的浏览器内完成，<b>谱面文件不会被上传</b>。
-    填 ACC 算 RKS 同样在本机算。只有当你在打卡区<b>主动勾选</b>「匿名上传」时，才会把
-    曲名 / 定数 / ACC 三项写入云端用于校准；不含账号、昵称、分数记录。
-    连 Phira 时只读取公开资料（RKS、最好成绩），<b>不需要也不接受你的 Phira 密码</b>；
-    用户名 / UID 只存在你自己浏览器的 localStorage 里用于下次自动填充。</div>
+    两者不构成互相验证。<b>本工具不判定「虚标」</b>：在这个噪声水平下，
+    没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」。</div>
+    <div class="fd"><b>参考定数</b>来自 1,037 张官谱的 5 维 k-NN 匹配 —— 它是<b>同类官谱的定数中位</b>，
+    不是预测值，也不带不确定度声明。同一张谱可能因官谱样本密度不同而偏移，请配合卡片上的近邻一起看。</div>
+    <div class="fd"><b>隐私 · 什么会上传</b>（三条路径，都要你主动触发）：<br>
+    · <b>算 RKS</b>：本机计算，<b>不上传</b>。勾选「匿名上传」才会写 曲名 / 定数 / ACC 三项。<br>
+    · <b>导入数据飞轮</b>：会连同<b>你的 Phira UID 与用户名</b>一起写入（Phira 站内本来就公开，
+    用于区分不同玩家）。导入前会弹窗逐项列出字段让你确认。<br>
+    · <b>拖入谱面</b>：只有<b>谱面结构特征</b>进入共享定数缓存，<b>谱面文件本身不会上传</b>。</div>
+    <div class="fd">连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>；
+    输入过的用户名 / UID 只存在你浏览器本地（localStorage）用于下次自动填充，不会随请求发出。</div>
   </details>
 </footer>
 </div>
@@ -926,7 +944,8 @@ function card(r){
       +'<div class="pdesc">填你这把的<b>准度 ACC</b>（成绩页右上角的 %），'
       +'立刻算出这张图的<b>单曲 RKS</b> —— <b>全部在本机计算</b>。</div>'
       +'<div class="prow"><input id="pacc" inputmode="decimal" autocomplete="off"'
-      +' placeholder="如 96.50" maxlength="9"><button id="pgo" type="button">算 RKS</button></div>'
+      +' placeholder="如 96.50" maxlength="9" value="'+esc(r._acc||"")+'">'
+      +'<button id="pgo" type="button">算 RKS</button></div>'
       +'<label class="popt"><input type="checkbox" id="popt"'+(OPTN()?" checked":"")+'>'
       +'<span>顺便<b>匿名上传</b>这条成绩，帮我们校准定数（只存曲名、定数、ACC 三项，'
       +'不含账号 / 昵称 / 分数记录）。<b>不勾也能照常算 RKS。</b></span></label>'
@@ -950,13 +969,27 @@ function render(){
   if(typeof renderPlayStat==="function") renderPlayStat((cur&&cur.playStat)||null);
   const chips=out.querySelectorAll(".chip");
   chips.forEach(function(b2){b2.addEventListener("click",function(){
+    /* 切换前把当前卡片的 ACC 输入存回 report，避免重建后丢失 */
+    const curR=STATE.reports[STATE.sel];
+    const curInp=document.getElementById("pacc");
+    if(curR&&curInp) curR._acc=curInp.value;
     STATE.sel=+b2.getAttribute("data-i");render();});});
 }
 
+let LOAD_GEN=0;                        /* 代次：连续拖入时，后一批作废前一批的结果 */
+const MAX_ZIP=60*1024*1024;            /* 单文件 60MB 上限（与下载路径一致，防打爆标签页） */
 async function handleFiles(files){
+  const gen=++LOAD_GEN;
   const msg=$("#msg"); msg.textContent="解析中…";
   const acc=[];
   for(const file of files){
+    if(gen!==LOAD_GEN) return;         /* 已有更新的批次在跑，本次结果作废 */
+    if(file.size>MAX_ZIP){
+      acc.push({label:file.name,file:file.name,
+        error:"文件过大："+(file.size/1048576).toFixed(1)+" MB，超过 "
+          +(MAX_ZIP/1048576)+" MB 上限（已跳过，避免打爆页面内存）"});
+      continue;
+    }
     try{
       const buf=await file.arrayBuffer();
       const rs=await analyzeChart(buf,file.name);
@@ -966,6 +999,7 @@ async function handleFiles(files){
         error:e.message||String(e)});
     }
   }
+  if(gen!==LOAD_GEN) return;           /* 解析期间又拖了新文件 → 丢弃这批 */
   msg.textContent="";
   if(!acc.length){msg.textContent="没有可解析的谱面";return;}
   STATE.reports=acc;              /* 替换而非追加 —— 新谱面刷新视图 */
@@ -978,6 +1012,21 @@ async function handleFiles(files){
       loadPlayStats(r.name).then(function(s){
         r.playStat=s;
         if(STATE.reports[STATE.sel]===r&&typeof renderPlayStat==="function") renderPlayStat(s);
+      }).catch(function(){});
+    });
+  }
+  /* 顺带把结构定数贡献进共享缓存（谱面文件不上传，只写特征） */
+  if(typeof contributeChart==="function"){
+    acc.forEach(function(r){
+      if(r.error||!r.name) return;
+      contributeChart(r).then(function(res){
+        if(!res||res.skipped) return;
+        r.contributed=res;
+        csMsg("✅ 《"+esc(res.name)+"》的结构定数已存入<b>共享定数缓存</b> —— "
+          +"下一个人搜到这张谱直接就能看到，不用再下载。"
+          +'<br><span style="color:var(--fg3)">只写入谱面结构特征（密度/长条/物量等），'
+          +'你的谱面文件本身没有上传。</span>',"ok");
+        if(typeof renderStats==="function") renderStats();
       }).catch(function(){});
     });
   }
@@ -1068,6 +1117,18 @@ document.addEventListener("click",async function(e){
     if(t.closest("#pclose")){ const p=document.getElementById("ppanel"); if(p) p.style.display="none"; return; }
     if(t.closest("#psearch")){ await pfSearch(); return; }
     if(t.closest("#cgo")){ await chartSearch(); return; }
+    const dl=t.closest(".dlbtn");
+    if(dl){
+      const url=dl.getAttribute("data-file");
+      const nm=dl.getAttribute("data-name")||"谱面";
+      if(!url){ csMsg("这张谱面没有可下载的文件（可能已下架）","err"); return; }
+      const a=document.createElement("a");
+      a.href=url; a.target="_blank"; a.rel="noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+      csMsg("📥 正在下载《"+esc(nm)+"》 —— 下完后把 zip <b>拖到下面的虚线框</b>，"
+        +"本页会自动算出定数，并顺带存进共享缓存。","ok");
+      return;
+    }
     const cb=t.closest(".calcb");
     if(cb&&!t.closest(".cdl")){          /* .cdl 是下载链接，不能再当「算」处理 */
       const cid=+cb.getAttribute("data-cid");
@@ -1258,7 +1319,19 @@ function renderCount(n){
 /* ═════════ Phira 连接：公开 API（无需密码，CORS 开放）═════════ */
 const PHIRA_API="https://api.phira.cn";
 const PF={user:null,rows:[],mode:"best",stats:null};
-function pfMsg(t,col){const el=$("#pfmsg");if(!el)return;el.textContent=t||"";el.style.color=col||"";}
+/* 面板内消息。⚠ 面板收起时用户看不见 —— 自动转发到页面级状态条 */
+function pfMsg(t,col){
+  const el=$("#pfmsg");
+  if(el){ el.textContent=t||""; el.style.color=col||""; }
+  if(!t) return;
+  const panel=document.getElementById("ppanel");
+  if(panel&&panel.style.display!=="none") return;      /* 面板开着，用户看得到 */
+  if(typeof csMsg!=="function") return;
+  const plain=String(t).replace(/<[^>]*>/g,"");
+  const kind=/失败|错误|无法|不支持|异常|没搜到/.test(plain)?"err"
+            :(/⚠/.test(plain)?"warn":"");
+  csMsg(esc(plain),kind);
+}
 function pfGet(p){
   return fetchTO(PHIRA_API+p,15000,{headers:{"Accept":"application/json"}}).then(function(r){
     if(!r.ok) throw new Error("Phira API "+r.status);
@@ -1377,8 +1450,11 @@ function pfRender(){
         +'<td class="oc">'+(inf.difficulty!=null?(+inf.difficulty).toFixed(2):"-")+'</td>'
         +'<td class="pm">'+(mine!=null
             ? '<b>'+mine.toFixed(2)+'</b>'
-            : '<button class="calcb" type="button" data-cid="'+r.chart
-              +'" title="下载这张谱面并用 P.H.M. 引擎算定数（约需几 MB 流量）">算</button>')+'</td>'
+            : (inf.file
+              ? '<button class="dlbtn" type="button" data-file="'+esc(inf.file)
+                +'" data-name="'+esc(inf.name||("谱面 #"+r.chart))
+                +'" title="下载谱面包；下完拖到下面的虚线框即出定数">📥</button>'
+              : '<span style="color:var(--fg3)">—</span>'))+'</td>'
         +'<td class="rk">'+(isBest?(+r.rks).toFixed(2):(r.acc*100).toFixed(2)+"%")+'</td>'
         +(isBest?'':'<td class="oc">'+r.plays+'</td>')+'</tr>';
     }).join("")+'</table>';
@@ -1396,27 +1472,36 @@ function pfRender(){
 const CS={rows:[]};
 async function chartSearch(){
   const kw=$("#csrch").value.trim();
-  if(!kw){ pfMsg("先填搜索关键词（曲名或谱师）","var(--red)"); return; }
+  if(!kw){ csMsg("先填搜索关键词（曲名或谱师）","err"); try{$("#csrch").focus();}catch(e){} return; }
   const btn=$("#cgo"); btn.disabled=true;
-  pfMsg("搜索中…");
+  csMsg("正在搜索「"+esc(kw)+"」…");
   try{
-    const r=await pfGet("/chart?search="+encodeURIComponent(kw)+"&pageNum=20&page=1");
-    const arr=Array.isArray(r)?r:(r.results||[]);
-    CS.rows=arr;
+    const r=await pfGet("/chart?search="+encodeURIComponent(kw)+"&pageNum=30&page=1");
+    const raw=Array.isArray(r)?r:(r.results||[]);
+    /* Phira 搜索会带进无关曲 → 名称含关键词的优先（够 3 条就只留它们） */
+    const kwl=kw.toLowerCase();
+    const hit=raw.filter(function(c){return String(c.name||"").toLowerCase().indexOf(kwl)>=0;});
+    const arr=(hit.length>=3)?hit:raw;
+    CS.rows=arr; CS.filtered=(arr!==raw);
     await loadChartCache(arr.map(function(c){return c.id;}));
-    pfMsg(arr.length?"":"没搜到 —— 换个关键词，或把谱面包拖到上方用本页引擎直接分析","");
-    renderChartSearch();
+    if(!arr.length){
+      csMsg("没搜到「"+esc(kw)+"」—— 换个关键词，或把谱面包<b>拖到下面的虚线框</b>用本页引擎直接分析","warn");
+    }else{
+      csMsg("");
+    }
+    renderChartSearch(kw);
   }catch(e){
-    pfMsg("搜索失败："+(e&&e.message?e.message:"网络异常"),"var(--red)");
+    csMsg("搜索失败："+esc((e&&e.message)||"网络异常"),"err");
   }
   btn.disabled=false;
 }
-function renderChartSearch(){
+function renderChartSearch(kw){
   const out=$("#cout"); if(!out) return;
   const arr=CS.rows||[];
   if(!arr.length){ out.innerHTML=""; return; }
   out.innerHTML='<div class="cshead">找到 <b>'+arr.length+'</b> 张'
-    +'<span>点「算」= 按需下载这一张并用本页引擎算定数</span></div>'
+    +(CS.filtered?'（已滤掉名称不含「'+esc(kw||"")+'」的结果）':'')
+    +'<span>点「📥」下载谱面包 → 拖到下面虚线框 → 出定数</span></div>'
     +'<div class="cslist">'+arr.map(function(c){
       const mine=cachedConst(c.id);
       return '<div class="csrow">'
@@ -1425,12 +1510,18 @@ function renderChartSearch(){
         +'<span class="cslv">'+esc(lvShort(c.level)||"-")+'</span>'
         +'<span class="csdif">'+(c.difficulty!=null?(+c.difficulty).toFixed(2):"-")+'</span>'
         +'<span class="csflag">'+(c.ranked?'<i class="ok">上架</i>':'未上架')+'</span>'
-        +'<span class="cspm">'+(mine!=null?'<b>'+mine.toFixed(2)+'</b>'
-          :'<button class="calcb" type="button" data-cid="'+c.id
-            +'" title="下载这张谱面算 P.H.M. 定数">算</button>')+'</span>'
+        +'<span class="cspm">'+(mine!=null
+          ?'<b title="P.H.M. 结构定数（来自共享缓存）">'+mine.toFixed(2)+'</b>'
+          :(c.file
+            ?'<button class="dlbtn" type="button" data-file="'+esc(c.file)+'" data-name="'+esc(c.name)
+              +'" title="下载谱面包；下完把 zip 拖到下面虚线框">📥</button>'
+            :'<span style="color:var(--fg3)">—</span>'))
+        +'</span>'
         +'</div>';}).join("")+'</div>'
-    +'<div class="csfoot">搜不到想要的？把谱面包直接<b>拖到下面</b> —— '
-    +'本页引擎照样能分析并算出定数（本地谱面、私谱都行）。</div>';
+    +'<div class="csfoot">为什么不能一键出定数？Phira 的文件 CDN（'
+    +'<span class="mono">phira-cdn.5wyxi.com</span>）没开放跨域，浏览器无法后台直读 —— '
+    +'这是 Phira 服务端的限制。<b>下载后把 zip 拖到下面的虚线框</b>，本页引擎立刻算出定数，'
+    +'并顺带存进共享缓存（下一个人就不用再下载了）。</div>';
 }
 
 /* 用户查找：纯数字走 UID 直查，否则按用户名搜索 */
@@ -1473,7 +1564,7 @@ function txtOrNull(s,max){
    所有用户共享 —— 别人算过的谱你不用再下载。 */
 const CHART_CACHE={};                  /* chart_id → {ref_const, ps_score, ...} */
 async function loadChartCache(ids){
-  Object.keys(CHART_CACHE).forEach(function(k){delete CHART_CACHE[k];});
+  /* 合并式加载 —— 绝不能清空：清空会把刚算好的定数一起抹掉（曾是这样，已修） */
   if(!cloudDB||!ids||!ids.length) return;
   try{
     const res=await cloudDB.from("phm_charts")
@@ -1738,6 +1829,46 @@ async function renderStats(){
   }catch(e){}
   renderStats();
 })();
+
+/* ── 拖入谱面 → 匹配 Phira chart_id → 把结构定数写进共享缓存 ──
+   这是「全站共享定数池」真正能转起来的路径：
+   CORS 挡住了后台直读，但用户主动拖入的文件完全合法可用；
+   写进去的只有谱面结构特征，谱面文件本身不会上传。 */
+async function contributeChart(rep){
+  if(!cloudDB||!rep||rep.error||!rep.name) return null;
+  const rc=rep.knn&&rep.knn.ref;
+  if(rc==null) return null;
+  try{
+    const r=await pfGet("/chart?search="+encodeURIComponent(rep.name)+"&pageNum=15&page=1");
+    const list=Array.isArray(r)?r:(r.results||[]);
+    const want=String(rep.name).trim().toLowerCase();
+    const hit=list.filter(function(c){
+      return String(c.name||"").trim().toLowerCase()===want;
+    })[0];
+    if(!hit||!hit.id) return null;
+    if(cachedConst(hit.id)!=null) return {id:hit.id,name:hit.name,skipped:true};
+    const f=rep.feats||{};
+    const payload={
+      chart_id:numOrNull(hit.id,1,null),
+      name:txtOrNull(hit.name,160),
+      level:txtOrNull(hit.level||rep.level,60),
+      difficulty:numOrNull(hit.difficulty,0,25,3),
+      ref_const:numOrNull(rc,0,25,4),
+      ps_score:numOrNull(rep.ps&&rep.ps.total,0,25,4),
+      nps:numOrNull(f.real_notes_per_second,0,200,4),
+      hold_ratio:numOrNull(f.hold_ratio,0,1,5),
+      notes:numOrNull(f.notes_real,0,100000),
+      stair_avg:numOrNull(f.stair_speed_avg,0,500,4),
+      speed_peak:numOrNull(rep.spPeak,0,1000000),
+      engine_ver:"5d-knn-v0.3.2"
+    };
+    if(payload.chart_id==null) return null;
+    const up=await cloudDB.from("phm_charts").upsert(payload,{onConflict:"chart_id"});
+    if(up.error) return null;
+    CHART_CACHE[hit.id]=payload;
+    return {id:hit.id,name:hit.name};
+  }catch(e){ return null; }
+}
 
 /* ── 玩家水平曲线 + 残差分析 ──
    原理（用户提出的方法论）：同一玩家短期内水平恒定 → 用他自己的成绩拟合
@@ -2042,8 +2173,18 @@ async function pfImport(){
     /* 关键字段缺失的条目剔除 —— 批量写入时一条非法会导致整批失败 */
     return x.chart_id!=null&&x.phira_user_id!=null&&x.chart_name;
   });
-  if(!payload.length){ pfMsg("没有可写入的有效成绩（谱号或用户信息缺失）","var(--red)"); btn.disabled=false; return; }
-  pfMsg("写入中…");
+  if(!payload.length){ csMsg("没有可写入的有效成绩（谱号或用户信息缺失）","err"); btn.disabled=false; return; }
+  /* 隐私：导入会把 Phira UID 与用户名写进公开数据池 —— 先明确列出字段并征得同意。
+     （此前这条路径没有独立同意，和「不含账号昵称」的文案冲突，已修） */
+  const okGo=confirm(
+    "即将把 "+payload.length+" 条成绩上传到公开数据飞轮：\n\n"
+    +"· 谱名、等级、标称定数\n"
+    +"· 你的 ACC、单曲 RKS\n"
+    +"· 你的 Phira UID（#"+u.id+"）与用户名（"+u.name+"）—— 用于区分不同玩家\n\n"
+    +"以上都是 Phira 站内本来就公开的信息，不含密码、邮箱或任何私密数据。\n"
+    +"数据会汇总用于校准定数公式。继续吗？");
+  if(!okGo){ csMsg("已取消导入 —— 没有上传任何数据","warn"); btn.disabled=false; return; }
+  csMsg("正在写入…");
   try{
     /* 先查出已存在的条数（同账号 + 同谱面），给出提示 */
     let existN=0;
@@ -2059,17 +2200,18 @@ async function pfImport(){
       onProgress:function(t){ csMsg("正在写入 "+payload.length+" 条成绩… "+esc(t)); }
     });
     if(wr.ok===0&&wr.fail.length) throw new Error(wr.fail[0]);
-    pfMsg("");
-    let txt="✅ 已写入 "+wr.ok+" 条成绩";
-    if(existN>0) txt+="（其中 "+existN+" 条已存在 → 已更新为最新成绩，不会重复计数）";
+    const added=Math.max(0,wr.ok-existN);      /* 只有新增才算「收到」，更新不重复计数 */
+    let txt="✅ 已写入 "+wr.ok+" 条成绩（新增 "+added+" 条）";
+    if(existN>0) txt+="，其中 "+existN+" 条已存在 → 已更新为最新成绩";
     if(wr.fail.length) txt+="；⚠ "+wr.fail.length+" 条失败（"+String(wr.fail[0]).slice(0,50)+"）";
     txt+="，感谢你帮定数公式变准！";
     csMsg(txt,wr.fail.length?"warn":"ok");
-    btn.outerHTML='<span style="color:var(--green);font-size:12.5px">'+esc(txt)+'</span>';
-    renderCount((window.PHM_COUNT||0)+wr.ok);
+    btn.disabled=false;
+    btn.textContent="🔄 再导入一次（已写入 "+wr.ok+" 条）";   /* 保留入口，可重复点（upsert 幂等） */
+    renderCount((window.PHM_COUNT||0)+added);
   }catch(e){
     btn.disabled=false;
-    pfMsg("导入失败："+(e&&e.message?e.message:"网络异常"),"var(--red)");
+    csMsg("导入失败："+esc((e&&e.message)||"网络异常"),"err");
   }
 }
 
