@@ -20,7 +20,7 @@
  *   - 每张新谱要下载一次谱面（几 MB）→ 已缓存的谱直接跳过，不会重复下载
  *   - 单进程串行复核，带超时；失败就拒绝写入（不降级、不回退）
  * ============================================================ */
-import { analyzeChart } from '../public/js/engine.js';
+import { analyzeChart, pickUniqueChart } from '../public/js/engine.js';
 
 const PHIRA_API = 'https://api.phira.cn';
 const FETCH_TIMEOUT = 20000;      /* 取谱面信息 */
@@ -46,15 +46,16 @@ function fetchTO(url, ms) {
     .finally(() => clearTimeout(timer));
 }
 
-/* 用谱面名在 Phira 精确匹配 chart_id（与前端 contributeChart 同一套规则） */
-export async function matchChartId(name) {
+/* 用谱面名在 Phira 精确匹配 chart_id。
+ * ⚠ 同名多难度（EZ/HD/IN/AT 名字相同）必须消歧，用与前端同一份 pickUniqueChart；
+ *   无法唯一确定时返回 null —— 调用方据此拒绝，而不是猜一个。 */
+export async function matchChartId(name, local) {
   const r = await fetchTO(PHIRA_API + '/chart?search=' + encodeURIComponent(name) + '&pageNum=15&page=1', FETCH_TIMEOUT);
   if (!r.ok) throw new Error('Phira 搜索 HTTP ' + r.status);
   const j = await r.json();
   const list = Array.isArray(j) ? j : (j.results || []);
-  const want = String(name).trim().toLowerCase();
-  const hit = list.find(c => String(c.name || '').trim().toLowerCase() === want);
-  return hit || null;
+  const pick = pickUniqueChart(list, Object.assign({ name }, local || {}));
+  return pick.hit || null;
 }
 
 /* 服务端复算：下载谱面 → 跑引擎 → 返回权威值 */
@@ -104,6 +105,19 @@ export function compare(submitted, trusted) {
     }
   }
   return { ok: diffs.length === 0, diffs };
+}
+
+/* 「差异过大」阈值：超过它就不是「客户端引擎过期」，而是**根本不是同一张谱**
+   （典型场景：把某曲 IN 的特征提交到了同曲 HD 的 chart_id 上）。
+   这种情况必须拒绝写入 —— 服务端算出来的那个值虽然本身正确，
+   但写进去等于坐实了错误的关联。 */
+const HUGE = { ref_const: 1.0, ps_score: 2.0, nps: 1.5, hold_ratio: 0.3, notes: 200 };
+export function grosslyMismatched(diffs) {
+  return diffs.filter(d => {
+    const lim = HUGE[d.field];
+    if (lim == null) return false;
+    return Math.abs(Number(d.submitted) - Number(d.trusted)) > lim;
+  });
 }
 
 /* 对外主入口：复核一条贡献。

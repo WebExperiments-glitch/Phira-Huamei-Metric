@@ -71,6 +71,60 @@ export function zipParse(buf){
 
 /* ── 谱面解析：RPE（社区）与 PGR（官方）双格式
    对照 tools/add_community_dims.py 的 read_rpe / read_pgr 逐条一致 ── */
+/* ============================================================
+ * pickUniqueChart —— 从 Phira 搜索结果里挑出**唯一确定**的那张谱
+ * ============================================================
+ * 【为什么必须有这个函数】
+ * 同一首歌通常有 EZ / HD / IN / AT 四个难度，而它们的 name **完全相同**。
+ * 原来的写法只按名字取搜索结果里的第一个：
+ *
+ *     const hit = list.filter(c => c.name === want)[0];   // ← 危险
+ *
+ * 于是拖入「Song A IN.pez」，若第一个同名结果是 Song A HD，
+ * 就会把 IN 的结构特征写到 HD 的 chart_id 上 —— 这不是理论攻击，
+ * 是普通用户正常操作就可能触发的数据错误，而且会污染全站共享缓存。
+ *
+ * 【策略】逐级消歧，只要无法确定就**放弃**（宁可不写，不可写错）：
+ *   1. 名字精确匹配（不区分大小写）
+ *   2. 候选只有一个 → 直接用
+ *   3. 用难度标签（EZ/HD/IN/AT）筛
+ *   4. 用标称定数（±0.05）筛
+ *   5. 仍不唯一 → 返回 null，由调用方提示「未写入共享缓存」
+ *
+ * 纯函数，浏览器与 Node 共用。
+ * ============================================================ */
+export function pickUniqueChart(list, local) {
+  const want = String((local && local.name) || '').trim().toLowerCase();
+  if (!want) return { hit: null, reason: 'local-name-missing' };
+
+  let cands = (list || []).filter(c => String(c.name || '').trim().toLowerCase() === want);
+  if (!cands.length) return { hit: null, reason: 'no-same-name' };
+  if (cands.length === 1) return { hit: cands[0], reason: 'unique-name', candidates: 1 };
+
+  const total = cands.length;
+
+  /* ③ 难度标签 */
+  const tier = String((local && local.tier) || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (tier) {
+    const byTier = cands.filter(c => String(c.level || '').toUpperCase().indexOf(tier) >= 0);
+    if (byTier.length === 1) return { hit: byTier[0], reason: 'unique-tier', candidates: total };
+    if (byTier.length) cands = byTier;
+  }
+
+  /* ④ 标称定数。注意不要用 replace(/[^\d.]/g,'') 再 parseFloat ——
+     'IN Lv.15' 会被滤成 '.15'，parseFloat 得 0.15，匹配直接失效（踩过）。
+     用正则直接抓第一个数字。 */
+  const lvMatch = String((local && local.levelTxt) || '').match(/(\d+(?:\.\d+)?)/);
+  const lv = lvMatch ? parseFloat(lvMatch[1]) : NaN;
+  if (isFinite(lv)) {
+    const near = cands.filter(c => c.difficulty != null && Math.abs(+c.difficulty - lv) <= 0.05);
+    if (near.length === 1) return { hit: near[0], reason: 'unique-difficulty', candidates: total };
+    if (near.length) cands = near;
+  }
+
+  return { hit: null, reason: 'ambiguous', candidates: total };
+}
+
 export function tripleBeats(t){ const a=t[0],b2=t[1],c=t[2]; return c?a+b2/c:a; }
 export function makeBpmList(ranges){
   const el=[]; let t=0, lb=0, lbp=null;

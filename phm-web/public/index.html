@@ -648,6 +648,13 @@ async function handleFiles(files){
         if(!OPTN()) break;                       /* 中途关掉就立刻停 */
         try{
           const res=await contributeChart(r);
+          /* 同名多难度、无法唯一确定 → 明确告知用户「没写」，而不是静默跳过 */
+          if(res&&res.ambiguous){
+            csMsg("ℹ 《"+esc(r.name)+"》已在本机分析完成，但 Phira 上有 <b>"+(res.candidates||"多")
+              +"</b> 个同名谱面（不同难度）—— <b>无法确定是哪一个，未写入共享缓存</b>。"
+              +'<br><span style="color:var(--fg3)">写错会把别的难度的定数记到它头上，所以宁可空着。</span>',"warn");
+            continue;
+          }
           if(res&&!res.skipped){
             r.contributed=res;
             csMsg("✅ 《"+esc(res.name)+"》的结构定数已存入<b>共享定数缓存</b> —— "
@@ -1533,11 +1540,19 @@ async function contributeChart(rep){
   try{
     const r=await pfGet("/chart?search="+encodeURIComponent(rep.name)+"&pageNum=15&page=1");
     const list=Array.isArray(r)?r:(r.results||[]);
-    const want=String(rep.name).trim().toLowerCase();
-    const hit=list.filter(function(c){
-      return String(c.name||"").trim().toLowerCase()===want;
-    })[0];
-    if(!hit||!hit.id) return null;
+    /* ⚠ 同名多难度消歧：同曲的 EZ/HD/IN/AT 名字完全一样，
+       只按名字取第一个会把 IN 的特征写到 HD 的 chart_id 上。
+       用 pickUniqueChart 逐级消歧，无法唯一确定就放弃（宁可不写，不可写错）。 */
+    const pick=pickUniqueChart(list,{
+      name:rep.name,
+      tier:rep.knn?rep.knn.tier:null,
+      levelTxt:rep.level||null
+    });
+    if(!pick.hit){
+      return {ambiguous:(pick.reason==="ambiguous"),reason:pick.reason,candidates:pick.candidates||0};
+    }
+    const hit=pick.hit;
+    if(!hit.id) return null;
     if(cachedConst(hit.id)!=null) return {id:hit.id,name:hit.name,skipped:true};
     const f=rep.feats||{};
     const payload={

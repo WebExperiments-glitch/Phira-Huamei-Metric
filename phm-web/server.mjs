@@ -13,7 +13,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { reviewContribution } from './lib/review.mjs';
+import { reviewContribution, grosslyMismatched } from './lib/review.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 /* 静态资源根目录。
@@ -266,8 +266,17 @@ const server = http.createServer(async (req, res) => {
           if (existing.ok && existing.body && existing.body !== '[]') { skipped++; continue; }
 
           const { trusted, diffs } = await reviewContribution(row);
-          /* ⚠ 写入的永远是**服务端复算出来的值**，不是客户端报上来的值。
-             客户端与服务端不一致只是说明它过期了，不构成写入障碍。 */
+          /* 差异**过大** → 不是「客户端引擎过期」，而是**根本不是同一张谱**
+             （典型：把某曲 IN 的特征提交到同曲 HD 的 chart_id 上）。
+             此时必须拒绝 —— 服务端算的值虽然本身正确，写进去等于坐实错误关联。 */
+          const huge = grosslyMismatched(diffs);
+          if (huge.length) {
+            failed++;
+            notes.push('提交特征与该谱号严重不符（疑似同名不同难度）→ 拒绝写入: '
+              + huge.map(d => d.field).join(','));
+            continue;
+          }
+          /* 差异在容差内 = 客户端引擎过期 → 仍用服务端值写入 */
           const wr = await dbUpsert('phm_charts', [trusted], 'chart_id');
           if (wr.ok > 0) {
             verified++;
