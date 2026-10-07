@@ -13,7 +13,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { reviewContribution, grosslyMismatched } from './lib/review.mjs';
+import { reviewContribution, grosslyMismatched, recompute } from './lib/review.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 /* 静态资源根目录。
@@ -311,6 +311,40 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/stats') {
     const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
     return send(res, r.ok ? 200 : 502, r.ok ? (r.body || '{}') : JSON.stringify({ error: 'stats unavailable', detail: r.body || r.error }));
+  }
+
+  /* ★ 按 chart_id 直接算定数 —— 「搜索即出数」
+   *
+   * 【为什么只有服务端能做】
+   * 浏览器拿不到谱面文件：Phira 的文件 CDN 没开 CORS，前端 fetch 必失败
+   * （这是早期版本「点算必失败」的根因）。服务端不受这个限制，
+   * 而它已经持有与浏览器同一份引擎 —— 于是「搜到 → 下载 → 拖回来」
+   * 这三步可以合成一步。
+   *
+   * 安全性：本接口**不接收任何客户端算出来的数值**，只用 chart_id，
+   * 由服务端自己下载、自己算、自己入库 —— 与复核链路同一套可信来源。 */
+  if (p === '/api/analyze') {
+    if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
+    if (!rateOk(ip)) return send(res, 429, JSON.stringify({ error: '请求太频繁，请稍后再试' }));
+    const body = await readBody(req);
+    const cid = body && Number(body.chart_id);
+    if (!Number.isInteger(cid) || cid < 1) {
+      return send(res, 400, JSON.stringify({ error: 'chart_id 无效' }));
+    }
+    try {
+      const ex = await dbFetch('/phm_charts?chart_id=eq.' + cid + '&select=*');
+      if (ex.ok && ex.body && ex.body !== '[]') {
+        return send(res, 200, JSON.stringify({ cached: true, data: JSON.parse(ex.body)[0] }));
+      }
+      const trusted = await recompute(cid);
+      const wr = await dbUpsert('phm_charts', [trusted], 'chart_id');
+      if (!wr.ok) {
+        return send(res, 502, JSON.stringify({ error: '算好了但写入缓存失败', detail: String(wr.fail[0] || '').slice(0, 120) }));
+      }
+      return send(res, 200, JSON.stringify({ cached: false, data: trusted }));
+    } catch (e) {
+      return send(res, 502, JSON.stringify({ error: String(e.message || e).slice(0, 140) }));
+    }
   }
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

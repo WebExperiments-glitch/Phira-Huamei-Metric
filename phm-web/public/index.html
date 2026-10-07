@@ -151,6 +151,13 @@ border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;li
 .dlbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
 border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
 .dlbtn:hover{border-color:var(--blue);color:var(--fg);background:var(--card)}
+/* 「算」主按钮：由服务端下载并计算 —— 搜索页的主路径 */
+.cspm{display:inline-flex;gap:5px;align-items:center}
+.calcbtn{border:1px solid var(--amber);background:transparent;color:var(--amber);
+border-radius:6px;padding:1px 10px;font:inherit;font-size:12px;font-weight:700;
+cursor:pointer;line-height:1.6;white-space:nowrap}
+.calcbtn:hover{background:rgba(232,163,61,.13)}
+.calcbtn:disabled{opacity:.45;cursor:default}
 .csfoot{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
 font-size:11.5px;color:var(--fg3);line-height:1.6}
 .csfoot b{color:var(--fg2)}
@@ -770,6 +777,11 @@ document.addEventListener("click",async function(e){
     if(t.closest("#pclose")){ const p=document.getElementById("ppanel"); if(p) p.style.display="none"; return; }
     if(t.closest("#psearch")){ await pfSearch(); return; }
     if(t.closest("#cgo")){ await chartSearch(); return; }
+    const calc=t.closest(".calcbtn");
+    if(calc){
+      await analyzeByChartId(+calc.getAttribute("data-cid"), calc);
+      return;
+    }
     const dl=t.closest(".dlbtn");
     if(dl){
       const url=dl.getAttribute("data-file");
@@ -1239,7 +1251,7 @@ function renderChartSearch(kw){
   if(!arr.length){ out.innerHTML=""; return; }
   out.innerHTML='<div class="cshead">找到 <b>'+arr.length+'</b> 张'
     +(CS.filtered?'（已滤掉名称不含「'+esc(kw||"")+'」的结果）':'')
-    +'<span>点「📥」下载谱面包 → 拖到下面虚线框 → 出定数</span></div>'
+    +'<span>点「算」= 服务端下载这张谱并计算，直接出定数（约 2-5 秒）</span></div>'
     +'<div class="cslist">'+arr.map(function(c){
       const mine=cachedConst(c.id);
       return '<div class="csrow">'
@@ -1251,15 +1263,17 @@ function renderChartSearch(kw){
         +'<span class="cspm">'+(mine!=null
           ?'<b title="P.H.M. 结构定数（来自共享缓存）">'+mine.toFixed(2)+'</b>'
           :(c.file
-            ?'<button class="dlbtn" type="button" data-file="'+esc(c.file)+'" data-name="'+esc(c.name)
-              +'" title="下载谱面包；下完把 zip 拖到下面虚线框">📥</button>'
+            ?'<button class="calcbtn" type="button" data-cid="'+c.id
+              +'" title="由服务端下载这张谱并计算定数（约 2-5 秒）">算</button>'
+             +'<button class="dlbtn" type="button" data-file="'+esc(c.file)+'" data-name="'+esc(c.name)
+              +'" title="手动下载谱面包（下完拖到下面虚线框，用本机引擎算）">📥</button>'
             :'<span style="color:var(--fg3)">—</span>'))
         +'</span>'
         +'</div>';}).join("")+'</div>'
-    +'<div class="csfoot">为什么不能一键出定数？Phira 的文件 CDN（'
-    +'<span class="mono">phira-cdn.5wyxi.com</span>）没开放跨域，浏览器无法后台直读 —— '
-    +'这是 Phira 服务端的限制。<b>下载后把 zip 拖到下面的虚线框</b>，本页引擎立刻算出定数，'
-    +'并顺带存进共享缓存（下一个人就不用再下载了）。</div>';
+    +'<div class="csfoot">「算」由<b>服务端</b>完成：浏览器拿不到谱面文件（Phira 的文件 CDN 没开放跨域），'
+    +'但服务端不受这个限制，而且用的是与本页面<b>完全相同的那份引擎</b>。'
+    +'算完直接存进共享缓存，别人再搜同一张就秒出。<br>'
+    +'也可以点 <b>📥</b> 手动下载，把 zip 拖到下面的虚线框 —— 那才是<b>本机计算</b>路径（谱面文件不会上传）。</div>';
 }
 
 /* 用户查找：纯数字走 UID 直查，否则按用户名搜索 */
@@ -1658,6 +1672,32 @@ function renderPlayStat(s){
     +s.min.toFixed(2)+"%~"+s.max.toFixed(2)+"%"
     +(s.oc!=null?" · 库中定数 "+s.oc.toFixed(2):"");
   el.style.display="";
+}
+
+/* ★ 一键算定数：把「搜到 → 下载 → 拖回来」三步合成一步。
+   由服务端下载谱面并计算（浏览器受 CORS 限制做不到），
+   结果直接进共享缓存，别人再搜同一张就秒出。 */
+async function analyzeByChartId(cid,btn){
+  btn.disabled=true; const label=btn.textContent; btn.textContent="算…";
+  csMsg("正在让服务端下载这张谱并计算定数…（通常 2-5 秒）");
+  try{
+    const r=await fetchTO("/api/analyze",90000,{method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({chart_id:cid})});
+    let j=null; try{ j=await r.json(); }catch(e){}
+    if(!r.ok||!j||!j.data) throw new Error((j&&j.error)||("HTTP "+r.status));
+    const d=j.data;
+    CHART_CACHE[cid]=d;                       /* 就地入缓存，列表马上显示定数 */
+    renderChartSearch($("#csrch").value.trim());
+    csMsg("✅ 《"+esc(d.name||"")+"》 → P.H.M. 定数 <b>"
+      +(d.ref_const!=null?(+d.ref_const).toFixed(2):"—")+"</b>"
+      +(d.ps_score!=null?" · PS 负荷 "+(+d.ps_score).toFixed(2):"")
+      +(j.cached?" ·（来自共享缓存）":" · 由服务端计算并已存入共享缓存"),"ok");
+  }catch(e){
+    csMsg("算定数失败："+esc((e&&e.message)||"网络异常")
+      +"<br>可以改用右边的 <b>📥</b> 手动下载，再把 zip 拖到下面虚线框用本机引擎算。","err");
+  }
+  btn.disabled=false; btn.textContent=label;
 }
 
 /* 服务端写入网关（/api/*）：校验 + 限流 + 落库都在服务端做。
