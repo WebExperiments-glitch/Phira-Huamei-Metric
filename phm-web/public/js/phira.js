@@ -55,6 +55,36 @@ export const PHIRA_API = 'https://api.phira.cn';
  *
  * 11. 文件 CDN 没有 CORS，浏览器**必然**下载失败（见 docs/ARCHITECTURE.md）。
  *     这不是 bug，是 Phira 的服务端配置。
+ *
+ * ── 2026-10-07 补测：把 /record 家族剩下的端点全试了一遍 ──────────────
+ *
+ * 12. ⚠️ `/record/query/{chartId}` 返回的是 `{count, results}` **对象**，
+ *     不是数组！`count` 是**真实总数**（实测 chart 6766 → 15632 条）。
+ *     两个参数陷阱：`page` 是 **1-based**（`page=0` 不报错，但 results 为空，
+ *     count 照样有值 —— 只看 results 会以为"这张谱没人打过"）；
+ *     `pageNum` **上限 30**，31 及以上直接
+ *     `INVALID_INPUT: Too many entities in one page`。
+ *     ⇒ 这是本站唯一能拿到"某谱全服记录"的端点（`/user` 页在用）。
+ *
+ * 13. ✅ `/record/list15/{chartId}` 给该谱的 **TOP15**（带 `best: true` /
+ *     `best_std` 标记），**无需认证**，且 id 是 **chart id 不是 player id**。
+ *     目前产品里没用它 —— 拿来做"这张谱的顶尖成绩"或难度校准都是现成的。
+ *
+ * 14. ❌ `/record/best/{chartId}` **需要登录**（实测返回
+ *     `{"code":"UNAUTHENTICATED"}`）。公开工具用不了 —— 我们没有、也不该要
+ *     用户的 Phira 凭据。别在这上面浪费时间。
+ *
+ * 15. `/record?player=` 的 `pageNum` **与 `page` 一样无效**（此前只测过 page，
+ *     这次补测：`pageNum=100` 仍返回同样那 20 条 id）。见第 4 条。
+ *
+ * 16. 速率限制：实测连续 24 次请求**零个 429**，但单次响应约 1.5~2.0s。
+ *     ⇒ 遍历要"礼貌"：低并发（≤5）+ 缓存，别拿它当免费的计算资源刷。
+ *
+ * 17. 「按谱逐个查」能捞回多少？实测 UID 2（375 次游玩）：
+ *     `/record?player=2` 只给 20 条 / 17 张谱；抽 25 张 Ranked 谱逐张查，
+ *     多发现 1 张"最近 20 条里没有"的谱 ⇒ **确实有效**，但成本约 2s/张，
+ *     想覆盖全部上架谱（631 张）得跑几分钟。适合做成**按需**的深度分析，
+ *     不适合默认加载。
  * ────────────────────────────────────────────────────────────── */
 
 export class PhiraError extends Error {

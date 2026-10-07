@@ -268,13 +268,34 @@ node tools/smoke-page.mjs http://127.0.0.1:5199   # 真页面冒烟
 
 ## Phira 接口的硬限制（不是我们的 bug，是必须讲清楚的事实）
 
-三条都实测过（`/openapi.json` 有规范，但**规范里有参数 ≠ 处理器认这个参数**）：
+全部实测过（`/openapi.json` 有规范，但**规范里有参数 ≠ 处理器认这个参数**）：
 
 | 想要 | 实际能拿到 | 结论 |
 |---|---|---|
-| 某个玩家的**全部**成绩 | `/record?player=` **恒返回最近 20 条**；`page`/`pageNum` 在规范里写着，但被服务端忽略（实测翻页返回的 20 个 id 完全相同） | 拿不到全量，只能拿最近 20 |
-| 某张谱上**我**的成绩 | `/record?player={uid}&chart={cid}` ✅ **不受 20 条限制** | 这是绕过上一条的唯一手段，`/user` 页把它做成了入口 |
+| 某个玩家的**全部**成绩 | `/record?player=` **恒返回最近 20 条**；`page` / `pageNum` 在规范里写着，但被服务端忽略（实测 `page=0/1/2/5` 与 `pageNum=100` 返回的 20 个 id **完全相同**） | 拿不到全量，只能拿最近 20 |
+| 某张谱上**我**的成绩 | `/record?player={uid}&chart={cid}` ✅ **不受 20 条限制** | 绕过上一条的办法之一，`/user` 页做成了入口 |
+| 某张谱的**全服记录** | `/record/query/{chartId}` ✅ 可翻页，返回 `{count, results}`。⚠ `page` 是 **1-based**（`page=0` 时 `results` 为空但 `count` 照给）、`pageNum` **≤30**（31+ 报 `Too many entities in one page`） | 本站唯一能拿"全谱库"的端点；`count` 是真总数，可以做真分页 |
+| 某张谱的 **TOP15** | `/record/list15/{chartId}` ✅ 无需认证（id 是 chart id），带 `best: true` 标记 | **尚未在产品里使用** —— 做"顶尖成绩"或难度校准都是现成的 |
+| 某张谱**我的最好成绩** | `/record/best/{chartId}` ❌ 返回 `UNAUTHENTICATED` | 要登录。公开工具用不了，因为**我们不要用户的 Phira 凭据** |
 | 某个谱师的**全部**作品 | `/chart?search={名}` 分页有效（30/页），但**同时匹配曲名与谱师**；`?charter=` 这类参数不存在（静默忽略，返回全量） | 只能翻页 + 客户端按 charter 字段精确过滤 |
+
+**缺口有多大（实测）**：UID 2 的 `numRecords` 是 **375**，而一次
+`/record?player=2` 只给 **20** 条。逐张谱查（`/record?player=&chart=`）能把
+"最近 20 条"之外的记录捞回来（抽样 25 张 Ranked 谱就多找到 1 张），
+但约 **2 秒/张**，覆盖全部上架谱要跑几分钟 ⇒ 只适合做成**按需**的深度分析。
+
+**能不能真的改上游？** 分三种，结论不同：
+
+1. **提 PR 改 API —— 不行。** `TeamFlos/phira` 仓库里只有**客户端**
+   （`phira` / `phira-main` / `prpr-*` / `phira-monitor`），
+   **处理 `api.phira.cn` 的服务端不在里面** —— 它是闭源的。所以没有可以改的代码。
+2. **提 issue 反馈 —— 可行，而且有据可依。** 仓库里 19 个含 "record" 的 issue
+   全是客户端问题，**没人提过分页失效**。论证是硬的：OpenAPI 规范给 `/record`
+   声明了 `page` / `pageNum`，而**同族的 `/record/query/{chartId}` 明确实现了分页**
+   ⇒ 这是**实现遗漏**，不是产品决策。渠道：GitHub issue（`phira-docs` 适合提
+   规范与实现不一致）+ Phira 官方 QQ 频道。
+3. **自建主站 —— 不行**（同上，服务端不开源）。但**自建缓存层是可行的**，
+   本站已经在做（定数缓存），可以再扩展到成绩快照。
 
 另外两条会直接影响用户观感的：
 

@@ -10,150 +10,288 @@
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="/css/base.css?v=V0.6.0">
 <style>
-/* 设置行的布局：左边控件、右边标题 + 说明。
-   单列、不折叠 —— 设置项还不多，折叠反而让人找不到东西。 */
-.srow{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
-.srow:last-of-type{border-bottom:none}
-.srow input[type=checkbox]{width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--amber);cursor:pointer}
-.srow .sl{flex:1;min-width:0}
-.srow .sl b{font-size:13.5px;font-weight:500;display:block}
-.srow .sl em{font-style:normal;font-size:12.3px;color:var(--fg3);display:block;margin-top:3px;line-height:1.6}
-.srow .sa{flex:0 0 auto;align-self:center}
+/* ══════════════════════════════════════════════════════════════
+   设置页布局 —— 左栏分组导航 + 右侧行式条目
+   ──────────────────────────────────────────────────────────────
+   【为什么改成这个结构】
+     第一版是「单列卡片从上往下堆」，设置项一多就开始乱：找不到某一项、
+     也不知道还有几组没看。参考了常见产品的设置页（左栏分类 + 右侧
+     标签在左 / 控件在右的行），这类界面不用教就会用。
+     左栏 sticky 跟随，滚动时可点；窄屏时塌成一行横向可滑的标签。
+   ══════════════════════════════════════════════════════════════ */
 
-.kv{width:100%;font-size:12.5px}
-.kv td{padding:6px 0;border-bottom:1px solid var(--line);vertical-align:top}
-.kv tr:last-child td{border-bottom:none}
-.kv td:first-child{color:var(--fg3);width:150px;padding-right:12px}
-.kv td.v{font-family:var(--mono);font-size:11.5px;word-break:break-all;color:var(--fg2)}
+.shell{display:grid;grid-template-columns:206px 1fr;gap:28px;align-items:start}
 
-ul.plain{list-style:none;font-size:12.6px;color:var(--fg2);line-height:1.85}
-ul.plain li::before{content:"·";color:var(--fg3);margin-right:7px}
-ul.plain li.no::before{content:"✕";color:var(--red)}
-ul.plain li.yes::before{content:"✓";color:var(--green)}
+/* ── 左栏 ── */
+.snav{position:sticky;top:18px}
+.snavh{font-size:12px;letter-spacing:.08em;color:var(--fg3);
+  text-transform:uppercase;padding:0 12px 8px;font-weight:600}
+.snav nav{display:flex;flex-direction:column;gap:2px}
+.snavi{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:8px;
+  color:var(--fg2);font-size:13.5px;text-decoration:none;border:1px solid transparent;
+  transition:background .12s,color .12s}
+.snavi span.i{font-size:14px;width:17px;text-align:center;flex:0 0 auto;opacity:.9}
+.snavi:hover{background:var(--card2);color:var(--fg);text-decoration:none}
+.snavi.on{background:var(--card2);border-color:var(--line);color:var(--fg);font-weight:500}
 
-.catnav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
-.catnav a{font-size:12.5px;padding:4px 11px;border-radius:7px;border:1px solid var(--line2);
-  color:var(--fg2);background:var(--card2)}
-.catnav a:hover{border-color:var(--amber);color:var(--fg);text-decoration:none}
+/* ── 右侧 ── */
+.smain{min-width:0}                       /* grid 子项默认 min-width:auto，会撑破布局 */
+.ssec{margin-bottom:34px;scroll-margin-top:18px}
+.ssec:last-child{margin-bottom:0}
+.ssec h2{font-size:20px;font-weight:600;margin-bottom:5px;letter-spacing:.2px}
+.ssec .sdesc{font-size:12.8px;color:var(--fg3);line-height:1.7;margin-bottom:14px}
+.ssec h3{font-size:13.5px;font-weight:600;color:var(--fg2);margin:20px 0 8px}
 
-.danger{border-color:rgba(229,83,75,.45)!important}
-.danger:hover:not(:disabled){background:rgba(229,83,75,.12)!important;border-color:var(--red)!important}
+/* 分组卡片：一组的行都装在里面，行间一条细线 */
+.sgroup{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:0 16px;overflow:hidden}
+.sgroup + .sgroup{margin-top:10px}
 
-code.k{font-family:var(--mono);font-size:11.5px;color:var(--fg2);
-  background:var(--card2);padding:1px 5px;border-radius:4px}
+/* 一行：左边标签 + 说明，右边控件。
+   ⚠ 必须用 `>` 直接子选择器 —— 用 `.sl b` 会把**说明文字里**的 <b> 也变成
+   块级，于是「这些本站 / 根本接触不到 / ——」被拆成三行（真踩过）。 */
+.srow{display:flex;gap:18px;align-items:center;justify-content:space-between;
+  padding:14px 0;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:none}
+.srow .sl{min-width:0}
+.srow .sl > b{display:block;font-size:13.5px;font-weight:500;line-height:1.5}
+.srow .sl > span{display:block;font-size:12.2px;color:var(--fg3);margin-top:3px;line-height:1.6}
+.srow .sc{flex:0 0 auto;display:flex;align-items:center;gap:8px}
+.srow .sc .val{font-family:var(--mono);font-size:11.8px;color:var(--fg2);
+  max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 左对齐的行（左右都是文字，不需要中间的空白撑开） */
+.srow.wide{justify-content:flex-start}
+.srow.wide .sc{margin-left:auto}
+
+/* ── 开关（iOS 风格；开启色用站点的琥珀色，不用绿色）── */
+.sw{position:relative;display:inline-block;width:44px;height:25px;flex:0 0 auto;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.sw i{position:absolute;inset:0;background:var(--card3);border:1px solid var(--line2);
+  border-radius:999px;transition:background .16s,border-color .16s}
+.sw i::after{content:"";position:absolute;width:19px;height:19px;left:2px;top:2px;
+  background:var(--fg3);border-radius:50%;transition:transform .16s,background .16s}
+.sw input:checked + i{background:rgba(232,163,61,.30);border-color:var(--amber)}
+.sw input:checked + i::after{background:var(--amber);transform:translateX(19px)}
+.sw input:focus-visible + i{box-shadow:0 0 0 3px rgba(232,163,61,.28)}
+
+/* ── 按钮 ── */
+.sbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;
+  border:1px solid var(--line2);background:var(--card2);color:var(--fg);
+  font-size:12.5px;font-family:inherit;cursor:pointer;transition:border-color .12s,background .12s;
+  white-space:nowrap}
+.sbtn:hover:not(:disabled){border-color:var(--amber);background:var(--card3)}
+.sbtn:disabled{opacity:.4;cursor:not-allowed}
+.sbtn.danger{color:var(--red);border-color:rgba(229,83,75,.45)}
+.sbtn.danger:hover:not(:disabled){background:rgba(229,83,75,.12);border-color:var(--red)}
+
+/* ── 键值表（本机存储清单 / 已声明账号）── */
+table.kv{width:100%;font-size:12.5px;border-collapse:collapse}
+table.kv td{padding:9px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+table.kv tr:last-child td{border-bottom:none}
+table.kv td.k{color:var(--fg2);width:46%}
+table.kv td.v{font-family:var(--mono);font-size:11.6px;color:var(--fg3);word-break:break-all}
+table.kv td.a{width:1%;text-align:right;white-space:nowrap}
+code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
+  background:var(--card2);padding:1px 5px;border-radius:4px;white-space:nowrap}
+
+/* 分组内的状态条：贴边不留白 */
+.sgroup + .status{margin-top:10px}
+
+/* ── 窄屏：左栏塌成一行横向标签 ── */
+@media (max-width:760px){
+  .shell{grid-template-columns:1fr;gap:14px}
+  .snav{position:static}
+  .snavh{display:none}
+  .snav nav{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  .snavi{white-space:nowrap;padding:6px 11px;font-size:12.8px}
+  .snavi span.i{display:none}
+  .srow{gap:12px}
+  .srow .sc .val{max-width:130px}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap wide">
 
 <nav id="nav"></nav>
 
-<div class="catnav">
-  <a href="#privacy">隐私与数据</a>
-  <a href="#accounts">Phira 连接</a>
-  <a href="#storage">本机存储</a>
-  <a href="#about">关于</a>
-</div>
+<div class="shell">
 
-<!-- ═══════════ 隐私与数据 ═══════════ -->
-<div class="card" id="privacy">
-  <h2>隐私与数据</h2>
-  <div class="sub">控制什么会被上传。谱面文件本身<b>永远不上传</b> —— 解析全部在你浏览器里完成。</div>
+  <!-- ═══════════ 左栏 ═══════════ -->
+  <aside class="snav">
+    <div class="snavh">设置</div>
+    <nav id="snav">
+      <a class="snavi on" href="#privacy"><span class="i">🔒</span>隐私与数据</a>
+      <a class="snavi" href="#accounts"><span class="i">🔗</span>Phira 连接</a>
+      <a class="snavi" href="#storage"><span class="i">💾</span>本机存储</a>
+      <a class="snavi" href="#about"><span class="i">ℹ️</span>关于</a>
+    </nav>
+  </aside>
 
-  <label class="srow">
-    <input type="checkbox" id="optin">
-    <span class="sl">
-      <b>登录 Phira 后自动上传成绩数据</b>
-      <em>用来校准定数参考。关闭后拖谱面、算 RKS、搜谱面全部照常，只是不再贡献数据。</em>
-    </span>
-  </label>
+  <!-- ═══════════ 右侧 ═══════════ -->
+  <div class="smain">
 
-  <div class="status" id="optinState"></div>
+    <!-- ── 隐私与数据 ── -->
+    <section class="ssec" id="privacy">
+      <h2>隐私与数据</h2>
+      <div class="sdesc">控制什么会被上传。谱面文件本身<b>永远不上传</b> —— 解析全部在你浏览器里完成。</div>
 
-  <h3>会上传什么 / 不会上传什么</h3>
-  <ul class="plain">
-    <li class="yes"><b>会</b>：Phira UID 与用户名（站内本来就公开）、谱面名、标称定数、你的 ACC 与单曲 RKS</li>
-    <li class="yes"><b>会</b>：拖入谱面时，谱面的<b>结构特征</b>（一串算出来的数字）</li>
-    <li class="no">不会：密码、邮箱、账号权限 —— 这些本站<b>根本接触不到</b>（认证走平台云服务）</li>
-    <li class="no">不会：谱面文件本身</li>
-  </ul>
+      <div class="sgroup">
+        <div class="srow">
+          <div class="sl">
+            <b>登录 Phira 后自动上传成绩数据</b>
+            <span>用来校准定数参考。关掉后拖谱面、算 RKS、搜谱面全部照常，只是不再贡献数据。</span>
+          </div>
+          <div class="sc">
+            <label class="sw" title="自动上传总开关">
+              <input type="checkbox" id="optin"><i></i>
+            </label>
+          </div>
+        </div>
 
-  <div class="note info">
-    对外的只有<b>聚合数字</b>。其他人看不到你的 UID 或用户名。<br>
-    贡献数据时会带一个<b>随机标识</b>（存放在你浏览器里），用来把同一个人的多次贡献归到一组 ——
-    这是<b>假名化，不是严格匿名</b>。随时可在下面「本机存储」里重置它。
+        <div class="srow">
+          <div class="sl">
+            <b>上传告知</b>
+            <span id="noticeState">—</span>
+          </div>
+          <div class="sc">
+            <button class="sbtn" type="button" id="noticeReset">撤回确认</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="status" id="optinState"></div>
+
+      <h3>数据流向</h3>
+      <div class="sgroup">
+        <div class="srow wide">
+          <div class="sl">
+            <b>会上传 · 成绩与账号</b>
+            <span>Phira UID 与用户名（站内本来就公开）、谱面名、标称定数、你的 ACC 与单曲 RKS。</span>
+          </div>
+        </div>
+        <div class="srow wide">
+          <div class="sl">
+            <b>会上传 · 谱面结构特征</b>
+            <span>拖入谱面时，只上传算出来的那串数字，不是文件。</span>
+          </div>
+        </div>
+        <div class="srow wide">
+          <div class="sl">
+            <b>不会上传 · 密码 / 邮箱 / 账号权限</b>
+            <span>这些本站<b>根本接触不到</b> —— 认证走的是托管云服务的认证模块。</span>
+          </div>
+        </div>
+        <div class="srow wide">
+          <div class="sl">
+            <b>不会上传 · 谱面文件本身</b>
+            <span>解析、算定数、出分享图，全在你本机完成。</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="note info">
+        对外的只有<b>聚合数字</b>，其他人看不到你的 UID 或用户名。<br>
+        贡献时会带一个<b>随机标识</b>（存在你浏览器里），用来把同一个人的多次贡献归到一组 ——
+        这是<b>假名化，不是严格匿名</b>。随时可在「本机存储」里重置它。
+      </div>
+    </section>
+
+    <!-- ── Phira 连接 ── -->
+    <section class="ssec" id="accounts">
+      <h2>Phira 连接</h2>
+      <div class="sdesc">本站连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>。</div>
+
+      <div class="sgroup">
+        <div class="srow">
+          <div class="sl"><b>上次填过的用户名</b></div>
+          <div class="sc"><span class="val" id="pfName">—</span></div>
+        </div>
+        <div class="srow">
+          <div class="sl"><b>上次填过的 UID</b></div>
+          <div class="sc"><span class="val" id="pfUid">—</span></div>
+        </div>
+        <div class="srow">
+          <div class="sl"><b>上次查询的玩家</b></div>
+          <div class="sc"><span class="val" id="pfLast">—</span></div>
+        </div>
+        <div class="srow">
+          <div class="sl">
+            <b>清除以上信息</b>
+            <span>只影响下次自动填充，不影响任何已上传的数据。</span>
+          </div>
+          <div class="sc"><button class="sbtn" type="button" id="pfClear">清除</button></div>
+        </div>
+      </div>
+
+      <h3>已声明的「本人账号」</h3>
+      <div class="sdesc" style="margin-bottom:10px">只有你明确声明过的账号，查询时才会自动上传成绩。
+        没有这道限制，任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。</div>
+      <div class="sgroup" style="padding:0 16px"><div id="ownList"><div class="empty">尚未声明任何账号</div></div></div>
+    </section>
+
+    <!-- ── 本机存储 ── -->
+    <section class="ssec" id="storage">
+      <h2>本机存储</h2>
+      <div class="sdesc">本站存在你浏览器里的全部内容 —— 就这些，没有别的。</div>
+
+      <div class="sgroup" style="padding:0 16px">
+        <div id="inv"><div class="empty">读取中…</div></div>
+      </div>
+
+      <div class="srow" style="border-bottom:none;padding-top:14px">
+        <div class="sc">
+          <button class="sbtn" type="button" id="expBtn">⬇ 导出为 JSON</button>
+          <button class="sbtn" type="button" id="cidReset">重置匿名标识</button>
+          <button class="sbtn danger" type="button" id="clearBtn">清空本站设置</button>
+        </div>
+      </div>
+
+      <div class="status" id="stMsg"></div>
+
+      <div class="note warn">
+        <b>「清空本站设置」只会删本站自己的键。</b>同源下还住着云服务的登录会话
+        （<code class="k">workbuddy-cloud.session.*</code>），那是另一个系统的数据 ——
+        本站不会碰它，所以清空后你不会被登出，只回到未配置状态。
+      </div>
+    </section>
+
+    <!-- ── 关于 ── -->
+    <section class="ssec" id="about">
+      <h2>关于</h2>
+      <div class="sgroup">
+        <div class="srow">
+          <div class="sl"><b>页面版本</b></div>
+          <div class="sc"><span class="val" id="abVer">—</span></div>
+        </div>
+        <div class="srow">
+          <div class="sl"><b>引擎版本</b></div>
+          <div class="sc"><span class="val" id="abEng">—</span></div>
+        </div>
+        <div class="srow">
+          <div class="sl"><b>共享定数缓存</b></div>
+          <div class="sc"><span class="val" id="abTotal">—</span></div>
+        </div>
+        <div class="srow">
+          <div class="sl"><b>本机存储可用</b></div>
+          <div class="sc"><span class="val" id="abStore">—</span></div>
+        </div>
+      </div>
+      <div class="sdesc" style="margin-top:12px">
+        页面版本与引擎版本是<b>两根不同的轴</b>：前者是本页面的版本，后者是难度算法的版本 ——
+        算法一变，所有缓存都要重算，所以它单独记在每一行数据里。
+      </div>
+      <div class="sdesc">
+        设置存在你浏览器的 <span class="mono">localStorage</span> 里，不上传；
+        键名清单由 <span class="mono">/js/settings.js</span> 统一定义。
+        · <a href="/privacy.html">隐私政策</a>
+        · <a href="/app">返回工作台</a>
+      </div>
+    </section>
+
   </div>
-
-  <h3>告知确认</h3>
-  <div class="row" style="justify-content:space-between;align-items:center">
-    <span class="dim2" style="font-size:12.5px" id="noticeState">—</span>
-    <button class="btn sm" id="noticeReset" type="button">撤回确认</button>
-  </div>
-  <div class="sub" style="margin:8px 0 0">撤回后，下次上传前会重新征求一次同意。</div>
 </div>
-
-<!-- ═══════════ Phira 连接 ═══════════ -->
-<div class="card" id="accounts">
-  <h2>Phira 连接</h2>
-  <div class="sub">本站连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>。</div>
-
-  <table class="kv">
-    <tr><td>上次填过的用户名</td><td class="v" id="pfName">—</td></tr>
-    <tr><td>上次填过的 UID</td><td class="v" id="pfUid">—</td></tr>
-    <tr><td>上次查询的玩家</td><td class="v" id="pfLast">—</td></tr>
-  </table>
-  <div class="sub" style="margin:10px 0 0">这些只存在你浏览器本地，用于下次自动填充，不随请求发出。
-    <button class="btn sm ghost" id="pfClear" type="button" style="margin-left:6px">清除</button></div>
-
-  <h3>已声明的「本人账号」</h3>
-  <div class="sub">只有你明确声明过的账号，查询时才会自动上传成绩。
-    没有这个限制的话，任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。</div>
-  <div id="ownList"><div class="empty">尚未声明任何账号</div></div>
-</div>
-
-<!-- ═══════════ 本机存储 ═══════════ -->
-<div class="card" id="storage">
-  <h2>本机存储</h2>
-  <div class="sub">本站存在你浏览器里的全部内容 —— 就这些，没有别的。</div>
-
-  <div id="inv"><div class="empty">读取中…</div></div>
-
-  <div class="row" style="margin-top:14px">
-    <button class="btn sm" id="expBtn" type="button">⬇ 导出为 JSON</button>
-    <button class="btn sm" id="cidReset" type="button">重置匿名标识</button>
-    <button class="btn sm danger" id="clearBtn" type="button">清空本站设置</button>
-  </div>
-  <div class="status" id="stMsg"></div>
-
-  <div class="note warn">
-    <b>「清空本站设置」只会删本站自己的键。</b>同源下还住着云服务的登录会话
-    （<code class="k">workbuddy-cloud.session.*</code>），那是另一个系统的数据 ——
-    本站不会碰它，所以清空后你不会被登出，只回到未配置状态。
-  </div>
-</div>
-
-<!-- ═══════════ 关于 ═══════════ -->
-<div class="card" id="about">
-  <h2>关于</h2>
-  <table class="kv">
-    <tr><td>页面版本</td><td class="v" id="abVer">—</td></tr>
-    <tr><td>引擎版本</td><td class="v" id="abEng">—</td></tr>
-    <tr><td>共享定数缓存</td><td class="v" id="abTotal">—</td></tr>
-    <tr><td>本机存储可用</td><td class="v" id="abStore">—</td></tr>
-  </table>
-  <div class="sub" style="margin-top:12px">
-    页面版本与引擎版本是<b>两根不同的轴</b>：前者是本页面的版本，后者是难度算法的版本 ——
-    算法一变，所有缓存都要重算，所以它单独记在每一行数据里。
-  </div>
-</div>
-
-<footer>
-  <div>设置存在你浏览器的 <span class="mono">localStorage</span> 里，不上传。
-    键名清单由 <span class="mono">/js/settings.js</span> 统一定义。</div>
-  <div class="fd"><a href="/privacy.html">隐私政策</a> ·
-    <a href="/app">返回工作台</a> ·
-    <a href="/">首页</a></div>
-</footer>
 
 </div>
 
@@ -163,10 +301,10 @@ import * as S from '/js/settings.js?v=V0.6.0';
 
 renderNav('settings');
 const $ = s => document.querySelector(s);
-const $$ = s => Array.prototype.slice.call(document.querySelectorAll(s));
 
 function msg(text, kind) {
   const el = $('#stMsg');
+  if (!el) return;
   el.textContent = text || '';
   el.className = 'status' + (kind ? ' ' + kind : '');
 }
@@ -187,7 +325,7 @@ function paintOptin() {
 function paintNotice() {
   const agreed = S.notice.agreed();
   $('#noticeState').textContent = agreed
-    ? '已确认过上传告知。'
+    ? '已确认过上传告知。撤回后，下次上传前会重新问你一次。'
     : '尚未确认 —— 下次上传前会弹一次告知。';
   $('#noticeReset').disabled = !agreed;
 }
@@ -234,9 +372,9 @@ function paintOwn() {
     return;
   }
   box.innerHTML = '<table class="kv">' + list.map(uid =>
-    '<tr><td>UID ' + esc(uid) + '</td>'
+    '<tr><td class="k">UID ' + esc(uid) + '</td>'
     + '<td class="v">查询该账号时会自动上传成绩</td>'
-    + '<td style="width:1%"><button class="btn sm danger" type="button" data-unown="'
+    + '<td class="a"><button class="sbtn danger" type="button" data-unown="'
     + esc(uid) + '">撤回</button></td></tr>').join('') + '</table>';
   box.querySelectorAll('[data-unown]').forEach(b => b.addEventListener('click', function () {
     const uid = this.getAttribute('data-unown');
@@ -256,9 +394,9 @@ function paintInventory() {
     return;
   }
   box.innerHTML = '<table class="kv">' + rows.map(r =>
-    '<tr><td>' + esc(r.label) + '</td>'
+    '<tr><td class="k">' + esc(r.label) + '</td>'
     + '<td class="v">' + esc(r.value) + '</td>'
-    + '<td style="width:1%"><code class="k">' + esc(r.key) + '</code></td></tr>').join('')
+    + '<td class="a"><code class="k">' + esc(r.key) + '</code></td></tr>').join('')
     + '</table>';
 }
 
@@ -320,6 +458,30 @@ $('#abStore').textContent = S.available ? '可用' : '不可用（隐私模式�
     $('#abTotal').textContent = '读取失败';
   }
 })();
+
+/* ═══════════ 左栏高亮跟随滚动 ═══════════
+   点哪高亮哪是基本的；但用户也会直接滚页面 —— 那时左栏也得跟上，
+   否则高亮会停在一个已经滚过去的项上，看起来像坏了。
+   用 IntersectionObserver 而不是 scroll 事件：不用每帧算位置。 */
+const navLinks = Array.prototype.slice.call(document.querySelectorAll('#snav .snavi'));
+function markActive(id) {
+  navLinks.forEach(function (a) {
+    a.classList.toggle('on', a.getAttribute('href') === '#' + id);
+  });
+}
+navLinks.forEach(function (a) {
+  a.addEventListener('click', function () { markActive(a.getAttribute('href').slice(1)); });
+});
+try {
+  const secs = Array.prototype.slice.call(document.querySelectorAll('.ssec'));
+  const io = new IntersectionObserver(function (entries) {
+    /* 取当前可见且最靠上的那一节 */
+    const vis = entries.filter(e => e.isIntersecting)
+      .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+    if (vis.length) markActive(vis[0].target.id);
+  }, { rootMargin: '-10% 0px -70% 0px', threshold: 0 });
+  secs.forEach(s => io.observe(s));
+} catch (e) { /* 老浏览器：退化成"只有点击才高亮"，不影响功能 */ }
 
 /* ═══════════ 一次性全量重绘 ═══════════ */
 
