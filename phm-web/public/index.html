@@ -154,10 +154,16 @@ border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;lin
 .csfoot{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
 font-size:11.5px;color:var(--fg3);line-height:1.6}
 .csfoot b{color:var(--fg2)}
-#drop{border:2px dashed var(--line);border-radius:14px;padding:38px 20px;text-align:center;color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card)}
+#drop{border:2px dashed var(--line);border-radius:16px;padding:46px 22px;text-align:center;
+color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card);margin-top:6px}
+#drop:hover{border-color:var(--blue);background:var(--card2)}
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
-#drop .big{font-size:17px;color:var(--fg);margin-bottom:4px}
+#drop .big{font-size:19px;font-weight:700;color:var(--fg);margin-bottom:7px}
 #drop input{display:none}
+/* 第二层入口：进阶功能不抢第一屏，但要能一眼发现 */
+.morebar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+margin:16px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
+.morebar .mhint{font-size:11.5px;color:var(--fg3);margin-right:4px}
 .note{font-size:11.5px;color:var(--fg3);margin:10px 2px 0}
 .punch{margin-top:10px;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;background:var(--card2)}
 .punch .ptitle{font-weight:700;font-size:13px;color:var(--fg)}
@@ -326,18 +332,10 @@ border:1px solid var(--line);color:var(--fg3)}
   <span class="ver">V0.3.2 · 开发者测试版</span>
   <div class="hsearch">
     <input id="csrch" placeholder="搜谱面：曲名 / 谱师" maxlength="40" autocomplete="off">
-    <button id="cgo" type="button" title="搜索 Phira 谱面并算 P.H.M. 定数">搜索</button>
+    <button id="cgo" type="button" title="搜索 Phira 谱面">搜索</button>
   </div>
-  <button class="gh" id="authBtn" type="button"
-     title="P.H.M. 账号：登录后可绑定 Phira、留下自己的记录">👤 登录</button>
-  <button class="gh" id="phiraBtn" type="button"
-     title="连接 Phira：读取你的公开资料与最好成绩（不需要密码）">🔗 连接 Phira</button>
-  <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
-     target="_blank" rel="noopener" title="GitHub 仓库 · Phira-Huamei-Metric"
-     aria-label="GitHub 仓库"><svg viewBox="0 0 16 16" width="17" height="17"
-     fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
-  <div class="slogan">拖入谱面包 → 立刻得到一个<b>客观的难度参考</b>。解析全部在你的浏览器里完成，<b>谱面不会被上传</b>。<br>
-  <span style="color:var(--fg3)">登录 Phira 后，成绩数据会自动上传用于校准定数 —— 可在页面底部「⚙ 设置」里关闭。</span></div>
+  <div class="slogan">拖入谱面包 → 得到一个<b>和官谱可比的难度参考</b>。<br>
+  <b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。</div>
 </header>
 
 <div class="authbox" id="authpanel" style="display:none">
@@ -397,7 +395,6 @@ border:1px solid var(--line);color:var(--fg3)}
 
 <div class="csstatus" id="csmsg" style="display:none"></div>
 <div class="coutbox" id="cout"></div>
-<div class="pstats" id="pstats" style="display:none"></div>
 
 <div class="pf" id="ppanel" style="display:none">
   <div class="pfhead">🔗 连接 Phira<span class="pfx" id="pclose" title="收起">✕</span></div>
@@ -418,9 +415,24 @@ border:1px solid var(--line);color:var(--fg3)}
   <input id="file" type="file" accept=".pez,.zip" multiple>
 </div>
 <div class="note" id="msg"></div>
-<div class="note" id="pcount" style="display:none;color:var(--green)"></div>
+
+<!-- 第二层：这些是「进阶功能」，不抢第一屏 -->
+<div class="morebar">
+  <button class="gh" id="phiraBtn" type="button"
+     title="读取你在 Phira 的公开资料与最好成绩（只读，不需要也不接受密码）">🔗 连接 Phira</button>
+  <span class="mhint">看自己的 B19 / 单曲 RKS / 与标称定数的偏差</span>
+  <button class="gh" id="authBtn" type="button"
+     title="P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录">👤 登录</button>
+  <span class="mhint">可选</span>
+  <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
+     target="_blank" rel="noopener" title="GitHub 仓库 · Phira-Huamei-Metric"
+     aria-label="GitHub 仓库"><svg viewBox="0 0 16 16" width="15" height="15"
+     fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg> GitHub</a>
+</div>
+
 <div id="out"></div>
 
+<div class="pstats" id="pstats" style="display:none"></div>
 <footer>
   <div>线上引擎：<b>5 维 log1p 特征</b>（NPS / 长条占比 / 物量 / 纵连 / 线速峰值）
   + 1,037 张官谱 k-NN ·
@@ -1021,7 +1033,7 @@ async function submitPunch(idx){
 /* 顶部打卡计数（不阻塞主流程；打卡成功后就地 +1） */
 window.PHM_COUNT=null;
 function renderCount(n){
-  const el=$("#pcount"); if(!el) return;
+  const el=$("#pcount"); if(!el) return;   /* 该行已移除，与 #pstats 合并；函数保留以兼容调用点 */
   window.PHM_COUNT=n;
   if(n>0){
     el.innerHTML="🎯 数据飞轮：已收到 <b>"+n+"</b> 条成绩数据 —— 每一条都在帮定数公式变准";
@@ -1501,9 +1513,17 @@ async function renderStats(){
     if(!r.ok) throw new Error("HTTP "+r.status);
     const s=await r.json();
     if(!s||s.error) throw new Error("stats error");
-    el.innerHTML="📊 本站公开数据：账号 <b>"+s.profiles+"</b> 个 · 今日活跃 <b>"+s.active_1d
-      +"</b> · 7 日活跃 <b>"+s.active_7d+"</b> · 已绑定 Phira <b>"+s.phira_bound
-      +"</b> · 成绩数据 <b>"+s.scores+"</b> 条 · 定数缓存 <b>"+s.charts+"</b> 张";
+    /* 只展示**有真实数据**的项。
+       「账号 0 个 · 今日活跃 0」不是透明，是负面社交证明 ——
+       还没有人用的阶段把它摆出来只会劝退访客。有人用了自然会显示。 */
+    const parts=[];
+    if(s.profiles>0)      parts.push("账号 <b>"+s.profiles+"</b> 个");
+    if(s.active_7d>0)     parts.push("7 日活跃 <b>"+s.active_7d+"</b>");
+    if(s.phira_bound>0)   parts.push("已绑定 Phira <b>"+s.phira_bound+"</b>");
+    if(s.scores>0)        parts.push("成绩数据 <b>"+s.scores+"</b> 条");
+    if(s.charts>0)        parts.push("定数缓存 <b>"+s.charts+"</b> 张");
+    if(!parts.length){ el.style.display="none"; return; }
+    el.innerHTML="📊 本站公开数据："+parts.join(" · ");
     el.style.display="";
   }catch(e){ el.style.display="none"; }
 }
