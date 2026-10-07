@@ -159,14 +159,28 @@ border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;li
 .csdif{color:var(--fg2);flex:none;width:36px;text-align:right;font-variant-numeric:tabular-nums}
 .csflag{flex:none;width:42px;color:var(--fg3);font-size:10.5px}
 .csflag i.ok{color:var(--green);font-style:normal}
-.cspm{flex:none;width:44px;text-align:right}
+/* 定数 + 按钮列。宽度要放得下最宽的一种组合（「15.40」+ 📤），
+   否则加了分享按钮会把整行挤变形。右对齐让各行的数字纵向对齐。 */
+.cspm{flex:none;width:112px;text-align:right}
 .cspm b{color:var(--amber);font-variant-numeric:tabular-nums}
+/* 分享按钮（搜索结果行内） */
+.shbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
+border-radius:6px;padding:1px 7px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
+.shbtn:hover{border-color:var(--amber);color:var(--amber)}
+/* 分享按钮行（本机解析的结果卡片里） */
+.srow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;
+padding-top:12px;border-top:1px dashed var(--line)}
+.slabel{font-size:11.5px;color:var(--fg3);margin-right:2px}
+.sbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);border-radius:8px;
+padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
+.sbtn:hover{border-color:var(--amber);color:var(--amber);background:var(--card)}
+.sbtn:disabled{opacity:.45;cursor:default}
 /* 下载按钮（搜索结果 / Phira 表共用）：网页端无法直读 Phira CDN，只能下载后拖入 */
 .dlbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
 border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
 .dlbtn:hover{border-color:var(--blue);color:var(--fg);background:var(--card)}
 /* 「算」主按钮：由服务端下载并计算 —— 搜索页的主路径 */
-.cspm{display:inline-flex;gap:5px;align-items:center}
+.cspm{display:inline-flex;gap:5px;align-items:center;justify-content:flex-end}
 .calcbtn{border:1px solid var(--amber);background:transparent;color:var(--amber);
 border-radius:6px;padding:1px 10px;font:inherit;font-size:12px;font-weight:700;
 cursor:pointer;line-height:1.6;white-space:nowrap}
@@ -550,6 +564,12 @@ const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).conte
 const __ENGINE = await import("/js/engine.js?v=" + encodeURIComponent(APP_VER));
 Object.assign(globalThis, __ENGINE);
 
+/* 分享卡片模块（同样是版本化 URL，改版本号即破缓存）。
+   抖音里链接点不了、X 上光发文字没人点 —— 能跨平台传播的只有图，
+   所以「算完一张谱 → 导出体检卡」是传播链路里最关键的一环。 */
+const { exportCard, fromChartRow, fromReport } = await import(
+  "/js/sharecard.js?v=" + encodeURIComponent(APP_VER));
+
 (function fillVersion(){
   const c = document.getElementById("verchip");
   if (c) c.textContent = APP_VER + " · 开发者测试版";
@@ -587,7 +607,7 @@ const TIER_COLOR={"EZ":"#4cc38a","HD":"#5aa2e8","IN":"#e8a33d",
                   "AT":"#e5534b","SP":"#c98ce8"};
 let STATE={reports:[],sel:0};
 
-function card(r){
+function card(r,idx){
   if(r.error) return '<div class="card err"><h2>✕ '+esc(r.label)
     +'</h2><div style="color:var(--red)">'+esc(r.error)+'</div></div>';
   const ps=r.ps, kn=r.knn||{ref:null,tier:"?",near:[]};
@@ -627,6 +647,11 @@ function card(r){
     +'%"></i></div>'
     +'<div class="tick"><span style="left:0">0</span>'
       +'<span style="left:50%">10</span><span style="left:100%">20</span></div>'
+    +'<div class="srow"><span class="slabel">分享这张谱</span>'
+      +'<button class="sbtn" type="button" data-share="wide" data-i="'+idx+'">'
+      +'🖼 横版图 · QQ / B站 / X</button>'
+      +'<button class="sbtn" type="button" data-share="tall" data-i="'+idx+'">'
+      +'📱 竖版图 · 抖音</button></div>'
     +'<table style="margin-top:8px"><tr><th>官谱参照（最相近 5 张）</th>'
     +'<th>档</th><th>定数</th></tr>'+nearRows+'</table>'
     +'<div class="psline">PS 负荷标度 <b>'+f1(ps.total)+'</b> / 20（密度 '
@@ -661,7 +686,7 @@ function render(){
       return '<button class="chip'+(i===STATE.sel?' on':'')
         +'" data-i="'+i+'">'+esc(rp.label)+'</button>';}).join("")+'</div>';
   }
-  out.innerHTML=sel+card(STATE.reports[STATE.sel]);
+  out.innerHTML=sel+card(STATE.reports[STATE.sel],STATE.sel);
   const cur=STATE.reports[STATE.sel];
   if(typeof renderPlayStat==="function") renderPlayStat((cur&&cur.playStat)||null);
   const chips=out.querySelectorAll(".chip");
@@ -858,6 +883,42 @@ document.addEventListener("click",async function(e){
       document.body.appendChild(a); a.click(); a.remove();
       csMsg("📥 正在下载《"+esc(nm)+"》 —— 下完后把 zip <b>拖到下面的虚线框</b>，"
         +"本页会自动算出定数，并顺带存进共享缓存。","ok");
+      return;
+    }
+    /* ── 导出分享图 ──
+       抖音里链接点不了、X 上光发文字没人点 —— 能跨平台传播的只有图。
+       卡上自带曲名 + 数字 + 域名，别人照着搜就能进来。 */
+    const sh=t.closest(".shbtn");
+    if(sh){
+      const cid=+sh.getAttribute("data-scid");
+      const mode=sh.getAttribute("data-mode")==="tall"?"tall":"wide";
+      const row=(typeof CHART_CACHE!=="undefined"&&CHART_CACHE[cid])||null;
+      if(!row||row.ref_const==null){ csMsg("这张谱还没有定数，先点左边的「算」","err"); return; }
+      const raw=sh.textContent;
+      sh.disabled=true; sh.textContent="…";
+      try{
+        const res=await exportCard(fromChartRow(row),mode,"zh");
+        if(res==="downloaded") csMsg("✅ 分享图已保存（"+(mode==="tall"?"竖版":"横版")
+          +"）。图上带着域名 —— 别人照着搜就能找到本站。","ok");
+      }catch(e){ csMsg("导出分享图失败："+esc((e&&e.message)||"未知错误"),"err"); }
+      sh.disabled=false; sh.textContent=raw;
+      return;
+    }
+    const sb=t.closest(".sbtn");
+    if(sb){
+      const i=+sb.getAttribute("data-i");
+      const mode=sb.getAttribute("data-share")==="tall"?"tall":"wide";
+      const r=STATE.reports[i];
+      if(!r||r.error){ csMsg("这张谱没解析成功，导不出分享图","err"); return; }
+      const raw=sb.textContent;
+      sb.disabled=true; sb.textContent="生成中…";
+      try{
+        const res=await exportCard(fromReport(r),mode,"zh");
+        if(res==="downloaded") csMsg("✅ 分享图已保存（"
+          +(mode==="tall"?"竖版 · 抖音":"横版 · QQ / B站 / X")
+          +"）。图上带着域名 —— 别人照着搜就能找到本站。","ok");
+      }catch(e){ csMsg("导出分享图失败："+esc((e&&e.message)||"未知错误"),"err"); }
+      sb.disabled=false; sb.textContent=raw;
       return;
     }
     const cb=t.closest(".calcb");
@@ -1352,6 +1413,10 @@ function renderChartSearch(kw){
         +'<span class="csflag">'+(c.ranked?'<i class="ok">上架</i>':'未上架')+'</span>'
         +'<span class="cspm">'+(mine!=null
           ?'<b title="P.H.M. 结构定数（来自共享缓存）">'+mine.toFixed(2)+'</b>'
+           +'<button class="shbtn" type="button" data-scid="'+c.id+'" data-mode="wide"'
+           +' title="导出横版分享图（QQ / B站 / X）">横</button>'
+           +'<button class="shbtn" type="button" data-scid="'+c.id+'" data-mode="tall"'
+           +' title="导出竖版分享图（抖音 / 小红书）">竖</button>'
           :(c.file
             ?'<button class="calcbtn" type="button" data-cid="'+c.id
               +'" title="由服务端下载这张谱并计算定数（约 2-5 秒）">算</button>'

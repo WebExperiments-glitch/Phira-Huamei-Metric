@@ -148,8 +148,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
-const PUBLIC_FILES = new Set(['index.html', 'robots.txt', 'favicon.ico', 'privacy.html',
-  '404.html', 'sitemap.xml', 'og.png']);
+const PUBLIC_FILES = new Set(['index.html', 'en.html', 'robots.txt', 'favicon.ico', 'privacy.html',
+  '404.html', 'sitemap.xml', 'og.png', 'og-en.png']);
 const PUBLIC_DIRS = ['js/', 'css/'];                       /* 只暴露这两个子目录 */
 const SAFE_EXT = new Set(['.js', '.css', '.png', '.svg', '.ico', '.webp', '.woff2']);
 function isPublicPath(rel) {
@@ -323,6 +323,29 @@ const server = http.createServer(async (req, res) => {
     }
     const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
     return send(res, r.ok ? 200 : 502, r.ok ? (r.body || '{}') : JSON.stringify({ error: 'stats unavailable', detail: r.body || r.error }));
+  }
+  /* 批量读定数缓存 → { "12345": {ref_const:…}, … }
+   * 给**不加载云 SDK** 的页面用（英文页只做只读展示，没必要引入整个 SDK）。
+   * 表本身对匿名可读，所以这里不是权限提升，只是把「一次拿一批」变成一个请求。
+   * 与 /api/stats 共用同一份只读配额。 */
+  if (p === '/api/charts') {
+    if (!(await statsOk(ip))) {
+      return send(res, 429, JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
+    }
+    const ids = String(url.searchParams.get('ids') || '')
+      .split(',').map(x => Number(x.trim()))
+      .filter(x => Number.isInteger(x) && x > 0)
+      .slice(0, 60);                                    /* 一次最多 60 个，别把 URL 撑爆 */
+    if (!ids.length) return send(res, 400, JSON.stringify({ error: 'ids 参数无效' }));
+    const r = await dbFetch('/phm_charts?chart_id=in.(' + ids.join(',') + ')&select=*');
+    if (!r.ok || !r.body) {
+      return send(res, 502, JSON.stringify({ error: 'cache unavailable', detail: r.body || r.error }));
+    }
+    let rows = [];
+    try { rows = JSON.parse(r.body); } catch { return send(res, 502, JSON.stringify({ error: 'cache 响应无法解析' })); }
+    const map = {};
+    for (const row of rows) map[row.chart_id] = row;
+    return send(res, 200, JSON.stringify(map));
   }
 
   /* ★ 按 chart_id 直接算定数 —— 「搜索即出数」

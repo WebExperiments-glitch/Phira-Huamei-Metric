@@ -18,8 +18,24 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'public', 'og.png');
+/* 文案两套：中文给 QQ / B站，英文给 X（国际圈看不懂「参考定数」四个字）。
+   用法：node tools/make-og.mjs         → og.png
+        node tools/make-og.mjs --en     → og-en.png */
+const EN = process.argv.includes('--en');
+const OUT = path.join(ROOT, 'public', EN ? 'og-en.png' : 'og.png');
 const W = 1200, H = 630, PORT = 9337;
+
+const T = EN ? {
+  sub: 'An <b>auditable difficulty reference</b> for Phira charts<br>' +
+       '5 features + k-NN over <b>1,037 official charts</b> · runs in your browser · <b>charts never uploaded</b>',
+  kRef: 'Reference', kPs: 'Load (PS)', kOfficial: 'Rated', kDrift: 'Drift',
+  foot: 'We do not call anything mis-rated. We publish numbers and their uncertainty.',
+} : {
+  sub: 'Phira / Phigros 谱面难度参考 —— <b>客观、可审计、可追溯</b><br>' +
+       '5 维特征 + 1,037 张官谱 k-NN，纯浏览器计算，<b>谱面文件不上传</b>',
+  kRef: '参考定数', kPs: 'PS 负荷', kOfficial: '标称定数', kDrift: '偏差',
+  foot: '不判定「虚标」· 公开不确定度 · 每条结论都能点开看依据',
+};
 
 /* Chrome 位置（Windows 常见路径；找不到就自己改这一行） */
 const CHROME = process.env.CHROME_PATH
@@ -59,21 +75,20 @@ body{width:${W}px;height:${H}px;background:#0d1117;color:#e6edf3;overflow:hidden
 <div class="glow"></div><div class="glow2"></div>
 <div class="wrap">
   <div class="brand"><b>P.H.M.</b> Standard</div>
-  <div class="sub">Phira / Phigros 谱面难度参考 —— <b>客观、可审计、可追溯</b><br>
-  5 维特征 + 1,037 张官谱 k-NN，纯浏览器计算，<b>谱面文件不上传</b></div>
+  <div class="sub">${T.sub}</div>
 
   <div class="card">
-    <div><div class="k">参考定数</div><div class="v a">15.70</div></div>
+    <div><div class="k">${T.kRef}</div><div class="v a">15.70</div></div>
     <div class="sep"></div>
-    <div><div class="k">PS 负荷</div><div class="v b">11.41</div></div>
+    <div><div class="k">${T.kPs}</div><div class="v b">11.41</div></div>
     <div class="sep"></div>
-    <div><div class="k">标称定数</div><div class="v" style="color:#9aa7b4">16.20</div></div>
+    <div><div class="k">${T.kOfficial}</div><div class="v" style="color:#9aa7b4">16.20</div></div>
     <div style="margin-left:auto;text-align:right">
-      <div class="k">偏差</div><div class="v" style="font-size:30px;color:#4cc38a">−0.50</div></div>
+      <div class="k">${T.kDrift}</div><div class="v" style="font-size:30px;color:#4cc38a">−0.50</div></div>
   </div>
 
   <div class="foot">
-    <span>不判定「虚标」· 公开不确定度 · 每条结论都能点开看依据</span>
+    <span>${T.foot}</span>
     <span class="u">phm.app.workbuddy.host</span>
   </div>
 </div></body></html>`;
