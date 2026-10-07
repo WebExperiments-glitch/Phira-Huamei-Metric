@@ -443,11 +443,13 @@ border:1px solid var(--line);color:var(--fg3)}
     没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」。</div>
     <div class="fd"><b>参考定数</b>来自 1,037 张官谱的 5 维 k-NN 匹配 —— 它是<b>同类官谱的定数中位</b>，
     不是预测值，也不带不确定度声明。同一张谱可能因官谱样本密度不同而偏移，请配合卡片上的近邻一起看。</div>
-    <div class="fd"><b>隐私 · 什么会上传</b>（三条路径，都要你主动触发）：<br>
-    · <b>算 RKS</b>：本机计算，<b>不上传</b>。勾选「匿名上传」才会写 曲名 / 定数 / ACC 三项。<br>
-    · <b>导入数据飞轮</b>：会连同<b>你的 Phira UID 与用户名</b>一起写入（Phira 站内本来就公开，
-    用于区分不同玩家）。导入前会弹窗逐项列出字段让你确认。<br>
-    · <b>拖入谱面</b>：只有<b>谱面结构特征</b>进入共享定数缓存，<b>谱面文件本身不会上传</b>。</div>
+    <div class="fd"><b>隐私 · 什么会上传</b>（统一受页面底部「⚙ 设置」的开关控制）：<br>
+    · <b>算 RKS</b>：本机计算。勾选「匿名上传」才写 曲名 / 定数 / ACC 三项
+    —— 准确说是<b>假名化</b>贡献（带一个随机 client_id），不是严格匿名。<br>
+    · <b>查询 Phira 账号</b>：只对<b>你确认过的本人账号</b>自动上传成绩（含 Phira UID 与用户名，
+    Phira 站内本来就公开）。首次遇到某个 UID 会先问一次「这是你的账号吗」。<br>
+    · <b>拖入谱面</b>：只有<b>谱面结构特征</b>进入共享定数缓存，<b>谱面文件本身不会上传</b>。<br>
+    <b>关闭底部开关后，以上三条都不会发生</b>（页面仍会请求聚合统计数字用于显示统计条，不含个人信息）。</div>
     <div class="fd">连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>；
     输入过的用户名 / UID 只存在你浏览器本地（localStorage）用于下次自动填充，不会随请求发出。</div>
   </details>
@@ -458,11 +460,12 @@ border:1px solid var(--line);color:var(--fg3)}
   <div class="setpanel" id="setPanel" style="display:none">
     <label class="setrow"><input type="checkbox" id="setAuto">
       <span>登录 Phira 后<b>自动上传</b>成绩数据 —— 用于校准定数参考</span></label>
-    <div class="setnote">关闭后全部回到本机计算，<b>不会发出任何数据</b>（拖谱面、算 RKS、搜索都不受影响）。<br>
+    <div class="setnote">关闭后<b>不会上传任何贡献内容</b>（谱面结构特征、成绩数据）——
+    拖谱面、算 RKS、搜谱面全部照常。<br>
+    <span style="color:var(--fg3)">页面仍会请求本站的聚合统计数字用于显示统计条，不含任何个人信息。</span><br>
     上传内容：Phira UID 与用户名、谱面名、定数、ACC、单曲 RKS。<b>不会上传</b>密码 / 邮箱 / 谱面文件本身。<br>
-    对外的统计只有聚合数字，其他人看不到你的 UID 或用户名。需要删除已上传的数据，请在
-    <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues"
-    target="_blank" rel="noopener">GitHub Issues</a> 提一条。</div>
+    只对<b>你确认过的本人账号</b>自动上传成绩（查询时会问一次）。对外的统计只有聚合数字，
+    其他人看不到你的 UID 或用户名。</div>
   </div>
 </footer>
 </div>
@@ -1047,20 +1050,29 @@ async function handleFiles(files){
       }).catch(function(){});
     });
   }
-  /* 顺带把结构定数贡献进共享缓存（谱面文件不上传，只写特征） */
-  if(typeof contributeChart==="function"){
-    acc.forEach(function(r){
-      if(r.error||!r.name) return;
-      contributeChart(r).then(function(res){
-        if(!res||res.skipped) return;
-        r.contributed=res;
-        csMsg("✅ 《"+esc(res.name)+"》的结构定数已存入<b>共享定数缓存</b> —— "
-          +"下一个人搜到这张谱直接就能看到，不用再下载。"
-          +'<br><span style="color:var(--fg3)">只写入谱面结构特征（密度/长条/物量等），'
-          +'你的谱面文件本身没有上传。</span>',"ok");
-        if(typeof renderStats==="function") renderStats();
-      }).catch(function(){});
-    });
+  /* 顺带把结构定数贡献进共享缓存（谱面文件不上传，只写特征）
+     ⚠ 必须在用户允许的范围内：关闭自动上传时一律不贡献。
+     此前这段是无条件执行的，与「关闭后不再发出任何数据」的承诺直接矛盾。
+     ⚠ 改为**串行 + 间隔**：多文件拖入时不会瞬间并发打满网关与数据库。 */
+  if(OPTN() && typeof contributeChart==="function"){
+    (async function(){
+      for(const r of acc){
+        if(r.error||!r.name) continue;
+        if(!OPTN()) break;                       /* 中途关掉就立刻停 */
+        try{
+          const res=await contributeChart(r);
+          if(res&&!res.skipped){
+            r.contributed=res;
+            csMsg("✅ 《"+esc(res.name)+"》的结构定数已存入<b>共享定数缓存</b> —— "
+              +"下一个人搜到这张谱直接就能看到，不用再下载。"
+              +'<br><span style="color:var(--fg3)">只写入谱面结构特征（密度/长条/物量等），'
+              +'你的谱面文件本身没有上传。可在页面底部「⚙ 设置」里关闭。</span>',"ok");
+            if(typeof renderStats==="function") renderStats();
+          }
+        }catch(e){}
+        await new Promise(function(s){ setTimeout(s,600); });
+      }
+    })();
   }
 }
 
@@ -1080,7 +1092,14 @@ $("#file").addEventListener("change",function(e){
 });
 </script>
 <!-- ═════════ 数据飞轮：匿名打卡（CloudBase）═════════ -->
-<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
+<!-- 云 SDK：固定版本 + SRI
+     第三方脚本跑在同源页面里，拥有与应用代码完全相同的权限（DOM / localStorage /
+     账号 session）。此前用的是 @dev 浮动标签 —— CDN 上任何一次更新都会直接进入所有
+     用户的浏览器，而账号 session 就存在 localStorage 里。
+     现在钉死 0.1.3（npm latest）并加 integrity：内容对不上浏览器会拒绝执行。 -->
+<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
+  integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
+  crossorigin="anonymous"></script>
 <script>
 "use strict";
 /* ═════ 全局健壮性：统一事件委托（最先绑定，不依赖后续任何代码）═════
@@ -1202,8 +1221,8 @@ document.addEventListener("change",function(e){
       const on=!!e.target.checked;
       saveOptin(on);
       csMsg(on
-        ? "✅ 已开启自动上传 —— 登录 Phira 后会把成绩数据贡献给数据飞轮，帮定数公式变准。"
-        : "已关闭自动上传 —— 之后全部在本机计算，<b>不会发出任何数据</b>（功能照常）。",
+        ? "✅ 已开启自动上传 —— 查询<b>你确认过的本人账号</b>时，会自动贡献成绩数据帮定数变准。"
+        : "已关闭自动上传 —— 之后<b>不会上传任何贡献内容</b>（谱面结构特征 / 成绩数据）。拖谱面、算 RKS 照常。",
         on?"ok":"warn");
       return;
     }
@@ -1264,6 +1283,30 @@ function saveOptin(on){
 const NOTICE_KEY="phm_notice_v1";
 function noticeAgreed(){ try{ return localStorage.getItem(NOTICE_KEY)==="1"; }catch(e){ return false; } }
 function agreeNotice(){ try{ localStorage.setItem(NOTICE_KEY,"1"); }catch(e){} }
+/* 是否「本人账号」—— 只对本人账号自动上传成绩。
+   Phira 没有给第三方 OAuth，无法做真正的所有权验证；退一步要求用户**明确声明一次**，
+   否则任何访问者都能把某个公开 Phira 用户的成绩复制进数据集，来源真实性归零。
+   声明记在本地 localStorage，不依赖账号系统。 */
+function ownKey(uid){ return "phm_own_"+uid; }
+function isDeclaredOwn(uid){ try{ return localStorage.getItem(ownKey(uid))==="1"; }catch(e){ return false; } }
+function declareOwn(uid){ try{ localStorage.setItem(ownKey(uid),"1"); }catch(e){} }
+function confirmOwn(uid,name){
+  if(isDeclaredOwn(uid)) return true;
+  let ok=false;
+  try{
+    ok=confirm(
+      "这是你自己的 Phira 账号吗？\n\n"
+      +"用户名："+(name||"?")+"\nUID："+uid+"\n\n"
+      +"选「确定」→ 记为该账号本人，之后查它时自动上传成绩。\n"
+      +"选「取消」→ 只查看，不上传任何成绩。\n\n"
+      +"为什么要问：把别人的公开成绩传进数据集会让难度统计失真，\n"
+      +"所以只对你自己确认过的账号自动上传。"
+    );
+  }catch(e){ ok=false; }
+  if(ok) declareOwn(uid);
+  return ok;
+}
+
 /* 首次上传前的明确告知。不同意 → 自动关闭上传，回到纯本机计算。 */
 function ensureNotice(){
   if(noticeAgreed()) return true;
@@ -1271,16 +1314,16 @@ function ensureNotice(){
   try{
     ok=confirm(
       "P.H.M. 会在你登录 Phira 后自动上传成绩数据，用于校准难度参考。\n\n"
-      +"【会上传】\n"
-      +"  · 你的 Phira UID 与用户名\n"
-      +"  · 谱面名、标称定数、你的 ACC 与单曲 RKS\n\n"
-      +"【不会上传】\n"
-      +"  · 密码、邮箱、账号权限\n"
-      +"  · 谱面文件本身（解析全部在你本机完成）\n\n"
-      +"【用途】统计各谱的实际难度分布、改进定数参考；对外的只有聚合数字，\n"
-      +"       其他人看不到你的 UID 或用户名。\n"
-      +"【不想上传】选「取消」，自动上传会被关掉，功能照常用。\n"
-      +"       之后也可以随时在页面底部「⚙ 设置」重新打开。\n\n"
+      +"会上传：\n"
+      +"  - 你的 Phira UID 与用户名\n"
+      +"  - 谱面名、标称定数、你的 ACC 与单曲 RKS\n\n"
+      +"不会上传：\n"
+      +"  - 密码、邮箱、账号权限\n"
+      +"  - 谱面文件本身（解析全部在你本机完成）\n\n"
+      +"用途：统计各谱的实际难度分布、改进定数参考。对外的只有聚合数字，\n"
+      +"      其他人看不到你的 UID 或用户名。\n"
+      +"不想上传：选「取消」，自动上传会被关掉，功能照常用。\n"
+      +"      之后也可以随时在页面底部「设置」重新打开。\n\n"
       +"详见《隐私政策》（页面底部有链接）。是否同意？"
     );
   }catch(e){ ok=false; }
@@ -1555,9 +1598,14 @@ async function chartSearch(){
   try{
     const r=await pfGet("/chart?search="+encodeURIComponent(kw)+"&pageNum=30&page=1");
     const raw=Array.isArray(r)?r:(r.results||[]);
-    /* Phira 搜索会带进无关曲 → 名称含关键词的优先（够 3 条就只留它们） */
+    /* Phira 搜索会带进无关曲 → 名称或谱师命中就保留（提示写的是「曲名 / 谱师」，
+       此前只匹配曲名，搜谱师会得到莫名其妙的结果） */
     const kwl=kw.toLowerCase();
-    const hit=raw.filter(function(c){return String(c.name||"").toLowerCase().indexOf(kwl)>=0;});
+    const hit=raw.filter(function(c){
+      const nm=String(c.name||"").toLowerCase();
+      const ch=String(c.charter||"").toLowerCase();
+      return nm.indexOf(kwl)>=0||ch.indexOf(kwl)>=0;
+    });
     const arr=(hit.length>=3)?hit:raw;
     CS.rows=arr; CS.filtered=(arr!==raw);
     await loadChartCache(arr.map(function(c){return c.id;}));
@@ -1673,39 +1721,6 @@ function fetchTO(url,ms,opts){
   });
 }
 
-/* 通用云写入：分批 + 速率限制自动重试退避
-   实测环境级限流阈值：读无限制（但串行 ~140ms/次），写约 25~40 并发触发
-   "Environment ... exceeds rate limit" */
-async function cloudWrite(table,data,opts){
-  const o=opts||{};
-  const arr=Array.isArray(data)?data:[data];
-  const batchSize=o.batchSize||8;
-  const gap=o.gap==null?400:o.gap;
-  let okN=0; const fails=[];
-  const log=function(t){ if(o.onProgress){ try{o.onProgress(t);}catch(e){} } };
-  for(let i=0;i<arr.length;i+=batchSize){
-    const batch=arr.slice(i,i+batchSize);
-    let done=false;
-    for(let attempt=1;attempt<=4&&!done;attempt++){
-      const up=await cloudDB.from(table)
-        .upsert(batch,o.onConflict?{onConflict:o.onConflict}:undefined);
-      if(!up.error){ okN+=batch.length; done=true; break; }
-      const msg=String((up.error&&up.error.message)||"");
-      const limited=/rate limit|exceeds|too many|429|503/i.test(msg);
-      if(limited&&attempt<4){
-        const wait=500*Math.pow(2,attempt-1);        /* 500 / 1000 / 2000 ms */
-        log("触发速率限制，"+wait+"ms 后重试（第 "+attempt+" 次）…");
-        await new Promise(function(r){ setTimeout(r,wait); });
-        continue;
-      }
-      fails.push(msg);
-      done=true;
-    }
-    if(i+batchSize<arr.length) await new Promise(function(r){ setTimeout(r,gap); });
-  }
-  return {ok:okN, fail:fails.length?[...new Set(fails)]:[]};
-}
-
 /* ═════ P.H.M. 专属账号：邮箱注册/登录 · 绑定 Phira · 活跃统计 ═════
    边界：Web 端仅支持邮箱（手机短信 / 微信登录只在小程序里提供） */
 const AUTH={mode:"login",pending:null,resetChallenge:null,user:null};
@@ -1814,10 +1829,9 @@ async function authAfterSignIn(user){
 async function touchProfile(){
   if(!cloudDB||!AUTH.user) return;
   try{
-    const st=await cloudDB.from("phm_profiles").select("visits").maybeSingle();
-    const v=((st&&st.data&&st.data.visits)||0)+1;
-    await cloudDB.from("phm_profiles")
-      .upsert({last_seen:new Date().toISOString(),visits:v},{onConflict:"owner_id"});
+    /* 原子递增：RPC 内部是 INSERT ... ON CONFLICT DO UPDATE visits = visits + 1。
+       此前是「读 → +1 → 写」，两个标签页同时开着会互相覆盖，visits 少计。 */
+    await cloudDB.rpc("phm_touch");
   }catch(e){}
 }
 async function authRender(){
@@ -1918,6 +1932,7 @@ async function renderStats(){
    CORS 挡住了后台直读，但用户主动拖入的文件完全合法可用；
    写进去的只有谱面结构特征，谱面文件本身不会上传。 */
 async function contributeChart(rep){
+  if(!OPTN()) return null;                       /* 第二道防线：关闭时绝不贡献 */
   if(!cloudDB||!rep||rep.error||!rep.name) return null;
   const rc=rep.knn&&rep.knn.ref;
   if(rc==null) return null;
@@ -2009,31 +2024,27 @@ function renderPlayStat(s){
 }
 
 /* 服务端写入网关（/api/*）：校验 + 限流 + 落库都在服务端做。
-   同域部署（Node 服务同时托管本页），所以无跨域问题。
-   ⚠ 服务端不可用时自动回退直连云数据库 —— Node 层是增强，不是单点故障。 */
+ * ⚠ 失败就是失败，**不再回退直连数据库**。
+   此前那段 fallback 有两个严重问题，属于自相矛盾的设计：
+   ① 它让客户端保留了一条**绕过网关的写库路径** —— 于是「服务端负责校验与
+      限流」这句话不成立，网关不是边界；
+   ② 服务端过载时：请求失败 → 客户端改打数据库 → 数据库更忙 → 更多失败 →
+      更多客户端切换 fallback，形成自我放大的反馈风暴（越忙越打）。
+   上传失败不影响本机结果：定数已经算好并显示在卡片上了。 */
 async function apiWrite(path,rows){
-  try{
-    const r=await fetchTO(path,20000,{method:"POST",
-      headers:{"content-type":"application/json"},
-      body:JSON.stringify({rows:rows})});
-    if(!r.ok){
-      let msg="HTTP "+r.status;
-      try{ const j=await r.json(); if(j&&(j.error||j.note)) msg=j.error||j.note; }catch(e){}
-      throw new Error(msg);
-    }
-    const j=await r.json();
-    if(j&&j.fail&&j.fail.length) throw new Error(String(j.fail[0]).slice(0,120));
-    return j;
-  }catch(e){
-    /* 回退：直连数据面（与旧行为一致，保证功能不中断） */
-    if(!cloudDB) throw e;
-    const isChart=path.indexOf("contribute")>=0;
-    const table=isChart?"phm_charts":"phm_scores";
-    const oc=isChart?"chart_id":"phira_user_id,chart_id";
-    const wr=await cloudWrite(table,rows,{batchSize:8,gap:450,onConflict:oc});
-    if(!wr.ok&&wr.fail.length) throw new Error(String(wr.fail[0]).slice(0,120));
-    return {written:wr.ok,fallback:true};
+  const r=await fetchTO(path,20000,{
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body:JSON.stringify({rows:rows})
+  });
+  if(!r.ok){
+    let msg="HTTP "+r.status;
+    try{ const j=await r.json(); if(j&&(j.error||j.note)) msg=j.error||j.note; }catch(e){}
+    throw new Error(msg);
   }
+  const j=await r.json();
+  if(j&&j.fail&&j.fail.length) throw new Error(String(j.fail[0]).slice(0,120));
+  return j;
 }
 
 /* 页面级状态条（算定数/导入的进度与错误都显示在这里，绝不写进隐藏面板） */
@@ -2228,9 +2239,15 @@ async function pfSearch(){
     await loadChartCache(rows.map(function(r){return r.chart;}));
     pfMsg("");
     pfRender();
-    /* 随走即用：查到 Phira 账号后自动贡献成绩数据（首次会先弹告知；可在底部设置关闭） */
+    /* 随走即用：查到 Phira 账号后自动贡献成绩数据。
+       ⚠ 但只对「本人声明的账号」自动上传 —— 否则任何访问者都能把某个公开 Phira
+       用户的成绩复制进数据集，数据来源真实性归零。首次遇到某个 UID 时问一次。 */
     if(OPTN() && ensureNotice()){
-      setTimeout(function(){ try{pfImport(true);}catch(e){} },120);
+      if(await confirmOwn(u.id,u.name)){
+        setTimeout(function(){ try{pfImport(true);}catch(e){} },120);
+      }else{
+        csMsg("已跳过成绩上传 —— 只对<b>你确认过的本人账号</b>自动上传（可在底部「⚙ 设置」里调整）。","warn");
+      }
     }
   }catch(e){
     pfMsg("查询失败："+(e&&e.message?e.message:"网络异常")+"（Phira API 可能临时不可用）","var(--red)");
@@ -2319,8 +2336,7 @@ async function pfImport(auto){
     const written=(wr&&wr.written)||0;
     if(!written) throw new Error("服务端未写入任何行");
     const added=Math.max(0,written-existN);      /* 只有新增才算「收到」，更新不重复计数 */
-    let txt="✅ 已写入 "+written+" 条成绩（新增 "+added+" 条）"
-      +(wr.fallback?"（直连模式）":"（经服务端网关）");
+    let txt="✅ 已写入 "+written+" 条成绩（新增 "+added+" 条）";
     if(existN>0) txt+="，其中 "+existN+" 条已存在 → 已更新为最新成绩";
     txt+="，感谢你帮定数公式变准！";
     csMsg(txt,"ok");
