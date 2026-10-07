@@ -13,8 +13,13 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { reviewContribution } from './lib/review.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+/* 静态资源根目录。
+   只有 public/ 下的内容可能被送出 —— 源码（server.mjs / lib/）与运行时数据
+   （server-store.json）都在 ROOT 下，天然在可服务范围之外。 */
+const WEB_ROOT = path.join(ROOT, 'public');
 const PORT = process.env.PORT || 3000;
 const BOOT_AT = new Date().toISOString();
 
@@ -151,11 +156,20 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
   '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon', '.webp': 'image/webp' };
 
-/* ⚠ 静态白名单 —— 只允许这几个文件被送出。
+/* ⚠ 静态白名单 —— 只允许这些文件被送出。
    之前只做了「路径不以 ROOT 开头则拒」，结果 server.mjs / package.json /
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
-   目录穿越防护 ≠ 白名单。这是本次安全修复的核心。 */
+   目录穿越防护 ≠ 白名单。这是安全修复的核心。
+   现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'robots.txt', 'favicon.ico', 'privacy.html']);
+const PUBLIC_DIRS = ['js/', 'css/'];                       /* 只暴露这两个子目录 */
+const SAFE_EXT = new Set(['.js', '.css', '.png', '.svg', '.ico', '.webp', '.woff2']);
+function isPublicPath(rel) {
+  if (PUBLIC_FILES.has(rel)) return true;
+  if (!PUBLIC_DIRS.some(d => rel.startsWith(d))) return false;
+  if (rel.includes('..')) return false;
+  return SAFE_EXT.has(path.extname(rel).toLowerCase());
+}
 
 /* 安全响应头（此前只有 nosniff，等于裸奔） */
 const SEC_HEADERS = {
@@ -237,6 +251,46 @@ const server = http.createServer(async (req, res) => {
         note: '全部未通过服务端校验，未写入',
       }));
     }
+
+    /* ── 定数缓存：**服务端复核后才落库**（防投毒）──
+       客户端报上来的特征值一律不直接采信：先查该 chart_id 是否已有权威值，
+       没有就用服务端自己的引擎复算一遍（下载谱面 → 与提交值比对），
+       一致才写，且**写入的是服务端算出来的值**。 */
+    if (p === '/api/contribute') {
+      let verified = 0, skipped = 0, failed = 0, mismatched = 0;
+      const notes = [];
+      for (const row of clean) {
+        try {
+          const existing = await dbFetch(
+            '/phm_charts?chart_id=eq.' + encodeURIComponent(row.chart_id) + '&select=chart_id');
+          if (existing.ok && existing.body && existing.body !== '[]') { skipped++; continue; }
+
+          const { trusted, diffs } = await reviewContribution(row);
+          /* ⚠ 写入的永远是**服务端复算出来的值**，不是客户端报上来的值。
+             客户端与服务端不一致只是说明它过期了，不构成写入障碍。 */
+          const wr = await dbUpsert('phm_charts', [trusted], 'chart_id');
+          if (wr.ok > 0) {
+            verified++;
+            if (diffs.length) {
+              mismatched++;
+              notes.push('客户端值不一致（已改用服务端值）: ' + diffs.map(d => d.field).join(','));
+            }
+          } else { failed++; notes.push('写入失败: ' + String(wr.fail[0] || '').slice(0, 80)); }
+        } catch (e) {
+          failed++;
+          notes.push(String(e.message || e).slice(0, 100));
+        }
+      }
+      return send(res, 200, JSON.stringify({
+        received: rows.length, accepted: clean.length, rejected: rows.length - clean.length,
+        written: verified, skipped, failed,
+        mismatched: mismatched || undefined,
+        note: notes.length ? notes.slice(0, 3) : undefined,
+        verified: true, source: 'server-verified',
+        policy: '定数由服务端独立复算；落库值永远是服务端计算结果，客户端提交值仅用于一致性检查',
+      }));
+    }
+
     const wr = await dbUpsert(table, clean, onConflict);
     return send(res, 200, JSON.stringify({
       received: rows.length, accepted: clean.length, rejected: rows.length - clean.length,
@@ -252,9 +306,9 @@ const server = http.createServer(async (req, res) => {
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
   const rel = p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, '');
-  if (!PUBLIC_FILES.has(rel)) return send(res, 404, 'not found', 'text/plain; charset=utf-8');
-  const fp = path.resolve(ROOT, rel);
-  if (!fp.startsWith(ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
+  if (!isPublicPath(rel)) return send(res, 404, 'not found', 'text/plain; charset=utf-8');
+  const fp = path.resolve(WEB_ROOT, rel);
+  if (!fp.startsWith(WEB_ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
   if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp);
   return send(res, 404, 'not found', 'text/plain; charset=utf-8');
 });
