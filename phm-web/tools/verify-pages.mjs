@@ -502,6 +502,97 @@ await goto('/app', 3000);
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+ * 9) /settings 设置页
+ *    设置从「散在 7 个键里」收口成 js/settings.js 之后，必须有人守着三件事：
+ *      a) 页面开关与真源**双向一致**（不是各存一份）；
+ *      b) **清空只清本站的键** —— 同源下还住着云 SDK 的会话，
+ *         顺手删掉会把用户从账号里踢出去。这条是硬要求；
+ *      c) 深链能到（文档/回帖里才能直接指路）。
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[9] /settings 设置页 · 单一真源与安全清空');
+await goto('/settings', 2600);
+{
+  const hook = await evalJS(`!!(window.PHM_SETTINGS && window.PHM_SETTINGS.optin && window.PHM_SETTINGS.clearAll)`);
+  ok('存在设置真源钩子 PHM_SETTINGS', hook);
+
+  const keys = await evalJS(`window.PHM_SETTINGS ? Object.keys(window.PHM_SETTINGS.KEYS) : []`);
+  ok('键名清单集中在 settings.js（≥6 个）', (keys || []).length >= 6, JSON.stringify(keys));
+
+  /* UI → 真源：取消勾选，真源必须跟着变 */
+  await evalJS(`(function(){
+    const cb=document.getElementById('optin');
+    cb.checked=false; cb.dispatchEvent(new Event('change',{bubbles:true}));
+    return 1;})()`);
+  await new Promise(r => setTimeout(r, 400));
+  const afterOff = await evalJS(`window.PHM_SETTINGS.optin.get()`);
+  ok('取消勾选 → 真源变 false', afterOff === false, 'optin=' + afterOff);
+
+  const stateTxt = await evalJS(`document.getElementById('optinState').textContent`);
+  ok('状态条跟着说明「已关闭」', /关闭/.test(String(stateTxt)), String(stateTxt).slice(0, 50));
+
+  /* 真源 → UI：反向也要通 */
+  await evalJS(`window.PHM_SETTINGS.optin.set(true)`);
+  await new Promise(r => setTimeout(r, 400));
+  const backOn = await evalJS(`document.getElementById('optin').checked`);
+  ok('真源改回 true → 开关自动勾上（订阅生效）', backOn === true, 'checked=' + backOn);
+
+  /* 本机存储清单要能列出真实内容 */
+  await evalJS(`(function(){ window.PHM_SETTINGS.phira.set('测试用户','12345'); return 1; })()`);
+  await new Promise(r => setTimeout(r, 400));
+  const invTxt = await evalJS(`document.getElementById('inv').textContent`);
+  ok('存储清单列出真实键值', /12345|测试用户/.test(String(invTxt)), String(invTxt).slice(0, 70));
+
+  /* ⚠ 最关键的一条：清空不能碰别人的键 */
+  const clearRes = await evalJS(`(function(){
+    const S = window.PHM_SETTINGS;
+    localStorage.setItem('workbuddy-cloud.session.probe', 'MUST_SURVIVE');
+    localStorage.setItem('unrelated-key', 'MUST_SURVIVE');
+    S.optin.set(false);
+    S.phira.set('要被清掉的','999');
+    const before = S.inventory().length;
+    S.clearAll();
+    return {
+      before: before,
+      session: localStorage.getItem('workbuddy-cloud.session.probe'),
+      unrelated: localStorage.getItem('unrelated-key'),
+      optinKey: localStorage.getItem(S.KEYS.optin),
+      phiraKey: localStorage.getItem(S.KEYS.phiraName),
+      after: S.inventory().length,
+      defaultOptin: S.optin.get()
+    };
+  })()`);
+  ok('清空前确实有内容可清', clearRes.before > 0, '清空前 ' + clearRes.before + ' 项');
+  ok('清空后本站键归零', clearRes.after === 0, '清空后 ' + clearRes.after + ' 项');
+  ok('★ 云 SDK 会话**没被碰**（清空只清本站）',
+    clearRes.session === 'MUST_SURVIVE', 'session=' + clearRes.session);
+  ok('★ 无关的第三方键也没被碰',
+    clearRes.unrelated === 'MUST_SURVIVE', 'unrelated=' + clearRes.unrelated);
+  ok('清空后回到默认（上传默认开启）', clearRes.defaultOptin === true, 'optin=' + clearRes.defaultOptin);
+
+  /* 清干净测试残留 */
+  await evalJS(`(function(){
+    localStorage.removeItem('workbuddy-cloud.session.probe');
+    localStorage.removeItem('unrelated-key');
+    return 1;})()`);
+
+  /* 导出结构 */
+  const exp = await evalJS(`(function(){
+    window.PHM_SETTINGS.optin.set(false);
+    const o = window.PHM_SETTINGS.exportAll();
+    return { hasSettings: !!o.settings, note: String(o._note||''), hasAt: !!o._exportedAt,
+             leak: /password|token|secret/i.test(JSON.stringify(o)) };
+  })()`);
+  ok('导出包含 settings 与时间戳', exp.hasSettings && exp.hasAt, JSON.stringify(exp));
+  ok('导出**不含**任何凭据字段名', exp.leak === false, 'leak=' + exp.leak);
+
+  /* 深链锚点都在（文档里要能直接指路） */
+  for (const id of ['privacy', 'accounts', 'storage', 'about']) {
+    const there = await evalJS(`!!document.getElementById(${JSON.stringify(id)})`);
+    ok('深链锚点 #' + id + ' 存在', there);
+  }
+}
+
 console.log('\n未捕获异常 / console.error ：' + errors.length);
 errors.slice(0, 8).forEach(e => console.log('   ! ' + e));
 console.log('\n────────');

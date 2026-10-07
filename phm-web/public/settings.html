@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.6.0">
+<title>设置 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="P.H.M. 设置：数据上传偏好、Phira 连接信息、本机存储清单与清除。">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/css/base.css?v=V0.6.0">
+<style>
+/* 设置行的布局：左边控件、右边标题 + 说明。
+   单列、不折叠 —— 设置项还不多，折叠反而让人找不到东西。 */
+.srow{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+.srow:last-of-type{border-bottom:none}
+.srow input[type=checkbox]{width:17px;height:17px;margin-top:2px;flex:0 0 auto;accent-color:var(--amber);cursor:pointer}
+.srow .sl{flex:1;min-width:0}
+.srow .sl b{font-size:13.5px;font-weight:500;display:block}
+.srow .sl em{font-style:normal;font-size:12.3px;color:var(--fg3);display:block;margin-top:3px;line-height:1.6}
+.srow .sa{flex:0 0 auto;align-self:center}
+
+.kv{width:100%;font-size:12.5px}
+.kv td{padding:6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.kv tr:last-child td{border-bottom:none}
+.kv td:first-child{color:var(--fg3);width:150px;padding-right:12px}
+.kv td.v{font-family:var(--mono);font-size:11.5px;word-break:break-all;color:var(--fg2)}
+
+ul.plain{list-style:none;font-size:12.6px;color:var(--fg2);line-height:1.85}
+ul.plain li::before{content:"·";color:var(--fg3);margin-right:7px}
+ul.plain li.no::before{content:"✕";color:var(--red)}
+ul.plain li.yes::before{content:"✓";color:var(--green)}
+
+.catnav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.catnav a{font-size:12.5px;padding:4px 11px;border-radius:7px;border:1px solid var(--line2);
+  color:var(--fg2);background:var(--card2)}
+.catnav a:hover{border-color:var(--amber);color:var(--fg);text-decoration:none}
+
+.danger{border-color:rgba(229,83,75,.45)!important}
+.danger:hover:not(:disabled){background:rgba(229,83,75,.12)!important;border-color:var(--red)!important}
+
+code.k{font-family:var(--mono);font-size:11.5px;color:var(--fg2);
+  background:var(--card2);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="catnav">
+  <a href="#privacy">隐私与数据</a>
+  <a href="#accounts">Phira 连接</a>
+  <a href="#storage">本机存储</a>
+  <a href="#about">关于</a>
+</div>
+
+<!-- ═══════════ 隐私与数据 ═══════════ -->
+<div class="card" id="privacy">
+  <h2>隐私与数据</h2>
+  <div class="sub">控制什么会被上传。谱面文件本身<b>永远不上传</b> —— 解析全部在你浏览器里完成。</div>
+
+  <label class="srow">
+    <input type="checkbox" id="optin">
+    <span class="sl">
+      <b>登录 Phira 后自动上传成绩数据</b>
+      <em>用来校准定数参考。关闭后拖谱面、算 RKS、搜谱面全部照常，只是不再贡献数据。</em>
+    </span>
+  </label>
+
+  <div class="status" id="optinState"></div>
+
+  <h3>会上传什么 / 不会上传什么</h3>
+  <ul class="plain">
+    <li class="yes"><b>会</b>：Phira UID 与用户名（站内本来就公开）、谱面名、标称定数、你的 ACC 与单曲 RKS</li>
+    <li class="yes"><b>会</b>：拖入谱面时，谱面的<b>结构特征</b>（一串算出来的数字）</li>
+    <li class="no">不会：密码、邮箱、账号权限 —— 这些本站<b>根本接触不到</b>（认证走平台云服务）</li>
+    <li class="no">不会：谱面文件本身</li>
+  </ul>
+
+  <div class="note info">
+    对外的只有<b>聚合数字</b>。其他人看不到你的 UID 或用户名。<br>
+    贡献数据时会带一个<b>随机标识</b>（存放在你浏览器里），用来把同一个人的多次贡献归到一组 ——
+    这是<b>假名化，不是严格匿名</b>。随时可在下面「本机存储」里重置它。
+  </div>
+
+  <h3>告知确认</h3>
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <span class="dim2" style="font-size:12.5px" id="noticeState">—</span>
+    <button class="btn sm" id="noticeReset" type="button">撤回确认</button>
+  </div>
+  <div class="sub" style="margin:8px 0 0">撤回后，下次上传前会重新征求一次同意。</div>
+</div>
+
+<!-- ═══════════ Phira 连接 ═══════════ -->
+<div class="card" id="accounts">
+  <h2>Phira 连接</h2>
+  <div class="sub">本站连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>。</div>
+
+  <table class="kv">
+    <tr><td>上次填过的用户名</td><td class="v" id="pfName">—</td></tr>
+    <tr><td>上次填过的 UID</td><td class="v" id="pfUid">—</td></tr>
+    <tr><td>上次查询的玩家</td><td class="v" id="pfLast">—</td></tr>
+  </table>
+  <div class="sub" style="margin:10px 0 0">这些只存在你浏览器本地，用于下次自动填充，不随请求发出。
+    <button class="btn sm ghost" id="pfClear" type="button" style="margin-left:6px">清除</button></div>
+
+  <h3>已声明的「本人账号」</h3>
+  <div class="sub">只有你明确声明过的账号，查询时才会自动上传成绩。
+    没有这个限制的话，任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。</div>
+  <div id="ownList"><div class="empty">尚未声明任何账号</div></div>
+</div>
+
+<!-- ═══════════ 本机存储 ═══════════ -->
+<div class="card" id="storage">
+  <h2>本机存储</h2>
+  <div class="sub">本站存在你浏览器里的全部内容 —— 就这些，没有别的。</div>
+
+  <div id="inv"><div class="empty">读取中…</div></div>
+
+  <div class="row" style="margin-top:14px">
+    <button class="btn sm" id="expBtn" type="button">⬇ 导出为 JSON</button>
+    <button class="btn sm" id="cidReset" type="button">重置匿名标识</button>
+    <button class="btn sm danger" id="clearBtn" type="button">清空本站设置</button>
+  </div>
+  <div class="status" id="stMsg"></div>
+
+  <div class="note warn">
+    <b>「清空本站设置」只会删本站自己的键。</b>同源下还住着云服务的登录会话
+    （<code class="k">workbuddy-cloud.session.*</code>），那是另一个系统的数据 ——
+    本站不会碰它，所以清空后你不会被登出，只回到未配置状态。
+  </div>
+</div>
+
+<!-- ═══════════ 关于 ═══════════ -->
+<div class="card" id="about">
+  <h2>关于</h2>
+  <table class="kv">
+    <tr><td>页面版本</td><td class="v" id="abVer">—</td></tr>
+    <tr><td>引擎版本</td><td class="v" id="abEng">—</td></tr>
+    <tr><td>共享定数缓存</td><td class="v" id="abTotal">—</td></tr>
+    <tr><td>本机存储可用</td><td class="v" id="abStore">—</td></tr>
+  </table>
+  <div class="sub" style="margin-top:12px">
+    页面版本与引擎版本是<b>两根不同的轴</b>：前者是本页面的版本，后者是难度算法的版本 ——
+    算法一变，所有缓存都要重算，所以它单独记在每一行数据里。
+  </div>
+</div>
+
+<footer>
+  <div>设置存在你浏览器的 <span class="mono">localStorage</span> 里，不上传。
+    键名清单由 <span class="mono">/js/settings.js</span> 统一定义。</div>
+  <div class="fd"><a href="/privacy.html">隐私政策</a> ·
+    <a href="/app">返回工作台</a> ·
+    <a href="/">首页</a></div>
+</footer>
+
+</div>
+
+<script type="module">
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.6.0';
+import * as S from '/js/settings.js?v=V0.6.0';
+
+renderNav('settings');
+const $ = s => document.querySelector(s);
+const $$ = s => Array.prototype.slice.call(document.querySelectorAll(s));
+
+function msg(text, kind) {
+  const el = $('#stMsg');
+  el.textContent = text || '';
+  el.className = 'status' + (kind ? ' ' + kind : '');
+}
+
+/* ═══════════ 隐私与数据 ═══════════ */
+
+function paintOptin() {
+  const on = S.optin.get();
+  const cb = $('#optin');
+  if (cb.checked !== on) cb.checked = on;
+  const st = $('#optinState');
+  st.textContent = on
+    ? '当前：开启 —— 查询已声明为「本人」的账号时，会连同成绩一起上传。'
+    : '当前：关闭 —— 不会上传任何成绩数据。页面仍会请求聚合统计数字用于显示统计条，不含个人信息。';
+  st.className = 'status' + (on ? ' ok' : ' warn');
+}
+
+function paintNotice() {
+  const agreed = S.notice.agreed();
+  $('#noticeState').textContent = agreed
+    ? '已确认过上传告知。'
+    : '尚未确认 —— 下次上传前会弹一次告知。';
+  $('#noticeReset').disabled = !agreed;
+}
+
+$('#optin').addEventListener('change', function () {
+  const ok = S.optin.set(this.checked);
+  if (!ok) {
+    msg('浏览器拒绝写入本地存储（可能是隐私模式），这个开关这次不会生效。', 'err');
+    /* 写不进去就把界面改回真实状态，不要显示一个假的勾 */
+    paintOptin();
+    return;
+  }
+  paintOptin();
+});
+
+$('#noticeReset').addEventListener('click', function () {
+  S.notice.forget();
+  paintNotice();
+  msg('已撤回告知确认 —— 下次上传前会重新问你一次。', 'ok');
+});
+
+/* ═══════════ Phira 连接 ═══════════ */
+
+function paintPhira() {
+  const p = S.phira.get();
+  $('#pfName').textContent = p.name || '（没有）';
+  $('#pfUid').textContent = p.uid || '（没有）';
+  const last = S.lastUid.get();
+  $('#pfLast').textContent = last ? 'UID ' + last : '（没有）';
+  $('#pfClear').disabled = !p.name && !p.uid;
+}
+
+$('#pfClear').addEventListener('click', function () {
+  S.phira.clear();
+  paintPhira();
+  msg('已清除自动填充信息。', 'ok');
+});
+
+function paintOwn() {
+  const list = S.own.list();
+  const box = $('#ownList');
+  if (!list.length) {
+    box.innerHTML = '<div class="empty">尚未声明任何账号</div>';
+    return;
+  }
+  box.innerHTML = '<table class="kv">' + list.map(uid =>
+    '<tr><td>UID ' + esc(uid) + '</td>'
+    + '<td class="v">查询该账号时会自动上传成绩</td>'
+    + '<td style="width:1%"><button class="btn sm danger" type="button" data-unown="'
+    + esc(uid) + '">撤回</button></td></tr>').join('') + '</table>';
+  box.querySelectorAll('[data-unown]').forEach(b => b.addEventListener('click', function () {
+    const uid = this.getAttribute('data-unown');
+    S.own.unmark(uid);
+    paintOwn();
+    msg('已撤回 UID ' + uid + ' 的本人声明 —— 之后查它只查看，不上传。', 'ok');
+  }));
+}
+
+/* ═══════════ 本机存储 ═══════════ */
+
+function paintInventory() {
+  const rows = S.inventory();
+  const box = $('#inv');
+  if (!rows.length) {
+    box.innerHTML = '<div class="empty">本机没有存任何设置（全部是默认值）</div>';
+    return;
+  }
+  box.innerHTML = '<table class="kv">' + rows.map(r =>
+    '<tr><td>' + esc(r.label) + '</td>'
+    + '<td class="v">' + esc(r.value) + '</td>'
+    + '<td style="width:1%"><code class="k">' + esc(r.key) + '</code></td></tr>').join('')
+    + '</table>';
+}
+
+$('#expBtn').addEventListener('click', function () {
+  try {
+    const blob = new Blob([JSON.stringify(S.exportAll(), null, 2)],
+      { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'phm-settings.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    msg('已导出 phm-settings.json（只含设置，不含任何凭据）。', 'ok');
+  } catch (e) {
+    msg('导出失败：' + (e && e.message || '浏览器不支持'), 'err');
+  }
+});
+
+$('#cidReset').addEventListener('click', function () {
+  const next = S.cid.reset();
+  paintInventory();
+  msg('已换一个新的匿名标识（' + next + '）。之后贡献的数据不会被归到之前那组。', 'ok');
+});
+
+$('#clearBtn').addEventListener('click', function () {
+  let ok = false;
+  try {
+    ok = confirm(
+      '清空本站的全部设置？\n\n'
+      + '会删掉：上传开关、告知确认、自动填充的用户名/UID、本人账号声明、匿名标识\n\n'
+      + '不会删：云服务的登录会话（你不会被登出）\n'
+      + '不会删：服务器上的任何数据\n\n'
+      + '清空后所有设置回到默认值（默认是「开启上传」）。'
+    );
+  } catch (e) { ok = false; }
+  if (!ok) { msg('已取消，什么都没改。', ''); return; }
+  S.clearAll();
+  paintAll();
+  msg('已清空本站设置。默认状态下上传是开启的 —— 若不想上传，请重新关掉上面的开关。', 'warn');
+});
+
+/* ═══════════ 关于 ═══════════ */
+
+$('#abVer').textContent = APP_VER;
+$('#abStore').textContent = S.available ? '可用' : '不可用（隐私模式？）';
+
+(async function about() {
+  try {
+    const r = await fetch('/api/summary');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const s = await r.json();
+    $('#abEng').textContent = s.engineVer || '—';
+    const builds = Object.keys(s.byBuild || {});
+    $('#abTotal').textContent = (s.total == null ? '—' : s.total + ' 张')
+      + (builds.length > 1 ? '（含 ' + (builds.length - 1) + ' 个旧引擎版本）' : '（全部为当前引擎）');
+  } catch (e) {
+    $('#abEng').textContent = '读取失败';
+    $('#abTotal').textContent = '读取失败';
+  }
+})();
+
+/* ═══════════ 一次性全量重绘 ═══════════ */
+
+function paintAll() {
+  paintOptin();
+  paintNotice();
+  paintPhira();
+  paintOwn();
+  paintInventory();
+}
+
+/* 设置可能在**另一个标签页**被改动 —— settings.js 会广播 storage 事件，
+   这里跟着重绘，避免两个页签显示互相矛盾的状态。 */
+S.subscribe(function () { paintAll(); });
+
+paintAll();
+
+/* 深链：/settings#storage 直接滚到该区块（浏览器原生处理锚点，
+   这里只需要保证 hash 指向的元素存在 —— 它们都是静态 id）。 */
+</script>
+</body>
+</html>

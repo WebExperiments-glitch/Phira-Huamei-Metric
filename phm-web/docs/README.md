@@ -46,6 +46,7 @@ phm-web/
 │   ├── charter.html           ← 谱师页 /charter（某谱师的全部作品）
 │   ├── user.html              ← 玩家页 /user（成绩 / RKS / 逐谱成绩）
 │   ├── data.html              ← 数据管理 /data（全库分页浏览、排序、过滤）
+│   ├── settings.html          ← 设置 /settings（上传偏好 / Phira 连接 / 本机存储 / 关于）
 │   ├── en.html                ← 英文版（给 X / 国际社区，只做「拖入 + 搜索 + 分享」三件事）
 │   ├── privacy.html           ← 隐私政策
 │   ├── 404.html               ← 错误页（服务端对未命中路径下发它，状态码仍是 404）
@@ -59,6 +60,7 @@ phm-web/
 │   └── js/
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
 │       ├── ui.js              ← 导航 / 格式化 / 缓存读取 / P.H.M. RKS
+│       ├── settings.js        ← ★★ 用户设置的**唯一真源**：键名 / 默认值 / 读写 / 清理
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源
 │       ├── ref-official.js    ← 官谱参照 1,037 张（生成物，由 gen-ref.mjs 产出）
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
@@ -110,7 +112,8 @@ phm-web/
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |
 | 数据库表或权限 | `docs/DATA-MODEL.md` → 然后用 MCP 执行 SQL |
-| 隐私相关文案 | `public/privacy.html` + `app.html` 页脚的设置面板 |
+| **用户设置 / 上传开关 / 本地存储** | `public/js/settings.js` —— **键名只在那里定义一处**，页面里别再写 `localStorage.getItem("phm_…")` |
+| 隐私相关文案 | `public/privacy.html` + `app.html` 页脚的设置面板 + `/settings` 页 |
 | 要发帖子 / 写宣发文案 | `docs/PROMOTION.md` |
 
 ---
@@ -295,6 +298,7 @@ Object.assign(globalThis, __ENGINE);
 | 本地打开页面但云功能报错 | 正常现象，见上文"跑起来" |
 | 改了 `engine.js` 线上没生效 | 浏览器缓存了模块，硬刷新；并确认 `<meta name="app-version">` 已更新（版本串是各模块的 cache-buster） |
 | 服务端复核失败写不进库 | 看响应里的 `note` 字段，通常是图谱名匹配不上或下载超时 |
+| **刚改完文件跑测试，报的却是改之前的错** | `server.mjs` 的 gzip 缓存**按 mtime 失效**。同一秒内连续写同一个文件，mtime 可能没变 → 服务端仍在发旧内容。**改完等一下再跑测试**，或直接重启本地服务 |
 
 ---
 

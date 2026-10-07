@@ -42,6 +42,7 @@
 | `/charter` | `charter.html` | 谱师页：某个谱师的全部作品、档位分布、每张谱的 P.H.M. 定数 |
 | `/user` | `user.html` | 玩家页：成绩、自算 RKS、最近游玩、任意单谱的全部成绩 |
 | `/data` | `data.html` | **数据管理**：全库分页浏览、排序、过滤；每行的双标度与引擎版本 |
+| `/settings` | `settings.html` | **设置**：上传偏好 / Phira 连接信息 / 本机存储清单与清除 / 关于 |
 | `/en.html` | `en.html` | 英文落地页（给 X 上的国际用户） |
 
 **为什么拆**：①面板方案下链接没法指向"某人的成绩 / 某谱师的作品"，
@@ -296,4 +297,4 @@ node tools/smoke-page.mjs http://127.0.0.1:5199   # 真页面冒烟
 | 服务端复核有成本 | 每张**新**谱要下载一次谱面（约 1.7s / 几 MB） | 已缓存直接跳过；未来可加队列 |
 | 前端仍是单文件 | `index.html` 约 124KB（gzip 43KB），无法按组件单测；已用 `tools/smoke-page.mjs` 做整页冒烟兜底 | 可继续拆为多个 module |
 | 无 CI | 改动质量依赖人工验证 | 待补。现已备好三个可挂 CI 的脚本：`verify-engine.mjs`（44 条断言，退出码）、`verify-pages.mjs`（真浏览器驱动 UI，21 条）、`smoke-page.mjs`（4 条路由，48 条） |
-| **`app.html` 里有休眠代码** | 玩家面板迁到 `/user` 之后，`pfRender` / `pfSearch` / `pfRecent` / `pfImport` / `phmRks` / `fitPlayerCurve` 等函数已无入口调用，但仍留在文件里（约 300 行）。它们与新 `/user` 页是**两套实现**，改一处不会同步另一处 | 已确认**不可达**（面板 DOM 已删，唯一入口 `#phiraBtn` 已改成指向 `/user` 的链接）；删除需要先解开与 `contributeChart` / `loadPlayStats` 的耦合，属于独立重构，不在本次范围内。**改玩家相关逻辑时只改 `/user` + `js/phira.js`，不要动 app.html 里这几个函数** |
+| ~~`app.html` 里有休眠代码~~ ✅ **已清（2026-10-07）** | 玩家面板迁到 `/user` 之后，`pfRender` / `pfSearch` / `pfRecent` / `pfImport` / `phmRks` / `fitPlayerCurve` / `pfFindUser` / `pfMulti` / `pfPoolRun` / `confirmOwn` / `togglePanel` 等约 430 行已无入口调用 | 已全部删除（`app.html` 2338 → 1909 行）。删之前逐个人工核对：它们只被**彼此**和引用了**已删除 DOM**（`#ppanel` / `#psearch` / `#pname` / `#phiraBtn` / `#pclose`）的分支调用 —— 注意静态调用图会把这些分支当成"可达"，**必须结合实际 DOM 是否存在**才能判定。**玩家相关逻辑只在 `/user` + `js/phira.js`**，不要再往 app.html 加第二份 |

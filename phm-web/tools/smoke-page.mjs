@@ -123,6 +123,7 @@ const ROUTES = [
   { path: '/user', name: '玩家页', sel: ['#q', '#go', '#out', '#cands'], mod: 'phira' },
   { path: '/charter', name: '谱师页', sel: ['#q', '#go', '#out'], mod: 'phira' },
   { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
+  { path: '/settings', name: '设置', sel: ['#optin', '#inv', '#ownList', '#stMsg', '#abVer'], mod: 'settings' },
 ];
 
 for (const R of ROUTES) {
@@ -147,7 +148,7 @@ for (const R of ROUTES) {
   else ok('各页版本号一致', CC.ver === info.ver, CC.ver + ' vs ' + info.ver);
   ok('有页面标题', !!info.title && info.title.length > 3, info.title);
   ok('导航已渲染', info.hasNav === true);
-  ok('导航含 5 个入口', (info.navLinks || []).length >= 5, JSON.stringify(info.navLinks));
+  ok('导航含 6 个入口', (info.navLinks || []).length >= 6, JSON.stringify(info.navLinks));
   for (const sel of R.sel) ok('DOM ' + sel + ' 存在', info.dom[sel] === true);
 
   if (R.mod === 'data') {

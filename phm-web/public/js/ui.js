@@ -23,6 +23,8 @@ export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}
      /app     分析工作台（拖入谱面包 → 定数）
      /charter 谱师页（某个人的全部作品）
      /user    玩家页（成绩 / RKS / 最近游玩）
+     /data    数据管理（全库分页浏览，只读）
+     /settings 设置（上传偏好 / Phira 连接 / 本机存储）
    全部是**独立页面**而不是一个页面里的面板：面板方案下，链接没法直接
    指向"某人的成绩"，而分享链接恰恰是这个工具最主要的传播方式。 */
 const NAV = [
@@ -31,6 +33,7 @@ const NAV = [
   ['/charter', '谱师', 'charter'],
   ['/user', '玩家', 'user'],
   ['/data', '数据', 'data'],
+  ['/settings', '设置', 'settings'],
 ];
 
 export function renderNav(active) {

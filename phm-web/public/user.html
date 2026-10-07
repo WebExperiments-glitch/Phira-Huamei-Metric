@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.5.1">
+<meta name="app-version" content="V0.6.0">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/css/base.css?v=V0.5.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.6.0">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -94,9 +94,11 @@
 <script type="module">
 import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager,
          tierBadge, accCell, constCell, glossaryHTML,
-         loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js?v=V0.5.1';
+         loadChartCache, cachedRow, bestConst, phmRks, accOf, RKS_NOTE, APP_VER } from '/js/ui.js?v=V0.6.0';
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
-  from '/js/phira.js?v=V0.5.1';
+  from '/js/phira.js?v=V0.6.0';
+/* 设置的真源 —— 键名不在这里硬写。见 /js/settings.js 顶部说明。 */
+import * as SET from '/js/settings.js?v=V0.6.0';
 
 renderNav('user');
 document.getElementById('glossbox').innerHTML = glossaryHTML('u');
@@ -141,7 +143,10 @@ async function pick(u) {
   STATE.user = u;
   $('#cands').innerHTML = '';
   $('#q').value = u.name;
-  try { localStorage.setItem('phm_last_uid', String(u.id)); } catch (e) {}
+  SET.lastUid.set(u.id);
+  /* 记下这次查的是谁 —— /app 的「绑定 Phira 账号」要靠它才知道要绑哪个。
+     （以前那份信息存在已删除的玩家面板里，绑定按钮因此永远点不动。） */
+  SET.phira.set(u.name, u.id);
   /* 同步到地址栏：分享"某人的成绩页"是这个站的主要传播方式之一 */
   try { history.replaceState(null, '', '/user?uid=' + u.id); } catch (e) {}
   msg('读取成绩中…');
@@ -446,10 +451,8 @@ async function renderAll(cid, out) {
 (function boot() {
   const uid = new URLSearchParams(location.search).get('uid');
   if (uid && /^\d{1,12}$/.test(uid)) { $('#q').value = uid; doSearch(); return; }
-  try {
-    const last = localStorage.getItem('phm_last_uid');
-    if (last) $('#q').value = last;
-  } catch (e) {}
+  const last = SET.lastUid.get();
+  if (last) $('#q').value = last;
 })();
 </script>
 </body>

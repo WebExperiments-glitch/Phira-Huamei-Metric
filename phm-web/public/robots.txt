@@ -17,4 +17,8 @@ Disallow: /user
 # 被搜索引擎收录只会带来无意义的抓取（而且它自己发了 noindex）。
 Disallow: /data
 
+# 设置页不给爬：它列的是「我这台设备上存了什么」（本人账号声明的 UID 等）。
+# 而且对爬虫来说它永远是未配置的空状态，收录毫无意义（它也自己发了 noindex）。
+Disallow: /settings
+
 Sitemap: https://phm.app.workbuddy.host/sitemap.xml

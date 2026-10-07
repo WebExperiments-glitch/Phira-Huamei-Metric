@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.5.1">
+<meta name="app-version" content="V0.6.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -27,7 +27,7 @@
 <meta name="twitter:description" content="拖入谱面包，浏览器内解析，给出可审计的客观难度参考。谱面不会上传。">
 <meta name="twitter:image" content="https://phm.app.workbuddy.host/og.png">
 <meta name="theme-color" content="#0d1117">
-<link rel="stylesheet" href="/css/base.css?v=V0.5.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.6.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -455,10 +455,11 @@ border:1px solid var(--line);color:var(--fg3)}
 <!-- 玩家面板已迁到独立页面 /user（2026-10-07）。
      为什么搬走：①面板方案下链接没法指向"某人的成绩"，而分享链接是主要传播方式；
      ②面板里的实现与 /user 高度重复，两份必然漂移。
-     ⚠ 本文件里 pfRender / pfSearch / pfRecent / pfImport / phmRks / fitPlayerCurve
-     等函数已成为**休眠代码**（不再有入口调用）—— 保留是因为它们与
-     contributeChart / loadPlayStats 有耦合，硬删有回归风险；
-     清理计划见 docs/ARCHITECTURE.md「已知债务」。 -->
+     ✅ 那批休眠副本已于同日**全部删除**（pfRender / pfSearch / pfRecent / pfImport /
+     phmRks / fitPlayerCurve / pfFindUser / pfMulti / pfPoolRun / confirmOwn /
+     togglePanel 等，约 430 行）—— 删之前逐个人工确认过：它们只被彼此、
+     以及引用了**已删除 DOM**（#ppanel / #psearch / #pname / #phiraBtn）的分支调用。
+     ⚠ 玩家相关逻辑只在 /user 与 js/phira.js 里，不要再往本文件加第二份实现。 -->
 <div id="drop">
   <div class="big">把 Phira 谱面包拖到这里</div>
   <div>或点击选择文件 · 支持 .pez / .zip · 可一次多个</div>
@@ -535,7 +536,8 @@ border:1px solid var(--line);color:var(--fg3)}
     输入过的用户名 / UID 只存在你浏览器本地（localStorage）用于下次自动填充，不会随请求发出。</div>
   </details>
   <div class="setbox">
-    <button type="button" id="setBtn" class="alink">⚙ 设置</button>
+    <button type="button" id="setBtn" class="alink">⚙ 快速设置</button>
+    <a class="link" href="/settings">全部设置 →</a>
     <a class="link" href="/privacy.html" target="_blank" rel="noopener">隐私政策</a>
   </div>
   <div class="setpanel" id="setPanel" style="display:none">
@@ -593,6 +595,14 @@ import("/js/ui.js?v=" + encodeURIComponent(APP_VER)).then(function(m){
    加载后摊到全局，下面的代码照旧直接调用 zipParse / analyzeChart 等，无需改写。 */
 const __ENGINE = await import("/js/engine.js?v=" + encodeURIComponent(APP_VER));
 Object.assign(globalThis, __ENGINE);
+
+/* ── 设置的真源 ──
+   键名 / 默认值 / 读写只在 /js/settings.js 里定义一次。
+   本页不再出现裸的 localStorage.getItem("phm_...") —— 下面那些
+   OPTN / saveOptin / noticeAgreed 之类只是**薄包装**，保留它们是为了
+   不动原有的调用点，内部一律委托给 settings.js。
+   ⚠ 以后加设置项：改 settings.js，不要在页面里再写一个 key。 */
+const __SET = await import("/js/settings.js?v=" + encodeURIComponent(APP_VER));
 
 /* 分享卡片模块（同样是版本化 URL，改版本号即破缓存）。
    抖音里链接点不了、X 上光发文字没人点 —— 能跨平台传播的只有图，
@@ -902,21 +912,6 @@ window.addEventListener("unhandledrejection",function(ev){
     }
   }catch(e){}
 });
-/* 面板开关（供委托与外部调用）
-   ⚠ 两个面板互斥：同时开着会各占一整块，用户不知道在看哪个（曾经就是这样）。 */
-function togglePanel(force){
-  const p=document.getElementById("ppanel"); if(!p) return;
-  const show=(typeof force==="boolean")?force:(p.style.display==="none");
-  p.style.display=show?"":"none";
-  if(show){
-    const a=document.getElementById("authpanel"); if(a) a.style.display="none";
-    let last=null;
-    try{ last=localStorage.getItem("phm_phira_uid")||localStorage.getItem("phm_phira_name"); }catch(e){}
-    const inp=document.getElementById("pname");
-    if(last&&inp&&!inp.value) inp.value=last;
-    try{ if(inp) inp.focus(); }catch(e){}
-  }
-}
 /* 统一 click 委托 */
 document.addEventListener("click",async function(e){
   const t=e.target; if(!t||!t.closest) return;
@@ -927,8 +922,6 @@ document.addEventListener("click",async function(e){
       if(p){
         const show=(p.style.display==="none");
         p.style.display=show?"":"none";
-        /* 与「连接 Phira」面板互斥 —— 见 togglePanel 的注释 */
-        if(show){ const q=document.getElementById("ppanel"); if(q) q.style.display="none"; }
       }
       return;
     }
@@ -959,9 +952,6 @@ document.addEventListener("click",async function(e){
       return;
     }
     /* ── 面板与功能 ── */
-    if(t.closest("#phiraBtn")){ togglePanel(); return; }
-    if(t.closest("#pclose")){ const p=document.getElementById("ppanel"); if(p) p.style.display="none"; return; }
-    if(t.closest("#psearch")){ await pfSearch(); return; }
     if(t.closest("#cgo")){ await chartSearch(); return; }
     const calc=t.closest(".calcbtn");
     if(calc){
@@ -1023,8 +1013,7 @@ document.addEventListener("click",async function(e){
     if(cb&&!t.closest(".cdl")){          /* .cdl 是下载链接，不能再当「算」处理 */
       const cid=+cb.getAttribute("data-cid");
       const fromSrch=(CS.rows||[]).filter(function(c){return c.id===cid;})[0];
-      const fromPF=((PF.rows||[]).filter(function(r){return r.chart===cid;})[0]||{}).info;
-      await computeChart(cid,cb,fromSrch||fromPF||null);
+      await computeChart(cid,cb,fromSrch||null);
       return;
     }
     const pb=t.closest("#pgo");
@@ -1040,7 +1029,6 @@ document.addEventListener("keydown",async function(e){
   try{
     if(e.target.id==="aemail"||e.target.id==="apw"||e.target.id==="acode"){ await authSubmit(); return; }
     if(e.target.id==="aold"||e.target.id==="anew"){ await authChangePw(); return; }
-    if(e.target.id==="pname"){ await pfSearch(); return; }
     if(e.target.id==="csrch"){ await chartSearch(); return; }
     if(e.target.id==="pacc"){ const box=e.target.closest(".punch");
       if(box) await submitPunch(+(box.getAttribute("data-i")||STATE.sel)); }
@@ -1113,75 +1101,53 @@ window.PHM.status = function(){
     cloudDB: cloudDB ? "ok" : "null",
     autoUpload: OPTN(),
     noticeAgreed: noticeAgreed(),
-    ownDeclared: Object.keys(localStorage).filter(k => k.indexOf("phm_own_") === 0).length,
+    ownDeclared: __SET.own.list().length,
   };
 };
 
-/* 匿名会话 id（localStorage，无隐私信息） */
-function clientId(){
-  let v=null;
-  try{ v=localStorage.getItem("phm_cid"); }catch(e){}
-  if(!v){ v=Math.random().toString(36).slice(2,10);
-    try{ localStorage.setItem("phm_cid",v); }catch(e){} }
-  return v;
-}
+/* ── 设置（真源在 /js/settings.js）──
+   ⚠ 这里**不再直接读写 localStorage**。早先这几个函数各自抱着一个键名，
+   7 个键散在两个页面里、默认值还写在三个地方 —— 现在只有 settings.js 知道键名。
+   保留这些薄包装，是为了不动下面几十个调用点（OPTN()/saveOptin()/…）。 */
+function clientId(){ return __SET.cid.get(); }
+
+/* window.PHM_OPTIN 曾经是一份独立的副本（读一次就定死），
+   于是「设置页改了开关、工作台还按老值走」。改成访问器就再也不会不一致。 */
+Object.defineProperty(window, "PHM_OPTIN", {
+  configurable: true,
+  get: function(){ return __SET.optin.get(); },
+  set: function(v){ __SET.optin.set(!!v); },
+});
+
 /* ── 数据贡献偏好 ──
  * 产品定位：随走即用的小工具 —— 登录 Phira 后**自动**贡献成绩数据，让定数飞轮转起来。
  * 但「自动」不等于「静默」：首次上传前会弹一次明确告知（涉及 Phira UID 与用户名），
- * 用户不同意就直接关掉自动上传；同意后可在页面底部「设置」里随时改。 */
-window.PHM_OPTIN=(function(){
-  try{ const v=localStorage.getItem("phm_optin"); return v===null?true:v==="1"; }
-  catch(e){ return true; }
-})();
-function saveOptin(on){
-  window.PHM_OPTIN=on;
-  try{ localStorage.setItem("phm_optin",on?"1":"0"); }catch(e){}
-}
-const NOTICE_KEY="phm_notice_v1";
-function noticeAgreed(){ try{ return localStorage.getItem(NOTICE_KEY)==="1"; }catch(e){ return false; } }
-function agreeNotice(){ try{ localStorage.setItem(NOTICE_KEY,"1"); }catch(e){} }
-/* 是否「本人账号」—— 只对本人账号自动上传成绩。
-   Phira 没有给第三方 OAuth，无法做真正的所有权验证；退一步要求用户**明确声明一次**，
-   否则任何访问者都能把某个公开 Phira 用户的成绩复制进数据集，来源真实性归零。
-   声明记在本地 localStorage，不依赖账号系统。 */
-function ownKey(uid){ return "phm_own_"+uid; }
-function isDeclaredOwn(uid){ try{ return localStorage.getItem(ownKey(uid))==="1"; }catch(e){ return false; } }
-function declareOwn(uid){ try{ localStorage.setItem(ownKey(uid),"1"); }catch(e){} }
-function confirmOwn(uid,name){
-  if(isDeclaredOwn(uid)) return true;
-  let ok=false;
-  try{
-    ok=confirm(
-      "这是你自己的 Phira 账号吗？\n\n"
-      +"用户名："+(name||"?")+"\nUID："+uid+"\n\n"
-      +"选「确定」→ 记为该账号本人，之后查它时自动上传成绩。\n"
-      +"选「取消」→ 只查看，不上传任何成绩。\n\n"
-      +"为什么要问：把别人的公开成绩传进数据集会让难度统计失真，\n"
-      +"所以只对你自己确认过的账号自动上传。"
-    );
-  }catch(e){ ok=false; }
-  if(ok) declareOwn(uid);
-  return ok;
-}
+ * 用户不同意就直接关掉自动上传；同意后可在 /settings（页面底部有入口）随时改。
+ * 默认值是 true —— 但它只写在 settings.js 里一处。 */
+function saveOptin(on){ __SET.optin.set(on); }
+function noticeAgreed(){ return __SET.notice.agreed(); }
+function agreeNotice(){ __SET.notice.agree(); }
 
-/* 首次上传前的明确告知。不同意 → 自动关闭上传，回到纯本机计算。 */
+/* 首次上传前的明确告知。不同意 → 自动关闭上传，回到纯本机计算。
+   覆盖**两条**上传路径（成绩 + 谱面结构），不能只写"成绩" ——
+   拖入谱面走的是另一条，文案漏掉它就成了另一种不一致。 */
 function ensureNotice(){
   if(noticeAgreed()) return true;
   let ok=false;
   try{
     ok=confirm(
-      "P.H.M. 会在你登录 Phira 后自动上传成绩数据，用于校准难度参考。\n\n"
-      +"会上传：\n"
-      +"  - 你的 Phira UID 与用户名\n"
-      +"  - 谱面名、标称定数、你的 ACC 与单曲 RKS\n\n"
+      "P.H.M. 会在下面两种情况下自动上传数据，用于校准难度参考：\n\n"
+      +"  · 你查询 Phira 账号并已声明为本人 → 上传成绩\n"
+      +"    （你的 UID 与用户名、谱面名、标称定数、你的 ACC 与单曲 RKS）\n"
+      +"  · 你拖入谱面 → 上传该谱面的结构特征（一串算出来的数字）\n\n"
       +"不会上传：\n"
       +"  - 密码、邮箱、账号权限\n"
       +"  - 谱面文件本身（解析全部在你本机完成）\n\n"
       +"用途：统计各谱的实际难度分布、改进定数参考。对外的只有聚合数字，\n"
       +"      其他人看不到你的 UID 或用户名。\n"
       +"不想上传：选「取消」，自动上传会被关掉，功能照常用。\n"
-      +"      之后也可以随时在页面底部「设置」重新打开。\n\n"
-      +"详见《隐私政策》（页面底部有链接）。是否同意？"
+      +"      之后也可以随时在「设置」页重新打开。\n\n"
+      +"详见《隐私政策》。是否同意？"
     );
   }catch(e){ ok=false; }
   if(ok) agreeNotice(); else saveOptin(false);
@@ -1295,7 +1261,6 @@ function renderCount(n){
 
 /* ═════════ Phira 连接：公开 API（无需密码，CORS 开放）═════════ */
 const PHIRA_API="https://api.phira.cn";
-const PF={user:null,rows:[],mode:"best",stats:null};
 /* 面板内消息。⚠ 面板收起时用户看不见 —— 自动转发到页面级状态条 */
 function pfMsg(t,col){
   const el=$("#pfmsg");
@@ -1333,136 +1298,8 @@ async function pfGet(p,retries){
   }
   throw lastErr || new Error("Phira API 不可用");
 }
-/* 限并发执行（备用：批量端点不可用时降级） */
-function pfPoolRun(items,limit,fn){
-  const out=new Array(items.length); let i=0;
-  const n=Math.min(limit,items.length)||1;
-  return Promise.all(Array.from({length:n},function(){
-    return (async function(){ while(i<items.length){ const k=i++;
-      try{ out[k]=await fn(items[k],k); }catch(e){ out[k]=null; } } })();
-  })).then(function(){return out;});
-}
-/* 批量端点：/xxx/multi-get?ids=a,b,c → 按 id 建索引（不依赖返回顺序） */
-async function pfMulti(kind,ids){
-  if(!ids.length) return {};
-  const arr=await pfGet("/"+kind+"/multi-get?ids="+ids.join(",")).catch(function(){return null;});
-  if(!Array.isArray(arr)) return null;          /* 端点失效 → 调用方降级 */
-  const map={}; arr.forEach(function(o){ if(o&&o.id!=null) map[o.id]=o; });
-  return map;
-}
 function lvShort(l){ return String(l||"").replace(/\s+/g," ").trim(); }
-function lvTag(l){ const m=/^([A-Za-z]{2,3})/i.exec(String(l||"")); return m?m[1].toUpperCase():"?"; }
 
-function pfRender(){
-  const u=PF.user,rows=PF.rows||[],mode=PF.mode,st=PF.stats;
-  if(!u) return;
-  const joined=String(u.joined||"").slice(0,10);
-  const isBest=(mode==="best");
-  let meta='#'+esc(u.id)+' · 粉丝 '+esc(u.follower_count)+(joined?' · 加入 '+esc(joined):"");
-  if(st&&st.numRecords!=null)
-    meta+='<br>'+st.numRecords+' 次游玩 · 平均准度 '+(st.avgAccuracy*100).toFixed(1)+'%';
-  let html='<div class="pfuser">'
-    +(u.avatar?'<img src="'+esc(u.avatar)+'" alt="" onerror="this.style.display=\'none\'">':"")
-    +'<div><div class="nm">'+esc(u.name)+'</div>'
-    +'<div class="meta">'+meta+'</div></div>'
-    +'<div class="rks"><b>'+(+u.rks).toFixed(2)+'</b>'
-    +'<span>'+(isBest?'RKS（Phira 官方值 · 客户端不显示，这里能看）'
-      :'官方 RKS · 只统计已上架谱面')+'</span></div></div>';
-  const pm=phmRks(rows);
-  if(!(+u.rks>0)){
-    html+='<div class="pfnb"><b>官方 RKS 是 0 —— 这不是你的问题，也不是设置问题。</b>'
-      +'实测（抽样 10 位<b>今天还在玩</b>的活跃玩家）：他们的 bestPool 最新成绩全部停在 '
-      +'<b>2023 ~ 2026-03</b> 之间（最晚一条 2026-03-19），而他们的排行榜成绩天天在更新。'
-      +'→ <b>Phira 服务端的 RKS / B19 计算已停止更新</b>，单曲排行榜仍在实时运作。'
-      +'所以你打上架谱、榜上能看到自己，RKS 却永远不动；2026 年之后注册的账号 bestPool 从一开始就是空的。'
-      +'这不是玩家能修的东西。</div>';
-  }else if(!isBest){
-    html+='<div class="pfnb">ⓘ B19 为空 —— Phira 的 B19 只收录已上架谱面，'
-      +'你最近打的多为未上架谱面。下面是你最近的成绩（<b>P.H.M. 照收不误</b>）。</div>';
-  }
-  if(pm){
-    html+='<div class="pmrks"><div class="pmhead">P.H.M. RKS'
-      +'<b>'+pm.fair.toFixed(2)+'</b><span class="pmtag">官方停更后的替代值</span></div>'
-      +'<div class="pmdesc">公式经反推验证与 Phira 官方一致（32 个样本，'
-      +'「内部定数 ÷ 标称定数」比值中位 <b>1.0000</b>）：'
-      +'<span class="mono">单曲 rks = ((acc−55)/45)² × 定数</span>。'
-      +'本次计入 <b>'+pm.n+'</b> 条'
-      +(pm.phi?'，φ 位 <b>'+esc(pm.phi.name)+'</b>（定数 '+pm.phi.lv.toFixed(2)+'，已 AP）'
-             :'，暂无 φ 位（计 0）')
-      +'。定数来源：<b>P.H.M. '+pm.phmN+' 条</b> / 标称 '+pm.phiraN+' 条'
-      +(pm.phmN?'（P.H.M. 那几条是用谱面实际结构算的，更准）'
-              :'（还没算过 P.H.M. 定数，下表点「算」可逐张提升精度）')
-      +'。</div>'
-      +(pm.cnt<20?'<div class="pmwarn">⚠ 只凑到 <b>'+pm.cnt+'</b> 条（标准 B19 要 19 条 + φ1）。'
-        +'官方 ÷20 口径会把这个值压到 '+pm.rks.toFixed(2)+'，明显低于你的真实水平 —— '
-        +'所以主显示用的是按实际条数平均。<b>多打几首，两个值就会靠拢。</b></div>':'')
-      +'<div class="pmrows">'
-      +pm.b19.slice(0,5).map(function(x,i){
-        return '<div><span class="i">'+(i+1)+'</span>'
-          +'<span class="n">'+esc(x.name)+'</span>'
-          +'<span class="a">'+(x.acc==null?'—':x.acc.toFixed(2)+'%')+'</span>'
-          +'<span class="l">定数 '+x.lv.toFixed(2)+'</span>'
-          +'<span class="s">'+x.sr.toFixed(2)+'</span></div>';}).join("")
-      +(pm.b19.length>5?'<div class="more">… 共 '+pm.b19.length+' 条单曲 rks</div>':'')
-      +'</div>'
-      +'<div class="pmnote">定数取谱面标称值（未上架谱面为谱师自报，可能偏高或偏低）；'
-      +'成绩数据源只到最近 20 次游玩，因此实际水平大概率高于此值。</div></div>';
-  }
-  /* 水平曲线 + 残差：用玩家自己的成绩抵消水平差异，看哪张谱偏离 */
-  const pc=fitPlayerCurve(rows);
-  const resMap={};
-  if(pc){
-    pc.pts.forEach(function(p){ resMap[p.chart]=p.res; });
-    const thr=1.5*pc.sd;
-    const hi=pc.pts.filter(function(p){return p.res>=thr;});
-    const lo=pc.pts.filter(function(p){return p.res<=-thr;});
-    html+='<div class="pcurve">📈 <b>你的水平曲线</b>（按 '+pc.n+' 条成绩拟合）：'
-      +'定数每 +1 级，ACC '+(pc.b1<0?'−':'+')+Math.abs(pc.b1).toFixed(2)+' 个百分点'
-      +' · 残差 σ = '+pc.sd.toFixed(2)+' 分 · 偏离阈值 ±'+thr.toFixed(2);
-    if(hi.length) html+='<br>✅ 明显高于你该有的表现（谱<b>偏简单</b>）：'
-      +hi.map(function(p){return esc(p.name)+'（+'+p.res.toFixed(1)+'）';}).join('、');
-    if(lo.length) html+='<br>⚠ 明显低于你的水平（谱<b>偏难</b>）：'
-      +lo.map(function(p){return esc(p.name)+'（'+p.res.toFixed(1)+'）';}).join('、');
-    if(!hi.length&&!lo.length) html+='<br>暂无超过阈值的谱 —— 你的成绩与标称定数总体吻合。';
-    html+='<div class="pcnote">这是<b>相对</b>结论：用你自己的成绩抵消了玩家水平差异，'
-      +'所以能指出「同一个标称定数里哪张更简单/更难」，但得不出<b>绝对</b>难度 —— '
-      +'绝对值要看结构定数（P.H.M.）与多玩家共识。样本越多越可靠。</div></div>';
-  }
-  const mineN=rows.filter(function(r){return cachedConst(r.chart)!=null;}).length;
-  html+='<table class="btable"><tr><th class="idx">#</th><th>曲名</th><th>等级</th>'
-    +'<th>标称</th><th class="pmh">P.H.M.</th>'
-    +'<th>'+(isBest?'单曲 RKS':'你最好 ACC')+'</th>'
-    +(isBest?'':'<th>次数</th>')+'</tr>'
-    +rows.map(function(r,i){
-      const inf=r.info||{};
-      const mine=cachedConst(r.chart);
-      return '<tr><td class="idx">'+(i+1)+'</td>'
-        +'<td>'+esc(inf.name||("谱面 #"+r.chart))
-          +(pc&&resMap[r.chart]!=null&&Math.abs(resMap[r.chart])>=1.5*pc.sd
-            ?'<span class="resflag'+(resMap[r.chart]>0?' up':' down')+'">'
-             +(resMap[r.chart]>0?'易':'难')+'</span>':'')
-          +'</td>'
-        +'<td>'+esc(lvShort(inf.level)||"-")+'</td>'
-        +'<td class="oc">'+(inf.difficulty!=null?(+inf.difficulty).toFixed(2):"-")+'</td>'
-        +'<td class="pm">'+(mine!=null
-            ? '<b>'+mine.toFixed(2)+'</b>'
-            : (inf.file
-              ? '<button class="dlbtn" type="button" data-file="'+esc(inf.file)
-                +'" data-name="'+esc(inf.name||("谱面 #"+r.chart))
-                +'" title="下载谱面包；下完拖到下面的虚线框即出定数">📥</button>'
-              : '<span style="color:var(--fg3)">—</span>'))+'</td>'
-        +'<td class="rk">'+(isBest?(+r.rks).toFixed(2):(r.acc*100).toFixed(2)+"%")+'</td>'
-        +(isBest?'':'<td class="oc">'+r.plays+'</td>')+'</tr>';
-    }).join("")+'</table>';
-  html+='<div class="pmhint">「P.H.M.」列 = 用本页引擎解析谱面算出的参考定数，'
-    +'与标称定数（谱师自报/官方）独立。<b>共 '+rows.length+' 张，已算 '+mineN+' 张</b>'
-    +(mineN<rows.length?'，点「算」即按需下载那张谱面（不预下载全库）':'')+'。</div>';
-  html+='<div class="improw"><button id="pimport" type="button">'
-    +'📥 把'+(isBest?'这 '+rows.length+' 条最好成绩':'这 '+rows.length+' 张谱的最好成绩')+'导入数据飞轮</button>'
-    +'<span class="hint">只含谱面与成绩数据，不含账号密码；用来校准定数公式。</span></div>';
-  $("#pfout").innerHTML=html;
-  const ib=$("#pimport"); if(ib) ib.addEventListener("click",pfImport);
-}
 
 /* ═════ 谱面搜索（Phira 公开 API；结果带谱号，可一键算 P.H.M. 定数）═════ */
 const CS={rows:[]};
@@ -1536,23 +1373,6 @@ function renderChartSearch(kw){
     +'也可以点 <b>📥</b> 手动下载，把 zip 拖到下面的虚线框 —— 那才是<b>本机计算</b>路径（谱面文件不会上传）。</div>';
 }
 
-/* 用户查找：纯数字走 UID 直查，否则按用户名搜索 */
-async function pfFindUser(input){
-  const s=String(input||"").trim();
-  if(!s) return {err:"先填用户名或 UID"};
-  if(/^\d{1,12}$/.test(s)){                     /* UID 直查（不抛错，返回 null） */
-    const r=await fetch(PHIRA_API+"/user/"+s,{headers:{Accept:"application/json"}})
-      .catch(function(){return null;});
-    if(!r) return {err:"网络异常，稍后再试"};
-    const j=await r.json().catch(function(){return null;});
-    if(j&&j.id!=null) return {user:j};
-    return {err:"没找到 UID 为 "+s+" 的用户"};
-  }
-  const j=await pfGet("/user?search="+encodeURIComponent(s)+"&page=1");
-  const u=(j&&j.results&&j.results[0])||null;
-  if(!u) return {err:"没找到「"+s+"」，检查拼写（区分大小写）"};
-  return {user:u};
-}
 
 /* 数值清洗：越界/非有限值一律置 null，避免触发数据库 CHECK 约束；dp 指定小数位 */
 function numOrNull(v,min,max,dp){
@@ -1755,7 +1575,12 @@ async function authRender(){
 }
 async function renderBind(){
   const el=document.getElementById("abind"); if(!el) return;
-  const uid=(PF.user&&PF.user.id)||null, name=(PF.user&&PF.user.name)||null;
+  /* Phira 账号取自「设置里存的上次查询」（/user 页查完会写进去）。
+     ⚠ 以前这里读的是 PF.user —— 那来自已删除的玩家面板，恒为 null，
+     于是「绑定 Phira 账号」按钮永远提示"先点「连接 Phira」查一次"，
+     而那个入口早就不存在了。绑定路径实际是断的，顺手接上。 */
+  const _pf=__SET.phira.get();
+  const uid=(+_pf.uid)||null, name=_pf.name||null;
   let bound=null;
   try{ const r=await cloudDB.from("phm_profiles").select("phira_uid,phira_name").maybeSingle();
        if(r&&r.data) bound=r.data; }catch(e){}
@@ -1766,13 +1591,14 @@ async function renderBind(){
     el.innerHTML="🔗 还没绑定。刚查到的 Phira 账号：<b>"+esc(name)+"</b> #"+uid
       +'<br><button type="button" class="aprimary" id="abindgo">绑定这个 Phira 账号</button>';
   }else{
-    el.innerHTML="🔗 还没有绑定 Phira 账号。<br>先点上方「连接 Phira」查一次（输用户名或 UID），再回来绑定。";
+    el.innerHTML="🔗 还没有绑定 Phira 账号。<br>先去<b>「玩家」</b>页查一次你自己的账号（输用户名或 UID），再回来绑定。";
   }
 }
 async function authBind(){
   if(!AUTH.user){ csMsg("请先登录","warn"); return; }
-  const uid=(PF.user&&PF.user.id)||null, nm=(PF.user&&PF.user.name)||null;
-  if(!uid){ csMsg("先点「连接 Phira」查到一个账号，再回来绑定","warn"); return; }
+  const _pf=__SET.phira.get();
+  const uid=(+_pf.uid)||null, nm=_pf.name||null;
+  if(!uid){ csMsg("先去「玩家」页查一次你自己的 Phira 账号，再回来绑定","warn"); return; }
   const r=await cloudDB.from("phm_profiles")
     .upsert({phira_uid:numOrNull(uid,1,null),phira_name:txtOrNull(nm,60),
              last_seen:new Date().toISOString()},{onConflict:"owner_id"});
@@ -1853,6 +1679,11 @@ async function renderStats(){
    写进去的只有谱面结构特征，谱面文件本身不会上传。 */
 async function contributeChart(rep){
   if(!OPTN()) return null;                       /* 第二道防线：关闭时绝不贡献 */
+  /* ⚠ 第三道防线（2026-10-07 补）：首次贡献前必须**明确告知过**。
+     在这之前 ensureNotice() 只被 pfSearch 调用，而那条路径早已不可达 ——
+     于是「首次上传前会弹一次告知」这句承诺其实从未兑现：开关默认开着，
+     用户拖一张谱就静默上传了。文案与行为不一致，必须按行为修。 */
+  if(!ensureNotice()) return null;
   if(!cloudDB||!rep||rep.error||!rep.name) return null;
   const rc=rep.knn&&rep.knn.ref;
   if(rc==null) return null;
@@ -1904,34 +1735,6 @@ async function contributeChart(rep){
   }catch(e){ return null; }
 }
 
-/* ── 玩家水平曲线 + 残差分析 ──
-   原理（用户提出的方法论）：同一玩家短期内水平恒定 → 用他自己的成绩拟合
-   「ACC ~ 定数」曲线，再看每张谱偏离曲线多远。正残差=比他该有的表现好（谱偏简单）
-   ⚠ 只能得到「相对排序」，得不出绝对难度 —— 绝对值要靠结构定数或多玩家共识 */
-function fitPlayerCurve(rows){
-  const pts=[];
-  (rows||[]).forEach(function(r){
-    const inf=r.info||{};
-    const mine=cachedConst(r.chart);
-    const lv=mine!=null?mine:(inf.difficulty!=null?+inf.difficulty:null);
-    let acc=null;
-    if(r.acc!=null) acc=r.acc*100;
-    else if(r.accuracy!=null) acc=r.accuracy*100;
-    if(lv==null||!(lv>=1&&lv<=20)||acc==null||!(acc>=70)) return;
-    pts.push({lv:lv,acc:acc,name:inf.name||("谱面 #"+r.chart),chart:r.chart});
-  });
-  if(pts.length<6) return null;                    /* 样本太少不拟合 */
-  const n=pts.length;
-  let mx=0,my=0; pts.forEach(function(p){mx+=p.lv/n;my+=p.acc/n;});
-  let sxy=0,sxx=0;
-  pts.forEach(function(p){sxy+=(p.lv-mx)*(p.acc-my);sxx+=(p.lv-mx)*(p.lv-mx);});
-  if(!(sxx>1e-9)) return null;
-  const b1=sxy/sxx, b0=my-b1*mx;
-  pts.forEach(function(p){ p.res=p.acc-(b0+b1*p.lv); });
-  let ss=0; pts.forEach(function(p){ss+=p.res*p.res;});
-  const sd=Math.sqrt(ss/n);
-  return {pts:pts.sort(function(a,b){return b.res-a.res;}),b1:b1,b0:b0,sd:sd,n:n};
-}
 
 /* ── 数据飞轮的可见产出：这张谱别人打得怎么样 ──
    走 phm_plays 聚合 RPC：只拿「条数/均值/中位/极值」，不接触任何 UID、用户名、client_id。
@@ -2080,7 +1883,6 @@ async function computeChart(cid,btn,info){
     csMsg("✅ 《"+esc(payload.name)+"》 → P.H.M. 定数 <b>"
       +(rc!=null?rc.toFixed(2):"—")+"</b>"
       +(rc!=null?"（AP 时单曲 rks 就等于这个数）":"")+" · 已存入共享缓存","ok");
-    pfRender();
     if(typeof renderChartSearch==="function") renderChartSearch();
   }catch(err){
     btn.outerHTML='<a class="cdl" href="'+esc(url)+'" target="_blank" rel="noopener"'
@@ -2096,225 +1898,8 @@ async function computeChart(cid,btn,info){
   }
 }
 
-/* P.H.M. RKS —— 官方 RKS 停更后的替代值
-   公式同 Phigros 社区：rks = (Σ B19 + φ位) / 20
-   单曲 rks = ((acc−55)/45)² × 定数（acc<70 记 0）；
-   定数优先用谱面 difficulty，缺失则该条不计入 */
-function phmRks(rows){
-  const items=[];
-  (rows||[]).forEach(function(r){
-    const inf=r.info||{};
-    const mine=cachedConst(r.chart);                        /* 优先用我们算的定数 */
-    const lv=mine!=null?mine:(inf.difficulty!=null?+inf.difficulty:null);
-    if(lv==null||!(lv>=1&&lv<=20)) return;                  /* 定数离群（谱师乱填）跳过 */
-    const nm=inf.name||("谱面 #"+r.chart);
-    if(r.rks!=null&&r.acc==null){                           /* B19 模式：不重算，用 Phira 值 */
-      items.push({lv:lv, acc:null, sr:+r.rks, name:nm, src:mine!=null?"phm":"phira"});
-      return;
-    }
-    let accPct=null;
-    if(r.acc!=null) accPct=r.acc*100;                       /* 最近成绩模式：0–1 → % */
-    else if(r.accuracy!=null) accPct=r.accuracy*100;
-    if(accPct==null||!(accPct>=70)) return;
-    const k=(accPct-55)/45;
-    items.push({lv:lv, acc:accPct, sr:k*k*lv, name:nm, src:mine!=null?"phm":"phira"});
-  });
-  if(!items.length) return null;
-  items.sort(function(a,b){return b.sr-a.sr;});
-  const b19=items.slice(0,19);
-  const phis=items.filter(function(x){return x.acc!=null&&x.acc>=100;})
-                  .sort(function(a,b){return b.lv-a.lv;});
-  const phi=phis[0]||null;
-  let sum=0; b19.forEach(function(x){sum+=x.sr;});
-  const bonus=phi?phi.lv:0;
-  const cnt=b19.length+(phi?1:0);
-  const phmN=items.filter(function(x){return x.src==="phm";}).length;
-  return {
-    rks:(sum+bonus)/20,                    /* Phigros 口径：不足按 0 补足 20 */
-    fair:cnt?((sum+bonus)/cnt):0,          /* 按实际条数平均（样本少时更接近真实水平） */
-    n:items.length, b19:b19, phi:phi, sum:sum, cnt:cnt,
-    phmN:phmN, phiraN:items.length-phmN
-  };
-}
-async function pfRecent(uid){
-  const recs=await pfGet("/record?player="+uid);
-  if(!Array.isArray(recs)||!recs.length) return null;
-  const agg={};
-  recs.forEach(function(r){
-    const k=r.chart;
-    if(!agg[k]) agg[k]={chart:k,plays:0,record:r.id,acc:0,last:r.time};
-    agg[k].plays++;
-    if(r.accuracy>agg[k].acc){ agg[k].acc=r.accuracy; agg[k].record=r.id; }
-    if(r.time>agg[k].last) agg[k].last=r.time;
-  });
-  const list=Object.keys(agg).map(function(k){return agg[k];});
-  list.sort(function(a,b){return b.acc-a.acc;});
-  let cmap=await pfMulti("chart",list.map(function(x){return x.chart;}));
-  if(cmap===null){
-    const arr=await pfPoolRun(list,5,async function(x){
-      return pfGet("/chart/"+x.chart).catch(function(){return null;});});
-    cmap={}; arr.forEach(function(c,i){ if(c) cmap[list[i].chart]=c; });
-  }
-  list.forEach(function(x){ x.info=(cmap&&cmap[x.chart])||null; x.recent=true; });
-  return list;
-}
 
-async function pfSearch(){
-  const raw=$("#pname").value.trim();
-  if(!raw){ pfMsg("先填用户名或 UID","var(--red)"); return; }
-  const btn=$("#psearch"); btn.disabled=true;
-  $("#pfout").innerHTML=""; pfMsg("查询用户…");
-  try{
-    const found=await pfFindUser(raw);
-    if(found.err){ pfMsg(found.err,"var(--red)"); btn.disabled=false; return; }
-    const u=found.user;
-    /* 统计（并行取，失败不影响主流程） */
-    const stats=await pfGet("/user/"+u.id+"/stats").catch(function(){return null;});
-    pfMsg("读取最好成绩…");
-    let pool=[];
-    try{ pool=(await pfGet("/record/get-pool/"+u.id)).bestPool||[]; }catch(e){ pool=[]; }
-    let mode="best", rows=null;
-    if(pool.length){
-      const cids=pool.map(function(p){return p.chart;});
-      let cmap=await pfMulti("chart",cids);
-      if(cmap===null){                       /* 降级：逐个拉 */
-        let done=0;
-        const arr=await pfPoolRun(pool,5,async function(p){
-          const c=await pfGet("/chart/"+p.chart).catch(function(){return null;});
-          done++; pfMsg("拉取谱面信息…（"+done+"/"+pool.length+"）");
-          return c;});
-        cmap={}; arr.forEach(function(c,i){ if(c) cmap[pool[i].chart]=c; });
-      }
-      rows=pool.map(function(p){
-        return {chart:p.chart,record:p.record,rks:p.rks,info:cmap[p.chart]||null,plays:1};});
-    }else{
-      /* B19 为空：Phira 的 B19/RKS 只统计「已上架」谱面 —— 回退到最近成绩 */
-      pfMsg("B19 为空（未上架谱面不计入）→ 改读最近成绩…");
-      const recent=await pfRecent(u.id);
-      if(!recent||!recent.length){
-        pfMsg("这个账号在 Phira 上没有可读的成绩（可能一直离线游玩）","var(--red)");
-        btn.disabled=false; return;
-      }
-      mode="recent"; rows=recent;
-    }
-    PF.user=u; PF.rows=rows; PF.mode=mode; PF.stats=stats;
-    try{
-      localStorage.setItem("phm_phira_name",u.name);
-      localStorage.setItem("phm_phira_uid",String(u.id));
-    }catch(e){}
-    pfMsg("读取共享定数缓存…");
-    await loadChartCache(rows.map(function(r){return r.chart;}));
-    pfMsg("");
-    pfRender();
-    /* 随走即用：查到 Phira 账号后自动贡献成绩数据。
-       ⚠ 但只对「本人声明的账号」自动上传 —— 否则任何访问者都能把某个公开 Phira
-       用户的成绩复制进数据集，数据来源真实性归零。首次遇到某个 UID 时问一次。 */
-    if(OPTN() && ensureNotice()){
-      if(await confirmOwn(u.id,u.name)){
-        setTimeout(function(){ try{pfImport(true);}catch(e){} },120);
-      }else{
-        csMsg("已跳过成绩上传 —— 只对<b>你确认过的本人账号</b>自动上传（可在底部「⚙ 设置」里调整）。","warn");
-      }
-    }
-  }catch(e){
-    pfMsg("查询失败："+(e&&e.message?e.message:"网络异常")+"（Phira API 可能临时不可用）","var(--red)");
-  }
-  btn.disabled=false;
-}
 
-async function pfImport(auto){
-  const real=$("#pimport");
-  if(!auto && !real) return;                 /* 手动模式必须有按钮 */
-  /* 自动模式下没有按钮可操作：用一个空壳兜住，省得每个分支都判空 */
-  const btn=real||{};
-  if(!cloudDB){ pfMsg("云服务未连上，无法导入","var(--red)"); return; }
-  btn.disabled=true;
-  const rows=PF.rows, u=PF.user, isBest=(PF.mode==="best");
-  let recs={};
-  if(isBest){                            /* 最好成绩模式：补拉准确率 */
-    pfMsg("读取准确率…");
-    let m=await pfMulti("record",rows.map(function(r){return r.record;}));
-    if(m===null){                        /* 降级：逐个拉 */
-      let done=0;
-      const arr=await pfPoolRun(rows,5,async function(r){
-        const rec=await pfGet("/record/"+r.record).catch(function(){return null;});
-        done++; pfMsg("读取准确率…（"+done+"/"+rows.length+"）");
-        return rec;});
-      m={}; arr.forEach(function(rec,i){ if(rec) m[rows[i].record]=rec; });
-    }
-    recs=m;
-  }
-  const payload=rows.map(function(r){
-    const inf=r.info||{};
-    let acc=null;
-    if(isBest){
-      const rec=recs[r.record];
-      acc=rec&&rec.accuracy!=null?+(rec.accuracy*100).toFixed(4):null;
-    }else if(r.acc!=null){
-      acc=+(r.acc*100).toFixed(4);       /* 聚合时已算好（0–1 → %） */
-    }
-    return {
-      chart_name:txtOrNull(inf.name||("谱面 #"+r.chart),120),
-      chart_diff:txtOrNull(lvTag(inf.level),8),
-      chart_level:txtOrNull(lvShort(inf.level),60),
-      official_const:numOrNull(inf.difficulty,1,25,3),
-      acc:numOrNull(acc,0,100,4),
-      song_rks:isBest?numOrNull(r.rks,0,25,3):null,
-      chart_id:numOrNull(r.chart,1,null),
-      phira_user_id:numOrNull(u.id,1,null),
-      phira_user_name:txtOrNull(u.name,60),
-      source:isBest?"phira":"phira-recent",
-      engine_ver:ENGINE_VER,
-      client_id:clientId()
-    };
-  }).filter(function(x){
-    /* 关键字段缺失的条目剔除 —— 批量写入时一条非法会导致整批失败 */
-    return x.chart_id!=null&&x.phira_user_id!=null&&x.chart_name;
-  });
-  if(!payload.length){ csMsg("没有可写入的有效成绩（谱号或用户信息缺失）","err"); btn.disabled=false; return; }
-  /* 隐私：导入会把 Phira UID 与用户名写进公开数据池 —— 先明确列出字段并征得同意。
-     （此前这条路径没有独立同意，和「不含账号昵称」的文案冲突，已修） */
-  /* 自动模式不弹确认 —— 首次告知已在 ensureNotice() 里做过（不同意就已关掉自动上传） */
-  if(!auto){
-    const okGo=confirm(
-      "即将把 "+payload.length+" 条成绩上传到公开数据飞轮：\n\n"
-      +"· 谱名、等级、标称定数\n"
-      +"· 你的 ACC、单曲 RKS\n"
-      +"· 你的 Phira UID（#"+u.id+"）与用户名（"+u.name+"）—— 用于区分不同玩家\n\n"
-      +"以上都是 Phira 站内本来就公开的信息，不含密码、邮箱或任何私密数据。\n"
-      +"数据会汇总用于校准定数公式。继续吗？");
-    if(!okGo){ csMsg("已取消导入 —— 没有上传任何数据","warn"); btn.disabled=false; return; }
-    csMsg("正在写入…");
-  }else{
-    csMsg("正在自动上传成绩数据（用于校准定数）…");
-  }
-  try{
-    /* 先查出已存在的条数（同账号 + 同谱面），给出提示。
-       走 phm_mine RPC —— 只回一个计数，不再拉取整行。 */
-    let existN=0;
-    try{
-      const cids=payload.map(function(x){return x.chart_id;});
-      const ex=await cloudDB.rpc("phm_mine",{uid_in:u.id,ids_in:cids});
-      if(!ex.error&&typeof ex.data==="number") existN=ex.data;
-    }catch(e){}
-    /* 走服务端网关：分批 + 限流 + 校验都在服务端做（失败会自动回退直连） */
-    csMsg("正在写入 "+payload.length+" 条成绩…（服务端校验中）");
-    const wr=await apiWrite("/api/scores",payload);
-    const written=(wr&&wr.written)||0;
-    if(!written) throw new Error("服务端未写入任何行");
-    const added=Math.max(0,written-existN);      /* 只有新增才算「收到」，更新不重复计数 */
-    let txt="✅ 已写入 "+written+" 条成绩（新增 "+added+" 条）";
-    if(existN>0) txt+="，其中 "+existN+" 条已存在 → 已更新为最新成绩";
-    txt+="，感谢你帮定数公式变准！";
-    csMsg(txt,"ok");
-    btn.disabled=false;
-    btn.textContent="🔄 再导入一次（已写入 "+written+" 条）";   /* 保留入口，可重复点（upsert 幂等） */
-    renderCount((window.PHM_COUNT||0)+added);
-  }catch(e){
-    btn.disabled=false;
-    csMsg("导入失败："+esc((e&&e.message)||"网络异常"),"err");
-  }
-}
 
 /* （面板开关与全部按钮绑定已在脚本开头的统一委托块完成） */
 </script>
