@@ -23,6 +23,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { reviewContribution, grosslyMismatched, recompute } from './lib/review.mjs';
+/* 云数据库访问层（配置 + 写入凭据 + 两个写 RPC）都在 lib/cloud.mjs，
+   与 tools/ 下的批量脚本共用同一份 —— 别再复制一份到这里。 */
+import { dbFetch, dbPutChart, dbPutScores } from './lib/cloud.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 /* 静态资源根目录。
@@ -40,99 +43,9 @@ function storeLoad() {
 }
 function storeSave(o) { try { fs.writeFileSync(STORE, JSON.stringify(o)); } catch {} }
 
-/* ── 云数据库（服务端复现浏览器调用方式）──
- * 实测确认：认证头是 x-wb-webapp-access-key（=publishableKey），身份由 referer 判定。
- * ⚠ 这意味着服务端与浏览器同为 anon 角色 —— 所以这一层**不是**「更高权限」。
- * 服务端唯一真正的特权来自下面那把写入凭据（配合 SECURITY DEFINER 函数）。 */
-const DB = {
-  base: 'https://phm.app.workbuddy.host/.cloud/database/rest',
-  key: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b',
-  referer: 'https://phm.app.workbuddy.host/',
-  batch: 8,          /* 环境级限流约 25~40 并发触发，服务端同样要温和 */
-  gapMs: 400,
-};
-
-/* ── 写入凭据：phm_charts / phm_scores 唯一写路径的钥匙 ──
- * anon / authenticated 对两张表的 INSERT/UPDATE/DELETE 已被撤销，
- * 直连 REST 写库一律 42501（实测：朴素投毒 / 伪造 server-verified / 改权威值 全部 401）。
- * 只剩 phm_put_chart() / phm_put_scores() 这一条路，而它要求带上这把凭据。
- *
- * ⚠ 凭据**不写在源码里** —— 仓库是公开的，硬编码等于把钥匙挂在门上。
- *   读取顺序：环境变量 PHM_WRITE_SECRET → 同目录 write-secret.txt（已 gitignore）。
- *   都没有 → 空串 → 所有写入失败，但**服务本身照常可用**：
- *   /api/analyze 仍会返回算好的定数，只是标注 cacheWrite.ok=false。
- *   这是刻意的 fail-closed：宁可不缓存，也绝不留一条不带凭据的写后门。
- *
- * 轮换：`UPDATE phm_secrets SET v='<新值>' WHERE k='writer'` 并同步改本地文件 ——
- * 两端必须同时换，只换一边会立刻 42501（同样是 fail-closed，不会静默降级）。 */
-function loadWriteSecret() {
-  const fromEnv = (process.env.PHM_WRITE_SECRET || '').trim();
-  if (fromEnv) return fromEnv;
-  for (const name of ['write-secret.txt', '.phm-write-secret']) {
-    try {
-      const v = fs.readFileSync(path.join(ROOT, name), 'utf8').trim();
-      if (v) return v;
-    } catch { /* 没有就试下一个 */ }
-  }
-  console.warn('[phm] ⚠ 未配置写入凭据（PHM_WRITE_SECRET 或 write-secret.txt）'
-    + ' —— 定数照常可算，但无法写入共享缓存');
-  return '';
-}
-const WRITE_SECRET = loadWriteSecret();
-
-/* phm_charts 的唯一写入口。
- * ⚠ 刻意不做 fallback —— 失败就失败，绝不退回到直连写库（那等于自毁这条防线）。 */
-async function dbPutChart(row) {
-  const r = await dbFetch('/rpc/phm_put_chart', {
-    method: 'POST',
-    body: JSON.stringify({ p_secret: WRITE_SECRET, p_row: row }),
-  });
-  if (r.ok) return { ok: 1, fail: [] };
-  return { ok: 0, fail: [String(r.status) + ' ' + String(r.body || r.error || '').slice(0, 120)] };
-}
-function dbHeaders(extra) {
-  return Object.assign({
-    'x-wb-webapp-access-key': DB.key,
-    'referer': DB.referer,
-    'content-type': 'application/json',
-    'prefer': 'resolution=merge-duplicates,return=minimal',
-  }, extra || {});
-}
-async function dbFetch(pathAndQuery, init, timeoutMs = 15000) {
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), timeoutMs);
-  try {
-    const r = await fetch(DB.base + pathAndQuery, Object.assign({ headers: dbHeaders() }, init || {}, { signal: ctl.signal }));
-    clearTimeout(timer);
-    const txt = await r.text();
-    return { ok: r.ok, status: r.status, body: txt.slice(0, 400) };
-  } catch (e) {
-    clearTimeout(timer);
-    return { ok: false, status: 0, error: String(e.message || e).slice(0, 200) };
-  }
-}
-/* 成绩写库：同样只走受凭据保护的 RPC（anon 对 phm_scores 的 INSERT/UPDATE 已撤销）。
-   保留分批（批 8）+ 遇 429 退避重试 —— 环境级限流实测约 25~40 并发触发。 */
-async function dbPutScores(rows) {
-  let ok = 0; const fails = [];
-  for (let i = 0; i < rows.length; i += DB.batch) {
-    const chunk = rows.slice(i, i + DB.batch);
-    let done = false;
-    for (let attempt = 1; attempt <= 3 && !done; attempt++) {
-      const r = await dbFetch('/rpc/phm_put_scores', {
-        method: 'POST',
-        body: JSON.stringify({ p_secret: WRITE_SECRET, p_rows: chunk }),
-      });
-      if (r.ok) { ok += chunk.length; done = true; break; }
-      const limited = r.status === 429 || /rate limit|exceeds|too many/i.test(r.body || '');
-      if (limited && attempt < 3) { await new Promise(s => setTimeout(s, 500 * attempt)); continue; }
-      fails.push(r.status + ' ' + String(r.body || r.error || '').slice(0, 120));
-      done = true;
-    }
-    if (i + DB.batch < rows.length) await new Promise(s => setTimeout(s, DB.gapMs));
-  }
-  return { ok, fail: fails.slice(0, 3) };
-}
+/* ── 云数据库访问 → 见 lib/cloud.mjs ──
+ * 数据库地址、publishableKey、写入凭据、dbFetch / dbPutChart / dbPutScores
+ * 全部在那边，本文件只负责「路由 + 校验 + 静态托管」。 */
 
 /* ── 业务校验：与前端 numOrNull 同一套规则，服务端重算一遍 ── */
 const LIMITS = {

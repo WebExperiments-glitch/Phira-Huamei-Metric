@@ -33,7 +33,9 @@ phm-web/
 ├── package.json               ← 只声明 start 脚本，无第三方依赖
 │
 ├── lib/
-│   └── review.mjs             ← ★ 服务端复核：下载谱面 + 复算 + 与提交值比对
+│   ├── review.mjs             ← ★ 服务端复核：下载谱面 + 复算 + 与提交值比对
+│   └── cloud.mjs              ← ★ 云数据库访问层：地址 / publishableKey / 写入凭据 / dbFetch
+│                                 （server.mjs 与 tools/ 共用同一份，别在别处再配一遍）
 │
 ├── public/                    ← 静态资源根目录（只有这里的内容会被送出）
 │   ├── index.html             ← 页面结构 + 全部前端逻辑（模块化的单文件）
@@ -47,7 +49,8 @@ phm-web/
 │       └── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源
 │
 ├── tools/
-│   └── make-og.mjs            ← 重新生成分享卡片（改文案后跑一次）
+│   ├── make-og.mjs            ← 重新生成分享卡片（改文案后跑一次）
+│   └── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集 Ranked + Special）
 │
 └── docs/
     ├── README.md              ← 你正在看的
@@ -67,10 +70,36 @@ phm-web/
 |---|---|
 | 难度算法 / 特征 / k-NN | `public/js/engine.js` |
 | 页面交互 / 渲染 | `public/index.html`（找对应函数名） |
-| 接口校验 / 限流 / 静态托管 | `server.mjs` |
+| 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
+| 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |
 | 数据库表或权限 | `docs/DATA-MODEL.md` → 然后用 MCP 执行 SQL |
 | 隐私相关文案 | `public/privacy.html` + `index.html` 里的设置面板 |
+
+---
+
+## 批量预热共享缓存
+
+```bash
+cd phm-web
+node tools/warm-cache.mjs --dry-run          # 先看计划，不下载
+node tools/warm-cache.mjs --limit 600        # 填金标集（Ranked + Special，约 631 张）
+node tools/warm-cache.mjs --types 0          # 只填 Ranked
+```
+
+**为什么需要它**：页面的价值取决于「搜任何一张谱都能出定数」。空库时来的人
+看到「定数缓存 15 张」就走了 —— 所以推广前先把库填起来。
+
+**选哪批**：默认填 **金标集**（`type=0` Ranked 581 张 + `type=1` Special 50 张）。
+这批是计入 rks 的谱，正是玩家会在意定数的那些，比按创建时间乱抓一批有用得多。
+
+**凭什么可信**：脚本直接复用服务端的复核链路 `lib/review.mjs → recompute()`，
+没有任何客户端数值参与。落库仍走受凭据保护的 `phm_put_chart()`。
+
+**断点续跑**：每次开始先拉一遍已有的 `chart_id`，已缓存的直接跳过。中断了重跑即可。
+
+⚠ 约 7 GB 流量、20~40 分钟。刻意做成**串行** —— 并发下载对 Phira 不礼貌，
+而且 `analyzeChart` 是同步计算，并发也压不出吞吐。
 
 ---
 
