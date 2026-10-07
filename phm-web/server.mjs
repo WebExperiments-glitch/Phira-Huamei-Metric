@@ -174,7 +174,8 @@ const SEC_HEADERS = {
     "font-src 'self' data:",
     "connect-src 'self' https://api.phira.cn https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    /* frame-ancestors 交给 X-Frame-Options: DENY —— 写在 CSP 里会被 Chrome 报
+       「keyword 'none' alongside with other sources」，功能重复且有告警 */
     "base-uri 'self'",
     "object-src 'none'",
   ].join('; '),

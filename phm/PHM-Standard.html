@@ -476,7 +476,7 @@ function zipParse(buf){
     entries.push({name,method,csize,usize,lho,utf8:!!(flag&0x800)});
     p+=46+nameLen+extLen+cmtLen;
   }
-  return {files:entries.map(en=({
+  return {files:entries.map(en=>({
     name:en.name,
     read:async ()=>{
       const lp=en.lho;
