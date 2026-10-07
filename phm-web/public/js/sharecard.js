@@ -27,18 +27,20 @@ const FONT = '"Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif
 const COPY = {
   zh: {
     tag: 'Phira / Phigros 谱面难度参考',
-    ref: '参考定数', ps: 'PS 负荷', official: '标称定数', dev: '偏差',
+    ref: '参考定数 · 社区共识', ps: 'PS 负荷', official: 'Phira 标称', dev: '偏差',
+    refOff: '官谱标度', refOffNote: '（同样的算法，参照集换成 1,037 张 Phigros 官谱）',
     nps: '每秒物量', notes: '物量', hold: '长条占比', charter: '谱师',
     range: '不确定范围',
-    footnote: '5 维特征 + 1,037 张官谱 k-NN · 纯浏览器内计算 · 谱面文件不上传',
+    footnote: '8 维特征 + 9,508 张社区谱 k-NN（社区共识）· 纯浏览器内计算 · 谱面文件不上传',
     site: '不判定「虚标」，只给数字和它的不确定度',
   },
   en: {
     tag: 'An auditable difficulty reference for Phira charts',
-    ref: 'Reference', ps: 'Load (PS)', official: 'Rated', dev: 'Drift',
+    ref: 'Reference · community', ps: 'Load (PS)', official: 'Phira rated', dev: 'Drift',
+    refOff: 'Official scale', refOffNote: ' (same method, reference set = 1,037 Phigros official charts)',
     nps: 'Notes/s', notes: 'Notes', hold: 'Holds', charter: 'Charter',
     range: 'range',
-    footnote: '5 features + k-NN over 1,037 official charts · runs in your browser · charts never uploaded',
+    footnote: '8 features + k-NN over 9,508 community charts · runs in your browser · charts never uploaded',
     site: 'We do not call anything mis-rated. We publish numbers and their uncertainty.',
   },
 };
@@ -59,6 +61,9 @@ export function fromChartRow(row, extra) {
     level: o.level || '',
     charter: o.charter || '',
     ref: num(o.ref_const),
+    /* 官谱标度：与 Phigros 官方一致的绝对标度。双标度之一，
+       卡片上必须出现 —— 只印一个数看起来像结论，两个数才是信息。 */
+    refOfficial: num(o.ref_official),
     official: official(o.difficulty),
     ps: num(o.ps_score),
     nps: num(o.nps),
@@ -79,6 +84,8 @@ export function fromReport(r) {
        卡片上必须带上它 —— 只印一个中点数字等于假装精确，
        而这张图会被发到群里、被谱师看到。 */
     lo: num(kn.lo), hi: num(kn.hi),
+    refOfficial: num(r.knnOff && r.knnOff.ref),
+    basis: kn.basis || 'official',
     official: official(r.difficulty != null ? r.difficulty : f.difficulty),
     ps: num(r.ps && r.ps.total),
     nps: num(f.real_notes_per_second),
@@ -184,6 +191,10 @@ function drawWide(c, d, L) {
     if (i) { c.strokeStyle = LINE; c.beginPath(); c.moveTo(P + colW * i, y + 30); c.lineTo(P + colW * i, y + h - 30); c.stroke(); }
   });
 
+  /* 官谱标度对照行 —— 双标度里更"客观"的那一栏 */
+  if (d.refOfficial != null) {
+    text(c, L.refOff + '  ' + fx(d.refOfficial, 2) + L.refOffNote, P, 538, { size: 19, color: FG3 });
+  }
   /* 底部 */
   text(c, L.footnote, P, 566, { size: 20, color: FG3 });
   text(c, SITE, 1120 - P, 566, { size: 24, weight: 500, color: BLUE, align: 'right' });
@@ -215,6 +226,9 @@ function drawTall(c, d, L) {
   text(c, fx(d.ref, 2), P, metaY + 268, { size: 168, weight: 500, color: AMBER });
   const rg = rangeOf(d, L);
   if (rg) text(c, rg, P + 430, metaY + 268, { size: 26, color: FG3 });
+  if (d.refOfficial != null) {
+    text(c, L.refOff + '  ' + fx(d.refOfficial, 2) + L.refOffNote, P, metaY + 312, { size: 24, color: FG3 });
+  }
 
   /* 次级数字两列 */
   const dev = (d.ref != null && d.official != null) ? +(d.ref - d.official).toFixed(2) : null;

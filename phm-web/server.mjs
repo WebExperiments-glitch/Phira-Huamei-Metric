@@ -21,6 +21,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { reviewContribution, grosslyMismatched, recompute } from './lib/review.mjs';
 /* 云数据库访问层（配置 + 写入凭据 + 两个写 RPC）都在 lib/cloud.mjs，
@@ -150,8 +151,11 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'en.html', 'robots.txt', 'favicon.ico', 'privacy.html',
   '404.html', 'sitemap.xml', 'og.png', 'og-en.png']);
-const PUBLIC_DIRS = ['js/', 'css/'];                       /* 只暴露这两个子目录 */
-const SAFE_EXT = new Set(['.js', '.css', '.png', '.svg', '.ico', '.webp', '.woff2']);
+/* ⚠ PUBLIC_DIRS 每加一个目录，都是往互联网上多开一扇门。
+   加 data/ 是为了 ref-com.json（社区参照集生成物，生成器只往这里写它）；
+   这个目录里不允许出现任何其他文件 —— 有的话就该把它挪出 public/。 */
+const PUBLIC_DIRS = ['js/', 'css/', 'data/'];             /* 只暴露这三个子目录 */
+const SAFE_EXT = new Set(['.js', '.css', '.png', '.svg', '.ico', '.webp', '.woff2', '.json']);
 function isPublicPath(rel) {
   if (PUBLIC_FILES.has(rel)) return true;
   if (!PUBLIC_DIRS.some(d => rel.startsWith(d))) return false;
@@ -190,26 +194,50 @@ function send(res, code, body, type) {
   }, SEC_HEADERS));
   res.end(body);
 }
-function sendFile(res, fp, longCache) {
+function sendFile(res, fp, longCache, req) {
   try {
     const buf = fs.readFileSync(fp);
     const ext = path.extname(fp).toLowerCase();
     const isHtml = ext === '.html';
     /* 缓存策略：
        · HTML → no-cache，每次校验。它是唯一「内容会变」的入口，缓存了会看到旧页面。
-       · js/css/图片 → 长缓存 + immutable。前端用**版本化 URL**（/js/engine.js?v=…）
+       · js/css/图片/参照集 → 长缓存 + immutable。前端用**版本化 URL**（/js/engine.js?v=…）
          破缓存 —— 版本号一变 URL 就变，所以这里可以放心长缓存，
          不需要再手工维护「改引擎要记得换 ?v=」这类同步点。
        · 其余（txt/xml 等）→ 1 小时，够用又不会卡住更新。 */
     const cc = isHtml ? 'no-cache'
       : (longCache ? 'public, max-age=604800, immutable' : 'public, max-age=3600');
-    res.writeHead(200, Object.assign({
+    const head = Object.assign({
       'content-type': MIME[ext] || 'application/octet-stream',
       'cache-control': cc,
-    }, SEC_HEADERS));
+      'vary': 'accept-encoding',
+    }, SEC_HEADERS);
+    /* ── gzip ──
+       收益主要在两处：index.html（约 120 KB 源码）与参照集 ref-com.json（约 730 KB）。
+       参照集是前端**首次分析时才拉**的，裸传 730 KB 在移动网络上体验很差；
+       gzip 后约 200 KB。压缩结果按文件 mtime 缓存，不重复压。
+       ⚠ 只压文本类，且只在客户端明确接受 gzip 时才压（否则老客户端会拿到乱码）。 */
+    const gzOk = GZIP_EXT.has(ext) && /\bgzip\b/i.test((req && req.headers['accept-encoding']) || '');
+    if (gzOk) {
+      let gz = _gzCache.get(fp);
+      const mt = fs.statSync(fp).mtimeMs;
+      if (!gz || gz.mt !== mt) { gz = { mt, buf: zlib.gzipSync(buf, { level: 6 }) }; _gzCache.set(fp, gz); }
+      /* 小文件压了反而更大（gzip 头 + 膨胀），这时直接发原文 */
+      if (gz.buf.length < buf.length) {
+        head['content-encoding'] = 'gzip';
+        head['content-length'] = gz.buf.length;
+        res.writeHead(200, head);
+        return res.end(gz.buf);
+      }
+    }
+    head['content-length'] = buf.length;
+    res.writeHead(200, head);
     res.end(buf);
   } catch { send404(res); }
 }
+/* 压缩缓存：key = 绝对路径，value = {mt, buf}。文件改了 mtime 变，自动失效。 */
+const _gzCache = new Map();
+const GZIP_EXT = new Set(['.html', '.js', '.css', '.json', '.svg', '.xml', '.txt', '.webmanifest']);
 /* 404 交一张真正的错误页（原来只回纯文本 "not found"，没有导航也没有回首页的路）。
    ⚠ 用 text/html + 状态码 404 下发；页面自身带 noindex，不该被搜索引擎收录。 */
 function send404(res) {
@@ -434,8 +462,10 @@ const server = http.createServer(async (req, res) => {
   const fp = path.resolve(WEB_ROOT, rel);
   if (!fp.startsWith(WEB_ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
   /* js/css/图片内容稳定且前端用版本化 URL 引用 → 可以长缓存 */
-  const longCache = /\.(js|css|png|svg|ico|webp|woff2)$/i.test(rel);
-  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache);
+  /* ⚠ .json 也进长缓存：public/data/ref-com.json 是**生成物**，靠 ?v= 破缓存，
+    内容不会就地变。注意 data/ 目录里除了参照集没有别的东西（见 PUBLIC_DIRS）。 */
+  const longCache = /\.(js|css|png|svg|ico|webp|woff2|json)$/i.test(rel);
+  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache, req);
   return send404(res);
 });
 

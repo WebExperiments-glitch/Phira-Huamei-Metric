@@ -20,7 +20,8 @@
  *   - 每张新谱要下载一次谱面（几 MB）→ 已缓存的谱直接跳过，不会重复下载
  *   - 单进程串行复核，带超时；失败就拒绝写入（不降级、不回退）
  * ============================================================ */
-import { analyzeChart, pickUniqueChart } from '../public/js/engine.js';
+import { analyzeChart, pickUniqueChart, ENGINE_VER } from '../public/js/engine.js';
+import { loadRefCom } from './refstore.mjs';
 
 const PHIRA_API = 'https://api.phira.cn';
 const FETCH_TIMEOUT = 20000;      /* 取谱面信息 */
@@ -72,7 +73,15 @@ export async function recompute(chartId) {
   const buf = await res.arrayBuffer();
   if (buf.byteLength > MAX_ZIP) throw new Error('谱面包过大');
 
-  const reports = await analyzeChart(buf, (info.name || 'chart') + '.pez');
+  /* ★ 两处关键传参：
+       refCom    —— 用社区参照集（9,508 张 Phira 社区谱），而不是只有官谱。
+                    实测：留出验证 |偏差|均值 1.187 → 0.820，≤1.0 命中 67.0% → 84.2%。
+       excludeId —— **必须排除这张谱自己**。参照集里本来就有它，
+                    不排除就是距离 0 的自匹配，落库值会等于它自己的声明值，
+                    整个共享缓存会退化成"把 Phira 的标签抄一遍"。
+                    （这个坑不含 excludeId 时表现为误差 0.00，看起来"完美"。） */
+  const reports = await analyzeChart(buf, (info.name || 'chart') + '.pez',
+    { refCom: loadRefCom(), excludeId: +chartId });
   const rep = reports.find(x => !x.error);
   if (!rep) throw new Error((reports[0] && reports[0].error) || '解析失败');
 
@@ -82,7 +91,11 @@ export async function recompute(chartId) {
     name: info.name,
     level: info.level || rep.level || null,
     difficulty: info.difficulty != null ? +(+info.difficulty).toFixed(3) : null,
+    /* ref_const  = 社区共识标度（主结果，页面上那个大数字）
+       ref_official = 官谱标度（与 Phigros 官方一致的绝对标度，对照用）
+       两个都存：只存一个的话，以后想复核"当时两个标度差多少"就无从查起。 */
     ref_const: rep.knn && rep.knn.ref != null ? +(+rep.knn.ref).toFixed(4) : null,
+    ref_official: rep.knnOff && rep.knnOff.ref != null ? +(+rep.knnOff.ref).toFixed(4) : null,
     ps_score: rep.ps && rep.ps.total != null ? +(+rep.ps.total).toFixed(4) : null,
     nps: f.real_notes_per_second != null ? +(+f.real_notes_per_second).toFixed(4) : null,
     hold_ratio: f.hold_ratio != null ? +(+f.hold_ratio).toFixed(5) : null,
@@ -90,6 +103,10 @@ export async function recompute(chartId) {
     stair_avg: f.stair_speed_avg != null ? +(+f.stair_speed_avg).toFixed(4) : null,
     speed_peak: rep.spPeak != null ? +(+rep.spPeak).toFixed(2) : null,
     engine_ver: 'server-verified',
+    /* 产生这一行的引擎版本。engine_ver 是**信任标记**（服务端复算过），
+       engine_build 是**算法版本** —— 后者让对账任务能一眼筛出
+       "旧引擎算的过期行"，不用逐行重算。 */
+    engine_build: ENGINE_VER,
     verified_at: new Date().toISOString(),
   };
 }

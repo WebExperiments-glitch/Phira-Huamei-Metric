@@ -8,8 +8,9 @@
 │                                                          │
 │  index.html（UI + 交互 + Phira 调用 + 账号）              │
 │      │                                                   │
-│      └─ /js/engine.js  ← 本地解析谱面，文件不出浏览器      │
-│                                                          │
+│      ├─ /js/engine.js      ← 本地解析谱面，文件不出浏览器  │
+│      ├─ /js/ref-official.js ← 官谱参照 1,037 张（内嵌）    │
+│      └─ /data/ref-com.json ← 社区参照 9,508 张（懒加载）    │
 └───────┬──────────────────────────────┬───────────────────┘
         │ 只传结构特征 + chart_id        │ 只读公开资料
         ▼                              ▼
@@ -35,8 +36,10 @@
 
 | 层 | 位置 | 职责 | **不做什么** |
 |---|---|---|---|
-| 引擎 | `public/js/engine.js` | 解析 ZIP（RPE/PGR/**PEC**）、算特征、k-NN 定数 | 不碰 DOM / 存储 / 网络 |
-| 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据**、`dbFetch` / `dbPutChart` / `dbPutScores` | 不写业务逻辑 |
+| 引擎 | `public/js/engine.js` | 解析 ZIP（RPE/PGR/**PEC**）、算特征、双参照 k-NN 定数 | 不碰 DOM / 存储 / 网络 |
+| 参照集 | `public/js/ref-official.js` + `public/data/ref-com.json` | **唯一真源是 `tools/gen-ref.mjs`**；输出物不要手改 | 不放算法，只放数据 |
+| 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
+| 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
 | 网关 | `server.mjs` | 路由、字段校验、限流、静态托管 | 不写业务算法，不直接碰数据库配置 |
 | 界面 | `public/index.html`（中文）/ `public/en.html`（英文） | 渲染、交互、调 API | 不做可信判定 |
 | 出图 | `public/js/sharecard.js` | 把结果画成 PNG（横 1200×630 / 竖 1080×1920） | 不加载任何外部图片（会污染 canvas） |
@@ -51,13 +54,27 @@
 
 这是这个项目唯一不能妥协的产品约束，也是它敢叫「不判定虚标」的底气。
 
-一次 k-NN 会得到 20 张参照官谱。它们的定数**跨度**就是这个结论的不确定范围：
+一次 k-NN 会得到 20 张参照谱。它们的定数**跨度**就是这个结论的不确定范围。
 
-```
-#25818 蛍はいなかった（IN 14.6）  中点 11.6   范围 9.5–14.5
-#16578 Secret of my heart （14.3） 中点  9.7   范围 4.5–13.1
-#22681 Pandemic            （15.3） 中点 16.6   范围 15.6–17.9  ← 邻居集中，结论硬
-```
+**而且是两个标度一起给** —— 这是 2026-10-07 之后的核心设计：
+
+| 标度 | 参照集 | 含义 |
+|---|---|---|
+| **社区共识**（主结果） | 9,508 张 Phira 社区谱 | 站内谱师实际定价的共识 —— 谱师会拿自己看到的数来对照 |
+| **官谱标度** | 1,037 张 Phigros 官谱 | 与官方一致的绝对标度，可查证 |
+
+为什么不只印一个：官谱与社区谱**结构分布不同**（社区谱定数中位 15.1 / 官谱 10.6，
+长条占比只有官谱的 1/3）。只印官谱标度，社区谱师会看到「我的 IN 14 被算成 11.6」
+——那不是算错，是**两个标度本来就差这么多**。把差距印出来，争议就变成了信息。
+实测（1,367 张留出）：社区标度 |偏差| 均值 0.820 / ≤1.0 命中 84.2%；
+官谱标度 1.187 / 67.0%。
+
+完整方法与所有被否掉的方案（含 osu! 式 strain 曲线的负面结果）见
+[`ENGINE-EXPERIMENT.md`](ENGINE-EXPERIMENT.md)。
+
+⚠ **参照集里装着被测谱自己** → 已知 chart_id 时必须传 `excludeId`。
+不排除就是距离 0 的自匹配，返回"它自己的声明值"，整个工具退化成橡皮图章
+（而且误差看起来是完美的 0.00，非常隐蔽）。
 
 ⚠️ **只印中点等于假装精确。** 第一张的范围上限 14.5 就贴着它的标称 14.6 ——
 模型其实在说「我不确定」，而界面如果只写 11.6，就会变成「你说我谱只有 11.6」。
@@ -128,7 +145,11 @@ Node 用 `import { analyzeChart } from '../public/js/engine.js'`。
 只有 `public/` 下的内容可能被送出，且再经过一层白名单：
 
 - 根文件：`index.html` / `privacy.html` / `robots.txt` / `favicon.ico`
-- 子目录：仅 `js/`、`css/`，且扩展名必须是 `.js .css .png .svg .ico .webp .woff2`
+- 子目录：仅 `js/`、`css/`、`data/`，且扩展名必须是
+  `.js .css .json .png .svg .ico .webp .woff2`
+  （`data/` 只放参照集生成物 `ref-com.json`，不放别的）
+- 文本类响应**按需 gzip**（`index.html` 124 KB → 43 KB，`ref-com.json` 751 KB → 353 KB），
+  压缩结果按 mtime 缓存
 
 源码（`server.mjs` / `lib/`）和运行时数据（`server-store.json`）都在
 `phm-web/` 根下、`public/` 之外，**天然不可达**。
@@ -148,14 +169,32 @@ WorkBuddy 托管，单端口 HTTP 服务：
   （限流计数），权威数据一律在云数据库
 - 域名与云服务 Origin 在重新发布时保留 → 云登录继续可用
 
+写入凭据的**三条路**（先命中者胜，启动时会打印用的是哪一条）：
+
+1. 环境变量 `PHM_WRITE_SECRET`
+2. `phm-web/.env`（已 gitignore；模板见 `.env.example`）
+3. `phm-web/write-secret.txt`（已 gitignore）
+
+三条都没有 → 定数照常能算，但写不进缓存（`cacheWrite.ok=false`）。
+这是有意的 **fail-closed**：宁可不缓存，也不开一条没凭据的写后门。
+
 发布：用 `sites` 能力发布 `phm-web/` 目录。
+
+发布前建议跑一遍（`--net` 需要联网）：
+
+```bash
+node tools/gen-ref.mjs --check     # 参照集与真源是否同步
+node tools/verify-engine.mjs       # 引擎 44 条断言
+PORT=5199 node server.mjs &        # 另开一个终端
+node tools/smoke-page.mjs http://127.0.0.1:5199   # 真页面冒烟
+```
 
 ## 已知的架构局限
 
 | 局限 | 影响 | 出路 |
 |---|---|---|
-| 写入凭据依赖本地文件 | 部署时若没带上 `write-secret.txt`，定数照常可算但写不进缓存（可观测：`cacheWrite.ok=false`） | 改用环境变量 `PHM_WRITE_SECRET`（已支持且优先），需要托管侧入口 |
-| 缓存被篡改无自动发现 | 凭据泄露的话，写进去的假定数不会被发现 | 定期抽样 `recompute()` 对账（表很小，全量重算只要几十秒） |
+| 写入凭据的部署前提 | 三条路都要么靠环境变量、要么靠"部署时带上非 git 跟踪的文件"；都没有则写不进缓存（可观测：`cacheWrite.ok=false`，启动日志也会写明来源） | 已补 `.env` + `.env.example`；托管侧若有环境变量入口则更稳 |
+| 缓存被篡改的自动发现 | **已有**：`tools/reconcile-cache.mjs`。默认抽样 40 张、`--all` 全量、`--recompute-stale` 收敛旧引擎行；发现"当前引擎版本却仍对不上"时**退出码 1**（可挂 cron） | 还没真正挂上定时任务，目前靠手动跑 |
 | 服务端复核有成本 | 每张**新**谱要下载一次谱面（约 1.7s / 几 MB） | 已缓存直接跳过；未来可加队列 |
-| 前端仍是单文件 | `index.html` 约 104KB，无法按组件单测 | 可继续拆为多个 module |
+| 前端仍是单文件 | `index.html` 约 124KB（gzip 43KB），无法按组件单测；已用 `tools/smoke-page.mjs` 做整页冒烟兜底 | 可继续拆为多个 module |
 | 无 CI | 改动质量依赖人工验证 | 待补（至少把引擎真实执行脚本接进去） |

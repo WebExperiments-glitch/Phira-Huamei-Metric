@@ -27,12 +27,13 @@ const W = 1200, H = 630, PORT = 9337;
 
 const T = EN ? {
   sub: 'An <b>auditable difficulty reference</b> for Phira charts<br>' +
-       '5 features + k-NN over <b>1,037 official charts</b> · runs in your browser · <b>charts never uploaded</b>',
+       '8 features + k-NN over <b>9,508 community charts</b> (+ 1,037 official as a second scale)<br>' +
+       'runs in your browser · <b>charts never uploaded</b>',
   kRef: 'Reference', kPs: 'Load (PS)', kOfficial: 'Rated', kDrift: 'Drift',
   foot: 'We do not call anything mis-rated. We publish numbers and their uncertainty.',
 } : {
   sub: 'Phira / Phigros 谱面难度参考 —— <b>客观、可审计、可追溯</b><br>' +
-       '5 维特征 + 1,037 张官谱 k-NN，纯浏览器计算，<b>谱面文件不上传</b>',
+       '8 维特征 + 9,508 张社区谱 k-NN（另附 1,037 张官谱标度），纯浏览器计算，<b>谱面文件不上传</b>',
   kRef: '参考定数', kPs: 'PS 负荷', kOfficial: '标称定数', kDrift: '偏差',
   foot: '不判定「虚标」· 公开不确定度 · 每条结论都能点开看依据',
 };

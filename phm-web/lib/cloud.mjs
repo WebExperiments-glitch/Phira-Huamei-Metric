@@ -30,26 +30,70 @@ export const DB = {
 };
 
 /* ── 写入凭据 ──
- * ⚠ **不写在源码里** —— 仓库是公开的，硬编码等于把钥匙挂在门上。
- *   读取顺序：环境变量 PHM_WRITE_SECRET → phm-web/write-secret.txt（已 gitignore）。
- *   都没有 → 空串 → 所有写入失败，但**服务本身照常可用**
- *   （/api/analyze 仍返回算好的定数，只是标注 cacheWrite.ok=false）。
- *   这是刻意的 fail-closed：宁可不缓存，也绝不留一条不带凭据的写后门。
+ * ⚠ **不写在源码里** —— 仓库是**公开的**，硬编码等于把钥匙挂在门上。
  *
- * 轮换：`UPDATE phm_secrets SET v='<新值>' WHERE k='writer'` 并同步改本地文件 ——
+ * 读取顺序（先命中者胜）：
+ *   1. 环境变量 PHM_WRITE_SECRET
+ *   2. phm-web/.env 里的 PHM_WRITE_SECRET=（已 gitignore）
+ *   3. phm-web/write-secret.txt（已 gitignore）
+ *   4. 都没有 → 空串 → 所有写入失败，但**服务本身照常可用**
+ *      （/api/analyze 仍返回算好的定数，只是标注 cacheWrite.ok=false）
+ *
+ * 第 4 条是刻意的 **fail-closed**：宁可不缓存，也绝不留一条不带凭据的写后门。
+ *
+ * 为什么要多一个 .env（2026-10-07 补）：
+ *   原来只有「环境变量 / 文件」两条路，而托管侧没有给我配环境变量的界面，
+ *   于是实际上只剩「部署时必须记得带上 write-secret.txt」这一条隐式前提 ——
+ *   忘了带，写入就整片失败，虽然可观测但会让人一头雾水。
+ *   补上 .env 之后，三条路任选一条都能跑通，且**启动时会把用的是哪一条打出来**，
+ *   不用再靠猜测。.env.example 是给人看的模板，不带真值。
+ *
+ * 轮换：`UPDATE phm_secrets SET v='<新值>' WHERE k='writer'` 并同步改本地那一路 ——
  * 两端必须同时换，只换一边会立刻 42501（同样是 fail-closed，不会静默降级）。 */
-export function loadWriteSecret() {
+
+/** 极简 .env 解析（零依赖）。只认 KEY=VALUE 行，# 开头是注释。
+ *  刻意不做变量展开、不处理 export —— 配置面越小越好审计。 */
+function readDotEnv(file) {
+  const out = {};
+  let txt;
+  try { txt = fs.readFileSync(file, 'utf8'); } catch { return out; }
+  for (const line of txt.split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const i = t.indexOf('=');
+    if (i < 1) continue;
+    const k = t.slice(0, i).trim();
+    let v = t.slice(i + 1).trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    if (k) out[k] = v;
+  }
+  return out;
+}
+
+/** 返回 {value, source} —— source 会打进启动日志，出问题一眼可查 */
+export function resolveWriteSecret() {
   const fromEnv = (process.env.PHM_WRITE_SECRET || '').trim();
-  if (fromEnv) return fromEnv;
+  if (fromEnv) return { value: fromEnv, source: '环境变量 PHM_WRITE_SECRET' };
+  const env = readDotEnv(path.join(ROOT, '.env'));
+  if ((env.PHM_WRITE_SECRET || '').trim()) return { value: env.PHM_WRITE_SECRET.trim(), source: '.env' };
   for (const name of ['write-secret.txt', '.phm-write-secret']) {
     try {
       const v = fs.readFileSync(path.join(ROOT, name), 'utf8').trim();
-      if (v) return v;
+      if (v) return { value: v, source: name };
     } catch { /* 没有就试下一个 */ }
   }
-  console.warn('[phm] ⚠ 未配置写入凭据（PHM_WRITE_SECRET 或 write-secret.txt）'
-    + ' —— 定数照常可算，但无法写入共享缓存');
-  return '';
+  return { value: '', source: '未配置' };
+}
+
+export function loadWriteSecret() {
+  const r = resolveWriteSecret();
+  if (!r.value) {
+    console.warn('[phm] ⚠ 未配置写入凭据（PHM_WRITE_SECRET / .env / write-secret.txt 都没有）');
+    console.warn('[phm]   → 定数照常可算，但结果**写不进共享缓存**（cacheWrite.ok=false）');
+  } else {
+    console.log('[phm] 写入凭据来源：' + r.source);
+  }
+  return r.value;
 }
 export const WRITE_SECRET = loadWriteSecret();
 
@@ -120,6 +164,37 @@ export async function dbGetChart(chartId) {
   const r = await dbFetch('/phm_charts?chart_id=eq.' + encodeURIComponent(chartId) + '&select=*');
   if (!r.ok || !r.body || r.body === '[]') return null;
   try { return JSON.parse(r.body)[0]; } catch { return null; }
+}
+
+/* ── 过期行：engine_build 不等于当前引擎的行 ──
+ * 为什么要有这个：引擎一改，缓存里所有旧行都成了「另一个算法算出来的数」，
+ * 而它们在页面上长得和新行一模一样。没有这一列就只能在黑里猜：
+ * 要么全量重算（浪费），要么指望人记得上次跑到哪（会忘）。
+ * 返回 {chart_id, ref_const, ref_official, difficulty, ...}，供对账任务直接比对。
+ * ⚠ 老行的 engine_build 是 NULL（加这列之前没有这个概念），也算过期。 */
+export async function dbListStale(engineBuild, maxBody = 8 * 1024 * 1024) {
+  const q = '/phm_charts?or=(engine_build.is.null,engine_build.neq.'
+    + encodeURIComponent(engineBuild) + ')&select=chart_id,name,level,difficulty,ref_const,ref_official,ps_score,engine_build&limit=100000';
+  const r = await dbFetch(q, undefined, 25000, maxBody);
+  if (!r.ok || !r.body) {
+    console.warn('[phm] 读取过期行失败（' + (r.status || r.error) + '）');
+    return null;
+  }
+  try { return JSON.parse(r.body); }
+  catch { console.warn('[phm] 过期行响应解析失败'); return null; }
+}
+
+/* ── 全量缓存行（对账任务要拿它逐行比）── */
+export async function dbListAll(maxBody = 8 * 1024 * 1024) {
+  const r = await dbFetch('/phm_charts?select=chart_id,name,level,difficulty,ref_const,ref_official,'
+    + 'ps_score,nps,hold_ratio,notes,stair_avg,speed_peak,engine_ver,engine_build,verified_at,computed_at'
+    + '&limit=100000', undefined, 25000, maxBody);
+  if (!r.ok || !r.body) {
+    console.warn('[phm] 读取缓存失败（' + (r.status || r.error) + '）');
+    return null;
+  }
+  try { return JSON.parse(r.body); }
+  catch { console.warn('[phm] 缓存响应解析失败'); return null; }
 }
 
 /* 已缓存的全部 chart_id（用于「跳过已有」，让批量任务可断点续跑）。

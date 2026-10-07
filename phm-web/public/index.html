@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.3.3">
+<meta name="app-version" content="V0.4.0">
 <title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -177,6 +177,12 @@ padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 .sbtn:disabled{opacity:.45;cursor:default}
 /* 不确定度提示：当 20 张参照官谱的定数跨度 ≥3 时出现。
    目的不是免责，是把「这个数有多硬」如实说出来。 */
+.dualscale{margin-top:8px;padding:8px 12px;border-radius:8px;
+  background:var(--panel2,rgba(127,127,127,.08));font-size:12.5px;
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.dualscale .dsl{color:var(--dim);font-size:11.5px;letter-spacing:.04em}
+.dualscale b{font-size:15px}
+.dualscale .dsh{color:var(--dim);font-size:11.5px}
 .vague{margin-top:10px;padding:9px 12px;border-left:3px solid var(--amber);
 background:var(--card2);border-radius:0 8px 8px 0;font-size:12px;color:var(--fg2);line-height:1.7}
 .vague b{color:var(--amber)}
@@ -488,8 +494,8 @@ border:1px solid var(--line);color:var(--fg3)}
 
 <div class="pstats" id="pstats" style="display:none"></div>
 <footer>
-  <div>线上引擎：<b>5 维 log1p 特征</b>（NPS / 长条占比 / 物量 / 纵连 / 线速峰值）
-  + 1,037 张官谱 k-NN ·
+  <div>线上引擎：<b>8 维 log1p 特征</b>（NPS / 有效 NPS / 物量 / 加权密度 p99 / 音符间隔 / 高密度均值 / 密集度 / 交叉手）
+  + 双参照 k-NN（<b>9,508 张社区谱</b> 为主结果，1,037 张官谱为对照标度） ·
   源码 <a class="link"
   href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/public/index.html"
   target="_blank" rel="noopener">phm-web/public/index.html</a> ·
@@ -498,17 +504,28 @@ border:1px solid var(--line);color:var(--fg3)}
   <span id="verfoot">版本（开发者测试版，正式版会重新计算）</span>· GPL-3.0</div>
   <details>
     <summary>PS 是什么？本工具的边界与隐私（点开看）</summary>
-    <div class="fd"><b>两个数不是一回事，别混用</b>：<b>参考定数</b>是与官谱定数同标度的估计
-    （你可以拿它和 Phira 的标称定数直接比）；<b>PS</b> 是本工具自己的负荷标度（0–20），
-    衡量操作与读取负荷，<b>与官方定数不同标度</b>。</div>
+    <div class="fd"><b>三个数不是一回事，别混用</b>：<br>
+    · <b>参考定数（社区共识）</b>—— 9,508 张 Phira 社区谱里结构最相近的 20 张，它们的定数中位。
+    这是<b>谱师实际定价的共识</b>，也是最贴近你在 Phira 上看到的那个数字。<br>
+    · <b>官谱标度</b>—— 同样算法，但参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>
+    · <b>PS</b> —— 本工具自己的负荷标度（0–20），衡量操作与读取负荷，<b>与上面两个都不同标度</b>。</div>
+
+    <div class="fd"><b>两个标度差得多，说明什么？</b>官谱与社区谱<b>结构分布本来就不同</b>
+    （社区谱定数中位 15.1，官谱 10.6；社区谱的长条占比只有官谱的 1/3、拖键是 5 倍）。
+    所以同一张谱在两个标度上差 2~3 级是正常的 —— 那是<b>两个尺子的差异，不是某个尺子算错了</b>。
+    只印一个数字才会出问题：「我的 IN 14 被算成 11.6」就是这么来的。</div>
     <div class="fd"><b>PS</b> 由四个负荷组加权合成：
     <span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>，
     每个维度经饱和函数归一，每一分都能追溯到卡片上的明细。</div>
     <div class="fd"><b>PS 与官方定数无关</b> —— 官方定数是人工标注（实测标注噪声约 2.80 级），
     两者不构成互相验证。<b>本工具不判定「虚标」</b>：在这个噪声水平下，
     没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」。</div>
-    <div class="fd"><b>参考定数</b>来自 1,037 张官谱的 5 维 k-NN 匹配 —— 它是<b>同类官谱的定数中位</b>，
-    不是预测值，也不带不确定度声明。同一张谱可能因官谱样本密度不同而偏移，请配合卡片上的近邻一起看。</div>
+    <div class="fd"><b>参考定数</b>是 20 张最相似参照谱的<b>定数中位</b>，不是拟合出来的预测值 ——
+    逐张可以点开看名字，拿回 Phira 自己核对。它在参照集里没有紧密对应物时会偏移，
+    所以卡片上同时给出<b>不确定范围</b>（这 20 张的定数跨度）与<b>平均邻居距离</b>，
+    跨度大就说明结论软。<br>
+    留出验证（1,367 张社区谱，参照集 8,141 张）：<b>|偏差| 均值 0.820 · ≤1.0 命中 84.2%</b>，
+    旧版（官谱 4 维）是 1.187 / 67.0%。</div>
     <div class="fd"><b>隐私 · 什么会上传</b>（统一受页面底部「⚙ 设置」的开关控制）：<br>
     · <b>算 RKS</b>：本机计算。勾选「匿名上传」才写 曲名 / 定数 / ACC 三项
     —— 准确说是<b>假名化</b>贡献（带一个随机 client_id），不是严格匿名。<br>
@@ -575,6 +592,41 @@ Object.assign(globalThis, __ENGINE);
 const { exportCard, fromChartRow, fromReport } = await import(
   "/js/sharecard.js?v=" + encodeURIComponent(APP_VER));
 
+/* ── 社区参照集（懒加载）──
+   9,508 张 Phira 社区谱，约 730 KB（gzip 后约 200 KB）。**不随首屏加载** ——
+   只有在真的要算一张谱时才拉，不拖慢「打开就走」这条主路径。
+   为什么必须用它：官谱与社区谱不是同一个分布（社区谱 p50 15.1 / 官谱 10.6，
+   长条占比只有官谱的 1/3）。留出验证：换参照集 + 8 维后 |偏差| 均值
+   1.187 → 0.820，≤1.0 命中 67.0% → 84.2%。
+   ⚠ 拉不到就退回官谱参照 —— 功能降级，但不报错、不阻塞。 */
+let REF_COM = null, REF_COM_N = 0, REF_COM_STATE = "idle";
+async function loadRefCom(){
+  if (REF_COM_STATE === "ok" || REF_COM_STATE === "fail") return REF_COM;
+  REF_COM_STATE = "loading";
+  try{
+    const r = await fetch("/data/ref-com.json?v=" + encodeURIComponent(APP_VER));
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (!j || !Array.isArray(j.rows) || !j.rows.length) throw new Error("结构异常");
+    REF_COM = j.rows; REF_COM_N = j.rows.length; REF_COM_STATE = "ok";
+  }catch(e){
+    REF_COM_STATE = "fail";
+    console.warn("[phm] 社区参照集加载失败，退回官谱参照：" + (e.message || e));
+  }
+  return REF_COM;
+}
+/* 空闲时预热参照集：拖入的第一张谱不该等那 750 KB。
+   放在 requestIdleCallback 里 —— 不抢首屏的带宽和主线程，
+   失败了也无所谓（loadRefCom 自己会退回首屏官谱参照）。 */
+if (typeof requestIdleCallback === 'function') {
+  requestIdleCallback(function(){ loadRefCom(); }, { timeout: 6000 });
+} else {
+  setTimeout(function(){ loadRefCom(); }, 2500);
+}
+
+/* 参照集规模：**从数据里数，不在文案里写死** —— 写死过一次就会永远和实际不符。 */
+const REF_N = () => REF_COM_N || (typeof REF_OFFICIAL !== "undefined" ? REF_OFFICIAL.length : 0);
+
 (function fillVersion(){
   const c = document.getElementById("verchip");
   if (c) c.textContent = APP_VER + " · 开发者测试版";
@@ -615,14 +667,26 @@ let STATE={reports:[],sel:0};
 function card(r,idx){
   if(r.error) return '<div class="card err"><h2>✕ '+esc(r.label)
     +'</h2><div style="color:var(--red)">'+esc(r.error)+'</div></div>';
-  const ps=r.ps, kn=r.knn||{ref:null,tier:"?",near:[]};
+  const ps=r.ps, kn=r.knn||{ref:null,tier:"?",near:[]}, knOff=r.knnOff||null;
   const f=r.feats;
   const tier=kn.tier||"?";
   const tcol=TIER_COLOR[tier]||"var(--fg)";
-  /* 不确定度：20 个参照官谱的定数跨度。跨度越大，说明这张谱的结构
-     在官谱里越没有紧密对应物，中点数字就越不该被当成结论。 */
+  /* 不确定度：20 个参照谱的定数跨度。跨度越大，说明这张谱的结构
+     在参照集里越没有紧密对应物，中点数字就越不该被当成结论。 */
   const span=(kn.hi!=null&&kn.lo!=null)?(kn.hi-kn.lo):null;
   const vague=span!=null&&span>=3.0;
+  /* ── 双标度 ──
+     同一个结构，在两份参照集上会给出两个数。它们不是"其中一个错了"，
+     而是**两个不同的标度**：社区共识 = 站内谱师实际定价的共识；
+     官谱标度 = 与 Phigros 官方一致的绝对标度。
+     只印一个数，就是"IN 14 被算成 11.6"那类争议的根源 —— 单一数字看起来
+     像个结论，实际上只是某个标度上的投影。两个都印，争议就变成了信息。 */
+  const isCom = kn.basis === "community";
+  const poolN = isCom ? REF_N() : (knOff && REF_OFFICIAL ? REF_OFFICIAL.length : 0);
+  const basisName = isCom ? "社区共识" : "官谱标度";
+  const basisDesc = isCom ? "Phira 社区谱" : "Phigros 官谱";
+  const gap = (isCom && knOff && knOff.ref != null && kn.ref != null)
+    ? (kn.ref - knOff.ref) : null;
   const bars=GROUPS.map(function(g){
     return '<div class="g '+g[0]+'"><div class="t"><span>'+g[1]
       +'</span><b>'+f2(ps.g[g[0]])+'</b></div><div class="bar"><i style="width:'
@@ -651,11 +715,19 @@ function card(r,idx){
     +'<div class="ps"><span class="tierbadge" style="background:'+tcol
     +'">'+esc(tier)+'</span>'
     +'<span class="num" style="color:'+tcol+'">'+f1(kn.ref)+'</span>'
-    +'<span class="u">参考定数 · 官谱 1,037 条中结构最相近 '+((kn.n20)||0)+' 张'
+    +'<span class="u">'+esc(basisName)+' · '+basisDesc+' '+poolN+' 张中结构最相近 '
+    +((kn.n20)||0)+' 张'
     +(kn.lo!=null?'　·　不确定范围 <b>'+f1(kn.lo)+'–'+f1(kn.hi)+'</b>':'')+'</span></div>'
-    +(vague?'<div class="vague">⚠ 这 '+((kn.n20)||0)+' 张参照官谱的定数横跨 <b>'
+    /* 官谱标度对照 —— 双标度里更"客观"的那一栏，同时也是可查证的锚点 */
+    +(knOff&&knOff.ref!=null?'<div class="dualscale"><span class="dsl">官谱标度</span>'
+      +'<b>'+f1(knOff.ref)+'</b>'
+      +'<span class="dsh">与 Phigros 官方同一标度（'
+      +(REF_OFFICIAL?REF_OFFICIAL.length:0)+' 张官谱）'
+      +(gap!=null?'　·　社区共识比它 '+((gap>=0?'高 ':'低 ')+Math.abs(gap).toFixed(1)):'')
+      +'</span></div>':'')
+    +(vague?'<div class="vague">⚠ 这 '+((kn.n20)||0)+' 张参照谱的定数横跨 <b>'
       +f1(kn.lo)+'–'+f1(kn.hi)+'</b>（相差 '+span.toFixed(1)+'）—— 说明这张谱的结构'
-      +'在官谱里<b>没有紧密对应物</b>。这个中点只能当粗略参照，别当作结论。</div>':'')
+      +'在'+basisDesc+'里<b>没有紧密对应物</b>。这个中点只能当粗略参照，别当作结论。</div>':'')
     +'<div class="scale"><i style="left:0;width:'+pos(kn.ref).toFixed(1)
     +'%"></i></div>'
     +'<div class="tick"><span style="left:0">0</span>'
@@ -665,7 +737,7 @@ function card(r,idx){
       +'🖼 横版图 · QQ / B站 / X</button>'
       +'<button class="sbtn" type="button" data-share="tall" data-i="'+idx+'">'
       +'📱 竖版图 · 抖音</button></div>'
-    +'<table style="margin-top:8px"><tr><th>官谱参照（最相近 5 张）</th>'
+    +'<table style="margin-top:8px"><tr><th>'+basisDesc+'参照（最相近 5 张）</th>'
     +'<th>档</th><th>定数</th></tr>'+nearRows+'</table>'
     +'<div class="psline">PS 负荷标度 <b>'+f1(ps.total)+'</b> / 20（密度 '
     +f2(ps.g.density)+' · 结构 '+f2(ps.g.pattern)+' · 协调 '
@@ -727,7 +799,8 @@ async function handleFiles(files){
     }
     try{
       const buf=await file.arrayBuffer();
-      const rs=await analyzeChart(buf,file.name);
+      const refCom=await loadRefCom();
+      const rs=await analyzeChart(buf,file.name,{refCom:refCom});
       rs.forEach(function(r){r.label=file.name;acc.push(r);});
     }catch(e){
       acc.push({label:file.name,file:file.name,
@@ -1012,11 +1085,17 @@ try{
    在浏览器控制台执行 PHM.status() 即可看到各部件是否就绪。
    只暴露状态，不含任何数据。 */
 window.PHM = window.PHM || {};
+/* 显式暴露参照集加载 —— 一是有意的**可测接缝**（tools/smoke-page.mjs 要靠它
+   验证"浏览器里确实能拿到社区参照并跑出结果"），二是给使用者一个手动预热入口：
+   控制台里 PHM.loadRef() 就能把 750 KB 先拉下来。 */
+window.PHM.loadRef = loadRefCom;
 window.PHM.status = function(){
   return {
     ver: APP_VER,
     engine: typeof analyzeChart === "function" ? "ok" : "missing",
     sharecard: typeof exportCard === "function" ? "ok" : "missing",
+    refCom: REF_COM_STATE === "ok" ? ("ok/" + REF_COM_N)
+      : REF_COM_STATE === "fail" ? "failed(退回首屏官谱参照)" : "idle(尚未需要)", 
     sdk: typeof window.WorkBuddyCloud,
     cloud: cloud ? "ok" : "null",
     cloudDB: cloudDB ? "ok" : "null",
@@ -1167,7 +1246,7 @@ async function submitPunch(idx){
       song_rks:numOrNull(srk,0,25,3),
       speed_peak:numOrNull(r.spPeak,0,1000000),
       nps:numOrNull(r.feats&&r.feats.real_notes_per_second,0,200,4),
-      engine_ver:"5d-knn-v0.3.2",
+      engine_ver:ENGINE_VER,
       client_id:clientId()
     };
     const ins=await apiWrite("/api/scores",[row]);      /* 走服务端网关 */
@@ -1778,7 +1857,7 @@ async function contributeChart(rep){
       notes:numOrNull(f.notes_real,0,100000),
       stair_avg:numOrNull(f.stair_speed_avg,0,500,4),
       speed_peak:numOrNull(rep.spPeak,0,1000000),
-      engine_ver:"5d-knn-v0.3.2"
+      engine_ver:ENGINE_VER
     };
     if(payload.chart_id==null) return null;
     const up=await apiWrite("/api/contribute",[payload]);   /* 走服务端网关（含复核） */
@@ -1940,7 +2019,9 @@ async function computeChart(cid,btn,info){
     if(buf.byteLength>MAXB) throw new Error("谱面包过大，已跳过");
     btn.textContent="解析中…";
     csMsg("已下载 "+(buf.byteLength/1048576).toFixed(2)+" MB，正在解析…");
-    const rs=await analyzeChart(buf,nm+".pez");
+    /* ⚠ 这里必须传 excludeId=cid：这张谱就在社区参照集里，
+       不排除就是与它自己匹配（距离 0），算出来的等于把 Phira 的标签抄一遍。 */
+    const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid});
     const rep=rs.filter(function(x){return !x.error;})[0];
     if(!rep) throw new Error((rs[0]&&rs[0].error)||"解析失败（非 RPE / PGR 格式）");
     const f=rep.feats||{};
@@ -1956,7 +2037,7 @@ async function computeChart(cid,btn,info){
       notes:numOrNull(f.notes_real,0,100000),
       stair_avg:numOrNull(f.stair_speed_avg,0,500,4),
       speed_peak:numOrNull(rep.spPeak,0,1000000),
-      engine_ver:"5d-knn-v0.3.2"
+      engine_ver:ENGINE_VER
     };
     if(payload.chart_id==null) throw new Error("谱号异常");
     try{
@@ -2154,7 +2235,7 @@ async function pfImport(auto){
       phira_user_id:numOrNull(u.id,1,null),
       phira_user_name:txtOrNull(u.name,60),
       source:isBest?"phira":"phira-recent",
-      engine_ver:"5d-knn-v0.3.2",
+      engine_ver:ENGINE_VER,
       client_id:clientId()
     };
   }).filter(function(x){

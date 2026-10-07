@@ -11,7 +11,9 @@
  *
  * 退出码非 0 表示失败 —— 可以直接接进 CI 或 pre-commit。
  * ============================================================ */
-import { analyzeChart, loadChart, parsePec, isPecText } from '../public/js/engine.js';
+import { analyzeChart, loadChart, parsePec, isPecText, reportFromChart, knnReference,
+  makeRefIndex, REF_DIMS, REF_OFFICIAL, ROW_LABELS, ENGINE_VER } from '../public/js/engine.js';
+import { readFileSync } from 'node:fs';
 
 const NET = process.argv.includes('--net');
 let pass = 0, fail = 0;
@@ -111,6 +113,116 @@ if (NET) {
       ok(`#${c.id} 拉取/解析`, false, String(e.message || e));
     }
   }
+}
+
+
+/* ── 5. 参照集与 k-NN 的「结构性」断言 ──
+   为什么这几条必须有：2026-10-07 改引擎时，同一类错误在**一天之内**犯了三次 ——
+   参照侧与查询侧不在同一坐标系（原始 log 值去减 z-score），以及把「曲名」
+   这个字符串当成特征去 log1p。两次都表现为「所有谱都返回同一个数字」，
+   看起来像"模型很稳定"，实际是整个距离度量已经废了。
+   下面每一条都是针对其中一种失效模式的哨兵。 */
+console.log('\n[5] 参照集与 k-NN 结构');
+{
+  const D = REF_DIMS.length, LBL = ROW_LABELS;
+  ok('REF_DIMS 有 8 维', D === 8, '得到 ' + D);
+  ok('ROW_LABELS 与生成器一致（= 4）', LBL === 4, '得到 ' + LBL);
+  ok('官谱参照非空', REF_OFFICIAL.length > 1000, '得到 ' + REF_OFFICIAL.length);
+  ok('每行长度 = ROW_LABELS + 8',
+    REF_OFFICIAL.every(r => r.length === LBL + D),
+    '首行长度 ' + REF_OFFICIAL[0].length);
+  ok('标签列类型正确（定数 number / 档位 number / 曲名 string）',
+    REF_OFFICIAL.every(r => typeof r[0] === 'number' && typeof r[1] === 'number'
+      && typeof r[2] === 'string'));
+  ok('特征列全是有限非负数',
+    REF_OFFICIAL.every(r => r.slice(LBL).every(v => typeof v === 'number' && isFinite(v) && v >= 0)));
+  /* ⚠ 这一条直接对着「定数被舍入成 0」那个坑：0 会变成 z 空间里最远的负样本，
+     一旦进邻居就把加权中位拽到 1~2 区间。 */
+  ok('参照集里没有「定数 0」的行（四舍五入后判零的坑）',
+    REF_OFFICIAL.every(r => r[0] > 0));
+
+  const idx = makeRefIndex(REF_OFFICIAL);
+  ok('makeRefIndex 返回 Z 矩阵', !!idx && Array.isArray(idx.Z));
+  ok('Z 矩阵与行同宽同高',
+    idx.Z.length === REF_OFFICIAL.length && idx.Z[0].length === D);
+  /* Z 必须是**标准化后**的：逐列均值 ≈ 0、标准差 ≈ 1。
+     如果哪天又有人把原始 log 值塞进 idx.Z，这两条会立刻挂。 */
+  const colMean = [], colSd = [];
+  for (let c = 0; c < D; c++) {
+    let m = 0; for (const z of idx.Z) m += z[c] / idx.Z.length;
+    let v = 0; for (const z of idx.Z) v += (z[c] - m) ** 2 / idx.Z.length;
+    colMean.push(m); colSd.push(Math.sqrt(v));
+  }
+  ok('Z 各列均值 ≈ 0', colMean.every(x => Math.abs(x) < 1e-9), colMean.map(x => x.toFixed(3)).join(','));
+  ok('Z 各列标准差 ≈ 1',
+    colSd.every(s => s > 0.5 && s < 2), colSd.map(x => x.toFixed(3)).join(','));
+
+  /* 拿参照集里某一行自己当查询 → 距离必须是 0，中点必须等于它自己的定数。
+     这是「坐标系对齐」最强的一条断言：两侧不对齐时这个测试必然失败。 */
+  const probeRow = REF_OFFICIAL[Math.floor(REF_OFFICIAL.length / 2)];
+  const probeFeat = {};
+  REF_DIMS.forEach((k, c) => { probeFeat[k] = probeRow[LBL + c]; });
+  const self = knnReference(probeFeat, 0, REF_OFFICIAL, 'official');
+  ok('用参照集自己的行去查 → 距离 0', self && self.d1 < 1e-9, 'd1=' + (self && self.d1));
+  ok('用参照集自己的行去查 → 中点 = 它自己的定数',
+    self && near(self.ref, probeRow[0], 1e-9), '得到 ' + (self && self.ref));
+  ok('lo ≤ 中点 ≤ hi', self && self.lo <= self.ref + 1e-9 && self.ref <= self.hi + 1e-9);
+  ok('档位与邻居一致（多数票）', self && self.tier === ['EZ', 'HD', 'IN', 'AT', 'SP'][probeRow[1]],
+    '得到 ' + (self && self.tier));
+
+  /* ★ 排除自身：这是「不让工具退化成橡皮图章」的那道闸。
+     不排除时下一条会拿到与探头完全相同的定数（自匹配），排除后必须变。 */
+  const selfWithId = knnReference(probeFeat, 0, REF_OFFICIAL, 'official', probeRow[3]);
+  ok('excludeId 能生效（selfExcluded 标记）',
+    probeRow[3] !== 0 ? (selfWithId && selfWithId.selfExcluded === true) : true,
+    'excludeId=' + probeRow[3]);
+}
+
+/* ── 6. 社区参照集（本地生成物，缺失时跳过）── */
+console.log('\n[6] 社区参照集 ref-com.json');
+{
+  let refCom = null;
+  try {
+    refCom = JSON.parse(readFileSync(new URL('../public/data/ref-com.json', import.meta.url), 'utf8'));
+  } catch (e) {
+    console.log('  · 跳过（读不到 public/data/ref-com.json）—— 先跑 tools/gen-ref.mjs');
+  }
+  if (refCom) {
+    ok('版本号与引擎同代', refCom.v === 'V0.4.0', '得到 ' + refCom.v);
+    ok('维度定义与引擎一致',
+      JSON.stringify(refCom.dims) === JSON.stringify(REF_DIMS));
+    ok('labels 与引擎一致', refCom.labels === ROW_LABELS);
+    ok('规模 ≥ 9000 张', refCom.rows.length >= 9000, '得到 ' + refCom.rows.length);
+    ok('每行长度 = ROW_LABELS + 8', refCom.rows.every(r => r.length === ROW_LABELS + 8));
+    ok('社区谱都有 chart_id（排除自身要用）',
+      refCom.rows.every(r => Number.isInteger(r[3]) && r[3] > 0));
+    ok('没有「定数 0」的行', refCom.rows.every(r => r[0] > 0));
+    /* 两个参照集的**分布差异**是这个设计的立足点，缩了就该重新想 */
+    const med = a => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+    const mOff = med(REF_OFFICIAL.map(r => r[0])), mCom = med(refCom.rows.map(r => r[0]));
+    ok('社区谱定数中位确实高于官谱（分布不同的证据）', mCom > mOff + 2,
+      `社区 ${mCom} vs 官谱 ${mOff}`);
+  }
+}
+
+/* ── 7. 端到端：reportFromChart 必须给出双标度 ── */
+console.log('\n[7] 双标度输出');
+{
+  const j = { BPMList: [{ startTime: [0, 0, 1], bpm: 180 }], judgeLineList: [{ notes: [] }] };
+  for (let i = 0; i < 400; i++) {
+    j.judgeLineList[0].notes.push({
+      startTime: [i, 0, 4], type: (i % 7 === 0) ? 2 : 1, positionX: (i % 8) * 100 - 350,
+    });
+  }
+  const r = reportFromChart(loadChart(j), 'synth.json', { name: '合成谱' }, 0, null);
+  ok('report.engineVer 与 ENGINE_VER 一致', r.engineVer === ENGINE_VER, '得到 ' + r.engineVer);
+  ok('有 knn（主结果）', !!r.knn && r.knn.ref != null);
+  ok('有 knnOff（官谱标度）', !!r.knnOff && r.knnOff.ref != null);
+  ok('主结果 basis = official（未传社区参照时的降级）',
+    r.knn.basis === 'official', '得到 ' + r.knn.basis);
+  ok('双标度都是有限数',
+    isFinite(r.knn.ref) && isFinite(r.knnOff.ref),
+    r.knn.ref + ' / ' + r.knnOff.ref);
 }
 
 console.log('\n────────');

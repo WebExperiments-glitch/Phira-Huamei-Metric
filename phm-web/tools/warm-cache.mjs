@@ -17,6 +17,14 @@
  * 【断点续跑】每次开始时先拉一遍已有的 chart_id，已缓存的直接跳过。
  *   中断了重跑即可，不会重复下载。
  *
+ * ⚠ **改了引擎（ENGINE_VER 变了）之后，这个脚本帮不了你** ——
+ *   它只填"库里还没有的谱"，而已有的行还停在旧算法的数值上。
+ *   那种情况要跑：
+ *       node tools/reconcile-cache.mjs --stale-only            # 先看有多少过期行
+ *       node tools/reconcile-cache.mjs --recompute-stale --limit 9999
+ *   这也是 engine_build 这一列存在的唯一理由：让"哪些行是旧算法算的"可查，
+ *   而不是每次都全量重算一遍。
+ *
  * 用法（在 phm-web/ 目录下）：
  *     node tools/warm-cache.mjs --limit 600
  *     node tools/warm-cache.mjs --dry-run            # 只看计划，不下载

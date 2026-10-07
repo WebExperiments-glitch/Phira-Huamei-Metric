@@ -32,8 +32,11 @@ phm-web/
 ├── write-secret.txt           ← ★ 写入凭据（唯一能写缓存的东西；**已 gitignore，绝不入库**）
 ├── package.json               ← 只声明 start 脚本，无第三方依赖
 │
+├── .env.example               ← 写入凭据的模板（真值放 .env；两者说明见 SECURITY.md）
+│
 ├── lib/
 │   ├── review.mjs             ← ★ 服务端复核：下载谱面 + 复算 + 与提交值比对
+│   ├── refstore.mjs           ← ★ 服务端读社区参照集（引擎保持纯计算，不认识 fs）
 │   └── cloud.mjs              ← ★ 云数据库访问层：地址 / publishableKey / 写入凭据 / dbFetch
 │                                 （server.mjs 与 tools/ 共用同一份，别在别处再配一遍）
 │
@@ -46,27 +49,39 @@ phm-web/
 │   ├── sitemap.xml
 │   ├── og.png / og-en.png     ← 分享卡片 1200×630（由 tools/make-og.mjs 生成）
 │   ├── css/                   ← （预留）
+│   ├── data/
+│   │   └── ref-com.json       ← 社区参照集 9,508 张（生成物，由 gen-ref.mjs 产出，懒加载）
 │   └── js/
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源
+│       ├── ref-official.js    ← 官谱参照 1,037 张（生成物，由 gen-ref.mjs 产出）
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
 ├── tools/
+│   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件，别手改产物）
 │   ├── make-og.mjs            ← 重新生成分享卡片（改文案后跑一次，--en 出英文版）
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集 Ranked + Special）
-│   └── verify-engine.mjs      ← ★ 引擎回归测试（改解析后必跑；--net 比对真实基线）
+│   ├── reconcile-cache.mjs    ← ★ 缓存对账（抽样复算 / --recompute-stale / --fix，退出码可挂 CI）
+│   ├── verify-engine.mjs      ← ★ 引擎回归测试（改引擎后必跑；--net 比对真实基线）
+│   └── smoke-page.mjs         ← ★ 真页面冒烟（本机 Chrome + CDP；专拦"语法合法但运行时炸"）
 │
 └── docs/
     ├── README.md              ← 你正在看的
     ├── ARCHITECTURE.md        ← 数据流、分层、设计取舍
     ├── DATA-MODEL.md          ← 表结构、RPC、权限（改数据库先看这个）
     ├── SECURITY.md            ← 信任边界、风险清单、已知限制
+    ├── ENGINE-EXPERIMENT.md   ← ★ 引擎选型实验：为什么是 8 维 / 社区参照，以及所有被否掉的方案
     └── PROMOTION.md           ← 宣发手册（各平台差异、逐步操作、可复制文案）
 ```
 
-> **版本号只有一处**：`index.html` 里的 `<meta name="app-version">`。
-> 页头标签、页脚、`PHM.status()`、以及引擎的缓存版本串都从它取 —— 改一处就够。
-> 别在别处再写死版本（曾经 `<title>` / 页头 / 页脚 / README 四处各一份，改一处忘三处）。
-> ⚠ `engine_ver`（`"5d-knn-…"`）是**另一根轴**：它是算法版本、会被写进数据行，引擎没改动就不要动。
+> **页面版本号只有一处**：`index.html` / `en.html` 的 `<meta name="app-version">`。
+> 页头标签、页脚、`PHM.status()`、以及引擎与分享模块的缓存版本串都从它取 —— 改一处就够。
+> ⚠ `ENGINE_VER`（引擎模块里导出，当前 `com-knn8-v0.4.0`）是**另一根轴**：
+> 它是算法版本，会作为 `engine_build` 写进数据行。**引擎一改就必须改它** ——
+> 变了之后所有缓存都与新区间不可比，必须重算（`reconcile-cache.mjs --recompute-stale`）。
+> 前端不再手写这个串，统一用 `ENGINE_VER`（曾经在 4 个地方各写一遍 `"5d-knn-v0.3.2"`）。
+>
+> 版本号也别在别处再写死（曾经 `<title>` / 页头 / 页脚 / README 四处各一份，改一处忘三处）。
+> `public/404.html` 是唯一的例外 —— 它是纯静态错误页、不加载模块，所以自带一份。
 
 **按任务找文件：**
 

@@ -12,6 +12,10 @@
 
 ### `phm_charts` — 共享定数缓存
 
+> 结构变更记录：
+> **2026-10-07** 新增 `ref_official` numeric、`engine_build` text（纯新增，无破坏性），
+> 同时 `phm_put_chart()` 一并更新以写入这两列。
+
 一行 = 一张谱的结构特征。**这是全站最重要的数据**：它决定所有人看到的定数。
 
 | 列 | 类型 | 说明 |
@@ -19,17 +23,24 @@
 | `chart_id` | `integer` **主键** | Phira 谱面 ID |
 | `name` | text | 谱面名 |
 | `level` | text | 难度标签（EZ / HD / IN / AT） |
-| `difficulty` | numeric | Phira 标称定数 |
-| `ref_const` | numeric | ★ 参考定数（k-NN 结果，与官谱同标度） |
+| `difficulty` | numeric | Phira 标称定数（**权威值，来自 `api.phira.cn`**，不是我们算的） |
+| `ref_const` | numeric | ★ 参考定数 = **社区共识标度**（9,508 张社区谱 k-NN 结果）。2026-10-07 起语义变更，旧值在官谱标度上，不可混比 |
+| `ref_official` | numeric | 官谱标度（1,037 张官谱 k-NN 结果）。双标度里更"客观"的那一栏，留作对照与审计 |
 | `ps_score` | numeric | ★ PS 负荷标度（0–20，本工具自有标度） |
 | `nps` | numeric | 每秒物量 |
 | `hold_ratio` | numeric | 长条占比 0–1 |
 | `notes` | integer | 实际物量 |
 | `stair_avg` | numeric | 纵连段平均速度 |
 | `speed_peak` | numeric | 判定线速度峰值 |
-| `engine_ver` | text | `server-verified` = 服务端复算 | 
+| `engine_ver` | text | **信任标记**：`server-verified` = 这一行由服务端复算写入（写函数内部自己填，调用方传什么都不算数） |
+| `engine_build` | text | **算法版本**，如 `com-knn8-v0.4.0`。用来一眼筛出"旧引擎算的过期行"，见 `tools/reconcile-cache.mjs --stale-only`。加这一列之前的历史行是 `NULL` |
 | `computed_at` | timestamptz | 默认 `now()` |
 | `verified_at` | timestamptz | **服务端复核时间**（客户端直写的历史行为 `null`） |
+
+⚠ **`ref_const` 与 `ref_official` 是两把尺子，不能混**。
+服务端算这两个值时都会**排除这张谱自己**（`recompute()` 传 `excludeId=chart_id`）——
+参照集里本来就有它，不排除就是距离 0 的自匹配，落库值会等于它自己的声明值，
+整个共享缓存退化成"把 Phira 的标签抄一遍"。
 
 **写入规则**：客户端只经 `POST /api/contribute` 或 `POST /api/analyze` 提交 **chart_id**，
 服务端（`lib/review.mjs`）自己下载谱面复算，落库值**一律取自服务端复算结果**。
@@ -111,7 +122,7 @@
 | `phm_mine(uid_in bigint, ids_in bigint[])` | `integer` | 某玩家在给定谱号里已有几条 |
 | `phm_touch()` | `void` | 原子更新本人档案的 `last_seen` 与 `visits` |
 
-两个写函数内部**自己填 `engine_ver` / `verified_at` / `computed_at`**，
+两个写函数内部**自己填 `engine_ver` / `engine_build` / `verified_at` / `computed_at`**，
 调用方传什么都不算数 —— 伪造权威标记这条路根本不存在（实测过）。
 
 **设计原则**：所有 SECURITY DEFINER 函数都

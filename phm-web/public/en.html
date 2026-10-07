@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.3.3">
+<meta name="app-version" content="V0.4.0">
 <title>P.H.M. Standard — an auditable difficulty reference for Phira charts</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0d1117">
-<meta name="description" content="Drop a Phira chart pack and get a structural difficulty reference, placed against 1,037 official charts. Parsing happens in your browser; the chart file is never uploaded.">
+<meta name="description" content="Drop a Phira chart pack and get a structural difficulty reference, placed against 1,037 official charts and 9,508 community charts. Parsing happens in your browser; the chart file is never uploaded.">
 <link rel="alternate" hreflang="zh-CN" href="https://phm.app.workbuddy.host/">
 <link rel="alternate" hreflang="en" href="https://phm.app.workbuddy.host/en.html">
 <meta property="og:type" content="website">
@@ -106,7 +106,7 @@ padding:7px 14px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 <div class="hero">
   <div class="lead">An <b>auditable difficulty reference</b> for Phira charts.</div>
   <p>Drop a chart pack. We extract five structural features, place them against
-  <b>1,037 official charts</b> by k-nearest-neighbour, and give you a number on the same scale as
+  <b>1,037 official charts and 9,508 community charts</b> by k-nearest-neighbour, and give you a number on the same scale as
   the official rating.</p>
   <p><b>We do not call anything mis-rated.</b> We publish numbers and their uncertainty — every
   value on the result card can be traced back to a feature you can inspect.</p>
@@ -134,7 +134,7 @@ padding:7px 14px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 
 <div class="foot">
   <div><b>How to read the numbers</b></div>
-  <div><b style="color:var(--amber)">Reference</b> — k-NN result over 1,037 official charts,
+  <div><b style="color:var(--amber)">Reference</b> — k-NN result over 9,508 community charts (plus 1,037 official charts as a second scale),
   on the same scale as the official rating. <b style="color:var(--blue)">Load (PS)</b> — our own 0–20
   load scale (density / pattern / coordination / stamina); independent of the official rating.</div>
   <div style="margin-top:10px">Features: notes per second · hold ratio · note count · stair speed ·
@@ -153,6 +153,28 @@ padding:7px 14px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 <script type="module">
 const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).content || '—';
 const __ENGINE = await import('/js/engine.js?v=' + encodeURIComponent(APP_VER));
+
+/* Community reference set (9,508 Phira community charts), lazily fetched.
+   Official charts and community charts are NOT the same population
+   (p50 15.1 vs 10.6; hold ratio about one third), so matching a community
+   chart against official charts alone only hits |err|<=1.0 67% of the time.
+   With this reference it is 84%. Fails soft: falls back to official only. */
+let REF_COM = null, REF_COM_N = 0, REF_COM_STATE = 'idle';
+async function loadRefCom() {
+  if (REF_COM_STATE === 'ok' || REF_COM_STATE === 'fail') return REF_COM;
+  REF_COM_STATE = 'loading';
+  try {
+    const r = await fetch('/data/ref-com.json?v=' + encodeURIComponent(APP_VER));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    if (!j || !Array.isArray(j.rows) || !j.rows.length) throw new Error('bad shape');
+    REF_COM = j.rows; REF_COM_N = j.rows.length; REF_COM_STATE = 'ok';
+  } catch (e) {
+    REF_COM_STATE = 'fail';
+    console.warn('[phm] community reference unavailable, using official only: ' + (e.message || e));
+  }
+  return REF_COM;
+}
 Object.assign(globalThis, __ENGINE);
 const { exportCard, fromChartRow, fromReport } = await import(
   '/js/sharecard.js?v=' + encodeURIComponent(APP_VER));
@@ -182,7 +204,7 @@ async function handleFiles(files) {
     if (file.size > MAX_ZIP) { msg('File too large: ' + file.name, 'err'); continue; }
     try {
       const buf = await file.arrayBuffer();
-      const rs = await analyzeChart(buf, file.name);
+      const rs = await analyzeChart(buf, file.name, { refCom: await loadRefCom() });
       rs.forEach(r => { if (!r.error) reports.push(r); });
     } catch (e) {
       msg('Could not parse <b>' + esc(file.name) + '</b> — ' + esc(e.message || e), 'err');
@@ -198,7 +220,12 @@ function renderCard() {
   const r = reports[cur];
   const out = $('#out');
   if (!r) { out.innerHTML = ''; return; }
-  const f = r.feats || {}, kn = r.knn || {}, ps = r.ps || {};
+  const f = r.feats || {}, kn = r.knn || {}, knOff = r.knnOff || null, ps = r.ps || {};
+  const isCom = kn.basis === 'community';
+  const poolN = isCom ? (REF_COM_N || 0) : (__ENGINE.REF_OFFICIAL || []).length;
+  const basisName = isCom ? 'community consensus' : 'official-chart scale';
+  const basisDesc = isCom ? 'Phira community charts' : 'Phigros official charts';
+  const gap = (isCom && knOff && knOff.ref != null && kn.ref != null) ? (kn.ref - knOff.ref) : null;
   const cells = [
     ['Load (PS)', f2(ps.total), 'b'],
     ['Notes/s', f2(f.real_notes_per_second), ''],
@@ -211,7 +238,19 @@ function renderCard() {
     + '<h2>' + esc(r.name || r.label) + '</h2>'
     + '<div class="sub">' + esc([r.level, r.charter].filter(Boolean).join(' · ') || r.label) + '</div>'
     + '<div class="big"><span class="num">' + f1(kn.ref) + '</span>'
-    + '<span class="u">reference constant &middot; nearest 20 of 1,037 official charts</span></div>'
+    + '<span class="u">' + esc(basisName) + ' &middot; nearest 20 of ' + poolN + ' '
+    + esc(basisDesc) + (kn.lo != null ? ' &middot; range ' + f1(kn.lo) + '&ndash;' + f1(kn.hi) : '')
+    + '</span></div>'
+    /* Two scales, not one. A single number reads like a verdict; two numbers
+       make the systematic gap between the official and community scales visible
+       instead of hiding it. */
+    + (knOff && knOff.ref != null
+      ? '<div class="dsrow"><span>official-chart scale</span><b>' + f1(knOff.ref) + '</b>'
+        + '<span class="h">same scale as Phigros itself ('
+        + (__ENGINE.REF_OFFICIAL || []).length + ' official charts)'
+        + (gap != null ? ' &middot; community consensus is ' + Math.abs(gap).toFixed(1) + (gap >= 0 ? ' higher' : ' lower') : '')
+        + '</span></div>'
+      : '')
     + '<div class="grid">' + cells.map(c =>
       '<div class="cell ' + c[2] + '"><div class="k">' + c[0] + '</div><div class="v">' + c[1] + '</div></div>').join('')
     + '</div>'
