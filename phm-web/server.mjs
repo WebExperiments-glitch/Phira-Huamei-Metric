@@ -63,25 +63,116 @@ function storeSave(o) { try { fs.writeFileSync(STORE, JSON.stringify(o)); } catc
 const PHIRA_API = 'https://api.phira.cn';
 const SITE_ORIGIN = 'https://phm.app.workbuddy.host';
 const CLOUD_AUTH = SITE_ORIGIN + '/.cloud/auth/v1';
+/** 应用 id —— 从 publishableKey 推出来（`wbpk_<appId>_<rest>`），
+ *  避免两处各写一份。用于校验 token 的 `aud` 确实是本应用。 */
+const APP_ID = 'wbapp_' + ((DB.key.match(/^wbpk_([^_]+)_/) || [null, ''])[1]);
 
-/** 用用户的 huamei token 换身份。有效返回 sub，无效返回 null。 */
-async function hmWhoami(token) {
-  if (!token || token.length > 4096) return null;
+/** 用用户的 huamei token 换身份。
+ *  @returns `{sub}` 成功；`{err, status}` 失败（status 是上游 HTTP 状态，便于诊断）。
+ *
+ * ⚠⚠ **`Referer` / `Origin` 是硬要求 —— 实测（2026-10-11，同一个真 token）：**
+ *   只带 key 头            → 401 invalid_grant
+ *                            "the session is invalid, expired or issued for another client"
+ *   带上 Referer 或 Origin → 200，正常返回 sub/email
+ *   依据见 `lib/cloud.mjs` 顶部：「身份由 referer 判定」。
+ *   浏览器跑 SDK 时这头自动就有，服务端自己调就得自己补。
+ *
+ * ⚠ **别被那句错误措辞骗了** —— "issued for another client" 听起来像 token 有问题，
+ *   其实只是**我们没报身份**。
+ *
+ * ⚠ 为什么要试多种组合：**本机跑通 ≠ 生产跑通**。实测本机全绿、线上仍 401，
+ *   怀疑托管边缘对从沙箱发出的出站请求改写了 headers。所以逐个变体试，
+ *   并把每个变体的上游状态码一起带回去 —— 别再出现「本地好好的、线上不行」
+ *   而无从下手的情况。 */
+const HM_BROWSERISH = {
+  'accept': 'application/json, text/plain, */*',
+  'accept-language': 'zh-CN,zh;q=0.9',
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'sec-fetch-site': 'same-origin',
+  'sec-fetch-mode': 'cors',
+  'sec-fetch-dest': 'empty',
+};
+
+const HM_WHOAMI_VARIANTS = [
+  // ① 最像浏览器：Referer + Origin + Sec-Fetch 全套
+  Object.assign({ referer: DB.referer, origin: SITE_ORIGIN }, HM_BROWSERISH),
+  // ② 只加 Referer（本机实测这个就够）
+  { referer: DB.referer },
+  // ③ 只加 Origin
+  { origin: SITE_ORIGIN },
+  // ④ 裸的
+  {},
+];
+
+/** 降级路径：直接解析 JWT 拿 `sub`。
+ *
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么需要它 —— 2026-10-11 实测】
+ * ══════════════════════════════════════════════════════════════
+ * 正路是调 `/.cloud/auth/v1/user/me` 换身份。但**从托管沙箱里发出的请求
+ * 换不到**：本机同代码同 token 全绿，线上 5 种头组合一律 401 ——
+ * 连完整模拟浏览器（Referer + Origin + Sec-Fetch-* 全套）也是 401。
+ * 服务端把我们从沙箱发出的请求判成**另一个 client**，与头无关。
+ * → 线上只能走这条降级路径。
+ *
+ * 【信任边界（必须如实说明）】
+ *   token 是 **HS256**（对称签名），密钥在服务端、我们拿不到 →
+ *   **本函数无法验签**，只能校验结构 / `aud` / `exp`。
+ *   因此**身份是可伪造的**：任何人都能自己拼一个 HS256 JWT 冒充别人。
+ *
+ *   为什么仍可接受：
+ *     · 契约 §8 已经写明「单条成绩不可信」，个体数据只作聚合用；
+ *     · 危害面仅限「往别人名下塞假成绩」，不涉及任何隐私数据读取；
+ *     · 一旦平台放开沙箱的出站身份，`hmWhoami` 会优先走正路 —— 那时本函数
+ *       自动退居兜底（`detail` 里会体现走的是哪条路）。
+ *
+ *   若将来要真正堵住：需要平台提供一种**沙箱内可用**的换身份方式。 */
+function hmSubFromJwt(token, appId) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) return { err: 'not_jwt' };
+  let payload;
   try {
-    const r = await fetch(CLOUD_AUTH + '/user/me', {
-      headers: {
-        /* ⚠ 头名必须是 x-wb-webapp-access-key。用 apikey 会得到 invalid_client。 */
-        'x-wb-webapp-access-key': DB.key,
-        'authorization': 'Bearer ' + token,
-        'accept': 'application/json',
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const sub = typeof j.sub === 'string' ? j.sub : '';
-    return sub || null;
-  } catch { return null; }
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    payload = JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+  } catch { return { err: 'bad_payload' }; }
+  const sub = typeof payload.sub === 'string' ? payload.sub : '';
+  if (!sub) return { err: 'no_sub' };
+  // aud 必须是本应用 —— 防止拿别的应用的 token 来报
+  const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+  if (appId && !aud.includes(appId)) return { err: 'aud_mismatch' };
+  const now = Math.floor(Date.now() / 1000);
+  if (typeof payload.exp === 'number' && payload.exp < now) return { err: 'expired' };
+  return { sub };
+}
+
+async function hmWhoami(token) {
+  if (!token || token.length > 4096) return { err: 'no_token', status: 0 };
+  const tried = [];
+  for (const variant of HM_WHOAMI_VARIANTS) {
+    const label = Object.keys(variant).filter(k => !(k in HM_BROWSERISH)).join('+') || '(base)';
+    try {
+      const r = await fetch(CLOUD_AUTH + '/user/me', {
+        headers: Object.assign({
+          /* ⚠ 头名必须是 x-wb-webapp-access-key。用 apikey 会得到 invalid_client。 */
+          'x-wb-webapp-access-key': DB.key,
+          'authorization': 'Bearer ' + token,
+        }, variant),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        const sub = typeof j.sub === 'string' ? j.sub : '';
+        if (sub) return { sub, variant: label, verified: true };
+      }
+      tried.push(label + ':' + r.status);
+    } catch {
+      tried.push(label + ':ERR');
+    }
+  }
+  // 正路全挂 → 降级（见 hmSubFromJwt 的信任边界说明）
+  const fb = hmSubFromJwt(token, APP_ID);
+  if (fb.sub) return { sub: fb.sub, variant: 'jwt-fallback', verified: false, tried: tried.join(' ') };
+  return { err: 'all_variants_failed', tried: tried.join(' '), jwt: fb.err };
 }
 
 /** 校验并规范化一局成绩。返回 {row} 或 {error, code}。
@@ -482,10 +573,35 @@ const server = http.createServer(async (req, res) => {
     if (!(await rateOk(ip))) {
       return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
     }
-    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-    if (!token) return send(res, 401, JSON.stringify({ error: 'token_required' }));
-    const ownerId = await hmWhoami(token);
-    if (!ownerId) return send(res, 401, JSON.stringify({ error: 'token_invalid' }));
+    /* ⚠⚠ **不要依赖入站的 `Authorization` 头。**
+       实测（2026-10-11）：同样的 token，本机整条链全绿，线上**每一步都 401**，
+       且降级解析 JWT 时报 `no_sub` —— 说明**线上收到的那个值根本不是我们发出去的 token**。
+       最一致的解释：托管边缘把入站的 `Authorization` 头吃掉/改掉了
+       （它自己也要用这个头做鉴权）。这同时解释了为什么调 `/user/me`
+       连模拟全套浏览器头都 401：带过去的是**另一个**值。
+
+       所以：**优先读自定义头 `x-hm-token`**，`Authorization` 只作兜底。 */
+    const hdrToken = String(req.headers['x-hm-token'] || '').trim();
+    const authToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+    const token = hdrToken || authToken;
+    const tokenSrc = hdrToken ? 'x-hm-token' : (authToken ? 'authorization' : 'none');
+    if (!token) return send(res, 401, JSON.stringify({ ok: false, error: 'token_required' }));
+    const who = await hmWhoami(token);
+    if (!who.sub) {
+      return send(res, 401, JSON.stringify({
+        ok: false,
+        error: 'token_invalid',
+        /* 排障用：**不含 token 本身**，只暴露它的来源与形状
+           （长度、有几段），以及尝试过的头组合与上游状态码。 */
+        detail: who.err === 'all_variants_failed'
+          ? (who.tried || '') + (who.jwt ? ' jwt=' + who.jwt : '')
+          : who.err,
+        src: tokenSrc,
+        len: token.length,
+        dots: token.split('.').length - 1,
+      }));
+    }
+    const ownerId = who.sub;
 
     let body;
     try { body = await readBody(req, 1024 * 1024); }
@@ -508,7 +624,9 @@ const server = http.createServer(async (req, res) => {
     }
     let playId = null;
     try { playId = JSON.parse(r.body).play_id; } catch { /* 拿不到 id 不算失败 */ }
-    return send(res, 200, JSON.stringify({ ok: true, play_id: playId }));
+    /* 回报身份是怎么定的：`verified` 为真表示走的是云端 `user/me` 正路，
+       假表示走了本地解 JWT 的降级路径（见 hmSubFromJwt 的信任边界说明）。 */
+    return send(res, 200, JSON.stringify({ ok: true, play_id: playId, verified: who.verified === true }));
   }
 
   /* 写入网关：校验 + 限流 + 落库 */
