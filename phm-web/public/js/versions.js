@@ -20,6 +20,22 @@
 
 export const RELEASES = [
   {
+    v: 'V0.9.5.0', date: '2026-10-11',
+    zh: [
+      '修「页面下半部分整块空白」：某些浏览器会攥着**上一次缓存的旧脚本**不放，'
+        + '连强制刷新都不重新校验，于是脚本加载失败、页面剩下的部分不再渲染。'
+        + '现在这类旧副本**最多一小时就会自己更新**，不用你手动清缓存。',
+      '静态资源加了 ETag —— 更新检查变成一次轻量的「有没有变」，不再重下大文件。',
+    ],
+    en: [
+      'Fixed "the bottom half of the page goes blank": some browsers hold on to a '
+        + '<b>stale cached script</b> and will not revalidate it even on a hard reload, '
+        + 'so the script fails to load and the rest of the page never renders. '
+        + 'Stale copies now <b>update themselves within an hour</b> — no manual cache clearing.',
+      'Static files now carry an ETag, so checking for updates is a cheap round-trip instead of re-downloading large files.',
+    ],
+  },
+  {
     v: 'V0.9.4.0', date: '2026-10-11',
     zh: [
       '新增<b>版本历史</b>页（设置 → 关于 → 历史版本）：每个版本改了什么，一屏看完。页脚的版本号也可以直接点。',

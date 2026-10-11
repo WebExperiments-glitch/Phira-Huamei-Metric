@@ -231,14 +231,36 @@ function sendFile(res, fp, longCache, req) {
        · **不带 ?v= 的 js / json → no-cache**。它们是模块间相对 import 的 URL，
          长缓存既会让更新滞后，又会让同一模块产生两个实例（见调用处的注释）。
        · 其余（txt/xml 等）→ 1 小时，够用又不会卡住更新。 */
+    /* ⚠ `immutable` 已经去掉了 —— 它是 2026-10-11 一次真实事故的原因。
+       原策略「?v= 变了 URL 就变，所以可以 immutable 7 天」**前提是每次内容变化
+       都必须换版本号**。我那次连着部署了两遍 V0.9.4.0（内容不同），于是：
+         · 第一次那份被浏览器按 immutable 缓存 7 天
+         · immutable 连**强刷都不重新校验** → 用户手里永远是旧模块
+         · 页面报「does not provide an export named ...」→ 模块链断 → 下半页空白
+       改成 1 小时 + must-revalidate：既保住缓存收益，又能**自己好**（最多一小时）。
+       配上下面新加的 ETag，重校验是 304，不会重下 730KB 的参照集。 */
     const cc = isHtml ? 'no-cache'
-      : (longCache ? 'public, max-age=604800, immutable'
+      : (longCache ? 'public, max-age=3600, must-revalidate'
         : ((ext === '.js' || ext === '.json') ? 'no-cache' : 'public, max-age=3600'));
+
+    /* ETag：由「大小 + mtime」算出（弱校验即可 —— 内容会随 accept-encoding 变）。
+       有了它，must-revalidate 的代价从「重下整个文件」降到「一次 304」。
+       ⚠ 以前没有 ETag，所以长缓存的资源一旦过期就只能整份重传。 */
+    const st = fs.statSync(fp);
+    const etag = 'W/"' + st.size.toString(16) + '-' + Math.round(st.mtimeMs).toString(16) + '"';
     const head = Object.assign({
       'content-type': MIME[ext] || 'application/octet-stream',
       'cache-control': cc,
+      'etag': etag,
       'vary': 'accept-encoding',
     }, SEC_HEADERS);
+    /* 客户端带了匹配的 ETag → 304，不发 body */
+    if ((req && req.headers['if-none-match'] || '').split(',').some(function (t) {
+      return t.trim() === etag; })) {
+      delete head['content-length'];
+      res.writeHead(304, head);
+      return res.end();
+    }
     /* ── gzip ──
        收益主要在两处：index.html（约 120 KB 源码）与参照集 ref-com.json（约 730 KB）。
        参照集是前端**首次分析时才拉**的，裸传 730 KB 在移动网络上体验很差；

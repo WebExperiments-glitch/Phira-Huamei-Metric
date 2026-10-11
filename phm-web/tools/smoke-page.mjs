@@ -151,6 +151,21 @@ const ok = (n, c, d) => {
       if (ver && m[1] !== ver) bad.push(path.basename(fp) + ' → ?v=' + m[1]);
     }
   }
+  /* ── 缓存策略守卫（2026-10-11 一次真实事故后加）──
+     那次在**同一个版本号**下部署了两遍（内容不同），而 ?v= 资源当时是
+     `max-age=604800, immutable` —— immutable 让浏览器**连强刷都不重新校验**，
+     于是用户手里一直是第一次那份旧模块，页面报「does not provide an export
+     named …」、模块链断、下半页空白，而且**自己好不了**。
+     现在：长缓存只给 1 小时且 must-revalidate（配 ETag，重校验是 304）。
+     这条断言就是不许再改回 immutable。 */
+  const probe = (u) => fetch(new URL(u, BASE), { redirect: 'manual' });
+  const hHtml = (await probe('/app')).headers.get('cache-control') || '';
+  const hJs = (await probe('/js/ui.js?v=' + ver)).headers.get('cache-control') || '';
+  ok('HTML 不做长缓存（改了就立刻生效）', /no-cache/.test(hHtml), hHtml);
+  ok('★ ?v= 资源不带 immutable（否则旧副本自己好不了）', !/immutable/.test(hJs), hJs);
+  const et = (await probe('/js/ui.js?v=' + ver)).headers.get('etag');
+  ok('静态资源带 ETag（重校验走 304，不重下）', !!et, et || '(无)');
+
   console.log('\n[版本一致性] 版本 ' + ver + ' · 检查了 ' + refs + ' 处 ?v= 引用');
   ok('所有 ?v= 与 app-version 同串（CSS + JS 模块）', bad.length === 0 || bad.join('; '));
 
