@@ -223,13 +223,24 @@ export default {
     'app.res.off.note': '与 Phigros 官方同一标度（{n} 张官谱）',
     'app.res.off.hi': '　·　社区共识比它高 {d}',
     'app.res.off.lo': '　·　社区共识比它低 {d}',
-    'app.res.vague':
-      '⚠ 这 {n} 张参照谱的定数横跨 <b>{lo}–{hi}</b>（相差 {span}）——说明这张谱的结构'
-      + '在{desc}里<b>没有紧密对应物</b>，中点只能当粗略参照。<br>'
-      + '<b>这种时候该看什么：</b>'
-      + '① 看它更靠近范围的两端哪一头（说明它偏向同类里偏难还是偏易的那批）；'
-      + '② 点开下面的「最相近 5 张」自己核对名字——如果你觉得哪张根本不像，那这个数就不该信；'
-      + '③ 换一个标度看另一栏（社区共识与官谱标度往往一宽一窄）。',
+    /* ⚠ 拆成「引导句 + 三条短列表」：原来是一整段 200 字、里面 ①②③ 三个加粗，
+       读起来像一段免责声明。评审：改浅琥珀底的提示框 + 短列表。
+       ⚠ 加粗预算：每段至多一处（引导句），列表条目不再加粗。 */
+    'app.res.vague.lead':
+      '这 {n} 张参照谱的定数横跨 {lo}–{hi}（相差 {span}）——'
+      + '在{desc}里<b>没有紧密对应物</b>，中点只能当粗略参照。',
+    'app.res.vague.see': '这种时候该看什么：',
+    'app.res.vague.i1': '看它更靠近范围的哪一端（偏难还是偏易）；',
+    'app.res.vague.i2': '点开下面「最相近 5 张」核对名字 —— 觉得哪张不像，这个数就不该信；',
+    'app.res.vague.i3': '换另一标度看另一栏（社区与官谱往往一宽一窄）。',
+
+    'app.res.poolnote': '{desc} {pool} 张里最相近的 {n} 张',
+    /* 明细分组的四组标题 */
+    'app.res.g1': '基础',
+    'app.res.g2': '密度',
+    'app.res.g3': '技巧',
+    'app.res.g4': '元信息',
+    'app.res.ps.head': 'PS 负荷 · 四维加权（0–1）',
     'app.res.share.label': '分享这张谱',
     'app.res.share.wide': '横版图 · QQ / B站 / X',
     'app.res.share.tall': '竖版图 · 抖音',
@@ -350,7 +361,7 @@ export default {
     'app.calc.writefail': '⚠ 定数已算出，但共享缓存写入未成功',
     'app.calc.writefail2': '⚠ 定数已算出，但共享缓存写入失败：{e}',
     'app.calc.done2': '✅ 《{name}》 → P.H.M. 定数 <b>{rc}</b>',
-    'app.calc.apnote': '（AP 时单曲 rks 就等于这个数）',
+    'app.calc.apnote': '（AP 时单曲 RKS 就等于这个数）',
     'app.calc.stored': ' · 已存入共享缓存',
     'app.calc.corsfail':
       '⚠ <b>浏览器无法直接读取谱面文件</b> —— Phira 的文件 CDN'
@@ -621,15 +632,20 @@ export default {
     'app.res.off.note': 'same scale as official Phigros ({n} official charts)',
     'app.res.off.hi': ' · community consensus sits {d} above it',
     'app.res.off.lo': ' · community consensus sits {d} below it',
-    'app.res.vague':
-      '⚠ These {n} reference charts span <b>{lo}–{hi}</b> (a gap of {span}) — meaning this chart has '
-      + '<b>no close match</b> in {desc}, so the midpoint is only a rough guide.<br>'
-      + '<b>What to look at instead:</b> '
-      + '(1) which end of the range it leans toward (whether it is on the harder or easier side of its kind); '
-      + '(2) open the "5 closest" table below and check the names yourself — if any of them looks nothing like it, '
-      + 'don\u2019t trust the number; '
-      + '(3) read the other column for the other scale (community consensus and the official scale usually run '
-      + 'one wide and one narrow).',
+    'app.res.vague.lead':
+      'These {n} reference charts span {lo}–{hi} (a gap of {span}) — '
+      + 'this chart has <b>no close match</b> in {desc}, so the midpoint is only a rough guide.',
+    'app.res.vague.see': 'What to look at instead:',
+    'app.res.vague.i1': 'Which end of the range it leans toward (harder or easier side of its kind);',
+    'app.res.vague.i2': 'Open the "5 closest" table below and check the names — if one looks nothing like yours, do not trust this number;',
+    'app.res.vague.i3': 'Read the other column for the other scale (community and official often disagree in opposite directions).',
+
+    'app.res.poolnote': '{desc} — the {n} closest of {pool}',
+    'app.res.g1': 'Basics',
+    'app.res.g2': 'Density',
+    'app.res.g3': 'Technique',
+    'app.res.g4': 'Meta',
+    'app.res.ps.head': 'PS load · four weighted groups (0–1)',
     'app.res.share.label': 'Share this chart',
     'app.res.share.wide': 'Landscape · QQ / Bilibili / X',
     'app.res.share.tall': 'Portrait · Douyin',

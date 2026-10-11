@@ -41,7 +41,9 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 .apphead .slogan{font-size:13px;color:var(--fg2);flex:1;min-width:200px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--fg);font:14px/1.6 "Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:20px}
-.wrap{max-width:880px;margin:0 auto}
+/* ⚠ 这里曾经有一条 .wrap{max-width:880px} —— 页面样式在 base.css 之后，
+   所以它静默覆盖掉了全站容器令牌，这一页的顶栏就比别的页窄 120px。
+   容器宽度**只能在 base.css 的 --container 里定义一处**。 */
 header{display:flex;align-items:baseline;gap:12px;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
 header h1{font-size:20px;letter-spacing:.5px}
 header h1 b{color:var(--amber)}
@@ -185,15 +187,62 @@ padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 .sbtn:disabled{opacity:.45;cursor:default}
 /* 不确定度提示：当 20 张参照官谱的定数跨度 ≥3 时出现。
    目的不是免责，是把「这个数有多硬」如实说出来。 */
-.dualscale{margin-top:8px;padding:8px 12px;border-radius:8px;
-  background:var(--panel2,rgba(127,127,127,.08));font-size:12.5px;
-  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.dualscale .dsl{color:var(--dim);font-size:11.5px;letter-spacing:.04em}
-.dualscale b{font-size:15px}
-.dualscale .dsh{color:var(--dim);font-size:11.5px}
-.vague{margin-top:10px;padding:9px 12px;border-left:3px solid var(--amber);
-background:var(--card2);border-radius:0 8px 8px 0;font-size:12px;color:var(--fg2);line-height:1.7}
-.vague b{color:var(--amber)}
+/* ── 双标度并列：主结果高亮 ──
+   之前：社区共识是 54px 的大数字，官谱标度缩在一行灰字里 ——
+   而产品核心恰恰是"两个数字"。现在两张并排的卡，主结果（当前选中的标度）
+   用淡琥珀底高亮。 */
+.scales{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 4px}
+.scalecard{padding:12px 14px;border:1px solid var(--line);border-radius:var(--r2);
+  background:var(--card2)}
+.scalecard .lbl{font-size:11.5px;color:var(--fg3);letter-spacing:.04em}
+.scalecard .v{font-family:var(--font-display);font-weight:600;font-size:30px;
+  line-height:1.1;margin:2px 0 4px;font-variant-numeric:tabular-nums}
+.scalecard .note{font-size:11.5px;color:var(--fg3);line-height:1.6}
+.scalecard.on{background:var(--brand-soft);border-color:var(--brand-line)}
+.scalecard.on .v{color:var(--brand-bright)}
+.scalecard.on .lbl{color:var(--brand)}
+
+/* ── 区间轴：轴 = 不确定范围（lo..hi），两个标度各一根标记 ──
+   两端标出数值；标记很近时 a 的标签在上、b 的标签在下，避免重叠。
+   ⚠ 轨道的对比度不能太弱（评审：像没画完），所以用 inset 描边而不是纯底色。 */
+.meter{--min:0;--max:20;--a:0;--b:0;position:relative;height:10px;
+  border-radius:999px;margin:38px 0 30px;background:var(--card3);
+  box-shadow:inset 0 0 0 1px var(--line2)}
+.meter__range{position:absolute;top:0;bottom:0;border-radius:inherit;
+  left:calc((var(--min) - 0) / 20 * 100%);width:calc((var(--max) - var(--min)) / 20 * 100%);
+  background:var(--brand-soft);border-inline:1px solid var(--brand-line)}
+.meter__pin{position:absolute;top:-5px;bottom:-5px;width:2px;border-radius:2px;
+  background:var(--brand);transform:translateX(-1px)}
+.meter__pin--a{left:calc((var(--a) - 0) / 20 * 100%)}
+.meter__pin--b{left:calc((var(--b) - 0) / 20 * 100%);background:var(--fg2)}
+.meter__label{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);
+  color:var(--brand);font-size:11.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.meter__pin--b .meter__label{top:calc(100% + 6px);bottom:auto;color:var(--fg2)}
+.meter__tick{position:absolute;top:16px;transform:translateX(-50%);
+  color:var(--fg3);font-size:11px;font-variant-numeric:tabular-nums}
+.meter__tick:first-of-type{transform:none}
+.meter__tick:last-of-type{transform:translateX(-100%)}
+
+/* ── 提示框：引导句 + 短列表（每段至多一处加粗）── */
+.callout{padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--card2);font-size:12.5px;color:var(--fg2);line-height:1.75}
+.callout ul{margin:0;padding-inline-start:1.3em}
+.callout li{margin:0 0 .2em}
+.callout li::marker{color:var(--fg4)}
+.callout__lead{display:block;margin:0 0 .2em;color:var(--fg);font-weight:600}
+.callout--warn{background:var(--brand-soft);border-color:var(--brand-line)}
+.callout--warn .callout__lead{color:var(--brand)}
+
+/* ── PS 四维度：四根迷你条（label / track / value 各占一列）── */
+.pshead{display:flex;align-items:baseline;gap:8px;margin:16px 0 8px}
+.pshead .lbl{font-size:13px;font-weight:600;color:var(--fg);font-family:var(--font-display)}
+.pshead__note{font-size:11.5px;color:var(--fg3)}
+.bars{display:grid;gap:7px}
+.g{display:grid;grid-template-columns:4.5em 1fr 3.2em;align-items:center;gap:10px;font-size:12.5px}
+.g .lbl{color:var(--fg2)}
+.g .track{height:6px;border-radius:999px;background:var(--card3);overflow:hidden}
+.g .track i{display:block;height:100%;border-radius:inherit;background:var(--brand)}
+.g b{color:var(--fg);text-align:right;font-variant-numeric:tabular-nums}
 /* 下载按钮（搜索结果 / Phira 表共用）：网页端无法直读 Phira CDN，只能下载后拖入 */
 .dlbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
 border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
@@ -255,9 +304,6 @@ margin:16px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
 .card h2{font-size:15px;margin-bottom:2px}
 .card .sub{font-size:12px;color:var(--fg2);margin-bottom:12px}
 .err{border-color:var(--red)}
-.ps{display:flex;align-items:baseline;gap:10px}
-.ps .num{font-size:54px;font-weight:750;color:var(--brand-bright);letter-spacing:-2px;line-height:1}
-.ps .u{font-size:13px;color:var(--fg3)}
 /* 刻度条：一条 0–20 的中性轨 + 一段**不确定范围**色带 + 一根中点标记。
    ⚠ 原来是 `linear-gradient(info,brand,err)` 的彩虹填充 —— 三个色相，
    既违反「只有一个主色」，又只表达"位置"、不表达"范围有多宽"。
@@ -267,12 +313,6 @@ margin:16px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
   border-left:1px solid var(--brand-line);border-right:1px solid var(--brand-line);border-radius:2px}
 .scale .mk{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--brand);border-radius:1px;
   transform:translateX(-1px);box-shadow:0 0 0 2px var(--card)}
-.tick{position:relative;height:16px;font-size:10.5px;color:var(--fg3)}
-.tick span{position:absolute;transform:translateX(-50%)}
-.groups{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:12px 0 4px}
-.g .t{display:flex;justify-content:space-between;font-size:12px;color:var(--fg2);margin-bottom:3px}
-.g .t b{color:var(--fg)}
-.bar{height:6px;border-radius:3px;background:var(--card2);overflow:hidden}
 .bar i{display:block;height:100%;border-radius:3px}
 .gdensity i{background:var(--density)}.gpattern i{background:var(--pattern)}
 .gcoord i{background:var(--coord)}.gstamina i{background:var(--stamina)}
@@ -292,8 +332,6 @@ color:var(--brand-ink);padding:2px 10px;border-radius:8px;margin-right:10px}
 .chip{background:var(--card);border:1px solid var(--line);color:var(--fg2);
 border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer}
 .chip.on{border-color:var(--amber);color:var(--fg)}
-.psline{font-size:12px;color:var(--fg2);margin:10px 0 2px}
-.psline b{color:var(--amber)}
 footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg3);line-height:1.8}
 .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:8px;border:1px solid var(--line);color:var(--fg2);margin-left:6px}
 footer details{margin-top:6px}
@@ -568,7 +606,7 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang } from '/js/ui.js?v=V0.9.4.0';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.9.4.0';
 
 /* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
    页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。
@@ -732,58 +770,78 @@ function card(r,idx){
   const gap = (isCom && knOff && knOff.ref != null && kn.ref != null)
     ? (kn.ref - knOff.ref) : null;
   const bars=GROUPS.map(function(g){
-    return '<div class="g '+g[0]+'"><div class="t"><span>'+esc(g[1]())
-      +'</span><b>'+f2(ps.g[g[0]])+'</b></div><div class="bar"><i style="width:'
-      +(ps.g[g[0]]*100).toFixed(1)+'%"></i></div></div>';}).join("");
+    return '<div class="g '+g[0]+'"><span class="lbl">'+esc(g[1]())
+      +'</span><span class="track"><i style="width:'
+      +(ps.g[g[0]]*100).toFixed(1)+'%"></i></span><b>'+f2(ps.g[g[0]])+'</b></div>';}).join("");
   const pos=function(v){return Math.max(0,Math.min(100,v/20*100));};
   const nearRows=(kn.near||[]).map(function(n2){
     return '<tr><td>'+esc(n2.name)+'</td><td>'+esc(n2.level)+'</td><td>'
       +f1(n2.diff)+'</td></tr>';}).join("");
-  const rows=[
-    [t("app.res.r.notes"),f.notes_real+(f.notes_all>f.notes_real
-      ?t("app.res.r.notes.fake",{n:f.notes_all}):"")],
-    [t("app.res.r.dur"),f1(f.duration_s)+" s"],[t("app.res.r.bpm"),f2(f.bpm)],
-    [t("app.res.r.lines"),f.lines],
-    [t("app.res.r.density"),f2(f.real_notes_per_second)+" /s"],
-    [t("app.res.r.eff"),f2(f.eff_avg_tps_1s)+" / "+f2(f.eff_peak_tps_1s)],
-    [t("app.res.r.strain"),f2(f.strain_p50)+" / "+f2(f.strain_p99)],
-    [t("app.res.r.iv"),f2(f.iv_median)+" s"],
-    [t("app.res.r.hold"),(f.hold_ratio*100).toFixed(1)+"%"],
-    [t("app.res.r.stair"),f2(f.stair_speed_max)+" /s"],
-    [t("app.res.r.cross"),f2(f.cross_hand_density)+" /s"],
-    [t("app.res.r.multi"),t("app.res.r.multi.v",{n:f.multi_finger_3plus_events})],
-    [t("app.res.r.charter"),r.charter||"-"],
+  /* ── 明细按语义分组（评审：13 行长表读不动）──
+     原来是一张 13 行的平铺长表，从物量一路读到谱师，视线要跨全宽 13 次。
+     分成四组放进两列，页面高度省一半。 */
+  const rowGroups=[
+    {label:t("app.res.g1"),rows:[
+      [t("app.res.r.notes"),f.notes_real+(f.notes_all>f.notes_real
+        ?t("app.res.r.notes.fake",{n:f.notes_all}):"")],
+      [t("app.res.r.dur"),f1(f.duration_s)+" s"],[t("app.res.r.bpm"),f2(f.bpm)],
+      [t("app.res.r.lines"),f.lines]]},
+    {label:t("app.res.g2"),rows:[
+      [t("app.res.r.density"),f2(f.real_notes_per_second)+" /s"],
+      [t("app.res.r.eff"),f2(f.eff_avg_tps_1s)+" / "+f2(f.eff_peak_tps_1s)],
+      [t("app.res.r.iv"),f2(f.iv_median)+" s"]]},
+    {label:t("app.res.g3"),rows:[
+      [t("app.res.r.strain"),f2(f.strain_p50)+" / "+f2(f.strain_p99)],
+      [t("app.res.r.hold"),(f.hold_ratio*100).toFixed(1)+"%"],
+      [t("app.res.r.stair"),f2(f.stair_speed_max)+" /s"],
+      [t("app.res.r.cross"),f2(f.cross_hand_density)+" /s"],
+      [t("app.res.r.multi"),t("app.res.r.multi.v",{n:f.multi_finger_3plus_events})]]},
+    {label:t("app.res.g4"),rows:[[t("app.res.r.charter"),r.charter||"-"]]},
   ];
-  const uSpan = t("app.res.u",{ basis:basisName, desc:basisDesc, pool:poolN, n:(kn.n20)||0 })
-    + (kn.lo!=null ? '　·　'+t("app.res.u.span",{ lo:f1(kn.lo), hi:f1(kn.hi) }) : '');
-  const psline = t("app.res.psline",{ total:f1(ps.total), d:f2(ps.g.density),
-    p:f2(ps.g.pattern), c:f2(ps.g.coord), s:f2(ps.g.stamina) });
   return '<div class="card">'
     +'<h2>'+esc(r.name)+'</h2>'
     +'<div class="sub">'+esc(r.sub||"")+'</div>'
-    +'<div class="ps"><span class="tierbadge" style="background:'+tcol
-    +'">'+esc(tier)+'</span>'
-    +'<span class="num" style="color:'+tcol+'">'+f1(kn.ref)+'</span>'
-    +'<span class="u">'+uSpan+'</span></div>'
-    /* 官谱标度对照 —— 双标度里更"客观"的那一栏，同时也是可查证的锚点 */
-    +(knOff&&knOff.ref!=null?'<div class="dualscale"><span class="dsl">'+esc(t("app.res.basis.off"))+'</span>'
-      +'<b>'+f1(knOff.ref)+'</b>'
-      +'<span class="dsh">'+esc(t("app.res.off.note",{n:(REF_OFFICIAL?REF_OFFICIAL.length:0)}))
-      +(gap!=null?'　·　'+esc(gap>=0
-          ? t("app.res.off.hi",{d:Math.abs(gap).toFixed(1)})
-          : t("app.res.off.lo",{d:Math.abs(gap).toFixed(1)})) : '')
-      +'</span></div>':'')
-    +(vague?t("app.res.vague",{ n:(kn.n20)||0, lo:f1(kn.lo), hi:f1(kn.hi),
-        span:span.toFixed(1), desc:basisDesc }):'')
-    /* 不确定范围画成条：带 = lo..hi，竖线 = 中点（那个大数字）。
-       带宽本身就是结论 —— 宽到一眼看出来，就不必再读那段警告文字。 */
-    +'<div class="scale">'
+    /* ── 双标度**并列**：主结果高亮 ──
+       产品核心是"两个数字"，那就把两个数字摆成两张并排的卡，而不是
+       一个巨大、另一个缩在灰条里。 */
+    +'<div class="scales">'
+      +'<div class="scalecard'+(isCom?' on':'')+'">'
+        +'<div class="lbl">'+esc(basisName)+'</div>'
+        +'<div class="v">'+f1(kn.ref)+'</div>'
+        +'<div class="note">'+t("app.res.poolnote",{desc:basisDesc,pool:poolN,n:(kn.n20)||0})+'</div>'
+      +'</div>'
+      +(knOff&&knOff.ref!=null
+        ?'<div class="scalecard">'
+          +'<div class="lbl">'+esc(t("app.res.basis.off"))+'</div>'
+          +'<div class="v">'+f1(knOff.ref)+'</div>'
+          +'<div class="note">'+esc(t("app.res.off.note",{n:REF_OFFICIAL?REF_OFFICIAL.length:0}))
+          +(gap!=null?' '+esc(gap>=0
+              ? t("app.res.off.hi",{d:Math.abs(gap).toFixed(1)})
+              : t("app.res.off.lo",{d:Math.abs(gap).toFixed(1)})):'')+'</div></div>':'')
+    +'</div>'
+
+    /* ── 区间轴：轴就是**不确定范围**（lo..hi），两端标出数值，
+         两个标度各一根标记 —— 差距一眼可见（原来只标 0/10/20）。 ── */
     +(kn.lo!=null&&kn.hi!=null
-        ?'<span class="band" style="left:'+pos(kn.lo).toFixed(1)+'%;width:'
-          +Math.max(0.6,pos(kn.hi)-pos(kn.lo)).toFixed(1)+'%"></span>' : '')
-    +'<span class="mk" style="left:'+pos(kn.ref).toFixed(1)+'%"></span></div>'
-    +'<div class="tick"><span style="left:0">0</span>'
-      +'<span style="left:50%">10</span><span style="left:100%">20</span></div>'
+      ?'<div class="meter" style="--min:'+kn.lo.toFixed(2)+';--max:'+kn.hi.toFixed(2)
+        +';--a:'+kn.ref.toFixed(2)+(knOff&&knOff.ref!=null?';--b:'+knOff.ref.toFixed(2):'')+'">'
+        +'<span class="meter__range"></span>'
+        +'<span class="meter__pin meter__pin--a"><span class="meter__label">'
+          +(isCom?esc(basisName):esc(t("app.res.basis.com")))+' '+f1(kn.ref)+'</span></span>'
+        +(knOff&&knOff.ref!=null
+          ?'<span class="meter__pin meter__pin--b"><span class="meter__label">'
+            +(isCom?esc(t("app.res.basis.off")):esc(basisName))+' '+f1(knOff.ref)+'</span></span>':'')
+        +'<span class="meter__tick" style="--at:0">'+f1(kn.lo)+'</span>'
+        +'<span class="meter__tick" style="--at:100">'+f1(kn.hi)+'</span>'
+      +'</div>'
+      +(vague?'<div class="callout callout--warn">'
+        +'<span class="callout__lead">'+t("app.res.vague.see")+'</span>'
+        +'<ul><li>'+t("app.res.vague.i1")+'</li><li>'+t("app.res.vague.i2")
+        +'</li><li>'+t("app.res.vague.i3")+'</li></ul>'
+        +'<div class="callout__lead" style="margin-top:.6em">'
+        +t("app.res.vague.lead",{n:(kn.n20)||0,lo:f1(kn.lo),hi:f1(kn.hi),
+          span:span.toFixed(1),desc:basisDesc})+'</div></div>':'')
+      :'')
     +'<div class="srow"><span class="slabel">'+esc(t("app.res.share.label"))+'</span>'
       +'<button class="sbtn" type="button" data-share="wide" data-i="'+idx+'">'
       +esc(t("app.res.share.wide"))+'</button>'
@@ -791,7 +849,20 @@ function card(r,idx){
       +esc(t("app.res.share.tall"))+'</button></div>'
     +'<table style="margin-top:8px"><tr><th>'+esc(t("app.res.near",{desc:basisDesc}))+'</th>'
     +'<th>'+esc(t("c.tier"))+'</th><th>'+esc(t("app.res.th.const"))+'</th></tr>'+nearRows+'</table>'
-    +'<div class="psline">'+psline+'</div>'
+    /* ── PS 四个维度：四根迷你条 ──
+       ⚠ `bars` 这个变量**早就算好了却一直没渲染**（死代码），页面上只出现
+       一行文字「PS = 20 × (0.40·密度 + …)」—— 公式比图直观？不，评审说得对：
+       四根迷你条一眼就能看出这张谱偏哪个维度。 */
+    +'<div class="pshead"><span class="lbl">PS '+f1(ps.total)+'</span>'
+      +'<span class="pshead__note">'+t("app.res.ps.head")+'</span></div>'
+    +'<div class="bars">'+bars+'</div>'
+
+    /* ── 明细：13 行长表 → 分组的两列定义列表，页面高度省一半 ── */
+    +'<div class="kv-groups">'+rowGroups.map(function(sec){
+      return '<section class="kv"><h4>'+esc(sec.label)+'</h4><dl>'
+        +sec.rows.map(function(x){ return '<div class="row"><dt>'+esc(x[0])
+          +'</dt><dd>'+esc(x[1])+'</dd></div>'; }).join('')
+        +'</dl></section>'; }).join('')+'</div>'
     +'<div class="playstat" id="playstat-'+STATE.sel+'" style="display:none"></div>'
     +'<table>'+rows.map(function(x){return '<tr><td>'+esc(x[0])
       +'</td><td>'+esc(x[1])+'</td></tr>';}).join("")+'</table>'
@@ -820,6 +891,8 @@ function render(){
         +'" data-i="'+i+'">'+esc(rp.label)+'</button>';}).join("")+'</div>';
   }
   out.innerHTML=sel+card(STATE.reports[STATE.sel],STATE.sel);
+  markJa(out);   /* 含假名的曲名/用户名走日文栈（否则假名会掉进中文字体的回退） */
+
   const cur=STATE.reports[STATE.sel];
   if(typeof renderPlayStat==="function") renderPlayStat((cur&&cur.playStat)||null);
   const chips=out.querySelectorAll(".chip");
@@ -1369,6 +1442,8 @@ function renderChartSearch(kw){
         +'</span>'
         +'</div>';}).join("")+'</div>'
     +'<div class="csfoot">'+t("app.srch.foot")+'</div>';
+  /* 搜索结果里全是曲名 —— 含假名的要走日文栈（否则假名会掉进中文字体的回退） */
+  markJa(out);
 }
 
 

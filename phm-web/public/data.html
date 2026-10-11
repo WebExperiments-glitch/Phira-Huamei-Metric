@@ -46,7 +46,7 @@ table.tbl td.nm{max-width:230px;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
-<div class="wrap wide">
+<div class="wrap">
 
 <nav id="nav"></nav>
 
@@ -88,8 +88,7 @@ table.tbl td.nm{max-width:230px;overflow:hidden;text-overflow:ellipsis}
 </div>
 
 <script type="module">
-import { renderNav, esc, f2, lvTag, tierColor, pagerHTML, wirePager,
-         applyStatic, t, onLangChange } from '/js/ui.js?v=V0.9.4.0';
+import { renderNav, esc, f2, lvTag, tierColor, pagerHTML, wirePager, applyStatic, t, onLangChange, markJa } from '/js/ui.js?v=V0.9.4.0';
 
 renderNav('data');
 applyStatic();
@@ -230,6 +229,8 @@ function render(j) {
   }
   h += '</tbody></table>';
   $('#tbl').innerHTML = h;
+  markJa($('#tbl'));   /* 含假名的曲名/用户名走日文栈（否则假名会掉进中文字体的回退） */
+
 
   /* 表头排序：点同一个字段切换升降序 */
   $('#tbl').querySelectorAll('th[data-sort]:not(.no)').forEach(th =>

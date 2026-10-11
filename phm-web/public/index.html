@@ -167,8 +167,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER, applyStatic, t, onLangChange,
-         currentLang, setLang } from '/js/ui.js?v=V0.9.4.0';
+import { renderNav, esc, APP_VER, applyStatic, t, onLangChange, currentLang, setLang, fmtInt } from '/js/ui.js?v=V0.9.4.0';
 renderNav('home');
 /* 首页 hero / 入口卡片是静态 HTML，靠 data-i18n 批量替换 */
 applyStatic();
@@ -210,9 +209,11 @@ function paintStats() {
   const s = STATS;
   const cell = (v, k) => '<div class="st"><div class="v">' + v + '</div><div class="k">' + esc(k) + '</div></div>';
   document.getElementById('stats').innerHTML =
-    cell(s && s.cache != null ? s.cache : '—', t('home.stats.cache'))
-    + cell((s && s.refN) || '—', t('home.stats.com'))
-    + cell((s && s.officialN) || '—', t('home.stats.off'))
+    /* ⚠ 这四个数是**数量**，要走千分位。以前是原样插进去的 ——
+       于是同一页上文案写「9,508 张」、磁贴却显示「9508」，两套写法并存。 */
+    cell(s && s.cache != null ? fmtInt(s.cache) : '—', t('home.stats.cache'))
+    + cell(s && s.refN ? fmtInt(s.refN) : '—', t('home.stats.com'))
+    + cell(s && s.officialN ? fmtInt(s.officialN) : '—', t('home.stats.off'))
     + cell(s && s.scores != null ? s.scores : '—', t('home.stats.scores'));
   document.getElementById('statNote').textContent = (s && s.ok)
     ? t('home.stats.live')

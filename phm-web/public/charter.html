@@ -80,9 +80,7 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager,
-         tierBadge, glossaryHTML, loadChartCache, cachedRow, applyStatic,
-         t, onLangChange } from '/js/ui.js?v=V0.9.4.0';
+import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager, tierBadge, glossaryHTML, loadChartCache, cachedRow, applyStatic, t, onLangChange, markJa } from '/js/ui.js?v=V0.9.4.0';
 import { findUsers, getUser, rankUserCands, getAllChartsByUploader,
          scanCharter } from '/js/phira.js?v=V0.9.4.0';
 
@@ -238,6 +236,8 @@ function render() {
   if (ST.uid != null) h += cardWorks();
   if (ST.users.length && ST.uid != null) h += cardFallback();
   $('#out').innerHTML = h;
+  markJa($('#out'));   /* 含假名的曲名/用户名走日文栈（否则假名会掉进中文字体的回退） */
+
 
   /* 事件重绑 —— 每次渲染 DOM 都是新的 */
   $('#out').querySelectorAll('button.cand').forEach(b =>

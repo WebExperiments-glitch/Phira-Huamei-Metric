@@ -106,10 +106,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager,
-         tierBadge, accCell, constCell, glossaryHTML,
-         loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER,
-         applyStatic, t, onLangChange } from '/js/ui.js?v=V0.9.4.0';
+import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager, tierBadge, accCell, constCell, glossaryHTML, loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER, applyStatic, t, onLangChange, markJa } from '/js/ui.js?v=V0.9.4.0';
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
   from '/js/phira.js?v=V0.9.4.0';
 /* 设置的真源 —— 键名不在这里硬写。见 /js/settings.js 顶部说明。 */
@@ -546,6 +543,8 @@ async function renderMine(cid, out) {
   h += '</tbody></table>';
   h += '<div class="note info">' + t('u.mine.note', { n: records.length }) + '</div>';
   out.innerHTML = h;
+  markJa(out);   /* 含假名的曲名/用户名走日文栈（否则假名会掉进中文字体的回退） */
+
 }
 
 async function renderAll(cid, out) {
@@ -596,6 +595,7 @@ async function renderAll(cid, out) {
   }) + '</div>';
   h += '<div class="note">' + t('u.all.note', { n: r.records.length }) + '</div>';
   out.innerHTML = h;
+  markJa(out);   /* 含假名的曲名/用户名走日文栈 */
   wirePager($('#cpg'), pg => { CQ.page = pg; doChartQuery(); });
 }
 

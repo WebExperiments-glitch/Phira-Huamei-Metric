@@ -120,7 +120,9 @@
 
   /* 导航毛玻璃的底色：半透明即可，模糊由 backdrop-filter 负责。
      ⚠ 别做成完全不透明 —— 那样就只是"一块盖子"，没有毛玻璃的通透感。 */
-  --nav-veil: rgba(14,13,11,.72);
+  /* 不透明度从 .72 提到 .88 —— 评审说滑动时下面
+     透出灰色模糊色块像脏污。再加 1px 底线把顶栏和内容分开。 */
+  --nav-veil: rgba(14,13,11,.88);
 
   /* 让浏览器原生控件（表单、滚动条、自动填充）跟着主题走 —— 少了这行，
      浅色主题里会出现深色的 select 下拉和白色滚动条 */
@@ -139,7 +141,22 @@
                "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC",
                "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
 
+  /* 日文专用栈。曲库里大量日文标题（シアトリカル·ケース / 強風オールバック…）——
+     页面语言是 zh-Hans，日文汉字（綺麗、夢）会拿中文字形，假名则走回退字体，
+     两个字重和字面都对不上。给含假名的元素加 lang="ja" 就能分开处理。
+     ⚠ 纯汉字标题无法靠正则判断（中日共用汉字），保持 zh 即可。 */
+  --font-ja: "Hiragino Sans", "Yu Gothic UI", Meiryo, "Noto Sans JP", var(--font-body);
+
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+
+  /* ── 版心与容器 ──
+     ⚠ 全站**只有一个容器**：顶栏、内容区、页脚都用它。
+       曾经内容区有 880/1100 两种宽度、顶栏又单独撑成第三种 —— 结果切页面时
+       logo 横向跳、顶栏左缘比内容左缘多出上百像素，看起来像没对齐。
+       现在：容器统一（--container），**要窄的是文字，不是容器**（--measure）。
+       版心 42em ≈ 中文 40–45 字一行，长段落读起来最舒服。 */
+  --container: 1120px;
+  --measure: 42em;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -197,7 +214,7 @@
   --sh-card: 0 1px 2px rgba(40,25,5,.05), 0 0 0 1px rgba(40,25,5,.03);
 
   --scroll-thumb: rgba(40,25,5,.22);
-  --nav-veil: rgba(246,243,238,.78);
+  --nav-veil: rgba(246,243,238,.88);
   color-scheme: light;
 }
 
@@ -221,7 +238,7 @@ body {
 /* 焦点环：键盘用户必须看得见，鼠标点出来则不需要（:focus-visible）。
    深色界面缺了它，"没打磨过"的感觉立刻出来。 */
 :focus-visible {
-  outline: 2px solid var(--brand-line);
+  outline: 2px solid var(--brand); outline-offset: 2px;
   outline-offset: 2px;
 }
 
@@ -237,15 +254,9 @@ body {
   border: 2px solid transparent; background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--fg4); background-clip: content-box; }
-.wrap { max-width: 880px; margin: 0 auto; }
-.wrap.wide { max-width: 1100px; }
-
-/* ── 顶栏与内容区**解耦** ──
-   内容区宽度本来就该按内容需要来定：宽表（数据页）要 1100，正文页 880 更好读。
-   但顶栏不能跟着变 —— 否则在页面之间点来点去时，logo 和导航会横向跳一下，
-   非常廉价。所以把顶栏从内容区里"撑"到全站统一宽度。
-   ⚠ 外面的 min() 是兜窄屏：不能撑得比视口还宽（否则出现横向滚动条）。 */
-#nav { margin-inline: calc((min(1100px, 100vw - 40px) - 100%) / -2); }
+/* 唯一容器。所有页面共用 —— 顶栏、内容、页脚都在它里面，
+   所以 logo 左缘和内容左缘永远对齐（曾经不一致到差 200px）。 */
+.wrap { max-width: var(--container); margin: 0 auto; }
 /* ⚠ 链接**必须带下划线**，不能只靠颜色区分。
    全站只有一种强调色（琥珀），如果链接也只靠颜色，它就和其他琥珀元素
    分不出来了；而且色觉障碍用户需要非颜色的线索。下划线是最省事的那个。
@@ -257,8 +268,24 @@ body {
 h1, h2, h3, .brand, .big, .ps .num {
   font-family: var(--font-display); font-weight: 600;
 }
+/* 孤字：标题和短提示用 balance（最后一行不会只有一两个字），
+   正文用 pretty（避免孤字成行）。Chromium 系生效，其余无害降级。 */
+h1, h2, h3, .callout__lead, .sub { text-wrap: balance; }
+p, .fd, li, .note, .sdesc { text-wrap: pretty; }
+
+/* 动效偏好：前庭用户会把所有过渡动效压到 0.01ms */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* 中文标点在衬线下看起来更重，稍微收一点字距 */
 h1, h2, h3 { letter-spacing: -.005em; }
+
+:lang(ja) { font-family: var(--font-ja); }
 
 a { color: var(--link); text-decoration: underline;
     text-decoration-thickness: 1px; text-underline-offset: 2.5px;
@@ -325,9 +352,13 @@ a:hover { text-decoration-thickness: 2px; }
 /* ── 长段落限宽 ──
    中文一行超过 ~45 个字就难扫读了（评审实测现在有 60–75 字）。
    限宽只加在**成段的说明文字**上，表格、卡片栅格不受影响。 */
-.fd, .card > .sub, .tip, .sdesc { max-width: 46em; }
+/* 长段落按版心限宽。表格、卡片栅格、数据区不受影响 ——
+   要窄的是「文字」，不是「容器」。 */
+.fd, .card > .sub, .tip, .sdesc, .note, .sub { max-width: var(--measure); }
 
 /* ── 按钮 ─────────────────────────────────────────────── */
+.btn {
+  min-height: 40px;
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 9px; cursor: pointer;

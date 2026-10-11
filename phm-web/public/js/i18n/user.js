@@ -48,7 +48,7 @@ export default {
       '<b>官方 RKS 是 0，且 B19 只有 {n} 条——这不是你的问题。</b><br>'
       + '实测抽样：多位<b>今天仍在游玩</b>的活跃玩家，bestPool 里最新的一条成绩全部停在 '
       + '<b>2023 ~ 2026-03</b>，而他们的单曲排行榜名次天天在更新。'
-      + '⇒ <b>Phira 服务端的 RKS / B19 计算已经停摆</b>，2026 年之后注册的账号 bestPool 从开始就是空的。<br>'
+      + '→ <b>Phira 服务端的 RKS / B19 计算已经停摆</b>，2026 年之后注册的账号 bestPool 从开始就是空的。<br>'
       + '这不影响你的成绩本身（排行榜是实时的），只是那个总 RKS 数字不会动了。'
       + '所以本页另算一个 <b>P.H.M. RKS</b> 给你参考。',
     'u.b19.partial':
@@ -71,8 +71,8 @@ export default {
     /* ── 表格列名（跨区块共用）── */
     'u.col.acc': '准度',
     'u.col.const': '定数',
-    'u.col.item': '计入的单曲 rks',
-    'u.col.sr': '单曲 rks',
+    'u.col.item': '计入的单曲 RKS',
+    'u.col.sr': '单曲 RKS',
     'u.col.best.acc': '最好准度',
     'u.col.times': '次数',
     'u.col.recent': '最近',
@@ -136,7 +136,7 @@ export default {
     'u.chart.title.p': '（《{name}》）',
     'u.chart.titled': '：《{name}》{level}',
     'u.const.src': ' · 定数 {lv}（{src}）',
-    'u.sr.inline': ' · 单曲 rks <b>{v}</b>',
+    'u.sr.inline': ' · 单曲 RKS <b>{v}</b>',
     'u.mine.none': '这个号在 <b>#{id}</b> 上没有记录{title}。',
     'u.mine.ok': '共 <b>{n}</b> 次游玩{title} · 最好准度 <b>{acc}</b>{const}{sr}',
     'u.mine.note':
@@ -199,7 +199,7 @@ export default {
       '<b>The official RKS reads 0 and B19 has just {n} entries — that is not on you.</b><br>'
       + 'Sampled in practice: several active players <b>still playing today</b> have their newest bestPool entry frozen at '
       + '<b>2023 – 2026-03</b>, while their per-chart leaderboard ranks update daily. '
-      + '⇒ <b>Phira\u2019s server-side RKS / B19 computation has stalled</b>, and accounts registered after 2026 started with an empty bestPool.<br>'
+      + '→ <b>Phira\u2019s server-side RKS / B19 computation has stalled</b>, and accounts registered after 2026 started with an empty bestPool.<br>'
       + 'This does not touch your scores themselves (leaderboards are live) — it is only that total RKS number that no longer moves. '
       + 'So this page computes a <b>P.H.M. RKS</b> for you to go by.',
     'u.b19.partial':
