@@ -94,13 +94,24 @@ function toRow(r, needLevel, id) {
     id || 0, ...vals];
 }
 
-/* ── 官谱 ── 需要档位（前端要显示"最相近的官谱叫什么、什么难度"） */
-const official = readJsonl(path.join(REPO, 'data', 'official.jsonl'))
-  .map(r => toRow(r, true, 0)).filter(Boolean);
+/* ── 官谱 ── 需要档位（前端要显示"最相近的官谱叫什么、什么难度"）
+   ⚠ 这两个 builder 是**导出**的：tools/validate-ref.mjs（留出验证）要拿到
+     **和线上完全同一份**行，不能自己重写一遍过滤逻辑 —— 两份必然漂移，
+     于是"验证通过"会变成假的。要改过滤规则，只改这里。 */
+export function buildOfficialRows() {
+  return readJsonl(path.join(REPO, 'data', 'official.jsonl'))
+    .map(r => toRow(r, true, 0)).filter(Boolean);
+}
 
 /* ── 社区谱 ── 档位字段在 Phira 上是自由文本，归一失败就记 5（未知），不丢行 */
-const community = readJsonl(path.join(REPO, 'data', 'community.jsonl'))
-  .map(r => toRow(r, false, r.id)).filter(Boolean);
+export function buildCommunityRows() {
+  return readJsonl(path.join(REPO, 'data', 'community.jsonl'))
+    .map(r => toRow(r, false, r.id)).filter(Boolean);
+}
+
+function main() {
+  const official = buildOfficialRows();
+  const community = buildCommunityRows();
 
 /* 按定数排序，让"邻域"在文件里也是局部连续的（gzip 友好，且便于人工抽查） */
 const byDiff = (a, b) => a[0] - b[0];
@@ -147,3 +158,10 @@ console.log(`✓ ref-official.js  官谱 ${String(official.length).padStart(5)} 
 console.log(`✓ ref-com.json     社区 ${String(community.length).padStart(5)} 行  ${kb(pCom)}`);
 const skipped = { official: readJsonl(path.join(REPO, 'data', 'official.jsonl')).length - official.length };
 console.log(`  （官谱剔除 ${skipped.official} 行：档位无法归一或缺特征）`);
+}
+
+/* ⚠ 只有**直接运行**时才写文件。被 import（比如 validate-ref.mjs 拿 buildCommunityRows）
+   时不能有副作用 —— 否则"跑个验证"会顺手把参照集重写一遍。 */
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
