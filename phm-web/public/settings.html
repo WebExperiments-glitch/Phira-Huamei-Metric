@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.2.1">
+<meta name="app-version" content="V0.9.4.0">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.2.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.4.0">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -58,6 +58,11 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 .srow .sc{flex:0 0 auto;display:flex;align-items:center;gap:8px}
 .srow .sc .val{font-family:var(--mono);font-size:11.8px;color:var(--fg2);
   max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 行内的「去别处看看」链接：用品牌色、带下划线提示可点，
+   但**不抢**——设置项本身才是主角，它只是个出口。 */
+.srow .sc .verlink{font-size:12.5px;color:var(--brand);text-decoration:none;
+  border-bottom:1px solid var(--brand-line);padding-bottom:1px;white-space:nowrap;transition:.15s}
+.srow .sc .verlink:hover{border-bottom-color:var(--brand);color:var(--brand-hover)}
 .srow.wide{justify-content:flex-start}
 .srow.wide .sc{margin-left:auto}
 
@@ -146,7 +151,7 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
     <!-- ── 隐私与数据 ── -->
     <section class="ssec" id="privacy">
       <h2 data-i18n="set.sec.privacy">隐私与数据</h2>
-      <div class="sdesc" data-i18n="set.privacy.desc">控制什么会被上传。谱面文件本身永远不上传 —— 解析全部在你浏览器里完成。</div>
+      <div class="sdesc" data-i18n="set.privacy.desc">控制什么会被上传。谱面文件本身永远不上传——解析全部在你浏览器里完成。</div>
 
       <div class="sgroup">
         <div class="srow">
@@ -170,14 +175,14 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
       <h3 data-i18n="set.flow">数据流向</h3>
       <div class="sgroup">
         <div class="srow wide">
-          <div class="sl"><b data-i18n="set.flow.up">会上传</b><span data-i18n="set.flow.up.desc">成绩（Phira UID 与用户名、谱面名、标称定数、你的 ACC 与单曲 RKS），以及谱面的结构特征 —— 一串数字，不是谱面文件。</span></div>
+          <div class="sl"><b data-i18n="set.flow.up">会上传</b><span data-i18n="set.flow.up.desc">成绩（Phira UID 与用户名、谱面名、标称定数、你的 ACC 与单曲 RKS），以及谱面的结构特征——一串数字，不是谱面文件。</span></div>
         </div>
         <div class="srow wide">
-          <div class="sl"><b data-i18n="set.flow.down">不会上传</b><span data-i18n="set.flow.down.desc">谱面文件本身；密码与邮箱（这些本站根本接触不到 —— 认证走云服务的认证模块）。</span></div>
+          <div class="sl"><b data-i18n="set.flow.down">不会上传</b><span data-i18n="set.flow.down.desc">谱面文件本身；密码与邮箱（这些本站根本接触不到——认证走云服务的认证模块）。</span></div>
         </div>
       </div>
       <div class="sdesc" style="margin-top:12px">
-        <span data-i18n="set.flow.foot">对外的只有聚合数字，其他人看不到你的 UID 或用户名。贡献会带一个随机标识用于归组 —— 这是假名化，不是严格匿名，可在「本机存储」里重置。</span>
+        <span data-i18n="set.flow.foot">对外的只有聚合数字，其他人看不到你的 UID 或用户名。贡献会带一个随机标识用于归组——这是假名化，不是严格匿名，可在「本机存储」里重置。</span>
       </div>
     </section>
 
@@ -264,14 +269,14 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
       </div>
 
       <h3 data-i18n="set.own.title">已声明的「本人账号」</h3>
-      <div class="sdesc" style="margin-bottom:10px" data-i18n="set.own.desc">只有你明确声明过的账号，查询时才会自动上传成绩 —— 否则任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。</div>
+      <div class="sdesc" style="margin-bottom:10px" data-i18n="set.own.desc">只有你明确声明过的账号，查询时才会自动上传成绩——否则任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。</div>
       <div class="sgroup" style="padding:0 16px"><div id="ownList"><div class="empty" data-i18n="set.own.empty">尚未声明任何账号</div></div></div>
     </section>
 
     <!-- ── 本机存储 ── -->
     <section class="ssec" id="storage">
       <h2 data-i18n="set.sec.storage">本机存储</h2>
-      <div class="sdesc" data-i18n="set.storage.desc">本站存在你浏览器里的全部内容 —— 就这些，没有别的。</div>
+      <div class="sdesc" data-i18n="set.storage.desc">本站存在你浏览器里的全部内容——就这些，没有别的。</div>
 
       <div class="sgroup" style="padding:0 16px">
         <div id="inv"><div class="empty" data-i18n="c.loading">读取中…</div></div>
@@ -286,7 +291,7 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
       </div>
 
       <div class="status" id="stMsg"></div>
-      <div class="note" data-i18n="set.storage.note">「清空本站设置」只会删本站自己的键。同源下还住着云服务的登录会话，那是另一个系统的数据 —— 本站不会碰它，所以清空后你不会被登出，只回到未配置状态。</div>
+      <div class="note" data-i18n="set.storage.note">「清空本站设置」只会删本站自己的键。同源下还住着云服务的登录会话，那是另一个系统的数据——本站不会碰它，所以清空后你不会被登出，只回到未配置状态。</div>
     </section>
 
     <!-- ── 关于 ── -->
@@ -296,6 +301,16 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
         <div class="srow">
           <div class="sl"><b data-i18n="set.about.ver">页面版本</b></div>
           <div class="sc"><span class="val" id="abVer">—</span></div>
+        </div>
+        <!-- 历史版本：把「改过什么」直接摆在用户面前。
+             ⚠ 这是**面向用户**的版本记录（只列能感知的变化），
+             和仓库里的 CHANGELOG.md（面向开发者、含取舍与理由）是两份。 -->
+        <div class="srow">
+          <div class="sl">
+            <b data-i18n="set.about.hist">历史版本</b>
+            <span data-i18n="set.about.hist.desc">这个工具改过什么、为什么改</span>
+          </div>
+          <div class="sc"><a class="verlink" href="/version" data-i18n="set.about.hist.go">查看 ›</a></div>
         </div>
         <div class="srow">
           <div class="sl"><b data-i18n="set.about.eng">引擎版本</b></div>
@@ -310,7 +325,7 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
           <div class="sc"><span class="val" id="abStore">—</span></div>
         </div>
       </div>
-      <div class="sdesc" style="margin-top:12px" data-i18n="set.about.note">页面版本与引擎版本是两根不同的轴：前者是本页面的版本，后者是难度算法的版本 —— 算法一变，所有缓存都要重算，所以它单独记在每一行数据里。</div>
+      <div class="sdesc" style="margin-top:12px" data-i18n="set.about.note">页面版本与引擎版本是两根不同的轴：前者是本页面的版本，后者是难度算法的版本——算法一变，所有缓存都要重算，所以它单独记在每一行数据里。</div>
       <div class="sdesc">
         <a href="/privacy" data-i18n="foot.privacy">隐私政策</a> ·
         <a href="/terms" data-i18n="foot.terms">用户协议</a> ·
@@ -324,9 +339,9 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.9.2.1';
-import * as S from '/js/settings.js?v=V0.9.2.1';
-import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.9.2.1';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.9.4.0';
+import * as S from '/js/settings.js?v=V0.9.4.0';
+import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.9.4.0';
 
 renderNav('settings');
 applyStatic();

@@ -14,21 +14,21 @@ export default {
     'set.sec.storage': '本机存储',
     'set.sec.about': '关于',
 
-    'set.privacy.desc': '控制什么会被上传。谱面文件本身永远不上传 —— 解析全部在你浏览器里完成。',
+    'set.privacy.desc': '控制什么会被上传。谱面文件本身永远不上传——解析全部在你浏览器里完成。',
     'set.optin': '登录 Phira 后自动上传成绩数据',
     'set.optin.desc': '用来校准定数参考。关掉后拖谱面、算 RKS、搜谱面全部照常，只是不再贡献数据。',
     'set.notice': '上传告知',
     'set.notice.reset': '撤回确认',
     'set.notice.done': '已确认过上传告知。撤回后，下次上传前会重新问你一次。',
-    'set.notice.pending': '尚未确认 —— 下次上传前会弹一次告知。',
-    'set.optin.on': '当前：开启 —— 查询已声明为「本人」的账号时，会连同成绩一起上传。',
-    'set.optin.off': '当前：关闭 —— 不会上传任何成绩数据。页面仍会请求聚合统计数字用于显示统计条，不含个人信息。',
+    'set.notice.pending': '尚未确认——下次上传前会弹一次告知。',
+    'set.optin.on': '当前：开启——查询已声明为「本人」的账号时，会连同成绩一起上传。',
+    'set.optin.off': '当前：关闭——不会上传任何成绩数据。页面仍会请求聚合统计数字用于显示统计条，不含个人信息。',
     'set.flow': '数据流向',
     'set.flow.up': '会上传',
-    'set.flow.up.desc': '成绩（Phira UID 与用户名、谱面名、标称定数、你的 ACC 与单曲 RKS），以及谱面的结构特征 —— 一串数字，不是谱面文件。',
+    'set.flow.up.desc': '成绩（Phira UID 与用户名、谱面名、标称定数、你的 ACC 与单曲 RKS），以及谱面的结构特征——一串数字，不是谱面文件。',
     'set.flow.down': '不会上传',
-    'set.flow.down.desc': '谱面文件本身；密码与邮箱（这些本站根本接触不到 —— 认证走云服务的认证模块）。',
-    'set.flow.foot': '对外的只有聚合数字，其他人看不到你的 UID 或用户名。贡献会带一个随机标识用于归组 —— 这是假名化，不是严格匿名，可在「本机存储」里重置。',
+    'set.flow.down.desc': '谱面文件本身；密码与邮箱（这些本站根本接触不到——认证走云服务的认证模块）。',
+    'set.flow.foot': '对外的只有聚合数字，其他人看不到你的 UID 或用户名。贡献会带一个随机标识用于归组——这是假名化，不是严格匿名，可在「本机存储」里重置。',
 
     'set.acct.title': 'P.H.M. 账号',
     'set.acct.desc': '本站的账号只用于：绑定你的 Phira 账号、查看你自己的贡献记录。不需要它也能用全部功能。',
@@ -49,16 +49,16 @@ export default {
     'set.phira.clear': '清除以上信息',
     'set.phira.clear.desc': '只影响下次自动填充，不影响任何已上传的数据。',
     'set.own.title': '已声明的「本人账号」',
-    'set.own.desc': '只有你明确声明过的账号，查询时才会自动上传成绩 —— 否则任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。',
+    'set.own.desc': '只有你明确声明过的账号，查询时才会自动上传成绩——否则任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。',
     'set.own.empty': '尚未声明任何账号',
     'set.own.revoke': '撤回',
     'set.own.note': '查询该账号时会自动上传成绩',
 
-    'set.storage.desc': '本站存在你浏览器里的全部内容 —— 就这些，没有别的。',
+    'set.storage.desc': '本站存在你浏览器里的全部内容——就这些，没有别的。',
     'set.storage.empty': '本机没有存任何设置（全部是默认值）',
     'set.storage.export': '导出为 JSON',
     'set.storage.clear': '清空本站设置',
-    'set.storage.note': '「清空本站设置」只会删本站自己的键。同源下还住着云服务的登录会话，那是另一个系统的数据 —— 本站不会碰它，所以清空后你不会被登出，只回到未配置状态。',
+    'set.storage.note': '「清空本站设置」只会删本站自己的键。同源下还住着云服务的登录会话，那是另一个系统的数据——本站不会碰它，所以清空后你不会被登出，只回到未配置状态。',
     'set.storage.exportfail': '导出失败：{e}',
 
     /* ── 「本机存储」表格的行名 ──
@@ -76,10 +76,15 @@ export default {
     'set.about.eng': '引擎版本',
     'set.about.cache': '共享定数缓存',
     'set.about.store': '本机存储可用',
-    'set.about.note': '页面版本与引擎版本是两根不同的轴：前者是本页面的版本，后者是难度算法的版本 —— 算法一变，所有缓存都要重算，所以它单独记在每一行数据里。',
+    'set.about.note': '页面版本与引擎版本是两根不同的轴：前者是本页面的版本，后者是难度算法的版本——算法一变，所有缓存都要重算，所以它单独记在每一行数据里。',
     'set.about.yes': '可用',
     'set.about.no': '不可用（隐私模式？）',
     'set.about.fail': '读取失败',
+
+    /* ── 历史版本（跳 /version 页）── */
+    'set.about.hist': '历史版本',
+    'set.about.hist.desc': '这个工具改过什么、为什么改',
+    'set.about.hist.go': '查看 ›',
   },
 
   en: {
@@ -155,5 +160,10 @@ export default {
     'set.about.yes': 'available',
     'set.about.no': 'unavailable (private mode?)',
     'set.about.fail': 'read failed',
+
+    /* ── version history (links to /version) ── */
+    'set.about.hist': 'Version history',
+    'set.about.hist.desc': 'What this tool changed, and why',
+    'set.about.hist.go': 'View ›',
   },
 };

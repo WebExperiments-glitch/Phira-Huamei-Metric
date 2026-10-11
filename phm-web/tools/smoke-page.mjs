@@ -28,7 +28,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
 const PORT = 9333 + (process.pid % 500);
@@ -153,6 +153,39 @@ const ok = (n, c, d) => {
   }
   console.log('\n[版本一致性] 版本 ' + ver + ' · 检查了 ' + refs + ' 处 ?v= 引用');
   ok('所有 ?v= 与 app-version 同串（CSS + JS 模块）', bad.length === 0 || bad.join('; '));
+
+  /* 面向用户的版本历史（/version 页）最新一条必须等于当前版本。
+     升版本时最容易漏的就是它 —— 页面上写着"最新 V0.9.2.1"而实际已经 V0.9.3.0。
+     这条断言只读源码，浏览器里看不出来，所以放在这里。 */
+  try {
+    const V = await import(pathToFileURL(path.join(root, 'public', 'js', 'versions.js')).href);
+    const list = V.RELEASES || [];
+    ok('版本历史页有内容', list.length > 0, list.length + ' 条');
+    ok('★ 版本历史最新一条 = 当前版本', list[0] && list[0].v === ver,
+      (list[0] && list[0].v) + ' vs ' + ver);
+    /* 每条都要有中英两份，否则切语言会出现空白条目 */
+    const noEn = list.filter(r => !Array.isArray(r.en) || !r.en.length).map(r => r.v);
+    const noZh = list.filter(r => !Array.isArray(r.zh) || !r.zh.length).map(r => r.v);
+    ok('版本历史每条都有中英两份', noEn.length === 0 && noZh.length === 0,
+      '缺 en: ' + noEn.join(',') + ' | 缺 zh: ' + noZh.join(','));
+    /* 版本号必须严格递减，别写乱序 */
+    const ordered = list.every((r, i) => i === 0 || cmpVer(list[i - 1].v, r.v) > 0);
+    ok('版本历史按版本号从新到旧排列', ordered,
+      list.map(r => r.v).join(' > '));
+  } catch (e) {
+    ok('版本历史页数据可读', false, String(e.message || e));
+  }
+}
+
+/** 比较两个 Vx.y.z.w 版本号，返回 -1/0/1 */
+function cmpVer(a, b) {
+  const pa = String(a).replace(/^V/i, '').split('.').map(Number);
+  const pb = String(b).replace(/^V/i, '').split('.').map(Number);
+  for (let i = 0; i < 4; i++) {
+    const x = pa[i] || 0, y = pb[i] || 0;
+    if (x !== y) return x < y ? -1 : 1;
+  }
+  return 0;
 }
 
 /* 每条路由要检查的东西。⚠ 站点拆页之后**每一页都要走一遍** ——
@@ -164,6 +197,7 @@ const ROUTES = [
   { path: '/charter', name: '谱师页', sel: ['#q', '#go', '#out'], mod: 'phira' },
   { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
   { path: '/settings', name: '设置', sel: ['#optin', '#inv', '#ownList', '#stMsg', '#abVer'], mod: 'settings' },
+  { path: '/version', name: '版本历史', sel: ['#list', '#cnt', '#verfoot'], mod: 'ui' },
 ];
 
 for (const R of ROUTES) {
@@ -180,6 +214,12 @@ for (const R of ROUTES) {
     out.dom = {};
     ${JSON.stringify(R.sel)}.forEach(function(s){ out.dom[s] = !!document.querySelector(s); });
     out.navLinks = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); });
+    /* 顶栏与内容区的横向位置 —— 内容区可以随页面宽窄不同（宽表 vs 正文），
+       但顶栏全站必须对齐，否则切页面时 logo 会横向跳一下。 */
+    var nb = document.getElementById('nav').getBoundingClientRect();
+    out.navLeft = Math.round(nb.left); out.navW = Math.round(nb.width);
+    var wp = document.querySelector('.wrap');
+    out.wrapW = wp ? Math.round(wp.getBoundingClientRect().width) : null;
     /* 样式表的缓存键 —— 它必须与 app-version 是同一个串。
        漏改一个就会出现"版本升了但 CSS 还是旧的长缓存"，
        改了样式却在用户那儿看不到（开发时最容易被这个骗）。 */
@@ -200,6 +240,13 @@ for (const R of ROUTES) {
     !/^V\d+(\.\d+){1,2}$/.test(String(info.ver)), 'ver=' + info.ver);
   if (!CC.ver) CC.ver = info.ver;
   else ok('各页版本号一致', CC.ver === info.ver, CC.ver + ' vs ' + info.ver);
+  /* 顶栏对齐：内容区宽度可以不同（数据页 1100 / 正文页 880），
+     但顶栏必须全站一个位置 —— 否则点导航切页时 logo 会横向跳。
+     ⚠ 用真浏览器的几何值来判，别看源码猜。 */
+  if (CC.navLeft == null) CC.navLeft = info.navLeft;
+  else ok('★ 顶栏横向位置与其他页一致', Math.abs(CC.navLeft - info.navLeft) <= 1,
+    '本页 left=' + info.navLeft + '，首见 ' + CC.navLeft);
+  CC.wrapW = info.wrapW;
   /* 缓存键必须跟版本号同步 —— 这两处漏改任何一处都会"改了看不到" */
   ok('样式表 ?v= 与 app-version 一致',
     info.cssV == null || info.cssV === info.ver, 'cssV=' + info.cssV + ' ver=' + info.ver);

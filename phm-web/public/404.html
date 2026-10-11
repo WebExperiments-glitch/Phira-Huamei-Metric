@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-Hans">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.2.1">
+<meta name="app-version" content="V0.9.4.0">
 <meta name="robots" content="noindex">
 <title>404 · 页面不存在 — P.H.M. Standard</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
@@ -28,7 +28,7 @@ background:var(--card2);border-radius:8px;padding:8px 10px;margin:14px 0 0;displ
 .acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
 a.btn{display:inline-block;text-decoration:none;border-radius:9px;padding:9px 18px;font-size:13px;
 border:1px solid var(--line);color:var(--fg2);transition:.15s}
-a.btn:hover{border-color:var(--blue);color:var(--fg);background:var(--card2)}
+a.btn:hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 a.btn.p{border-color:var(--amber);color:var(--amber)}
 a.btn.p:hover{background:rgba(232,163,61,.1);color:var(--amber)}
 .tips{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--fg3);text-align:left}
@@ -70,7 +70,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 /* 错误页本来是纯静态的；i18n 上线后需要这个模块来把 data-i18n 文案换掉。
    本页没有 #nav（renderNav 遇到就空转），调它是为了和其它页保持同一套接线。
    语言变化时静态替换不会自己重跑，所以要在 onLangChange 里再 applyStatic 一次。 */
-import { applyStatic, renderNav, onLangChange } from '/js/ui.js?v=V0.9.2.1';
+import { applyStatic, renderNav, onLangChange } from '/js/ui.js?v=V0.9.4.0';
 renderNav();
 applyStatic();
 onLangChange(function () { applyStatic(); });

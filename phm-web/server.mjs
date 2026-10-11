@@ -151,7 +151,11 @@ function statsOk(ip) {
 }
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
-  '.json': 'application/json; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  /* ⚠ 字体必须给对 MIME。不给的话是 application/octet-stream，
+     部分浏览器会**拒绝**加载（@font-face 直接静默失败，页面掉回系统字体，
+     控制台只有一条不显眼的警告）—— 这种"改了没生效"最难查。 */
+  '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
   '.xml': 'application/xml; charset=utf-8',
   '.ico': 'image/x-icon', '.webp': 'image/webp' };
@@ -163,14 +167,19 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
-  '404.html', 'sitemap.xml', 'og.png']);
+  '404.html', 'sitemap.xml', 'og.png', 'version.html']);
+/* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
+   只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
 /* 注：曾经还有一个独立的英文页 en.html。i18n 上线后它是**冗余**的 ——
    全站一套代码两种语言，再留一个手写的英文页就变成两份必然漂移的实现，
    而且「English」入口和设置页里的语言开关重复。已删除。 */
 /* ⚠ PUBLIC_DIRS 每加一个目录，都是往互联网上多开一扇门。
    加 data/ 是为了 ref-com.json（社区参照集生成物，生成器只往这里写它）；
    这个目录里不允许出现任何其他文件 —— 有的话就该把它挪出 public/。 */
-const PUBLIC_DIRS = ['js/', 'css/', 'data/'];             /* 只暴露这三个子目录 */
+/* ⚠ 每加一个目录都是往互联网上多开一扇门。fonts/ 是 2026-10-11 加的 ——
+   标题用的思源宋体子集（83KB woff2）要自托管：CSP 里 font-src 只允许 'self'，
+   而且中文站依赖 CDN 字体既慢又不可靠。这个目录里只应有裁好的 woff2。 */
+const PUBLIC_DIRS = ['js/', 'css/', 'data/', 'fonts/'];
 const SAFE_EXT = new Set(['.js', '.css', '.png', '.svg', '.ico', '.webp', '.woff2', '.json']);
 function isPublicPath(rel) {
   if (PUBLIC_FILES.has(rel)) return true;
@@ -575,7 +584,8 @@ const server = http.createServer(async (req, res) => {
      将来加页面必须同时加进 PUBLIC_FILES，不会因为忘了写路由就暴露文件。 */
   const CLEAN = { '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
                   '/data': 'data.html', '/settings': 'settings.html',
-                  '/privacy': 'privacy.html', '/terms': 'terms.html' };
+                  '/privacy': 'privacy.html', '/terms': 'terms.html',
+                  '/version': 'version.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

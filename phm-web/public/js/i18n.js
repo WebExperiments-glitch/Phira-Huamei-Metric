@@ -24,15 +24,16 @@
  *   社区通用写法，别自己造词 —— 音游玩家看的是社区术语，不是教科书英语。
  * ============================================================ */
 
-import { lang as langStore } from './settings.js?v=V0.9.2.1';
-import common from './i18n/common.js?v=V0.9.2.1';
-import home from './i18n/home.js?v=V0.9.2.1';
-import app from './i18n/app.js?v=V0.9.2.1';
-import charter from './i18n/charter.js?v=V0.9.2.1';
-import user from './i18n/user.js?v=V0.9.2.1';
-import data from './i18n/data.js?v=V0.9.2.1';
-import legal from './i18n/legal.js?v=V0.9.2.1';
-import settings from './i18n/settings.js?v=V0.9.2.1';
+import { lang as langStore } from './settings.js?v=V0.9.4.0';
+import common from './i18n/common.js?v=V0.9.4.0';
+import home from './i18n/home.js?v=V0.9.4.0';
+import app from './i18n/app.js?v=V0.9.4.0';
+import charter from './i18n/charter.js?v=V0.9.4.0';
+import user from './i18n/user.js?v=V0.9.4.0';
+import data from './i18n/data.js?v=V0.9.4.0';
+import legal from './i18n/legal.js?v=V0.9.4.0';
+import settings from './i18n/settings.js?v=V0.9.4.0';
+import version from './i18n/version.js?v=V0.9.4.0';
 
 /* ══════════════════════════════════════════════════════════════
  * 字典：按页面分片，在这里合并
@@ -54,6 +55,7 @@ import settings from './i18n/settings.js?v=V0.9.2.1';
 const FRAGMENTS = [
   ['common', common], ['home', home], ['app', app], ['charter', charter],
   ['user', user], ['data', data], ['legal', legal], ['settings', settings],
+  ['version', version],
 ];
 
 const DICT = { zh: {}, en: {} };
@@ -88,7 +90,7 @@ export function setLang(v) {
   langStore.set(v);
   try {
     const html = document.documentElement;
-    html.setAttribute('lang', v === 'zh' ? 'zh-CN' : 'en');
+    html.setAttribute('lang', v === 'zh' ? 'zh-Hans' : 'en');
     html.setAttribute('data-lang', v);
   } catch (e) { /* 忽略 */ }
   applyStatic();

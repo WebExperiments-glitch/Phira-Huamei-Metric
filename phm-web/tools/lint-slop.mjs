@@ -73,6 +73,7 @@ const LS_OK = new Set([
      不经过 settings.js，也不可能 —— 它们跑在 Node 侧。 */
   'tools/check-i18n-page.mjs',
   'tools/shot.mjs',
+  'tools/collect-display-chars.mjs',   /* 同上：CDP 里塞 phm_lang，采集标题用字 */
 ]);
 for (const f of FILES) {
   if (LS_OK.has(f.rel)) continue;

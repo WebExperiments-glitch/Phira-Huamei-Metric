@@ -11,3 +11,7 @@ write-secret.txt
 .env
 .env.*
 !.env.example
+
+# 裁字体用的**中间产物**：11MB 的思源宋体原件。它是可复现的
+# （tools/subset-display-font.py 会按需重新下载），没必要进仓库。
+public/fonts/.cache-*.otf

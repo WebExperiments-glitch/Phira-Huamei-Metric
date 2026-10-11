@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.9.4.0">
+<title>版本历史 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="P.H.M. Standard 的版本历史：每个版本修了什么、改了什么。只列用户能感知的变化。">
+<meta name="robots" content="noindex">
+<!-- 主题：必须**同步内联**在样式表之前 —— 模块是异步的，等它跑完页面
+     已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。
+     读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.9.4.0">
+<style>
+/* ── 版本列表：一条时间线 ──
+   设计上刻意**不用彩色徽标**：唯一的强调色只留给"最新"那一条，
+   其余版本一律中性 —— 否则一屏十几个色块，强调色就失效了（原则 1）。 */
+.rel{position:relative;padding:0 0 0 26px;margin:0 0 4px}
+.rel::before{content:"";position:absolute;left:7px;top:6px;bottom:-14px;width:1px;background:var(--line)}
+.rel:last-child::before{bottom:auto;height:14px}
+.rel .dot{position:absolute;left:3px;top:5px;width:9px;height:9px;border-radius:50%;
+  background:var(--card3);border:2px solid var(--bg)}
+.rel.on .dot{background:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.rel .hd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:6px}
+.rel .ver{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.02em;
+  padding:2px 8px;border-radius:6px;border:1px solid var(--line);color:var(--fg2);background:var(--card2)}
+.rel.on .ver{color:var(--brand-ink);background:var(--brand);border-color:var(--brand)}
+.rel .date{font-size:11.5px;color:var(--fg3);font-variant-numeric:tabular-nums}
+.rel .tag{font-size:10.5px;color:var(--brand);border:1px solid var(--brand-line);
+  background:var(--brand-soft);border-radius:5px;padding:1px 6px}
+.rel ul{margin:0;padding-left:17px}
+.rel li{font-size:13px;color:var(--fg2);line-height:1.75;margin:1px 0}
+.rel li::marker{color:var(--fg4)}
+.rel li b{color:var(--fg);font-weight:600}
+.releases{display:flex;flex-direction:column;gap:22px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:baseline">
+    <h2 style="margin:0" data-i18n="vn.title">版本历史</h2>
+    <span class="dim2" style="font-size:12px" id="cnt"></span>
+  </div>
+  <div class="sub" data-i18n-html="vn.sub">这个工具改过什么、为什么改。只列<b>你能感觉到</b>的变化——纯内部重构不占篇幅。</div>
+</div>
+
+<div class="card">
+  <div class="releases" id="list"></div>
+</div>
+
+<div class="card">
+  <div class="fd" data-i18n-html="vn.note">想看得更深？仓库里有完整的 <span class="mono">CHANGELOG.md</span>（含每次的取舍与理由）和架构文档。</div>
+  <div class="fd" data-i18n="vn.tip">每条都对应一个 Git tag，可以按版本号检出当时的状态。</div>
+</div>
+
+<footer>
+  <div class="row" style="justify-content:space-between">
+    <span><a href="/settings" data-i18n="vn.back">← 返回设置</a></span>
+    <span>P.H.M. Standard · <!-- ⚠ 这个链接的文本由 JS 填（版本号 + beta 标记）。给「版本历史」作兜底文本是必须的：
+       空 <a> 会让前后的分隔符连成「· · GPL-3.0」——看着像漏了内容（评审就是这么发现的）。
+       JS 一旦跑起来就会覆盖成「版本 V0.9.x.x（开发者测试版）」。 -->
+<a id="verfoot" class="verfoot" href="/version" data-i18n-title="foot.hist">版本历史</a> · GPL-3.0</span>
+  </div>
+</footer>
+
+</div>
+
+<script type="module">
+import { renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER } from '/js/ui.js?v=V0.9.4.0';
+import { RELEASES } from '/js/versions.js?v=V0.9.4.0';
+
+renderNav('settings');
+applyStatic();
+
+function render() {
+  const zh = currentLang() === 'zh';
+  document.getElementById('cnt').textContent = t('vn.count', { n: RELEASES.length });
+  document.getElementById('list').innerHTML = RELEASES.map(function (r, i) {
+    const items = zh ? r.zh : r.en;
+    return '<div class="rel' + (i === 0 ? ' on' : '') + '">'
+      + '<span class="dot" aria-hidden="true"></span>'
+      + '<div class="hd"><span class="ver">' + esc(r.v) + '</span>'
+      + '<span class="date">' + esc(r.date) + '</span>'
+      /* 只给最新一条打标记 —— 每条都标"新"等于没标 */
+      + (i === 0 ? '<span class="tag">' + esc(t('vn.latest')) + '</span>' : '')
+      + '</div><ul>'
+      + items.map(function (x) { return '<li>' + x + '</li>'; }).join('')
+      + '</ul></div>';
+  }).join('');
+  document.getElementById('verfoot').textContent = t('foot.version', { v: APP_VER });
+}
+
+/* 语言一变，整个列表要重画 —— 条目内容是数组里的，不是 DOM 上的静态文案 */
+onLangChange(function () { applyStatic(); render(); });
+render();
+</script>
+</body>
+</html>

@@ -43,6 +43,7 @@ export default {
     'foot.lang': 'English',
     'foot.lang.back': '中文',
     'foot.version': '版本 {v}（开发者测试版）',
+    'foot.hist': '查看版本历史（每个版本改了什么）',
 
     /* ── 数据缺失的展示（ui.js 的 tierBadge / accCell / constCell）──
        原则：**能确定原因就说原因**，尽量不用孤零零的 ? 或 —。 */
@@ -70,17 +71,17 @@ export default {
     'gloss.consensus.t': '社区共识（主结果）',
     'gloss.consensus.d': '把你这张谱的结构特征，拿去和 <b>Phira 上 9,508 张社区谱</b>里最相近的 20 张比，看它们被标成多少定数。这是<b>谱师实际定价的共识</b>，最贴近你在 Phira 里看到的数字。',
     'gloss.official.t': '官谱标度',
-    'gloss.official.d': '同一套算法，但参照集换成 <b>1,037 张 Phigros 官方谱</b>。这是与官方一致的<b>绝对</b>标度。两个标度会差 2~3 级是正常的 —— 因为社区谱和官谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6）。',
+    'gloss.official.d': '同一套算法，但参照集换成 <b>1,037 张 Phigros 官方谱</b>。这是与官方一致的<b>绝对</b>标度。两个标度会差 2~3 级是正常的——因为社区谱和官谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6）。',
     'gloss.range.t': '不确定范围',
     'gloss.range.d': '那 20 张参照谱的定数<b>最小值到最大值</b>。范围窄 = 参照集里有和你几乎一样的谱，结论硬；范围宽 = 没有紧密对应物，中点只能当粗略参照。',
     'gloss.ps.t': 'PS 负荷',
     'gloss.ps.d': '本工具自己的负荷标度（0–20），由密度 / 结构 / 协调 / 持续四组加权合成。<b>和上面两个定数不同标度</b>，不要混着比。',
     'gloss.nominal.t': '标称定数',
-    'gloss.nominal.d': 'Phira 上谱师自己填的那个难度数字（你在游戏里看到的那个）。它是<b>人工填写</b>，不是测量值 —— 实测同曲同物量的相邻难度标注差中位就有 2.80 级。',
+    'gloss.nominal.d': 'Phira 上谱师自己填的那个难度数字（你在游戏里看到的那个）。它是<b>人工填写</b>，不是测量值——实测同曲同物量的相邻难度标注差中位就有 2.80 级。',
     'gloss.rks.t': 'RKS',
     'gloss.rks.d': 'Phira 的水平分。官方算法是「前 19 首单曲水平 + 1 个满分位，除以 20」。⚠️ <b>Phira 服务端的 RKS/B19 计算已经停摆</b>（实测抽样多位活跃玩家，bestPool 最新成绩全停在 2023 ~ 2026-03），所以官方那个数常年不动。本站在官方停更后<b>按同一公式自算一个替代值</b>，并标注它是替代值。',
     'gloss.b19.t': 'B19',
-    'gloss.b19.d': '「Best 19」的简称 —— 官方取你最好的 19 个单曲成绩来算总 RKS。同上，这个链路已经停更。',
+    'gloss.b19.d': '「Best 19」的简称——官方取你最好的 19 个单曲成绩来算总 RKS。同上，这个链路已经停更。',
     'gloss.p99.t': 'p99 / 加权密度',
     'gloss.p99.d': '把谱面按时间切成小段，算出每一秒的「有效物量」，p99 就是<b>只有最难的那 1% 时间能超过</b>的值。用来看「最密集的地方有多密」，比平均密度更能反映难度。',
     'gloss.cross.t': '交叉手',
@@ -123,6 +124,7 @@ export default {
     'foot.lang': 'English',
     'foot.lang.back': '中文',
     'foot.version': 'Version {v} (developer beta)',
+    'foot.hist': 'See the version history (what changed in each release)',
 
     /* ── missing-data display ── */
     'tier.unmarked': 'Unmarked',

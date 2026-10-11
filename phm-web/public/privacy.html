@@ -13,7 +13,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/docs.css?v=V0.9.2.1">
+<link rel="stylesheet" href="/css/docs.css?v=V0.9.4.0">
 </head>
 <body>
 <div class="doc">
@@ -38,7 +38,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
   <h2 data-i18n="pv.h2.1">1. 我们收集什么</h2>
 
-  <h3 data-i18n="pv.h3.1.1">1.1 你主动拖入的谱面文件 —— 文件本身不收集</h3>
+  <h3 data-i18n="pv.h3.1.1">1.1 你主动拖入的谱面文件——文件本身不收集</h3>
   <p data-i18n-html="pv.p.1.1.a">谱面解析（ZIP 解压、谱面结构分析、特征提取、定数计算）<b>全部在你的浏览器内完成</b>。
   谱面文件本身<b>不会上传、不会留存、不会离开你的设备</b>。</p>
   <p data-i18n-html="pv.p.1.1.b">在你允许自动上传的前提下，会离开设备的只有<b>由该谱面计算出的结构特征</b>，它们不含谱面内容本身：</p>
@@ -47,10 +47,10 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
     <li data-i18n="pv.li.1.1.2">物量、每秒音符数（NPS）、长条占比、纵连均值、线速峰值</li>
     <li data-i18n="pv.li.1.1.3">计算得到的参考定数与负荷分（PS）</li>
   </ul>
-  <p data-i18n-html="pv.p.1.1.c">这条路径<b>不需要登录</b>，也<b>不需要你点按钮</b> —— 拖入谱面时自动完成贡献。
+  <p data-i18n-html="pv.p.1.1.c">这条路径<b>不需要登录</b>，也<b>不需要你点按钮</b> ——拖入谱面时自动完成贡献。
   但它受<a href="/settings">设置</a>里那个开关统一控制：<b>关闭自动上传后，拖入谱面不会产生任何上传。</b></p>
 
-  <h3 data-i18n="pv.h3.1.2">1.2 查询 Phira 账号时的成绩数据 —— 仅对本人账号，且可关闭</h3>
+  <h3 data-i18n="pv.h3.1.2">1.2 查询 Phira 账号时的成绩数据——仅对本人账号，且可关闭</h3>
   <p data-i18n="pv.p.1.2.a">当你在页面里输入 Phira 用户名或 UID 并查询时：</p>
   <ul>
     <li data-i18n-html="pv.li.1.2.1"><b>首次遇到某个 UID</b>：会问你一次「这是你自己的账号吗」——
@@ -58,7 +58,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
     <li data-i18n-html="pv.li.1.2.2">对<b>已确认的本人账号</b>：自动上传成绩数据（见下表）</li>
   </ul>
   <p data-i18n-html="pv.p.1.2.b"><b>为什么要多问一句：</b>本工具<b>无法验证 Phira 账号的所有权</b>（Phira 未提供第三方授权登录）。
-  如果不加确认，任何访问者都能把某个公开玩家的成绩复制进数据集，那样所有统计都会失真 ——
+  如果不加确认，任何访问者都能把某个公开玩家的成绩复制进数据集，那样所有统计都会失真——
   所以只对你自己声明过的账号自动上传。</p>
 
   <table>
@@ -111,7 +111,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
     <li data-i18n-html="pv.li.4.1">数据存储在 <b>WorkBuddy 云服务</b>（中国大陆境内）的 PostgreSQL 数据库中</li>
     <li data-i18n="pv.li.4.2">谱面文件不上传，因此不存在谱面内容的存储风险</li>
     <li data-i18n="pv.li.4.3">写入必须经过本站服务端网关的字段校验与速率限制</li>
-    <li data-i18n-html="pv.li.4.4"><b>我们不保证绝对安全</b> —— 任何网络服务都存在被攻击的可能。请不要上传任何敏感信息</li>
+    <li data-i18n-html="pv.li.4.4"><b>我们不保证绝对安全</b> ——任何网络服务都存在被攻击的可能。请不要上传任何敏感信息</li>
   </ul>
   <p data-i18n-html="pv.p.4.a">更完整的技术细节（信任边界、已修复与已知的局限）见仓库中的
   <code>docs/SECURITY.md</code>。</p>
@@ -130,7 +130,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
   <h3 data-i18n="pv.h3.sc">如何安全地联系我们（请不要在公开 Issue 里写隐私信息）</h3>
   <p data-i18n-html="pv.p.5.a">本站的公开协作区（GitHub Issues）是<b>任何人都能看到的</b>。为了请求删除数据而在那里贴出你的
-  Phira UID 或邮箱，等于把你的隐私标识公开 —— 这正是我们要避免的。请改用下面任一方式：</p>
+  Phira UID 或邮箱，等于把你的隐私标识公开——这正是我们要避免的。请改用下面任一方式：</p>
   <ul>
     <li data-i18n-html="pv.li.5.1"><b>GitHub 私密安全报告</b>（推荐，仅仓库维护者可见）：<br>
     <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/security/advisories/new" target="_blank" rel="noopener">
@@ -161,7 +161,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
   <ul>
     <li data-i18n-html="pv.li.8.1">不使用 Cookie 做跨站追踪（本站在浏览器本地只使用 <code>localStorage</code>）</li>
     <li data-i18n="pv.li.8.2">不接入任何广告或数据分析 SDK</li>
-    <li data-i18n="pv.li.8.3">不推断、不判定「谱师虚标」—— 本工具只给难度参考</li>
+    <li data-i18n="pv.li.8.3">不推断、不判定「谱师虚标」——本工具只给难度参考</li>
     <li data-i18n="pv.li.8.4">不向任何第三方出售或分享你的个人信息</li>
   </ul>
 
@@ -185,7 +185,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <script type="module">
-import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.9.2.1';
+import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.9.4.0';
 /* 法务页正文全是静态文案，没有 JS 渲染的数据 —— 语言一变只需重跑静态替换。 */
 applyStatic();
 onLangChange(() => applyStatic());

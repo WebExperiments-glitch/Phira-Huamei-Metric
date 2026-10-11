@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.2.1">
+<meta name="app-version" content="V0.9.4.0">
 <title>谱师作品 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 谱师的全部作品：按档位分布、平均定数，以及对每张谱的 P.H.M. 结构定数参考。支持分页浏览。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.2.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.4.0">
 <style>
 .sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:10px;margin:14px 0}
 .sum{background:var(--card2);border-radius:10px;padding:10px 13px}
@@ -60,7 +60,7 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 
 <div class="card">
   <h2 data-i18n="ch.title">查谱师作品</h2>
-  <div class="sub" data-i18n-html="ch.sub">先按名字找到他的 Phira 账号，再用账号 <b>id</b> 精确列出他上传的全部谱面。<br>为什么要两步：Phira 的「谱师」字段是<b>自由文本</b> —— 有人写自己的名字，有人写团队名，还有人写别人的名字；而搜索接口会同时匹配曲名、谱师和<b>谱面说明</b>，所以直接搜名字会混进一堆本来不相干的谱。用账号 id 取作品则是一条精确查询。</div>
+  <div class="sub" data-i18n-html="ch.sub">先按名字找到他的 Phira 账号，再用账号 <b>id</b> 精确列出他上传的全部谱面。<br>为什么要两步：Phira 的「谱师」字段是<b>自由文本</b> ——有人写自己的名字，有人写团队名，还有人写别人的名字；而搜索接口会同时匹配曲名、谱师和<b>谱面说明</b>，所以直接搜名字会混进一堆本来不相干的谱。用账号 id 取作品则是一条精确查询。</div>
   <div class="row">
     <input class="inp" id="q" data-i18n-ph="ch.q.ph" style="flex:1;min-width:180px" autocomplete="off" placeholder="谱师名或 UID（例如 平方秒和立方吨 / 6thPecJam / 257272）">
     <button class="btn primary" id="go" data-i18n="ch.lookup">查找</button>
@@ -82,9 +82,9 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 <script type="module">
 import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager,
          tierBadge, glossaryHTML, loadChartCache, cachedRow, applyStatic,
-         t, onLangChange } from '/js/ui.js?v=V0.9.2.1';
+         t, onLangChange } from '/js/ui.js?v=V0.9.4.0';
 import { findUsers, getUser, rankUserCands, getAllChartsByUploader,
-         scanCharter } from '/js/phira.js?v=V0.9.2.1';
+         scanCharter } from '/js/phira.js?v=V0.9.4.0';
 
 renderNav('charter');
 applyStatic();

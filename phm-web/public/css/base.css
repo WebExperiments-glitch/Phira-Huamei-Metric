@@ -31,6 +31,18 @@
  *   只是重新指向新语义色。页面里大量在用，改名前先别删。
  * ============================================================ */
 
+/* 标题字体：思源宋体 SemiBold 的**子集**。
+   font-display:swap —— 别让标题把首屏卡住；先出系统字体，字体到位再换。
+   ⚠ 只声明了 600 一档：标题规则里必须写 font-weight:600，
+     否则浏览器会去借 700 然后**合成加粗**（糊）。 */
+@font-face {
+  font-family: 'PHM Display';
+  src: url('/fonts/display-serif.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ── 中性色：一条亮度阶梯（不是功能分类）── */
   --bg:    #0e0d0b;      /* 画布：最底（暖调，与琥珀同温层，见 DESIGN.md §8.1）*/
@@ -52,6 +64,11 @@
   --brand-line: rgba(240,176,63,.38);   /* 描边：focus ring / 选中边框 */
   --brand-ink:  #201705;                /* 主色底上的文字（深色，保证对比） */
   --brand-hover:#f7bd5a;                /* 主色按钮的悬停态 */
+  --brand-bright:#f7c469;               /* **只给大字号**（结果区那个 54px 数字）。
+                                          大字号对比度门槛是 3.0，所以敢比主色更亮一点；
+                                          正文一律用 --brand，别用它 —— 小字会过不了。 */
+  --link:       #e0a63c;                /* 正文里的链接。比主色略沉，避免满屏都是"强调" */
+  --link-soft:  rgba(224,166,60,.45);   /* 链接下划线的颜色 */
   --on-color:   #201705;                /* 压在任何**亮色块**上的文字（徽标、色条）；暖底上不要用冷黑 */
 
   /* ── 语义色：降饱和，别抢注意力 ── */
@@ -60,7 +77,10 @@
   --err:  #f85149;
   --info: #58a6ff;
 
-  /* 旧名映射（兼容现有页面，语义不变） */
+  /* 旧名映射（兼容现有页面，语义不变）
+     ⚠ `--blue` 现在已经**没有任何地方在用** —— 2026-10-11 把链接/按钮/复选框
+     的蓝色全部并回琥珀。保留它只是为了不让漏改的地方突然变色（会变成透明/继承）。
+     图表色 `--density` 仍然是蓝的：那是**信息编码**，不是强调色，见 DESIGN.md §3.4。 */
   --amber:  var(--brand);
   --blue:   var(--info);
   --green:  var(--ok);
@@ -90,6 +110,7 @@
   /* ── 阴影：深色下极淡（原则 3：主要靠边框分面）── */
   --sh1: 0 1px 2px rgba(0,0,0,.35);
   --sh2: 0 6px 20px rgba(0,0,0,.45);
+  --sh-card: 0 1px 2px rgba(0,0,0,.22);   /* 深色靠亮度阶梯分面，阴影只是补一点点 */
 
   /* ── 动效：统一时长与缓动 ── */
   --ease: cubic-bezier(.4, 0, .2, 1);
@@ -104,6 +125,19 @@
   /* 让浏览器原生控件（表单、滚动条、自动填充）跟着主题走 —— 少了这行，
      浅色主题里会出现深色的 select 下拉和白色滚动条 */
   color-scheme: dark;
+
+  /* ── 字体三档 ──
+     标题：思源宋体**子集**（自托管，83KB）。衬线标题压在暖纸底上才有"书卷气"，
+           这是这一版视觉上最大的一步。子集只覆盖标题用到的字（tools 里两步生成），
+           没覆盖到的字会**掉回正文黑体** —— 不会出豆腐块，最多那一行不一致。
+     正文：**系统栈**，零下载。各平台都是各自最舒服的那套黑体。
+     数字/代码：等宽。
+     ⚠ 动态内容（曲名、用户名、谱师名）永远走正文字体 —— 它们不在子集里，
+        交给衬线只会掉回黑体，白搭一次匹配。 */
+  --font-display: 'PHM Display', "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC",
+               "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
 
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
 }
@@ -131,14 +165,17 @@
   --fg3:   #665f55;
   --fg4:   #7d766b;
 
-  --line:  rgba(40,25,5,.10);
-  --line2: rgba(40,25,5,.17);
+  --line:  rgba(40,25,5,.13);   /* 从 .10 提上来：白卡与米底要靠它分面 */
+  --line2: rgba(40,25,5,.20);
 
   --brand:      #9a6208;   /* 压深到过 AA：旧值 #b8791a 在新底上只有 3.4:1 */
   --brand-soft: rgba(154,98,8,.11);
   --brand-line: rgba(154,98,8,.34);
   --brand-ink:  #ffffff;
   --brand-hover:#85540a;
+  --brand-bright:#b8791a;               /* 只给大字号（浅底上 3.28，≥24px 才合规）*/
+  --link:       #7a4a00;                /* 深棕，6.76:1 */
+  --link-soft:  rgba(122,74,0,.45);
   --on-color:   #ffffff;                /* 浅色主题里色块本身变深了 → 反白 */
 
   --ok:   #1a7f37;
@@ -153,8 +190,11 @@
   --coord:   #9a6208;   /* 跟着品牌色一起压深，保持图表与主色同一色系 */
   --stamina: #1a7f37;
 
-  --sh1: 0 1px 2px rgba(16,24,40,.06);
-  --sh2: 0 8px 24px rgba(16,24,40,.10);
+  --sh1: 0 1px 2px rgba(40,25,5,.05);
+  --sh2: 0 8px 24px rgba(40,25,5,.10);
+  /* 卡片的"浮起感"：白卡和米底本身太接近，光靠一条 0.10 的描边分不出层次。
+     加一层**几乎看不见**的暖色阴影就够 —— 不要做成投影，那是另一套语言。 */
+  --sh-card: 0 1px 2px rgba(40,25,5,.05), 0 0 0 1px rgba(40,25,5,.03);
 
   --scroll-thumb: rgba(40,25,5,.22);
   --nav-veil: rgba(246,243,238,.78);
@@ -169,8 +209,9 @@ body {
   /* 字体栈把 -apple-system 提到最前：Apple 设备用 SF，Windows 退回 Segoe UI。
      行高 1.65 是给 CJK 留的 —— DeepSeek 的设计体系里明确写了
      「1.6 body line-height，deliberate CJK accommodation」。 */
-  font: 14px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  /* 行高 1.75 是照中文正文重新定的（原来 1.65）。
+     中文的行间需要比拉丁文更多留白，密排会让长段落读起来发闷。 */
+  font: 14px/1.75 var(--font-body);
   padding: 20px 20px 56px;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
@@ -198,8 +239,31 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--fg4); background-clip: content-box; }
 .wrap { max-width: 880px; margin: 0 auto; }
 .wrap.wide { max-width: 1100px; }
-a { color: var(--blue); text-decoration: none; }
-a:hover { text-decoration: underline; }
+
+/* ── 顶栏与内容区**解耦** ──
+   内容区宽度本来就该按内容需要来定：宽表（数据页）要 1100，正文页 880 更好读。
+   但顶栏不能跟着变 —— 否则在页面之间点来点去时，logo 和导航会横向跳一下，
+   非常廉价。所以把顶栏从内容区里"撑"到全站统一宽度。
+   ⚠ 外面的 min() 是兜窄屏：不能撑得比视口还宽（否则出现横向滚动条）。 */
+#nav { margin-inline: calc((min(1100px, 100vw - 40px) - 100%) / -2); }
+/* ⚠ 链接**必须带下划线**，不能只靠颜色区分。
+   全站只有一种强调色（琥珀），如果链接也只靠颜色，它就和其他琥珀元素
+   分不出来了；而且色觉障碍用户需要非颜色的线索。下划线是最省事的那个。
+   想更轻的可以自己再调 text-decoration-thickness —— 但别去掉。 */
+/* ── 标题字体 ──
+   ⚠ 只上这四个选择器。**别**把 `.num` 整体接过来 —— 数据表里
+   `<td class="r num">` 是 12.5px 的小数字，用衬线会糊；结果区那个大数字
+   走的是 `.ps .num`，单独列出来。 */
+h1, h2, h3, .brand, .big, .ps .num {
+  font-family: var(--font-display); font-weight: 600;
+}
+/* 中文标点在衬线下看起来更重，稍微收一点字距 */
+h1, h2, h3 { letter-spacing: -.005em; }
+
+a { color: var(--link); text-decoration: underline;
+    text-decoration-thickness: 1px; text-underline-offset: 2.5px;
+    text-decoration-color: var(--link-soft); }
+a:hover { text-decoration-thickness: 2px; }
 .mono { font-family: var(--mono); font-size: .93em; }
 .num { font-variant-numeric: tabular-nums; }
 .dim { color: var(--fg2); }
@@ -252,10 +316,16 @@ a:hover { text-decoration: underline; }
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r2);
   padding: 20px 22px; margin-bottom: 14px;
+  /* 极轻的浮起感 —— 深色下几乎不可见，浅色下把白卡从米底上"抬"起来 */
+  box-shadow: var(--sh-card);
 }
 .card h2 { font-size: var(--t-lg); font-weight: 600; margin-bottom: 5px; word-break: break-word; }
 .card h3 { font-size: 14.5px; font-weight: 600; color: var(--fg2); margin: 18px 0 8px; }
 .card .sub { font-size: var(--t-sm); color: var(--fg3); margin-bottom: 12px; }
+/* ── 长段落限宽 ──
+   中文一行超过 ~45 个字就难扫读了（评审实测现在有 60–75 字）。
+   限宽只加在**成段的说明文字**上，表格、卡片栅格不受影响。 */
+.fd, .card > .sub, .tip, .sdesc { max-width: 46em; }
 
 /* ── 按钮 ─────────────────────────────────────────────── */
 .btn {
@@ -303,7 +373,6 @@ td.r, th.r { text-align: right; }
   border: 1px solid var(--line2); color: var(--fg2); background: var(--card2);
 }
 .pill.amber { color: var(--amber); border-color: rgba(232,163,61,.4); }
-.pill.blue { color: var(--blue); border-color: rgba(90,162,232,.4); }
 .pill.green { color: var(--green); border-color: rgba(76,195,138,.4); }
 .pill.red { color: var(--red); border-color: rgba(229,83,75,.4); }
 .pill.purple { color: var(--purple); border-color: rgba(201,140,232,.4); }
@@ -348,6 +417,13 @@ td.r, th.r { text-align: right; }
 /* ⚠ 空的提示条什么都不说，却长得像"加载到一半"的一条灰带
    （用户原话：看着像没加载完）。没内容就不占位。 */
 .note:empty { display: none; }
+
+/* 页脚版本号可点 → 直达版本历史。
+   默认**不显眼**（继承父级颜色、无下划线），悬停才出现下划线与品牌色 ——
+   页脚不该抢注意力，但要让人知道它能点。 */
+a.verfoot { color: inherit; text-decoration: none; border-bottom: 1px solid transparent;
+  transition: color .15s, border-color .15s; cursor: pointer; }
+a.verfoot:hover { color: var(--brand); border-bottom-color: var(--brand-line); }
 
 .empty { padding: 26px 10px; text-align: center; color: var(--fg3); font-size: 13px; }
 

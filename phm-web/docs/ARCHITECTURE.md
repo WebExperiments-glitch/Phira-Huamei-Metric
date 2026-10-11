@@ -43,6 +43,7 @@
 | `/user` | `user.html` | 玩家页：成绩、自算 RKS、最近游玩、任意单谱的全部成绩 |
 | `/data` | `data.html` | **数据管理**：全库分页浏览、排序、过滤；每行的双标度与引擎版本 |
 | `/settings` | `settings.html` | **设置**：上传偏好 / Phira 连接信息 / 本机存储清单与清除 / 关于 |
+| `/version` | `version.html` | **版本历史**（面向用户，只列能感知的变化）。数据源 `public/js/versions.js` —— 与 `CHANGELOG.md`（开发者向）是**两份**，但 smoke 有断言守着「RELEASES[0].v = app-version」 |
 | `/en.html` | `en.html` | 英文落地页（给 X 上的国际用户） |
 
 **为什么拆**：①面板方案下链接没法指向"某人的成绩 / 某谱师的作品"，

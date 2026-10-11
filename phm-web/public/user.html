@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.2.1">
+<meta name="app-version" content="V0.9.4.0">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.2.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.4.0">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -84,7 +84,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
 <div class="card" id="chartq" style="display:none">
   <h3 style="margin-top:0" data-i18n="u.cq.title">按谱面查 · 可翻页</h3>
-  <div class="sub" data-i18n-html="u.cq.sub">Phira 的成绩接口只给<b>最近 20 条</b>。但按<b>谱面</b>查不受这个限制 —— 这是唯一能翻页看成绩的路径。</div>
+  <div class="sub" data-i18n-html="u.cq.sub">Phira 的成绩接口只给<b>最近 20 条</b>。但按<b>谱面</b>查不受这个限制——这是唯一能翻页看成绩的路径。</div>
   <div class="row">
     <input class="inp" id="cid" data-i18n-ph="u.cq.cid.ph" style="flex:1;min-width:150px" autocomplete="off" placeholder="谱面 chart_id（纯数字）">
     <select class="inp" id="cmode" style="padding:6px 8px">
@@ -109,11 +109,11 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager,
          tierBadge, accCell, constCell, glossaryHTML,
          loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER,
-         applyStatic, t, onLangChange } from '/js/ui.js?v=V0.9.2.1';
+         applyStatic, t, onLangChange } from '/js/ui.js?v=V0.9.4.0';
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
-  from '/js/phira.js?v=V0.9.2.1';
+  from '/js/phira.js?v=V0.9.4.0';
 /* 设置的真源 —— 键名不在这里硬写。见 /js/settings.js 顶部说明。 */
-import * as SET from '/js/settings.js?v=V0.9.2.1';
+import * as SET from '/js/settings.js?v=V0.9.4.0';
 
 renderNav('user');
 applyStatic();

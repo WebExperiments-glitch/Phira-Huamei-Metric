@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.2.1">
+<meta name="app-version" content="V0.9.4.0">
 <title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -29,7 +29,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.2.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.4.0">
 <style>
 .hero{text-align:center;padding:22px 0 6px}
 .hero h1{font-size:30px;font-weight:400;letter-spacing:.5px;line-height:1.32}
@@ -41,7 +41,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
   padding:17px 18px;text-decoration:none;color:var(--fg);transition:border-color .13s,transform .13s}
 .tile:hover{border-color:var(--amber);transform:translateY(-2px);text-decoration:none}
 .tile .ic{font-size:22px;line-height:1}
-.tile .t{font-size:15.5px;font-weight:500;margin:9px 0 4px}
+.tile .t{font-size:15.5px;font-weight:600;margin:9px 0 4px}   /* 从 500 提到 600：原来和下面的说明几乎同重，分不出层级 */
 .tile .d{font-size:12.5px;color:var(--fg3);line-height:1.6}
 .tile .go{font-size:12px;color:var(--amber);margin-top:9px}
 
@@ -73,7 +73,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
 <div class="hero">
   <h1 data-i18n-html="home.h1">给 Phira 谱面一个<b>可审计</b>的难度参考</h1>
-  <p data-i18n-html="home.sub">拖入谱面包，浏览器里算出它的结构定数 —— <b>两个标度都告诉你</b>，<br>
+  <p data-i18n-html="home.sub">拖入谱面包，浏览器里算出它的结构定数——<b>两个标度都告诉你</b>，<br>
   连同这个数字有多准。<b>谱面文件不会上传</b>，也不需要登录。</p>
   <div class="row" style="justify-content:center;margin-top:18px">
     <a class="btn primary" href="/app" style="padding:10px 22px;font-size:15px"><span data-i18n="home.cta1">开始算定数</span> →</a>
@@ -104,7 +104,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
 <div class="card">
   <h2 data-i18n="home.why.t">为什么是两个数字</h2>
-  <div class="sub" data-i18n-html="home.why.sub">同一个谱面结构，在两份参照集上会得到两个值 —— 这不是"其中一个算错了"，而是两把不同的尺子。</div>
+  <div class="sub" data-i18n-html="home.why.sub">同一个谱面结构，在两份参照集上会得到两个值——这不是"其中一个算错了"，而是两把不同的尺子。</div>
   <div class="demo">
     <div class="dcard a">
       <div class="k" data-i18n="home.dc.com.k">社区共识</div>
@@ -125,7 +125,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
   </div>
   <div class="note info" data-i18n-html="home.why.n2">
     每个数都带<b>不确定范围</b>（那 20 张参照谱的定数跨度）。跨度大 = 这张谱的结构在参照集里
-    没有紧密对应物，中点不该被当成结论 —— 所以卡片上会直接标出来。<br>
+    没有紧密对应物，中点不该被当成结论——所以卡片上会直接标出来。<br>
     实测（1,367 张留出社区谱）：<b>|偏差| 均值 0.820 · p90 1.40 · ≤1.0 命中 84.2%</b>。
   </div>
 </div>
@@ -145,7 +145,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
 <footer>
   <div class="row" style="justify-content:space-between">
-    <span>P.H.M. Standard · <span id="verfoot"></span> · GPL-3.0</span>
+    <span>P.H.M. Standard · <a id="verfoot" class="verfoot" href="/version" data-i18n-title="foot.hist">版本历史</a> · GPL-3.0</span>
     <span><a href="/app" data-i18n="nav.app">算定数</a> · <a href="/charter" data-i18n="nav.charter">谱师</a> · <a href="/user" data-i18n="nav.user">玩家</a>
       · <a href="#" id="langswitch" title="切换界面语言">English</a>
       · <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric" target="_blank" rel="noopener">GitHub</a></span>
@@ -168,7 +168,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 
 <script type="module">
 import { renderNav, esc, APP_VER, applyStatic, t, onLangChange,
-         currentLang, setLang } from '/js/ui.js?v=V0.9.2.1';
+         currentLang, setLang } from '/js/ui.js?v=V0.9.4.0';
 renderNav('home');
 /* 首页 hero / 入口卡片是静态 HTML，靠 data-i18n 批量替换 */
 applyStatic();

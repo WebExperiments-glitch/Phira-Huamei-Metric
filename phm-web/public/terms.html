@@ -13,7 +13,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/docs.css?v=V0.9.2.1">
+<link rel="stylesheet" href="/css/docs.css?v=V0.9.4.0">
 </head>
 <body>
 <div class="doc">
@@ -86,7 +86,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
   <p data-i18n-html="tm.p.3.2.a">你同意将上述<b>结构特征与成绩数据</b>用于：改进定数算法、生成聚合统计、向其他用户展示共享定数缓存。
   这些数据<b>不包含</b>你的谱面文件、密码或邮箱。</p>
   <p data-i18n-html="tm.p.3.2.b">聚合结果（如某张谱的难度参考值）可能被本服务及任何访问者自由查看与引用。
-  <b>若你不希望贡献，请在<a href="/settings">设置</a>里关闭上传</b>或撤回首次同意 —— 关闭后功能照常使用。</p>
+  <b>若你不希望贡献，请在<a href="/settings">设置</a>里关闭上传</b>或撤回首次同意——关闭后功能照常使用。</p>
 
   <h2 data-i18n="tm.h2.4">4. 难度参考的效力（重要）</h2>
 
@@ -164,7 +164,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <script type="module">
-import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.9.2.1';
+import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.9.4.0';
 /* 法务页正文全是静态文案，没有 JS 渲染的数据 —— 语言一变只需重跑静态替换。 */
 applyStatic();
 onLangChange(() => applyStatic());
