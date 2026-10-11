@@ -437,22 +437,38 @@ const server = http.createServer(async (req, res) => {
     }
     const sub = p.replace(/^\/api\/phira/, '') || '/';
     const target = PHIRA_API + sub + (url.search || '');
+    /* ⚠ 条件请求头必须转发。
+       客户端用 HEAD `/terms/{locale}.txt` + `If-Modified-Since` 判断
+       「服务条款有没有变」—— 只靠响应里的 `Last-Modified`。
+       把这两个头截掉，客户端会直接报
+       `获取服务条款和隐私政策内容失败 / invalid last-modified header`。
+       （实测：代理只回 content-type 时，条款页永远打不开。） */
+    const fwd = {};
+    for (const h of ['if-modified-since', 'if-none-match']) {
+      if (req.headers[h]) fwd[h] = req.headers[h];
+    }
     try {
       const up = await fetch(target, {
         method: req.method,
-        headers: {
-          'accept': 'application/json',
+        headers: Object.assign({
+          'accept': 'application/json,text/plain,*/*',
           'accept-language': 'zh-CN,zh;q=0.9',
           'user-agent': 'phm-huamei/1.0 (+https://phm.app.workbuddy.host)',
-        },
+        }, fwd),
         redirect: 'follow',
         signal: AbortSignal.timeout(15000),
       });
       const buf = Buffer.from(await up.arrayBuffer());
-      res.writeHead(up.status, Object.assign({
-        'content-type': up.headers.get('content-type') || 'application/json; charset=utf-8',
-        'cache-control': 'no-store',
-      }, SEC_HEADERS));
+      /* 回程头白名单 —— **不能只回 content-type**。
+         `last-modified` / `etag` 是条件请求的判据；
+         `content-length` 给 HEAD 用；`accept-ranges` 留给续传。 */
+      const out = { 'content-type': up.headers.get('content-type') || 'application/json; charset=utf-8' };
+      for (const h of ['last-modified', 'etag', 'content-length', 'accept-ranges']) {
+        const v = up.headers.get(h);
+        if (v) out[h] = v;
+      }
+      out['cache-control'] = 'no-store';
+      res.writeHead(up.status, Object.assign(out, SEC_HEADERS));
       return res.end(req.method === 'HEAD' ? undefined : buf);
     } catch (e) {
       return send(res, 502, JSON.stringify({ error: 'upstream: ' + String(e.message || e).slice(0, 120) }));
