@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { reviewContribution, grosslyMismatched, recompute } from './lib/review.mjs';
 /* 云数据库访问层（配置 + 写入凭据 + 两个写 RPC）都在 lib/cloud.mjs，
    与 tools/ 下的批量脚本共用同一份 —— 别再复制一份到这里。 */
-import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE } from './lib/cloud.mjs';
+import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE, DB, WRITE_SECRET } from './lib/cloud.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -44,6 +44,113 @@ function storeLoad() {
   catch { return { bootAt: BOOT_AT, writes: 0, hits: {}, lastWrite: null }; }
 }
 function storeSave(o) { try { fs.writeFileSync(STORE, JSON.stringify(o)); } catch {} }
+
+/* ══════════════════════════════════════════════════════════════
+ * huamei 数据飞轮的两条 API
+ * ══════════════════════════════════════════════════════════════
+ * 契约：docs/规范/数据飞轮契约.md（**改契约先改文档**）
+ *
+ *   /api/phira/*     取谱代理 —— 客户端只认我们，不持 Phira 凭据
+ *   /api/hm/play     成绩接收 —— 逐音符判定
+ *
+ * 设计要点：
+ *   · Phira 侧只放行**只读**方法，且**剥掉**入站的 Authorization。
+ *     绝不把用户的 huamei token 转给第三方。
+ *   · 成绩写入只走 `hm_put_play()`（SECURITY DEFINER + 写入凭据），
+ *     与 phm_charts / phm_scores 同一条防线：不给 anon 任何直连写权限。
+ *   · 身份来自用户自己的 huamei token（调云端 `user/me` 换 sub），
+ *     服务端**不存储**用户凭据。 */
+const PHIRA_API = 'https://api.phira.cn';
+const SITE_ORIGIN = 'https://phm.app.workbuddy.host';
+const CLOUD_AUTH = SITE_ORIGIN + '/.cloud/auth/v1';
+
+/** 用用户的 huamei token 换身份。有效返回 sub，无效返回 null。 */
+async function hmWhoami(token) {
+  if (!token || token.length > 4096) return null;
+  try {
+    const r = await fetch(CLOUD_AUTH + '/user/me', {
+      headers: {
+        /* ⚠ 头名必须是 x-wb-webapp-access-key。用 apikey 会得到 invalid_client。 */
+        'x-wb-webapp-access-key': DB.key,
+        'authorization': 'Bearer ' + token,
+        'accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const sub = typeof j.sub === 'string' ? j.sub : '';
+    return sub || null;
+  } catch { return null; }
+}
+
+/** 校验并规范化一局成绩。返回 {row} 或 {error, code}。
+ *
+ * ⚠ 这里**重算** acc 与 score，不信客户端报的数字。
+ *   公式是开源的（phira `prpr/src/judge.rs:215-245`）：
+ *     acc   = (perfect + 0.65·good) / total
+ *     score = round((0.9·acc + 0.1·max_combo/total) · 1e6)
+ *   对不上就拒收 —— 这是唯一能挡住"手改分数"的地方。 */
+function hmValidate(body) {
+  if (!body || typeof body !== 'object') return { error: 'bad_body' };
+  const chartId = parseInt(body.chart_id, 10);
+  if (!Number.isFinite(chartId) || chartId < 1) return { error: 'chart_id_invalid' };
+
+  const counts = Array.isArray(body.counts) && body.counts.length === 4
+    ? body.counts.map(n => Math.max(0, parseInt(n, 10) || 0)) : null;
+  if (!counts) return { error: 'counts_invalid' };
+
+  const notes = Math.max(0, parseInt(body.chart_notes, 10) || 0);
+  if (notes < 1 || notes > 100000) return { error: 'chart_notes_invalid' };
+
+  /* 每个非 fake 音符恰好拿一个判定 → 四种判定之和必须等于物量。
+     不等就说明上报的数据不完整（漏了 Miss）或伪造。 */
+  const sum = counts.reduce((a, b) => a + b, 0);
+  if (sum !== notes) return { error: 'counts_mismatch', code: 409 };
+
+  const acc = (counts[0] + 0.65 * counts[1]) / notes;
+  const score = counts[0] === notes
+    ? 1000000
+    : Math.round((0.9 * acc + (Math.min(counts[0] + counts[1], notes) / notes) * 0.1) * 1000000);
+
+  if (Number.isFinite(Number(body.accuracy)) && Math.abs(Number(body.accuracy) - acc) > 0.02) {
+    return { error: 'accuracy_mismatch', code: 409 };
+  }
+  if (Number.isFinite(Number(body.score)) && Math.abs(Number(body.score) - score) > 2) {
+    /* score 与 max_combo 有关，而 max_combo 我们无法从 counts 反推 ——
+       所以这里只在「明显不可能」时才拒（差 >2 且超过千分之一）。 */
+    if (Math.abs(Number(body.score) - score) > Math.max(2, score * 0.001)) {
+      return { error: 'score_mismatch', code: 409 };
+    }
+  }
+
+  const blob = typeof body.judge === 'string' ? body.judge : '';
+  if (!blob) return { error: 'judge_missing' };
+  if (blob.length > 400000) return { error: 'judge_too_large', code: 413 };
+
+  const lv = String(body.chart_level || '').trim().slice(0, 8);
+  if (!lv) return { error: 'chart_level_missing' };
+
+  const row = {
+    chart_id: chartId,
+    chart_level: lv,
+    chart_digest: typeof body.chart_digest === 'string' ? body.chart_digest.slice(0, 80) : null,
+    chart_notes: notes,
+    score: parseInt(body.score, 10) || score,
+    accuracy: acc,
+    max_combo: Math.max(0, parseInt(body.max_combo, 10) || 0),
+    perfect: counts[0], good: counts[1], bad: counts[2], miss: counts[3],
+    speed: Number(body.speed) || 1,
+    mods: parseInt(body.mods, 10) || 0,
+    keyboard: body.keyboard === true,
+    client_ver: String(body.client_ver || '').slice(0, 40),
+    judge_ver: parseInt(body.judge_ver, 10) || 1,
+    played_at: parseInt(body.played_at, 10) || null,
+    judge_blob: blob,
+  };
+  return { row };
+}
+
 
 /* ── 云数据库访问 → 见 lib/cloud.mjs ──
  * 数据库地址、publishableKey、写入凭据、dbFetch / dbPutChart / dbPutScores
@@ -316,6 +423,78 @@ const server = http.createServer(async (req, res) => {
   /* 健康检查：只回 ok。
      此前返回 Node 版本 / 启动时间 / uptime / 存储状态 —— 那是给攻击者的情报，已删。 */
   if (p === '/api/health') return send(res, 200, JSON.stringify({ ok: true }));
+
+  /* ── huamei：取谱代理 ──
+     客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。
+     ⚠ 只放行 GET/HEAD；⚠ **剥掉入站 Authorization** —— 那是用户的 huamei
+     token，绝不能转给第三方。 */
+  if (p === '/api/phira' || p.startsWith('/api/phira/')) {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      return send(res, 403, JSON.stringify({ error: 'only GET/HEAD' }));
+    }
+    if (!(await statsOk(ip))) {
+      return send(res, 429, JSON.stringify({ error: 'rate limit' }));
+    }
+    const sub = p.replace(/^\/api\/phira/, '') || '/';
+    const target = PHIRA_API + sub + (url.search || '');
+    try {
+      const up = await fetch(target, {
+        method: req.method,
+        headers: {
+          'accept': 'application/json',
+          'accept-language': 'zh-CN,zh;q=0.9',
+          'user-agent': 'phm-huamei/1.0 (+https://phm.app.workbuddy.host)',
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15000),
+      });
+      const buf = Buffer.from(await up.arrayBuffer());
+      res.writeHead(up.status, Object.assign({
+        'content-type': up.headers.get('content-type') || 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      }, SEC_HEADERS));
+      return res.end(req.method === 'HEAD' ? undefined : buf);
+    } catch (e) {
+      return send(res, 502, JSON.stringify({ error: 'upstream: ' + String(e.message || e).slice(0, 120) }));
+    }
+  }
+
+  /* ── huamei：成绩接收 ──
+     身份 = 用户自己的 huamei token；写入只经 hm_put_play()（SECURITY DEFINER）。 */
+  if (p === '/api/hm/play') {
+    if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
+    if (!(await rateOk(ip))) {
+      return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
+    }
+    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+    if (!token) return send(res, 401, JSON.stringify({ error: 'token_required' }));
+    const ownerId = await hmWhoami(token);
+    if (!ownerId) return send(res, 401, JSON.stringify({ error: 'token_invalid' }));
+
+    let body;
+    try { body = await readBody(req, 1024 * 1024); }
+    catch (e) { return send(res, 413, JSON.stringify({ error: 'body_too_large' })); }
+
+    const v = hmValidate(body);
+    if (v.error) {
+      return send(res, v.code || 400, JSON.stringify({ ok: false, error: v.error }));
+    }
+
+    const r = await dbFetch('/rpc/hm_put_play', {
+      method: 'POST',
+      body: JSON.stringify({ p_secret: WRITE_SECRET, p_row: Object.assign(v.row, { owner_id: ownerId }) }),
+    }, 20000, 4096);
+    if (!r.ok) {
+      return send(res, 500, JSON.stringify({
+        ok: false, error: 'store_failed',
+        detail: String(r.body || r.error || '').slice(0, 160),
+      }));
+    }
+    let playId = null;
+    try { playId = JSON.parse(r.body).play_id; } catch { /* 拿不到 id 不算失败 */ }
+    return send(res, 200, JSON.stringify({ ok: true, play_id: playId }));
+  }
+
   /* 写入网关：校验 + 限流 + 落库 */
   if (p === '/api/contribute' || p === '/api/scores') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));

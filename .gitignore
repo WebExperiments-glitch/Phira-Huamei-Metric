@@ -61,3 +61,11 @@ _archive/
 
 # ── WorkBuddy sites 本地绑定文件 ──
 .wbapp_*.genie
+
+# ── huamei 客户端（独立仓库，见 phira-huamei/README）──
+# 它是从 Phira 派生的 GPL-3.0 项目，有自己的 git 历史与远端，
+# 混进主仓库会让两边历史互相污染。
+phira-huamei/
+
+# ── 发布产物（exe 包等，二进制、可重建）──
+发布/
