@@ -218,8 +218,6 @@ export default {
     'app.res.basis.off': '官谱标度',
     'app.res.desc.com': 'Phira 社区谱',
     'app.res.desc.off': 'Phigros 官谱',
-    'app.res.u': '{basis} · {desc} {pool} 张中结构最相近 {n} 张',
-    'app.res.u.span': '不确定范围 <b>{lo}–{hi}</b>',
     'app.res.off.note': '与 Phigros 官方同一标度（{n} 张官谱）',
     'app.res.off.hi': '　·　社区共识比它高 {d}',
     'app.res.off.lo': '　·　社区共识比它低 {d}',
@@ -246,9 +244,6 @@ export default {
     'app.res.share.tall': '竖版图 · 抖音',
     'app.res.near': '{desc}参照（最相近 5 张）',
     'app.res.th.const': '定数',
-    'app.res.psline':
-      'PS 负荷标度 <b>{total}</b> / 20（密度 {d} · 结构 {p} · 协调 {c} · 持续 {s}）'
-      + '——衡量操作与读取负荷，与官方定数无关',
     'app.res.punch.title': '算单曲 RKS',
     'app.res.punch.opt': '（可选：匿名贡献数据）',
     'app.res.punch.desc':
@@ -627,8 +622,6 @@ export default {
     'app.res.basis.off': 'Official scale',
     'app.res.desc.com': 'Phira community charts',
     'app.res.desc.off': 'Phigros official charts',
-    'app.res.u': '{basis} · {desc} — the {n} structurally closest of {pool}',
-    'app.res.u.span': 'uncertainty range <b>{lo}–{hi}</b>',
     'app.res.off.note': 'same scale as official Phigros ({n} official charts)',
     'app.res.off.hi': ' · community consensus sits {d} above it',
     'app.res.off.lo': ' · community consensus sits {d} below it',
@@ -651,9 +644,6 @@ export default {
     'app.res.share.tall': 'Portrait · Douyin',
     'app.res.near': '{desc} reference (5 closest)',
     'app.res.th.const': 'Constant',
-    'app.res.psline':
-      'PS load scale <b>{total}</b> / 20 (density {d} · structure {p} · coordination {c} · sustain {s}) '
-      + '— measures execution and reading load, unrelated to the official constant',
     'app.res.punch.title': 'Per-chart RKS',
     'app.res.punch.opt': ' (optional: contribute anonymously)',
     'app.res.punch.desc':

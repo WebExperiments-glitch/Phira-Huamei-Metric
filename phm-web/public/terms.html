@@ -13,11 +13,11 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.5.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.5.1">
 <!-- ⚠ 必须**先** base.css 再 docs.css：前者给令牌与标题字体，
      后者只负责阅读排版。以前这里只链了 docs.css，
      所以法务页完全在另一套令牌里长大 —— 白底蓝链接，像换了个网站。 -->
-<link rel="stylesheet" href="/css/docs.css?v=V0.9.5.0">
+<link rel="stylesheet" href="/css/docs.css?v=V0.9.5.1">
 </head>
 <body>
 <div class="doc">
@@ -152,10 +152,13 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
   若变更涉及你义务的实质增加，我们会在站内显著位置提示。
   <b>变更后继续使用本服务，即视为接受变更后的协议。</b></p>
 
-  <h2 data-i18n="tm.h2.11">11. 联系方式</h2>
-  <p data-i18n-html="tm.p.11.a">对本协议的疑问、投诉或建议：<br>
-  <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues" target="_blank" rel="noopener">
-  github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues</a></p>
+  <h2 data-i18n="tm.h2.11">11. 投诉举报与联系方式</h2>
+  <p data-i18n-html="tm.p.11.a">对本服务的任何投诉、举报、侵权通知或一般咨询，发邮件到：<br>
+  <b><a href="mailto:kanqiao86413@163.com">kanqiao86413@163.com</a></b><br>
+  我们会在 <b>15 个工作日内</b>答复。公开的功能建议与 Bug 也可以走
+  <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/issues" target="_blank" rel="noopener">GitHub Issues</a>。</p>
+  <p data-i18n-html="tm.p.11.b">项目源码（GPL-3.0）见
+  <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric" target="_blank" rel="noopener">同一仓库</a>。</p>
   <p data-i18n-html="tm.p.11.b">涉及个人数据删除等隐私请求，请<b>不要</b>发在公开 Issue 里，
   改用<a href="/privacy">隐私政策</a>「如何安全地联系我们」一节中的私密渠道。</p>
 
@@ -168,7 +171,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <script type="module">
-import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.9.5.0';
+import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.9.5.1';
 /* 法务页正文全是静态文案，没有 JS 渲染的数据 —— 语言一变只需重跑静态替换。 */
 applyStatic();
 onLangChange(() => applyStatic());

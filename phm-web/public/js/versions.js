@@ -20,6 +20,30 @@
 
 export const RELEASES = [
   {
+    v: 'V0.9.5.1', date: '2026-10-11',
+    zh: [
+      '<b>可以自助注销了</b>：设置 → 账号管理 → 「注销账号」，一键删除本站云端的资料'
+        + '（Phira 绑定、显示名、访问计数）。<br>'
+        + '⚠ 说清楚一件做不到的事：<b>登录邮箱本身删不掉</b> —— 它在平台的认证系统里，'
+        + '本站没有删除权限。需要删邮箱请发邮件，我们会协助处理。',
+      '隐私政策新增<b>「个人信息对外提供清单」</b>：把信息交给外部服务商的情形逐项列全，'
+        + '写明接收方、联系方式、处理目的、处理方式、信息种类。',
+      '新增<b>投诉举报渠道</b>：邮箱可直接联系我们，承诺 15 个工作日内答复。'
+        + '涉及隐私的请求请用邮件，不要发在公开 Issue 里。',
+    ],
+    en: [
+      '<b>You can delete your account yourself now</b>: Settings → Account → "Delete account" removes '
+        + 'this site’s cloud data (Phira binding, display name, visit counter) in one click.<br>'
+        + '⚠ And one thing we cannot do, stated plainly: <b>the login e-mail itself cannot be deleted</b> '
+        + '— it lives in the platform’s authentication system and this site has no permission to remove it. '
+        + 'E-mail us and we will help.',
+      'The privacy policy gained a <b>personal-information disclosure list</b>: every case where your data reaches '
+        + 'an external provider, with recipient, contact, purpose, method and data type.',
+      'New <b>complaint channel</b>: e-mail us directly, with a 15-working-day reply commitment. '
+        + 'Privacy-related requests should go by e-mail, never in a public Issue.',
+    ],
+  },
+  {
     v: 'V0.9.5.0', date: '2026-10-11',
     zh: [
       '修「页面下半部分整块空白」：某些浏览器会攥着**上一次缓存的旧脚本**不放，'

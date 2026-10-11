@@ -42,6 +42,16 @@ export default {
     'set.acct.binddone': '已绑定 Phira',
     'set.acct.clearcid': '重置匿名标识',
 
+    /* ── 注销（自助删本站资料；邮箱删不掉，如实写）── */
+    'set.acct.del': '注销账号',
+    'set.acct.del.desc': '删除本站云端资料（Phira 绑定与显示名）。<b>登录邮箱需另行申请</b>。',
+    'set.acct.del.go': '删除本站资料…',
+    'set.acct.del.nologin': '你还没有登录，没有可注销的资料。',
+    'set.acct.del.nocloud': '云端未连接，暂时无法删除 —— 请改用邮件申请（见隐私政策第 10 节）。',
+    'set.acct.del.confirm': '确定要删除本站在云端的资料吗？\n\n会删掉：Phira 绑定关系、显示名、访问计数。\n不会删：登录邮箱本身（需要另行申请），以及你贡献过的成绩（它们本来就是匿名的，不挂在账号上）。\n\n此操作不可撤销。',
+    'set.acct.del.done': '本站资料已删除 ✓ 正在登出…',
+    'set.acct.del.fail': '删除失败：{e} —— 可改用邮件申请（见隐私政策第 10 节）。',
+
     'set.phira.desc': '本站连 Phira 只读公开资料（RKS、最好成绩），不需要也不接受密码。',
     'set.phira.name': '上次填过的用户名',
     'set.phira.uid': '上次填过的 UID',
@@ -123,6 +133,16 @@ export default {
     'set.acct.bindhint': 'Look up your own account on the Players page first, then come back to link it.',
     'set.acct.binddone': 'Phira linked',
     'set.acct.clearcid': 'Reset anonymous ID',
+
+    /* ── account deletion (self-service for site data; the login e-mail cannot be deleted) ── */
+    'set.acct.del': 'Delete account',
+    'set.acct.del.desc': 'Removes this site’s cloud data (Phira binding and display name). <b>The login e-mail needs a separate request.</b>',
+    'set.acct.del.go': 'Delete site data…',
+    'set.acct.del.nologin': 'You are not signed in, so there is nothing to delete.',
+    'set.acct.del.nocloud': 'Cloud is not connected, so this cannot be done here — please use e-mail instead (see section 10 of the privacy policy).',
+    'set.acct.del.confirm': 'Delete this site’s cloud data?\n\nDeleted: the Phira binding, display name, visit counter.\nNot deleted: the login e-mail itself (needs a separate request), and any scores you contributed (those are anonymous and are not tied to your account).\n\nThis cannot be undone.',
+    'set.acct.del.done': 'Site data deleted ✓ signing out…',
+    'set.acct.del.fail': 'Delete failed: {e} — you can use e-mail instead (see section 10 of the privacy policy).',
 
     'set.phira.desc': 'Phira is accessed read-only for public data (RKS, best scores). A password is neither required nor accepted.',
     'set.phira.name': 'Last username entered',

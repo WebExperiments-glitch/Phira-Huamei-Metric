@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.5.0">
+<meta name="app-version" content="V0.9.5.1">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.5.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.5.1">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -239,6 +239,19 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
           </div>
           <div class="sc" id="bindActions"></div>
         </div>
+        <!-- ── 注销：**自助删数据** ──
+             ⚠ 能删什么、不能删什么，必须和 /privacy 第 5 节一字不差 ——
+             政策里承诺了做不到的事，比不写更糟。这里如实分成两块：
+               能删 = phm_profiles 那一行（Phira 绑定 / 显示名 / 访问计数）
+               删不掉 = 登录邮箱本身（在平台认证系统里，本站没有删除权限）
+             数据库侧已加 DELETE 策略（owner_id = auth.uid()），所以只会删到自己那行。 -->
+        <div class="srow">
+          <div class="sl">
+            <b data-i18n="set.acct.del">注销账号</b>
+            <span data-i18n-html="set.acct.del.desc">删除本站云端资料（Phira 绑定与显示名）。<b>登录邮箱需另行申请</b>。</span>
+          </div>
+          <div class="sc"><button class="sbtn danger" type="button" id="acctDel" data-i18n="set.acct.del.go">删除本站资料…</button></div>
+        </div>
       </div>
       <div class="status" id="acctMsg"></div>
     </section>
@@ -339,9 +352,9 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.9.5.0';
-import * as S from '/js/settings.js?v=V0.9.5.0';
-import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.9.5.0';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.9.5.1';
+import * as S from '/js/settings.js?v=V0.9.5.1';
+import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.9.5.1';
 
 renderNav('settings');
 applyStatic();
@@ -590,6 +603,38 @@ $('#expBtn').addEventListener('click', function () {
     setTimeout(() => URL.revokeObjectURL(url), 4000);
     msg('phm-settings.json ✓', 'ok');
   } catch (e) { msg(esc(t('set.storage.exportfail', { e: (e && e.message) || '' })), 'err'); }
+});
+
+/* ── 注销：删除本站云端资料 + 登出 ──
+   ⚠ 范围只到「本站资料」：
+     · 删 phm_profiles 那一行（Phira 绑定、显示名、访问计数）
+     · **删不掉登录邮箱** —— 它在平台认证系统里，客户端没有这个权限。
+       所以文案与 /privacy 第 5 节都写明「邮箱需另行申请」，不能含糊。
+     · 贡献的成绩**不在注销范围**：它本来就是匿名的（表里没有 owner_id），
+       不挂在账号上，删账号也不会带走它。
+   失败时不假装成功 —— 把错误显示出来，并给出邮件兜底渠道。 */
+$('#acctDel').addEventListener('click', async function () {
+  const user = await currentUser();
+  if (!user) { acctMsg(t('set.acct.del.nologin'), 'warn'); return; }
+  if (!window.confirm(t('set.acct.del.confirm'))) return;
+  if (!cloudDB) { acctMsg(t('set.acct.del.nocloud'), 'err'); return; }
+  const btn = this;
+  btn.disabled = true;
+  try {
+    /* RLS 已经限定 owner_id = auth.uid()，这里再显式带上 uid，语义更清楚 */
+    const r = await cloudDB.from('phm_profiles').delete().eq('owner_id', user.id);
+    if (r && r.error) {
+      acctMsg(t('set.acct.del.fail', { e: String(r.error.message || r.error) }), 'err');
+      btn.disabled = false;
+      return;
+    }
+    acctMsg(t('set.acct.del.done'), 'ok');
+    try { if (cloud && cloud.auth && cloud.auth.signOut) await cloud.auth.signOut(); } catch (e) {}
+    setTimeout(function () { location.reload(); }, 1200);
+  } catch (e) {
+    acctMsg(t('set.acct.del.fail', { e: String((e && e.message) || e) }), 'err');
+    btn.disabled = false;
+  }
 });
 
 $('#cidReset').addEventListener('click', function () {

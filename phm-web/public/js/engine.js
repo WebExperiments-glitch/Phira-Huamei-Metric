@@ -22,7 +22,7 @@
  *     引擎本身不认识 fetch，也不认识 fs。
  * ============================================================ */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.9.5.0';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.9.5.1';
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
  * com-trim15-v0.5.0：聚合从「加权下中位」换成「加权截尾均值（15%）」——
  *   中位误差 0.500→0.453、均值误差 0.820→0.816，输出分辨率 104→1332 个不同值。
