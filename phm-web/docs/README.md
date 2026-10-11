@@ -77,6 +77,7 @@ phm-web/
 └── docs/
     ├── README.md              ← 你正在看的
     ├── ARCHITECTURE.md        ← 数据流、分层、设计取舍
+    ├── DESIGN.md              ← ★ 设计系统与视觉立场（令牌全表 + 对比度实测 + 给 AI 的配色 brief）
     ├── DATA-MODEL.md          ← 表结构、RPC、权限（改数据库先看这个）
     ├── SECURITY.md            ← 信任边界、风险清单、已知限制
     ├── ENGINE-EXPERIMENT.md   ← ★ 引擎选型实验：为什么是 8 维 / 社区参照，以及所有被否掉的方案
