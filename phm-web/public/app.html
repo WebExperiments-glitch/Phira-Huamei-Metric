@@ -237,6 +237,16 @@ padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 .pshead{display:flex;align-items:baseline;gap:8px;margin:16px 0 8px}
 .pshead .lbl{font-size:13px;font-weight:600;color:var(--fg);font-family:var(--font-display)}
 .pshead__note{font-size:11.5px;color:var(--fg3)}
+/* ── 明细分组：13 行长表 → 分组的两列定义列表 ──
+   原来是一张 13 行的平铺长表，从物量一路读到谱师，视线要跨全宽 13 次。
+   分成四组放进两列，页面高度省一半。 */
+.kv-groups{display:grid;gap:14px 26px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.kv h4{margin:0 0 6px;color:var(--fg3);font-size:11.5px;font-weight:600;letter-spacing:.04em}
+.kv dl{margin:0}
+.kv .row{display:flex;justify-content:space-between;gap:14px;
+  padding:5px 0;border-bottom:1px solid var(--line)}
+.kv dt{color:var(--fg2)}
+.kv dd{margin:0;font-weight:500;font-variant-numeric:tabular-nums;text-align:right}
 .bars{display:grid;gap:7px}
 .g{display:grid;grid-template-columns:4.5em 1fr 3.2em;align-items:center;gap:10px;font-size:12.5px}
 .g .lbl{color:var(--fg2)}
