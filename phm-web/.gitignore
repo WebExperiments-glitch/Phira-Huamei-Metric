@@ -15,3 +15,15 @@ write-secret.txt
 # 裁字体用的**中间产物**：11MB 的思源宋体原件。它是可复现的
 # （tools/subset-display-font.py 会按需重新下载），没必要进仓库。
 public/fonts/.cache-*.otf
+
+# ── 客户端二进制（downloads/）──
+# 由 phira-huamei 构建出来，35MB 且**每次构建都变**。跟进仓库的话，
+# 十次发布就是 350MB 历史，而它完全可以从源码重建（GPL-3.0 只要求给源码，
+# 不要求给二进制）。根 .gitignore 排除 发布/ 是同一个理由。
+#
+# ⚠ 站点在**运行时要读**这个文件（/download/phira-huamei.exe）——
+#   所以它是"不入库"，不是"可以删"。部署是把整个目录打包，不是 clone。
+#   新克隆一份仓库要跑下载页，先构建再：
+#     cp phira-huamei/target/release/phira-main.exe phm-web/downloads/phira-huamei.exe
+#     node tools/gen-release.mjs
+downloads/*.exe

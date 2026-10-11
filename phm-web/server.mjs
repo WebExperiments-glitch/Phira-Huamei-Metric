@@ -27,6 +27,9 @@ import { reviewContribution, grosslyMismatched, recompute } from './lib/review.m
 /* 云数据库访问层（配置 + 写入凭据 + 两个写 RPC）都在 lib/cloud.mjs，
    与 tools/ 下的批量脚本共用同一份 —— 别再复制一份到这里。 */
 import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE, DB, WRITE_SECRET } from './lib/cloud.mjs';
+/* huamei 数据飞轮的身份与成绩校验 —— 单独一个模块，见 lib/hm.mjs 顶部。 */
+import { appIdFromKey, makeWhoami, validatePlay } from './lib/hm.mjs';
+import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -63,184 +66,23 @@ function storeSave(o) { try { fs.writeFileSync(STORE, JSON.stringify(o)); } catc
 const PHIRA_API = 'https://api.phira.cn';
 const SITE_ORIGIN = 'https://phm.app.workbuddy.host';
 const CLOUD_AUTH = SITE_ORIGIN + '/.cloud/auth/v1';
-/** 应用 id —— 从 publishableKey 推出来（`wbpk_<appId>_<rest>`），
- *  避免两处各写一份。用于校验 token 的 `aud` 确实是本应用。 */
-const APP_ID = 'wbapp_' + ((DB.key.match(/^wbpk_([^_]+)_/) || [null, ''])[1]);
-
-/** 用用户的 huamei token 换身份。
- *  @returns `{sub}` 成功；`{err, status}` 失败（status 是上游 HTTP 状态，便于诊断）。
+/* ── huamei 数据飞轮：实现全在 lib/hm.mjs，这里只做「装配 + 路由」──
+ * 把站点相关配置（站点根、publishableKey、Referer）注进去，拿到两个入口：
+ *   `hmWhoami(token)`   —— token → 身份（主路云端 `user/me`，兜底本地解 JWT）
+ *   `validatePlay(body)` —— 一局上报 → 规范化后的行（`{row, warn}` 或硬伤错误）
  *
- * ⚠⚠ **`Referer` / `Origin` 是硬要求 —— 实测（2026-10-11，同一个真 token）：**
- *   只带 key 头            → 401 invalid_grant
- *                            "the session is invalid, expired or issued for another client"
- *   带上 Referer 或 Origin → 200，正常返回 sub/email
- *   依据见 `lib/cloud.mjs` 顶部：「身份由 referer 判定」。
- *   浏览器跑 SDK 时这头自动就有，服务端自己调就得自己补。
- *
- * ⚠ **别被那句错误措辞骗了** —— "issued for another client" 听起来像 token 有问题，
- *   其实只是**我们没报身份**。
- *
- * ⚠ 为什么要试多种组合：**本机跑通 ≠ 生产跑通**。实测本机全绿、线上仍 401，
- *   怀疑托管边缘对从沙箱发出的出站请求改写了 headers。所以逐个变体试，
- *   并把每个变体的上游状态码一起带回去 —— 别再出现「本地好好的、线上不行」
- *   而无从下手的情况。 */
-const HM_BROWSERISH = {
-  'accept': 'application/json, text/plain, */*',
-  'accept-language': 'zh-CN,zh;q=0.9',
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-  'sec-fetch-site': 'same-origin',
-  'sec-fetch-mode': 'cors',
-  'sec-fetch-dest': 'empty',
-};
-
-const HM_WHOAMI_VARIANTS = [
-  // ① 最像浏览器：Referer + Origin + Sec-Fetch 全套
-  Object.assign({ referer: DB.referer, origin: SITE_ORIGIN }, HM_BROWSERISH),
-  // ② 只加 Referer（本机实测这个就够）
-  { referer: DB.referer },
-  // ③ 只加 Origin
-  { origin: SITE_ORIGIN },
-  // ④ 裸的
-  {},
-];
-
-/** 降级路径：直接解析 JWT 拿 `sub`。
- *
- * ══════════════════════════════════════════════════════════════
- * 【为什么需要它 —— 2026-10-11 实测】
- * ══════════════════════════════════════════════════════════════
- * 正路是调 `/.cloud/auth/v1/user/me` 换身份。但**从托管沙箱里发出的请求
- * 换不到**：本机同代码同 token 全绿，线上 5 种头组合一律 401 ——
- * 连完整模拟浏览器（Referer + Origin + Sec-Fetch-* 全套）也是 401。
- * 服务端把我们从沙箱发出的请求判成**另一个 client**，与头无关。
- * → 线上只能走这条降级路径。
- *
- * 【信任边界（必须如实说明）】
- *   token 是 **HS256**（对称签名），密钥在服务端、我们拿不到 →
- *   **本函数无法验签**，只能校验结构 / `aud` / `exp`。
- *   因此**身份是可伪造的**：任何人都能自己拼一个 HS256 JWT 冒充别人。
- *
- *   为什么仍可接受：
- *     · 契约 §8 已经写明「单条成绩不可信」，个体数据只作聚合用；
- *     · 危害面仅限「往别人名下塞假成绩」，不涉及任何隐私数据读取；
- *     · 一旦平台放开沙箱的出站身份，`hmWhoami` 会优先走正路 —— 那时本函数
- *       自动退居兜底（`detail` 里会体现走的是哪条路）。
- *
- *   若将来要真正堵住：需要平台提供一种**沙箱内可用**的换身份方式。 */
-function hmSubFromJwt(token, appId) {
-  const parts = String(token || '').split('.');
-  if (parts.length !== 3) return { err: 'not_jwt' };
-  let payload;
-  try {
-    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    payload = JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
-  } catch { return { err: 'bad_payload' }; }
-  const sub = typeof payload.sub === 'string' ? payload.sub : '';
-  if (!sub) return { err: 'no_sub' };
-  // aud 必须是本应用 —— 防止拿别的应用的 token 来报
-  const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-  if (appId && !aud.includes(appId)) return { err: 'aud_mismatch' };
-  const now = Math.floor(Date.now() / 1000);
-  if (typeof payload.exp === 'number' && payload.exp < now) return { err: 'expired' };
-  return { sub };
-}
-
-async function hmWhoami(token) {
-  if (!token || token.length > 4096) return { err: 'no_token', status: 0 };
-  const tried = [];
-  for (const variant of HM_WHOAMI_VARIANTS) {
-    const label = Object.keys(variant).filter(k => !(k in HM_BROWSERISH)).join('+') || '(base)';
-    try {
-      const r = await fetch(CLOUD_AUTH + '/user/me', {
-        headers: Object.assign({
-          /* ⚠ 头名必须是 x-wb-webapp-access-key。用 apikey 会得到 invalid_client。 */
-          'x-wb-webapp-access-key': DB.key,
-          'authorization': 'Bearer ' + token,
-        }, variant),
-        signal: AbortSignal.timeout(10000),
-      });
-      if (r.ok) {
-        const j = await r.json();
-        const sub = typeof j.sub === 'string' ? j.sub : '';
-        if (sub) return { sub, variant: label, verified: true };
-      }
-      tried.push(label + ':' + r.status);
-    } catch {
-      tried.push(label + ':ERR');
-    }
-  }
-  // 正路全挂 → 降级（见 hmSubFromJwt 的信任边界说明）
-  const fb = hmSubFromJwt(token, APP_ID);
-  if (fb.sub) return { sub: fb.sub, variant: 'jwt-fallback', verified: false, tried: tried.join(' ') };
-  return { err: 'all_variants_failed', tried: tried.join(' '), jwt: fb.err };
-}
-
-/** 校验并规范化一局成绩。返回 {row} 或 {error, code}。
- *
- * ⚠ 这里**重算** acc 与 score，不信客户端报的数字。
- *   公式是开源的（phira `prpr/src/judge.rs:215-245`）：
- *     acc   = (perfect + 0.65·good) / total
- *     score = round((0.9·acc + 0.1·max_combo/total) · 1e6)
- *   对不上就拒收 —— 这是唯一能挡住"手改分数"的地方。 */
-function hmValidate(body) {
-  if (!body || typeof body !== 'object') return { error: 'bad_body' };
-  const chartId = parseInt(body.chart_id, 10);
-  if (!Number.isFinite(chartId) || chartId < 1) return { error: 'chart_id_invalid' };
-
-  const counts = Array.isArray(body.counts) && body.counts.length === 4
-    ? body.counts.map(n => Math.max(0, parseInt(n, 10) || 0)) : null;
-  if (!counts) return { error: 'counts_invalid' };
-
-  const notes = Math.max(0, parseInt(body.chart_notes, 10) || 0);
-  if (notes < 1 || notes > 100000) return { error: 'chart_notes_invalid' };
-
-  /* 每个非 fake 音符恰好拿一个判定 → 四种判定之和必须等于物量。
-     不等就说明上报的数据不完整（漏了 Miss）或伪造。 */
-  const sum = counts.reduce((a, b) => a + b, 0);
-  if (sum !== notes) return { error: 'counts_mismatch', code: 409 };
-
-  const acc = (counts[0] + 0.65 * counts[1]) / notes;
-  const score = counts[0] === notes
-    ? 1000000
-    : Math.round((0.9 * acc + (Math.min(counts[0] + counts[1], notes) / notes) * 0.1) * 1000000);
-
-  if (Number.isFinite(Number(body.accuracy)) && Math.abs(Number(body.accuracy) - acc) > 0.02) {
-    return { error: 'accuracy_mismatch', code: 409 };
-  }
-  if (Number.isFinite(Number(body.score)) && Math.abs(Number(body.score) - score) > 2) {
-    /* score 与 max_combo 有关，而 max_combo 我们无法从 counts 反推 ——
-       所以这里只在「明显不可能」时才拒（差 >2 且超过千分之一）。 */
-    if (Math.abs(Number(body.score) - score) > Math.max(2, score * 0.001)) {
-      return { error: 'score_mismatch', code: 409 };
-    }
-  }
-
-  const blob = typeof body.judge === 'string' ? body.judge : '';
-  if (!blob) return { error: 'judge_missing' };
-  if (blob.length > 400000) return { error: 'judge_too_large', code: 413 };
-
-  const lv = String(body.chart_level || '').trim().slice(0, 8);
-  if (!lv) return { error: 'chart_level_missing' };
-
-  const row = {
-    chart_id: chartId,
-    chart_level: lv,
-    chart_digest: typeof body.chart_digest === 'string' ? body.chart_digest.slice(0, 80) : null,
-    chart_notes: notes,
-    score: parseInt(body.score, 10) || score,
-    accuracy: acc,
-    max_combo: Math.max(0, parseInt(body.max_combo, 10) || 0),
-    perfect: counts[0], good: counts[1], bad: counts[2], miss: counts[3],
-    speed: Number(body.speed) || 1,
-    mods: parseInt(body.mods, 10) || 0,
-    keyboard: body.keyboard === true,
-    client_ver: String(body.client_ver || '').slice(0, 40),
-    judge_ver: parseInt(body.judge_ver, 10) || 1,
-    played_at: parseInt(body.played_at, 10) || null,
-    judge_blob: blob,
-  };
-  return { row };
-}
+ * ⚠ 原先这两件事的实现内联在本文件里。挪出去有两个原因：
+ *   一、本文件有 900 行上限，塞在这里会越线；
+ *   二、放在一起会让人误以为 /api/hm/play 和 /api/contribute 共用一套防线 ——
+ *   其实信任模型完全不同（那边服务端能自己复算谱面，这边拿不到谱面字节）。 */
+const APP_ID = appIdFromKey(DB.key);
+const hmWhoami = makeWhoami({
+  cloudAuth: CLOUD_AUTH,
+  siteOrigin: SITE_ORIGIN,
+  referer: DB.referer,
+  key: DB.key,
+  appId: APP_ID,
+});
 
 
 /* ── 云数据库访问 → 见 lib/cloud.mjs ──
@@ -365,9 +207,10 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
-  '404.html', 'sitemap.xml', 'og.png', 'version.html']);
+  '404.html', 'sitemap.xml', 'og.png', 'version.html', 'download.html']);
 /* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
    只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
+
 /* 注：曾经还有一个独立的英文页 en.html。i18n 上线后它是**冗余**的 ——
    全站一套代码两种语言，再留一个手写的英文页就变成两份必然漂移的实现，
    而且「English」入口和设置页里的语言开关重复。已删除。 */
@@ -485,6 +328,7 @@ function sendFile(res, fp, longCache, req) {
 /* 压缩缓存：key = 绝对路径，value = {mt, buf}。文件改了 mtime 变，自动失效。 */
 const _gzCache = new Map();
 const GZIP_EXT = new Set(['.html', '.js', '.css', '.json', '.svg', '.xml', '.txt', '.webmanifest']);
+
 /* 404 交一张真正的错误页（原来只回纯文本 "not found"，没有导航也没有回首页的路）。
    ⚠ 用 text/html + 状态码 404 下发；页面自身带 noindex，不该被搜索引擎收录。 */
 function send404(res) {
@@ -497,6 +341,14 @@ function send404(res) {
     res.end(buf);
   } catch { send(res, 404, 'not found', 'text/plain; charset=utf-8'); }
 }
+/* 构建产物下载（Windows 客户端）—— 逻辑在 lib/download.mjs。
+   ⚠ 必须装配在 SEC_HEADERS 与 send404 之后：工厂要这两样。 */
+const serveDownload = makeDownloadHandler({
+  dir: path.join(ROOT, 'downloads'),
+  secHeaders: SEC_HEADERS,
+  notFound: send404,
+});
+
 function readBody(req, max = 512 * 1024) {
   return new Promise((resolve) => {
     let n = 0; const chunks = [];
@@ -607,9 +459,18 @@ const server = http.createServer(async (req, res) => {
     try { body = await readBody(req, 1024 * 1024); }
     catch (e) { return send(res, 413, JSON.stringify({ error: 'body_too_large' })); }
 
-    const v = hmValidate(body);
+    const v = validatePlay(body);
     if (v.error) {
+      /* 拒收也要留痕：连"为什么拒"一起写服务端日志，否则线上只有 409 一个数字。 */
+      console.warn('[hm/play] 拒收 %s chart=%s notes=%s counts=%j', v.error, body && body.chart_id, body && body.chart_notes, body && body.counts);
       return send(res, v.code || 400, JSON.stringify({ ok: false, error: v.error }));
+    }
+    /* 一致性告警：**不挡写入**，但必须回传（客户端会写进 data/huamei-login.log）。
+       见 lib/hm.mjs 的 validatePlay 里那段「只记账，不拒收」的说明。 */
+    const warn = Array.isArray(v.warn) ? v.warn : [];
+    if (warn.length) {
+      console.warn('[hm/play] 一致性告警 chart=%s notes=%s counts=%j mc=%s → %s',
+        body.chart_id, body.chart_notes, body.counts, body.max_combo, warn.join(' | '));
     }
 
     const r = await dbFetch('/rpc/hm_put_play', {
@@ -625,8 +486,12 @@ const server = http.createServer(async (req, res) => {
     let playId = null;
     try { playId = JSON.parse(r.body).play_id; } catch { /* 拿不到 id 不算失败 */ }
     /* 回报身份是怎么定的：`verified` 为真表示走的是云端 `user/me` 正路，
-       假表示走了本地解 JWT 的降级路径（见 hmSubFromJwt 的信任边界说明）。 */
-    return send(res, 200, JSON.stringify({ ok: true, play_id: playId, verified: who.verified === true }));
+       假表示走了本地解 JWT 的降级路径（见 lib/hm.mjs 的 subFromJwt 信任边界说明）。
+       `warn` 只在有差异时出现 —— 客户端把它记进日志。 */
+    return send(res, 200, JSON.stringify({
+      ok: true, play_id: playId, verified: who.verified === true,
+      ...(warn.length ? { warn } : {}),
+    }));
   }
 
   /* 写入网关：校验 + 限流 + 落库 */
@@ -912,6 +777,15 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  /* ── 构建产物下载 ──
+     ⚠ 必须在下面的静态白名单**之前**处理：downloads/ 不在 PUBLIC_DIRS 里，
+       晚一步就会被 isPublicPath 判 404。
+
+     文件放 ROOT/downloads/ 而**不在 public/** 是有意的：public/ 的语义是
+     「白名单里的东西可以送」，而这个是「只准走这一条路由」。放在 public/
+     下面但不在白名单里，下次有人顺手往 PUBLIC_DIRS 加个目录就会把它也放出去。 */
+  if (DOWNLOAD_FILES[p]) return serveDownload(req, res, DOWNLOAD_FILES[p]);
+
   /* ── 干净 URL ──
      站点已经拆成多页（/app 工作台、/charter 谱师、/user 玩家），
      但不想让用户看到 .html 后缀 —— 分享链接短一点、也少一个改动点
@@ -920,7 +794,7 @@ const server = http.createServer(async (req, res) => {
   const CLEAN = { '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
                   '/data': 'data.html', '/settings': 'settings.html',
                   '/privacy': 'privacy.html', '/terms': 'terms.html',
-                  '/version': 'version.html' };
+                  '/version': 'version.html', '/download': 'download.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

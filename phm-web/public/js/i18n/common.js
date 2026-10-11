@@ -18,6 +18,7 @@ export default {
     'nav.user': '玩家',
     'nav.data': '数据',
     'nav.settings': '设置',
+    'nav.download': '下载',
 
     /* ── 通用动作 ── */
     'c.clear': '清除',
@@ -99,6 +100,7 @@ export default {
     'nav.user': 'Players',
     'nav.data': 'Data',
     'nav.settings': 'Settings',
+    'nav.download': 'Download',
 
     /* ── common ── */
     'c.clear': 'Clear',

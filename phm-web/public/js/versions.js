@@ -20,6 +20,26 @@
 
 export const RELEASES = [
   {
+    v: 'V0.9.6.0', date: '2026-10-11',
+    zh: [
+      '新增<b>「下载」页</b>（顶栏最后一个入口）：Windows 客户端可以直接从本站下载，'
+        + '同时给出文件大小、客户端版本和 SHA-256，方便你核对下载到的东西没被改过。',
+      '修复「<b>打完一局成绩没记上</b>」：服务端复算分数时用错了连击数，'
+        + '只要中途断过连就会被误判成「分数对不上」而整局丢弃。现在改用结算里真实的连击数。',
+      '服务端遇到「分数与判定明细对不上」时<b>不再直接丢弃成绩</b>，'
+        + '改为记入服务端日志并继续入库 —— 宁可留一条可疑数据，也不该弄丢真实成绩。',
+    ],
+    en: [
+      'New <b>Download page</b> (last entry in the nav): grab the Windows client straight from this site, together '
+        + 'with its file size, client version and SHA-256 so you can check nothing was altered on the way.',
+      'Fixed "<b>a finished play did not get recorded</b>": the server recomputed your score using the wrong '
+        + 'combo count, so any play that had dropped its combo was misjudged as a score mismatch and thrown away. '
+        + 'It now uses the real max combo from the result.',
+      'When the server sees a <b>score that does not match the judgement breakdown</b>, it no longer discards the '
+        + 'play — it logs the discrepancy and stores the result anyway. A suspicious row beats a lost score.',
+    ],
+  },
+  {
     v: 'V0.9.5.1', date: '2026-10-11',
     zh: [
       '<b>可以自助注销了</b>：设置 → 账号管理 → 「注销账号」，一键删除本站云端的资料'

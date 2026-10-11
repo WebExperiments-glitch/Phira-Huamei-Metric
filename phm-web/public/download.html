@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.9.6.0">
+<title>下载客户端 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="下载 P.H.M. 谱面定数参考的 Windows 客户端：单文件、免安装，边打谱边把每一局的判定明细记进数据飞轮。">
+<meta name="robots" content="noindex">
+<!-- 主题：必须**同步内联**在样式表之前 —— 模块是异步的，等它跑完页面
+     已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。
+     读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.9.6.0">
+<style>
+/* ── 下载主面板 ──
+   全站只有一个主色，这里把主色用满：这是页面上**唯一**要做的事。
+   刻意不放大图标/大插画 —— 页面上要突出的只有那个按钮。 */
+.dlbox{
+  border:1px solid var(--brand-line); border-radius:var(--r2);
+  background:var(--brand-soft); padding:18px 20px; margin-top:14px;
+}
+.dlbox .big{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dlbox .btn.primary{min-height:44px;padding:10px 22px;font-size:15px;border-radius:10px}
+/* 文件元信息：一行 key-value，窄屏自动换行；数字用等宽 + 表格数字对齐 */
+.dlmeta{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px}
+.dlmeta div{font-size:12.5px;color:var(--fg2);display:flex;gap:6px;align-items:baseline}
+.dlmeta dt{color:var(--fg3);font-size:11.5px}
+.dlmeta dd{margin:0;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums}
+
+/* 哈希块：长串必须能断行，否则整页被撑出横向滚动条 */
+.hashbox{display:flex;gap:8px;align-items:flex-start;margin-top:8px}
+.hashbox code{
+  flex:1; min-width:0; font-family:var(--mono); font-size:11.5px; line-height:1.6;
+  color:var(--fg2); background:var(--card3); border:1px solid var(--line);
+  border-radius:var(--r-sm); padding:8px 10px;
+  word-break:break-all; user-select:all;
+}
+.cmd{font-family:var(--mono);font-size:11.5px;background:var(--card3);border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:8px 10px;color:var(--fg2);overflow-x:auto;white-space:pre;
+  margin-top:6px}
+ol.steps{margin:8px 0 0;padding-left:20px}
+ol.steps li{font-size:13px;color:var(--fg2);line-height:1.8;margin:2px 0}
+ol.steps li b{color:var(--fg)}
+.beta{display:inline-block;font-size:10.5px;color:var(--brand);border:1px solid var(--brand-line);
+  background:var(--brand-soft);border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <h2 data-i18n="dl.title">下载客户端</h2>
+  <div class="sub" data-i18n-html="dl.sub">Windows 版客户端：把 Phira 的每一局判定明细（含每个音符的早/晚偏移）记进站内的共享数据。纯本地运行的桌面客户端，不读取你的 Phira 密码。</div>
+
+  <div class="dlbox">
+    <div class="big">
+      <a class="btn primary" id="dlbtn" href="/download/phira-huamei.exe" download>
+        <span data-i18n="dl.btn">下载 Windows 版</span>
+        <span class="mono" id="dlsize" style="opacity:.75;font-size:12.5px"></span>
+      </a>
+      <span class="dim2" style="font-size:12.5px" data-i18n="dl.req">Windows 10 / 11 · 64 位 · 免安装</span>
+    </div>
+
+    <dl class="dlmeta">
+      <div><dt data-i18n="dl.m.file">文件</dt><dd id="mf">—</dd></div>
+      <div><dt data-i18n="dl.m.ver">客户端版本</dt><dd id="mv">—</dd></div>
+      <div><dt data-i18n="dl.m.built">构建日期</dt><dd id="mb">—</dd></div>
+      <div><dt data-i18n="dl.m.size">大小</dt><dd id="ms">—</dd></div>
+    </dl>
+    <div class="dim2" style="font-size:11.5px;margin-top:8px" id="dlnote"></div>
+  </div>
+
+  <div class="note warn" data-i18n-html="dl.beta">这是<b>开发者测试版</b>：功能在持续改动，遇到问题请到仓库提 Issue。版本号每改一次就变，所以下载到的永远是当时的最新构建。</div>
+</div>
+
+<div class="card">
+  <h2 data-i18n="dl.how.title">怎么用</h2>
+  <ol class="steps">
+    <li data-i18n-html="dl.how.s1">下载上面那个 <span class="mono">.exe</span>，放到任意目录，<b>双击即可运行</b>——单文件，不需要安装，也不需要额外的资源文件夹。</li>
+    <li data-i18n-html="dl.how.s2">首次启动会被 Windows 拦一下（见下面那条说明），选「更多信息 → 仍要运行」。</li>
+    <li data-i18n-html="dl.how.s3">在客户端里用<b>你自己的邮箱</b>登录站内账号（收验证码即可，不需要 Phira 密码），然后在<b>设置</b>里确认已登录。</li>
+    <li data-i18n-html="dl.how.s4">从<span class="mono">谱面库</span>选一张谱开打。结算时这一局的逐音符判定会自动上报——<b>没登录就不会上报</b>，其余功能照常。</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h2 data-i18n="dl.verify.title">校验下载（可选，但建议）</h2>
+  <div class="sub" data-i18n-html="dl.verify.sub">这个包没有代码签名。要确认下载到的文件没被中途篡改，把它的 SHA-256 和下面这串对一下。</div>
+  <div class="hashbox">
+    <code id="hash">—</code>
+    <button class="btn sm" id="cpbtn" type="button" data-i18n="dl.copy">复制</button>
+  </div>
+  <div class="cmd" id="cmdline">Get-FileHash $env:USERPROFILE\Downloads\phira-huamei.exe -Algorithm SHA256</div>
+  <div class="dim2" style="font-size:11.5px;margin-top:6px" data-i18n="dl.verify.tip">在 PowerShell 里跑上面这行，比对 Hash 一栏。把路径换成你实际存放的位置。</div>
+  <div class="note" data-i18n-html="dl.smart">运行时会看到<b>「Windows 已保护你的电脑」</b>——这是 SmartScreen 对<b>所有</b>未做代码签名的程序的标准提示，不是检测到了病毒。点「更多信息」→「仍要运行」。代码签名证书要按年付费，这个项目目前没有买。</div>
+</div>
+
+<div class="card">
+  <h2 data-i18n="dl.src.title">源码与许可</h2>
+  <div class="sub" data-i18n-html="dl.src.sub">客户端是 <b>Phira</b>（GPL-3.0-only）的构建产物，全部改动同样以 GPL-3.0 开源。分发二进制就必须同时给出对应源码——所以这里把仓库放在最显眼的位置。</div>
+  <div class="row">
+    <a class="btn" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric" target="_blank" rel="noopener" data-i18n="dl.src.repo">源码仓库（GitHub）</a>
+    <a class="btn ghost" href="/version" data-i18n="dl.src.hist">版本历史</a>
+    <a class="btn ghost" href="/privacy" data-i18n="dl.src.privacy">隐私政策</a>
+  </div>
+  <div class="dim2" style="font-size:11.5px;margin-top:12px" data-i18n-html="dl.src.what">客户端改了什么：登录门槛去掉（在线谱面无需登录）、内嵌全部资源（单文件即可运行）、结算时把逐音符判定上报给本站。每一项都记在 <span class="mono">docs/规范/数据飞轮契约.md</span> 里。</div>
+</div>
+
+<footer>
+  <div class="row" style="justify-content:space-between">
+    <span><a href="/settings" data-i18n="dl.back">← 返回设置</a></span>
+    <span>P.H.M. Standard · <a id="verfoot" class="verfoot" href="/version" data-i18n-title="foot.hist">版本历史</a> · GPL-3.0</span>
+  </div>
+</footer>
+
+</div>
+
+<script type="module">
+import { renderNav, esc, applyStatic, t, onLangChange, APP_VER } from '/js/ui.js?v=V0.9.6.0';
+import { RELEASE } from '/js/release.js?v=V0.9.6.0';
+
+renderNav('download');
+applyStatic();
+
+/* 版本号 / 大小 / 哈希全部来自 js/release.js —— 那个文件由
+   tools/gen-release.mjs 从**实际二进制**算出来，不手写。
+   ⚠ 客户端版本与站点版本是**两根轴**：站点是 V0.9.x.x，客户端是 0.8.2-huamei.N。
+   页面上要同时出现，所以别用同一个变量。 */
+function paintRelease() {
+  document.getElementById('mf').textContent = RELEASE.file;
+  document.getElementById('mv').textContent = RELEASE.clientVer || '—';
+  document.getElementById('mb').textContent = RELEASE.built;
+  document.getElementById('ms').textContent = RELEASE.size;
+  document.getElementById('dlsize').textContent = '· ' + RELEASE.size;
+  document.getElementById('hash').textContent = RELEASE.sha256;
+  document.getElementById('dlbtn').setAttribute('href', RELEASE.url);
+  /* 字节数也写到 DOM 上：冒烟测试要拿它和响应的 content-length 对一遍 ——
+     只断言「按钮有个地址」等于没测，地址指向 404 时它照样"长得对"。
+     这是**只读的**真实数字，不是测试专用开关。 */
+  document.getElementById('dlbtn').setAttribute('data-bytes', String(RELEASE.bytes));
+  /* 「资源版本」一栏删掉了：这个包是单文件、资源内嵌，没有独立版本可对。
+     留一个恒为 "—" 的字段只会让人以为在加载。 */
+  document.getElementById('dlnote').textContent = t('dl.stamp', { v: RELEASE.siteVer });
+}
+
+/* 复制按钮。⚠ clipboard API 在**非安全上下文**（http:// 访问）下不存在，
+   所以失败时要退回到选中文本让用户自己 Ctrl+C，而不是静默无反应。 */
+(function () {
+  const btn = document.getElementById('cpbtn');
+  const box = document.getElementById('hash');
+  btn.addEventListener('click', async function () {
+    const txt = box.textContent;
+    try {
+      await navigator.clipboard.writeText(txt);
+      btn.textContent = t('dl.copied');
+    } catch (e) {
+      try {
+        const r = document.createRange(); r.selectNodeContents(box);
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+        btn.textContent = t('dl.copy.manual');
+      } catch (e2) { btn.textContent = t('dl.copy.fail'); }
+    }
+    setTimeout(function () { btn.textContent = t('dl.copy'); }, 2000);
+  });
+})();
+
+document.getElementById('verfoot').textContent = t('foot.version', { v: APP_VER });
+
+onLangChange(function () { applyStatic(); paintRelease(); });
+paintRelease();
+</script>
+</body>
+</html>

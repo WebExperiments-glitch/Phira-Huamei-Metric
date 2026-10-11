@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.9.5.1';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.9.5.1';
+import { PHIRA_API } from './phira.js?v=V0.9.6.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.9.6.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -35,6 +35,10 @@ const NAV = [
   ['/user', 'nav.user', 'user'],
   ['/data', 'nav.data', 'data'],
   ['/settings', 'nav.settings', 'settings'],
+  /* 下载放最后 —— 它是一次性的动作，不是常来的页面。
+     ⚠ 顺序就是**设置之后**，别往中间插：导航顺序是用户的空间记忆，
+     挪一个位置会让所有人找错一次。 */
+  ['/download', 'nav.download', 'download'],
 ];
 
 /* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */

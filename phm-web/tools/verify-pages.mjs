@@ -820,6 +820,8 @@ const ZH_ANCHORS = [
   ['/user', '查玩家成绩'],
   ['/data', '共享定数缓存 · 数据管理'],
   ['/settings', '外观与语言'],
+  ['/version', '版本历史'],
+  ['/download', '下载客户端'],
   ['/privacy', '我们收集什么'],
   ['/terms', '服务说明'],
 ];

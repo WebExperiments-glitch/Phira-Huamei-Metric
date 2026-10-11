@@ -213,6 +213,9 @@ const ROUTES = [
   { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
   { path: '/settings', name: '设置', sel: ['#optin', '#inv', '#ownList', '#stMsg', '#abVer'], mod: 'settings' },
   { path: '/version', name: '版本历史', sel: ['#list', '#cnt', '#verfoot'], mod: 'ui' },
+  /* 下载页要额外守两件事（见下面 /download 的专用断言）：
+     ① 主按钮的 href 真的指向可下载的地址；② 哈希与 release.js 一致。 */
+  { path: '/download', name: '下载客户端', sel: ['#dlbtn', '#hash', '#mf', '#verfoot'], mod: 'release' },
 ];
 
 for (const R of ROUTES) {
@@ -267,7 +270,9 @@ for (const R of ROUTES) {
     info.cssV == null || info.cssV === info.ver, 'cssV=' + info.cssV + ' ver=' + info.ver);
   ok('有页面标题', !!info.title && info.title.length > 3, info.title);
   ok('导航已渲染', info.hasNav === true);
-  ok('导航含 6 个入口', (info.navLinks || []).length >= 6, JSON.stringify(info.navLinks));
+  /* 导航入口数 = NAV 数组长度（首页/算定数/谱师/玩家/数据/设置/下载）。
+     写死具体数字是有意的：**少一个入口是回归**，而"≥6"这种松断言拦不住它。 */
+  ok('导航含 7 个入口', (info.navLinks || []).length >= 7, JSON.stringify(info.navLinks));
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
   ok('主题已初始化（防闪烁脚本生效）',
@@ -306,6 +311,41 @@ for (const R of ROUTES) {
     })()`);
     const desc = sorted.length > 1 && sorted.every((v, i) => i === 0 || sorted[i - 1] >= v);
     ok('点表头能按该列排序（降序）', desc, JSON.stringify(sorted.slice(0, 6)));
+  }
+
+  if (R.mod === 'release') {
+    /* 下载页存在的唯一意义就是「那个按钮能下到东西」，所以这里**真的去探一次**。
+       只断言 href 长得像地址等于没测 —— href 指向 404 时它照样"长得对"。 */
+    const d = await evalJS(`(function(){
+      const b = document.getElementById('dlbtn'); const h = document.getElementById('hash');
+      return { href: b ? b.getAttribute('href') : null,
+               dl: b ? b.hasAttribute('download') : false,
+               bytes: b ? b.getAttribute('data-bytes') : null,
+               file: (document.getElementById('mf')||{}).textContent,
+               size: (document.getElementById('ms')||{}).textContent,
+               ver: (document.getElementById('mv')||{}).textContent,
+               hash: h ? h.textContent : null };
+    })()`);
+    ok('主按钮有下载地址', !!d.href && d.href.indexOf('/download/') === 0, JSON.stringify(d.href));
+    ok('主按钮带 download 属性（点了存盘，不在浏览器里打开）', d.dl === true);
+    ok('SHA-256 是 64 位十六进制', /^[0-9a-f]{64}$/.test(String(d.hash)), String(d.hash).slice(0, 20));
+    ok('元信息已填（文件名 / 大小 / 客户端版本都不为空）',
+      !!d.file && d.file !== '—' && !!d.size && d.size !== '—' && !!d.ver && d.ver !== '—',
+      JSON.stringify({ file: d.file, size: d.size, ver: d.ver }));
+    /* ⚠ 用 HEAD 探 —— 用 GET 会在测试里真拉下 35MB */
+    const probe = await evalJS(`(async function(){
+      try { const r = await fetch(${JSON.stringify(d.href)}, { method: 'HEAD' });
+            return { status: r.status, len: r.headers.get('content-length'),
+                     disp: (r.headers.get('content-disposition')||'').indexOf('attachment') >= 0,
+                     ranges: r.headers.get('accept-ranges') }; }
+      catch (e) { return { status: 0, err: String(e) }; }
+    })()`);
+    ok('★ 下载地址真的可达（HEAD 200）', probe.status === 200, JSON.stringify(probe));
+    ok('★ 响应声明为附件下载', probe.disp === true, JSON.stringify(probe.disp));
+    ok('★ 支持断点续传（accept-ranges: bytes）', probe.ranges === 'bytes', JSON.stringify(probe.ranges));
+    ok('★ 响应体大小与页面显示一致',
+      d.bytes != null && String(probe.len) === String(d.bytes),
+      'content-length=' + probe.len + ' data-bytes=' + d.bytes);
   }
 
   if (R.mod === 'engine') {
