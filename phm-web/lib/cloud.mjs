@@ -266,7 +266,16 @@ export async function dbPageCharts(opts) {
      于是换引擎的那一刻，整个列表会**静默变成 0 行**（所有行都还不等于新版本号）。
      这种"条件写松了导致空结果"的 bug 不会报错，只会让人以为库里没数据。
      2026-10-07 被 smoke 测试抓到（缓存还没重算时正好暴露）。 */
-  else if (o.only === 'stale') params.or = '(engine_build.is.null,engine_build.neq.' + (o.build || '') + ')';
+  else if (o.only === 'stale') {
+    /* ⚠ build 会被拼进 PostgREST 的 `or` 表达式，**必须消毒** ——
+       它是查询参数，直接拼等于把过滤器语法交给客户端。
+       （表本身匿名可读，所以这是过滤器注入、不是越权读隐私；但不该留口子。）
+       合法形态只有版本号：字母数字加 . _ - ，长度封顶。 */
+    const b = String(o.build || '').trim();
+    if (!b) params.or = '(engine_build.is.null)';          /* 没给基准 → 只算"从没算过"的行 */
+    else if (!/^[\w.-]{1,64}$/.test(b)) return null;       /* 不合法 → 当作无效查询，不返回数据 */
+    else params.or = '(engine_build.is.null,engine_build.neq.' + b + ')';
+  }
 
   /* ⚠ 必须用 dbHeaders(...) 增补，不能直接传 `{headers:{Prefer:...}}` ——
      dbFetch 里是 `Object.assign({headers: dbHeaders()}, init)`，浅合并会把

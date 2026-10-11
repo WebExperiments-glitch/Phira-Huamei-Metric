@@ -40,11 +40,28 @@ const TOL = {
   speed_peak: 1,
 };
 
-function fetchTO(url, ms) {
+function fetchTO(url, ms, opts) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), ms);
-  return fetch(url, { signal: ctl.signal, headers: { Accept: '*/*' } })
+  return fetch(url, Object.assign({ signal: ctl.signal, headers: { Accept: '*/*' } }, opts || {}))
     .finally(() => clearTimeout(timer));
+}
+
+/* ── 谱面文件的下载白名单 ──
+ * 【为什么必须有】`recompute()` 拿 Phira 返回的 `info.file` **直接 fetch**，
+ * 既不限制协议也不限制主机，而且 fetch 默认跟随重定向 —— 这就是一个 SSRF：
+ * 只要有一张谱的 file 字段能指向别处（或被 302 到别处），
+ * 服务端就会替攻击者去请求内网地址。
+ * 实测真实文件的域名是 phira.5wyxi.com；不在列表里的一律拒绝，
+ * 并且**禁止跟随重定向** —— 允许列表只在第一跳有效，跟随就绕过去了。 */
+const FILE_HOSTS = new Set(['phira.5wyxi.com']);
+
+function safeFileUrl(raw) {
+  let u;
+  try { u = new URL(String(raw)); } catch { throw new Error('谱面文件地址不合法'); }
+  if (u.protocol !== 'https:') throw new Error('谱面文件必须走 https');
+  if (!FILE_HOSTS.has(u.hostname)) throw new Error('谱面文件域名不在允许列表内：' + u.hostname);
+  return u.toString();
 }
 
 /* 用谱面名在 Phira 精确匹配 chart_id。
@@ -60,11 +77,12 @@ export async function matchChartId(name, local) {
 }
 
 /* 服务端复算：下载谱面 → 跑引擎 → 返回权威值 */
-export async function recompute(chartId) {
+export async function recompute(chartId, opts) {
+  const o = opts || {};
   const info = await (await fetchTO(PHIRA_API + '/chart/' + chartId, FETCH_TIMEOUT)).json();
   if (!info || !info.file) throw new Error('谱面没有可下载的文件');
 
-  const res = await fetchTO(info.file, DOWNLOAD_TIMEOUT);
+  const res = await fetchTO(safeFileUrl(info.file), DOWNLOAD_TIMEOUT, { redirect: 'error' });
   if (!res.ok) throw new Error('下载谱面 HTTP ' + res.status);
 
   const len = +(res.headers.get('content-length') || 0);
@@ -80,8 +98,16 @@ export async function recompute(chartId) {
                     不排除就是距离 0 的自匹配，落库值会等于它自己的声明值，
                     整个共享缓存会退化成"把 Phira 的标签抄一遍"。
                     （这个坑不含 excludeId 时表现为误差 0.00，看起来"完美"。） */
+  /* ⚠ excludeId 的两种口径都会用到：
+       · 默认（排除自己）= **权威口径** —— 参照集里有这张谱，不排除就是距离 0 的
+         自匹配，落库值会退化成"把 Phira 的标签抄一遍"。
+       · noExclude（不排除）只用于**一致性比对的兜底**：浏览器拖入谱面时
+         并不知道 chart_id，自然也没法排除自己，于是它的 ref_const 会系统性
+         偏一点。两个口径差 1 级以上并不罕见（留出验证里约两成），
+         拿排除口径去卡"没排除"的客户端，会把**正确的贡献**判成"不是同一张谱"。
+       所以：落库永远用排除口径；比对时允许客户端对上任一口径。 */
   const reports = await analyzeChart(buf, (info.name || 'chart') + '.pez',
-    { refCom: loadRefCom(), excludeId: +chartId });
+    { refCom: loadRefCom(), excludeId: o.noExclude ? undefined : +chartId });
   const rep = reports.find(x => !x.error);
   if (!rep) throw new Error((reports[0] && reports[0].error) || '解析失败');
 
@@ -142,8 +168,8 @@ export function grosslyMismatched(diffs) {
  *   客户端的引擎可能过期（用户没刷新页面）。正确处理是「不采信客户端的值，
  *   但仍用服务端算出的权威值入库」，而不是拒绝缓存这张谱。
  *   这样既堵死了投毒（落库值永远来自服务端），又不会因客户端陈旧而丢数据。 */
-export async function reviewContribution(row) {
-  const trusted = await recompute(row.chart_id);
+export async function reviewContribution(row, opts) {
+  const trusted = await recompute(row.chart_id, opts);
   const cmp = compare(row, trusted);
   return { trusted, diffs: cmp.diffs, consistent: cmp.ok };
 }

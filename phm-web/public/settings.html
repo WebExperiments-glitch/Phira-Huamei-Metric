@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.9.1.0">
+<meta name="app-version" content="V0.9.2.0">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -14,7 +14,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.1.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.2.0">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -146,63 +146,63 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
     <!-- ── 隐私与数据 ── -->
     <section class="ssec" id="privacy">
       <h2 data-i18n="set.sec.privacy">隐私与数据</h2>
-      <div class="sdesc" data-i18n="set.privacy.desc"></div>
+      <div class="sdesc" data-i18n="set.privacy.desc">控制什么会被上传。谱面文件本身永远不上传 —— 解析全部在你浏览器里完成。</div>
 
       <div class="sgroup">
         <div class="srow">
           <div class="sl">
-            <b data-i18n="set.optin"></b>
-            <span data-i18n="set.optin.desc"></span>
+            <b data-i18n="set.optin">登录 Phira 后自动上传成绩数据</b>
+            <span data-i18n="set.optin.desc">用来校准定数参考。关掉后拖谱面、算 RKS、搜谱面全部照常，只是不再贡献数据。</span>
           </div>
           <div class="sc"><label class="sw"><input type="checkbox" id="optin"><i></i></label></div>
         </div>
         <div class="srow">
           <div class="sl">
-            <b data-i18n="set.notice"></b>
+            <b data-i18n="set.notice">上传告知</b>
             <span id="noticeState">—</span>
           </div>
-          <div class="sc"><button class="sbtn" type="button" id="noticeReset" data-i18n="set.notice.reset"></button></div>
+          <div class="sc"><button class="sbtn" type="button" id="noticeReset" data-i18n="set.notice.reset">撤回确认</button></div>
         </div>
       </div>
 
       <div class="status" id="optinState"></div>
 
-      <h3 data-i18n="set.flow"></h3>
+      <h3 data-i18n="set.flow">数据流向</h3>
       <div class="sgroup">
         <div class="srow wide">
-          <div class="sl"><b data-i18n="set.flow.up"></b><span data-i18n="set.flow.up.desc"></span></div>
+          <div class="sl"><b data-i18n="set.flow.up">会上传</b><span data-i18n="set.flow.up.desc">成绩（Phira UID 与用户名、谱面名、标称定数、你的 ACC 与单曲 RKS），以及谱面的结构特征 —— 一串数字，不是谱面文件。</span></div>
         </div>
         <div class="srow wide">
-          <div class="sl"><b data-i18n="set.flow.down"></b><span data-i18n="set.flow.down.desc"></span></div>
+          <div class="sl"><b data-i18n="set.flow.down">不会上传</b><span data-i18n="set.flow.down.desc">谱面文件本身；密码与邮箱（这些本站根本接触不到 —— 认证走云服务的认证模块）。</span></div>
         </div>
       </div>
       <div class="sdesc" style="margin-top:12px">
-        <span data-i18n="set.flow.foot"></span>
+        <span data-i18n="set.flow.foot">对外的只有聚合数字，其他人看不到你的 UID 或用户名。贡献会带一个随机标识用于归组 —— 这是假名化，不是严格匿名，可在「本机存储」里重置。</span>
       </div>
     </section>
 
     <!-- ── 外观与语言 ── -->
     <section class="ssec" id="appearance">
-      <h2 data-i18n="set.sec.appearance"></h2>
+      <h2 data-i18n="set.sec.appearance">外观与语言</h2>
 
       <div class="sgroup">
         <div class="srow">
           <div class="sl">
-            <b data-i18n="set.theme"></b>
-            <span data-i18n="set.theme.desc"></span>
+            <b data-i18n="set.theme">外观主题</b>
+            <span data-i18n="set.theme.desc">跟随系统时，系统切换深浅色会立即生效。</span>
           </div>
           <div class="sc">
             <div class="seg" id="themeSeg">
-              <button type="button" data-mode="auto" data-i18n="set.theme.auto"></button>
-              <button type="button" data-mode="dark" data-i18n="set.theme.dark"></button>
-              <button type="button" data-mode="light" data-i18n="set.theme.light"></button>
+              <button type="button" data-mode="auto" data-i18n="set.theme.auto">跟随系统</button>
+              <button type="button" data-mode="dark" data-i18n="set.theme.dark">深色</button>
+              <button type="button" data-mode="light" data-i18n="set.theme.light">浅色</button>
             </div>
           </div>
         </div>
         <div class="srow">
           <div class="sl">
-            <b data-i18n="set.lang"></b>
-            <span data-i18n="set.lang.desc"></span>
+            <b data-i18n="set.lang">界面语言</b>
+            <span data-i18n="set.lang.desc">默认跟随浏览器；手动选择后会固定下来。</span>
           </div>
           <div class="sc">
             <div class="seg" id="langSeg">
@@ -216,20 +216,20 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 
     <!-- ── 账号管理 ── -->
     <section class="ssec" id="account">
-      <h2 data-i18n="set.sec.account"></h2>
-      <div class="sdesc" data-i18n="set.acct.desc"></div>
+      <h2 data-i18n="set.sec.account">账号管理</h2>
+      <div class="sdesc" data-i18n="set.acct.desc">本站的账号只用于：绑定你的 Phira 账号、查看你自己的贡献记录。不需要它也能用全部功能。</div>
 
       <div class="sgroup">
         <div class="srow">
           <div class="sl">
-            <b data-i18n="set.acct.title"></b>
+            <b data-i18n="set.acct.title">P.H.M. 账号</b>
             <span id="acctState">—</span>
           </div>
           <div class="sc" id="acctActions"></div>
         </div>
         <div class="srow">
           <div class="sl">
-            <b data-i18n="set.acct.bound"></b>
+            <b data-i18n="set.acct.bound">已绑定 Phira</b>
             <span id="bindState">—</span>
           </div>
           <div class="sc" id="bindActions"></div>
@@ -240,80 +240,80 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 
     <!-- ── Phira 连接（本机记录）── -->
     <section class="ssec" id="accounts">
-      <h2 data-i18n="set.sec.phira"></h2>
-      <div class="sdesc" data-i18n="set.phira.desc"></div>
+      <h2 data-i18n="set.sec.phira">Phira 连接</h2>
+      <div class="sdesc" data-i18n="set.phira.desc">本站连 Phira 只读公开资料（RKS、最好成绩），不需要也不接受密码。</div>
 
       <div class="sgroup">
         <div class="srow">
-          <div class="sl"><b data-i18n="set.phira.name"></b></div>
+          <div class="sl"><b data-i18n="set.phira.name">上次填过的用户名</b></div>
           <div class="sc"><span class="val" id="pfName">—</span></div>
         </div>
         <div class="srow">
-          <div class="sl"><b data-i18n="set.phira.uid"></b></div>
+          <div class="sl"><b data-i18n="set.phira.uid">上次填过的 UID</b></div>
           <div class="sc"><span class="val" id="pfUid">—</span></div>
         </div>
         <div class="srow">
-          <div class="sl"><b data-i18n="set.phira.last"></b></div>
+          <div class="sl"><b data-i18n="set.phira.last">上次查询的玩家</b></div>
           <div class="sc"><span class="val" id="pfLast">—</span></div>
         </div>
         <div class="srow">
-          <div class="sl"><b data-i18n="set.phira.clear"></b>
-            <span data-i18n="set.phira.clear.desc"></span></div>
-          <div class="sc"><button class="sbtn" type="button" id="pfClear" data-i18n="c.clear"></button></div>
+          <div class="sl"><b data-i18n="set.phira.clear">清除以上信息</b>
+            <span data-i18n="set.phira.clear.desc">只影响下次自动填充，不影响任何已上传的数据。</span></div>
+          <div class="sc"><button class="sbtn" type="button" id="pfClear" data-i18n="c.clear">清除</button></div>
         </div>
       </div>
 
-      <h3 data-i18n="set.own.title"></h3>
-      <div class="sdesc" style="margin-bottom:10px" data-i18n="set.own.desc"></div>
-      <div class="sgroup" style="padding:0 16px"><div id="ownList"><div class="empty" data-i18n="set.own.empty"></div></div></div>
+      <h3 data-i18n="set.own.title">已声明的「本人账号」</h3>
+      <div class="sdesc" style="margin-bottom:10px" data-i18n="set.own.desc">只有你明确声明过的账号，查询时才会自动上传成绩 —— 否则任何人都能把别人的公开成绩复制进数据集，难度统计就失真了。</div>
+      <div class="sgroup" style="padding:0 16px"><div id="ownList"><div class="empty" data-i18n="set.own.empty">尚未声明任何账号</div></div></div>
     </section>
 
     <!-- ── 本机存储 ── -->
     <section class="ssec" id="storage">
-      <h2 data-i18n="set.sec.storage"></h2>
-      <div class="sdesc" data-i18n="set.storage.desc"></div>
+      <h2 data-i18n="set.sec.storage">本机存储</h2>
+      <div class="sdesc" data-i18n="set.storage.desc">本站存在你浏览器里的全部内容 —— 就这些，没有别的。</div>
 
       <div class="sgroup" style="padding:0 16px">
-        <div id="inv"><div class="empty" data-i18n="c.loading"></div></div>
+        <div id="inv"><div class="empty" data-i18n="c.loading">读取中…</div></div>
       </div>
 
       <div class="srow" style="border-bottom:none;padding-top:14px">
         <div class="sc">
-          <button class="sbtn" type="button" id="expBtn" data-i18n="set.storage.export"></button>
-          <button class="sbtn" type="button" id="cidReset" data-i18n="set.acct.clearcid"></button>
-          <button class="sbtn danger" type="button" id="clearBtn" data-i18n="set.storage.clear"></button>
+          <button class="sbtn" type="button" id="expBtn" data-i18n="set.storage.export">导出为 JSON</button>
+          <button class="sbtn" type="button" id="cidReset" data-i18n="set.acct.clearcid">重置匿名标识</button>
+          <button class="sbtn danger" type="button" id="clearBtn" data-i18n="set.storage.clear">清空本站设置</button>
         </div>
       </div>
 
       <div class="status" id="stMsg"></div>
-      <div class="note" data-i18n="set.storage.note"></div>
+      <div class="note" data-i18n="set.storage.note">「清空本站设置」只会删本站自己的键。同源下还住着云服务的登录会话，那是另一个系统的数据 —— 本站不会碰它，所以清空后你不会被登出，只回到未配置状态。</div>
     </section>
 
     <!-- ── 关于 ── -->
     <section class="ssec" id="about">
-      <h2 data-i18n="set.sec.about"></h2>
+      <h2 data-i18n="set.sec.about">关于</h2>
       <div class="sgroup">
         <div class="srow">
-          <div class="sl"><b data-i18n="set.about.ver"></b></div>
+          <div class="sl"><b data-i18n="set.about.ver">页面版本</b></div>
           <div class="sc"><span class="val" id="abVer">—</span></div>
         </div>
         <div class="srow">
-          <div class="sl"><b data-i18n="set.about.eng"></b></div>
+          <div class="sl"><b data-i18n="set.about.eng">引擎版本</b></div>
           <div class="sc"><span class="val" id="abEng">—</span></div>
         </div>
         <div class="srow">
-          <div class="sl"><b data-i18n="set.about.cache"></b></div>
+          <div class="sl"><b data-i18n="set.about.cache">共享定数缓存</b></div>
           <div class="sc"><span class="val" id="abTotal">—</span></div>
         </div>
         <div class="srow">
-          <div class="sl"><b data-i18n="set.about.store"></b></div>
+          <div class="sl"><b data-i18n="set.about.store">本机存储可用</b></div>
           <div class="sc"><span class="val" id="abStore">—</span></div>
         </div>
       </div>
-      <div class="sdesc" style="margin-top:12px" data-i18n="set.about.note"></div>
+      <div class="sdesc" style="margin-top:12px" data-i18n="set.about.note">页面版本与引擎版本是两根不同的轴：前者是本页面的版本，后者是难度算法的版本 —— 算法一变，所有缓存都要重算，所以它单独记在每一行数据里。</div>
       <div class="sdesc">
-        <a href="/privacy" data-i18n="foot.privacy"></a> ·
-        <a href="/terms" data-i18n="foot.terms"></a> ·
+        <a href="/privacy" data-i18n="foot.privacy">隐私政策</a> ·
+        <a href="/terms" data-i18n="foot.terms">用户协议</a> ·
         <a href="/app">P.H.M. Standard</a>
       </div>
     </section>
@@ -324,9 +324,9 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js';
-import * as S from '/js/settings.js';
-import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.9.2.0';
+import * as S from '/js/settings.js?v=V0.9.2.0';
+import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.9.2.0';
 
 renderNav('settings');
 applyStatic();

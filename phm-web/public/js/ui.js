@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js';
+import { PHIRA_API } from './phira.js?v=V0.9.2.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.9.2.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -266,22 +266,31 @@ export function wirePager(root, onGo, onSize) {
 
 const _cache = new Map();          /* chart_id → { ref_const, ref_official, ... } */
 
-/** 批量读本站定数缓存（只读、便宜、60/分/IP）。返回 Map。 */
+/* 服务端 /api/charts?ids= 一次最多吃 **60** 个（见 server.mjs 的 .slice(0,60)）。
+   ⚠ 这里必须 ≤ 那个上限 —— 以前这里写的是 200，多出来的 140 个 id
+   服务端**不报错、直接丢**，响应里没有它们，于是那些谱永远显示"未算"。 */
+const IDS_PER_REQ = 50;
+
+/** 批量读本站定数缓存（只读、便宜、60/分/IP）。返回 Map。
+ *
+ *  ⚠ 失败时**不要把 id 记成 null**。以前 catch 里给整批 id 写 null，
+ *    而 `missing` 的判据是 `!_cache.has(id)` —— 一旦写进 null 就再也不会重试，
+ *    一次网络抖动会让这一批谱**在整个会话里**都显示"没有定数"。
+ *    现在失败就是不写缓存，下次调用会重新请求。 */
 export async function loadChartCache(ids) {
   const want = [...new Set((ids || []).map(Number).filter(n => n > 0))];
   const missing = want.filter(id => !_cache.has(id));
-  if (missing.length) {
-    /* 服务端一次最多吃这么多 id，分批避免 URL 过长 */
-    for (let i = 0; i < missing.length; i += 200) {
-      const chunk = missing.slice(i, i + 200);
-      try {
-        const r = await fetch('/api/charts?ids=' + chunk.join(','));
-        const j = r.ok ? await r.json() : null;
-        const rows = (j && (j.charts || j.rows || j)) || {};
-        for (const id of chunk) _cache.set(id, rows[id] || null);
-      } catch (e) {
-        for (const id of chunk) _cache.set(id, null);
-      }
+  for (let i = 0; i < missing.length; i += IDS_PER_REQ) {
+    const chunk = missing.slice(i, i + IDS_PER_REQ);
+    try {
+      const r = await fetch('/api/charts?ids=' + chunk.join(','));
+      if (!r.ok) continue;                 /* 失败 → 不落缓存，留给下次重试 */
+      const j = await r.json();
+      const rows = (j && (j.charts || j.rows || j)) || {};
+      /* 请求成功时，**库里确实没有**的行才记 null —— 那是真结论，可以缓存 */
+      for (const id of chunk) _cache.set(id, rows[id] || null);
+    } catch (e) {
+      /* 网络/解析失败：什么都不记（下次会重试） */
     }
   }
   const out = new Map();

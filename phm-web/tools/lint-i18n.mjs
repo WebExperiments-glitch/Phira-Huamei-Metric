@@ -54,7 +54,10 @@ for (const f of fragFiles) {
 console.log('\n[1] 分片登记');
 const i18nSrc = fs.readFileSync(path.join(PUB, 'js', 'i18n.js'), 'utf8');
 for (const name of frags.keys()) {
-  const re = new RegExp("\\bimport\\s+" + name.replace(/[$]/g, '\\$') + "\\s+from\\s+'\\./i18n/" + name + "\\.js'");
+  /* ⚠ 说明符现在带版本查询串（`./i18n/common.js?v=V0.9.1.0`）——
+     正则必须容许它，否则这条检查会把"规矩改了"误报成"分片没登记"。 */
+  const re = new RegExp("\\bimport\\s+" + name.replace(/[$]/g, '\\$')
+    + "\\s+from\\s+'\\./i18n/" + name + "\\.js(?:\\?v=[^']*)?'");
   if (!re.test(i18nSrc)) err('分片 i18n/' + name + '.js 没有被 js/i18n.js import —— 等于没翻');
 }
 /* 也不能 import 了却忘了进 FRAGMENTS 数组 */

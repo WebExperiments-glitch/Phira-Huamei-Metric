@@ -22,7 +22,7 @@
  *     引擎本身不认识 fetch，也不认识 fs。
  * ============================================================ */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.9.2.0';
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
  * com-trim15-v0.5.0：聚合从「加权下中位」换成「加权截尾均值（15%）」——
  *   中位误差 0.500→0.453、均值误差 0.820→0.816，输出分辨率 104→1332 个不同值。
@@ -267,10 +267,10 @@ export function parsePec(txt) {
   const real = notes.filter(n => !n.fake);
   if (!real.length) throw new Error('PEC 里没有真实音符');
   const secs = real.map(n => n.sec);
-  const dur = Math.max(1e-3, Math.max.apply(null, secs) - Math.min.apply(null, secs));
+  const dur = Math.max(1e-3, maxOf(secs) - minOf(secs));
   return {
     notes, real, dur, bpm: merged[0].bpm,
-    nlines: Math.max(1, lineSeen.size ? Math.max.apply(null, [...lineSeen]) + 1 : 1),
+    nlines: Math.max(1, lineSeen.size ? maxOf([...lineSeen]) + 1 : 1),
     ev: { move: moveDisp, rot: rotCount, dis: alphaCount, tempo: new Array(cvCount).fill(0) },
     spPeak,
   };
@@ -344,7 +344,7 @@ export function loadChart(j){
   notes.sort(function(a,b){return a.sec-b.sec||a.tick-b.tick;});
   const real=notes.filter(function(n){return !n.fake;});
   const secs=real.map(function(n){return n.sec;});
-  const dur=Math.max(1e-3,Math.max.apply(null,secs)-Math.min.apply(null,secs));
+  const dur=Math.max(1e-3,maxOf(secs)-minOf(secs));
   return {notes:notes, real:real, dur:dur, bpm:bpm,
           nlines:lines.length, ev:ev};
 }
@@ -465,7 +465,7 @@ function extractDims(notes,ev,dur,bpm,nlines){
   if(run.length>=4){const dd=ts[run[run.length-1]]-ts[run[0]];
     if(dd>0.01)stairs.push(run.length/dd);}
   out.stair_speed_avg=stairs.length?stairs.reduce((a,b)=>a+b,0)/stairs.length:0;
-  out.stair_speed_max=stairs.length?Math.max.apply(null,stairs):0;
+  out.stair_speed_max=stairs.length?maxOf(stairs):0;
   out.stair_density=stairs.length/ds;
   let sw=0; for(let i=1;i<n;i++) if(types[i]!==types[i-1]) sw++;
   out.pattern_switch_rate=sw/ds; out.type_switch_per_sec=sw/ds;
@@ -731,6 +731,14 @@ export function reportFromChart(r,name,meta,spPeak,refCom,excludeId){
 /* ── analyze(fileBytes, fileName[, opts]) → 报告对象数组 ──
    opts.refCom：社区参照集行数组（由调用方读文件/fetch 后传入）。
    不传也能跑 —— 退回只用官谱参照，只是少了"社区共识"那一栏。 */
+/* ⚠ 不要用 `Math.max.apply(null, arr)` —— 那是把数组**展开成实参**，
+   元素一多就打爆参数栈（RangeError: Maximum call stack size exceeded），
+   表现为"某些大谱面必然解析失败"，而且错误信息跟谱面毫无关系。
+   谱面的 stairs / lineSeen 是**按音符**长的，几千上万条很正常。
+   下面两个用循环，代价一样、没有上限。 */
+function maxOf(a){ let m=-Infinity; for(let i=0;i<a.length;i++) if(a[i]>m) m=a[i]; return m; }
+function minOf(a){ let m=Infinity; for(let i=0;i<a.length;i++) if(a[i]<m) m=a[i]; return m; }
+
 export async function analyzeChart(buf,fileName,opts){
   const refCom=(opts&&opts.refCom)||null;
   const excludeId=(opts&&opts.excludeId!=null)?+opts.excludeId:null;

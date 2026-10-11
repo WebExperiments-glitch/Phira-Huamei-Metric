@@ -57,7 +57,11 @@ const LIMITS = {
   acc: [0, 100], song_rks: [0, 25], official_const: [1, 25],
   phira_user_id: [1, null],
 };
-const TEXTS = { name: 160, level: 60, chart_name: 120, chart_diff: 8, chart_level: 60, phira_user_name: 60, engine_ver: 32, client_id: 64 };
+/* ⚠ 白名单里**必须包含 source**：sanitize() 只保留 LIMITS / TEXTS 里出现过的键，
+   漏掉就等于静默丢弃。/user 提交的成绩带 source:'phira-recent'，早先被洗掉后
+   库里一律是默认值 manual —— 之后再也分不清"手打的"和"从 Phira 导入的"。
+   同类字段（client_id 等）新增时记得同时加到这里，否则同样会被悄悄丢掉。 */
+const TEXTS = { name: 160, level: 60, chart_name: 120, chart_diff: 8, chart_level: 60, phira_user_name: 60, engine_ver: 32, client_id: 64, source: 32 };
 
 function sanitize(row, required) {
   if (!row || typeof row !== 'object') return null;
@@ -106,11 +110,18 @@ function rateOk(ip) {
     const now = Date.now();
     s.hits = s.hits || {};
     let global = 0;
-    /* 顺手回收过期键，避免文件随 IP 无限膨胀 */
+    /* 顺手回收过期键，避免文件随 IP 无限膨胀。
+       ⚠ 全局计数**只统计写桶**（无前缀的键）。
+       以前这里把所有键都加起来，于是 /api/stats（'S:'）和 /api/analyze（'A:'）
+       的计数也被算进「写请求全局上限 240/分」—— 流量一大，正常写入会被
+       只读统计请求挤掉。三个配额本来就是分开设计的，这里必须一致。 */
     for (const k of Object.keys(s.hits)) {
       const arr = (s.hits[k] || []).filter(t => now - t < RL_WINDOW);
-      if (arr.length) { s.hits[k] = arr; global += arr.length; }
-      else delete s.hits[k];
+      if (arr.length) {
+        s.hits[k] = arr;
+        /* 'S:'=统计、'A:'=分析，各有独立配额，不计入写请求的全局桶 */
+        if (!/^[SA]:/.test(k)) global += arr.length;
+      } else delete s.hits[k];
     }
     const arr = s.hits[ip] || [];
     if (arr.length >= RL_MAX) return false;
@@ -277,14 +288,26 @@ const server = http.createServer(async (req, res) => {
   /* 写入网关：校验 + 限流 + 落库 */
   if (p === '/api/contribute' || p === '/api/scores') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
-    if (!rateOk(ip)) return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
+    /* ⚠ 必须 await。withStore() 返回的是 **Promise**，而 Promise 永远是真值 ——
+       `if (!rateOk(ip))` 恒为 false，429 从来没出现过。只读路径用的是
+       `await statsOk(ip)`（所以那边是好的），写路径漏了 await，等于写接口裸奔。
+       这个 bug 是 2026-10-11 审计实测出来的：连打 35 次非法贡献全部 200。 */
+    if (!(await rateOk(ip))) {
+      return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
+    }
     const body = await readBody(req);
     const rows = Array.isArray(body) ? body : (body && Array.isArray(body.rows) ? body.rows : null);
     if (!rows) return send(res, 400, JSON.stringify({ error: 'body must be an array or {rows:[]}' }));
     if (rows.length > 500) return send(res, 413, JSON.stringify({ error: '单次最多 500 行' }));
 
-    /* 走到这里的只剩 /api/scores（contribute 已在上面的分支 return） */
-    const required = ['chart_name'];
+    /* ⚠ 两条路径的必填字段**不一样**，别共用一份。
+       早先这里对两条路径都用 `['chart_name']`，而 /api/contribute 的前端发的是
+       `name`（与 phm_charts 表的列名一致）—— 于是**每一次拖谱贡献都被整行作废**：
+       实测 POST {chart_id,name,ref_const} → {"accepted":0,"rejected":1}。
+       定数缓存因此长期停止增长，而 /api/analyze（搜索后点「算」）不走这条校验，
+       所以症状看起来像"有时候能算出来、有时候不能"。
+       定数是按 chart_id 关联的，谱名只是展示字段，不该当必填。 */
+    const required = p === '/api/contribute' ? ['chart_id'] : ['chart_name'];
     const clean = rows.map(r => sanitize(r, required)).filter(Boolean);
 
     if (!clean.length) {
@@ -308,15 +331,29 @@ const server = http.createServer(async (req, res) => {
           if (existing.ok && existing.body && existing.body !== '[]') { skipped++; continue; }
 
           const { trusted, diffs } = await reviewContribution(row);
-          /* 差异**过大** → 不是「客户端引擎过期」，而是**根本不是同一张谱**
-             （典型：把某曲 IN 的特征提交到同曲 HD 的 chart_id 上）。
-             此时必须拒绝 —— 服务端算的值虽然本身正确，写进去等于坐实错误关联。 */
+          /* 差异**过大** → 有两种可能，必须分开处理：
+               ① 根本不是同一张谱（把某曲 IN 的特征提交到同曲 HD 的谱号上）
+               ② 客户端**没有排除自己**：浏览器拖入谱面时不知道 chart_id，
+                  自然不会从参照集里剔掉这张谱，于是它的 ref_const 会系统性偏一点。
+                  两个口径差 1 级以上并不罕见（约两成），而这跟"是不是同一张谱"无关。
+             所以先按「不排除自己」的口径再算一次，对得上就说明是 ② ——
+             **接受，但仍然落库排除口径的服务端值**（那个才是权威值）。
+             只有两个口径都对不上，才判定为 ① 并拒绝。 */
           const huge = grosslyMismatched(diffs);
           if (huge.length) {
-            failed++;
-            notes.push('提交特征与该谱号严重不符（疑似同名不同难度）→ 拒绝写入: '
-              + huge.map(d => d.field).join(','));
-            continue;
+            let rescued = null;
+            try {
+              const alt = await reviewContribution(row, { noExclude: true });
+              if (!grosslyMismatched(alt.diffs).length) rescued = alt;
+            } catch (e) { /* 兜底口径失败不影响主判定 */ }
+            if (!rescued) {
+              failed++;
+              notes.push('提交特征与该谱号严重不符（疑似同名不同难度）→ 拒绝写入: '
+                + huge.map(d => d.field).join(','));
+              continue;
+            }
+            mismatched++;
+            notes.push('客户端未排除自身参照（已按服务端排除口径落库）');
           }
           /* 差异在容差内 = 客户端引擎过期 → 仍用服务端值写入 */
           const wr = await dbPutChart(trusted);
@@ -357,7 +394,10 @@ const server = http.createServer(async (req, res) => {
       }));
     }
     const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
-    return send(res, r.ok ? 200 : 502, r.ok ? (r.body || '{}') : JSON.stringify({ error: 'stats unavailable', detail: r.body || r.error }));
+    /* ⚠ 失败时**不要**把数据库响应正文带给客户端 —— 那里面可能有
+       PostgREST 的报错细节（表名、字段、约束）。日志里留，对外只给一句。 */
+    if (!r.ok) console.error('[phm] /api/stats 上游失败:', r.status, String(r.body || r.error || '').slice(0, 300));
+    return send(res, r.ok ? 200 : 502, r.ok ? (r.body || '{}') : JSON.stringify({ error: 'stats unavailable' }));
   }
   /* 批量读定数缓存 → { "12345": {ref_const:…}, … }
    * 给**不加载云 SDK** 的页面用（英文页只做只读展示，没必要引入整个 SDK）。
@@ -421,9 +461,17 @@ const server = http.createServer(async (req, res) => {
       .filter(x => Number.isInteger(x) && x > 0)
       .slice(0, 60);                                    /* 一次最多 60 个，别把 URL 撑爆 */
     if (!ids.length) return send(res, 400, JSON.stringify({ error: 'ids 参数无效' }));
-    const r = await dbFetch('/phm_charts?chart_id=in.(' + ids.join(',') + ')&select=*');
+    /* ⚠ maxBody 必须显式放宽。dbFetch 的默认值是 8192 字节（本意是别把错误大页
+       塞进日志），而这里一次允许 60 个 id、一行约 420 字节 —— 超过约 19 个 id
+       响应就被从中间截断，JSON.parse 直接抛，用户看到 502「cache 响应无法解析」。
+       实测：20 个 id → 200（7897 字节，刚好没超），25 个 → 502。
+       /charter 与 /user 都走这条路径，于是"谱师作品一多，整页定数全变空"。
+       分页接口 /api/charts?page= 走的是另一条（dbListAll，6MB），所以数据页一直是好的。 */
+    const r = await dbFetch('/phm_charts?chart_id=in.(' + ids.join(',') + ')&select=*',
+      undefined, 15000, 4 * 1024 * 1024);
     if (!r.ok || !r.body) {
-      return send(res, 502, JSON.stringify({ error: 'cache unavailable', detail: r.body || r.error }));
+      console.error('[phm] /api/charts 上游失败:', r.status, String(r.body || r.error || '').slice(0, 300));
+      return send(res, 502, JSON.stringify({ error: 'cache unavailable' }));
     }
     let rows = [];
     try { rows = JSON.parse(r.body); } catch { return send(res, 502, JSON.stringify({ error: 'cache 响应无法解析' })); }
@@ -452,6 +500,14 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/analyze') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
 
+    /* 先读 body、再校验 —— 校验放在配额之前，是为了让「参数不合法」的请求
+       **不消耗配额**（以前是先扣配额再发现 chart_id 无效，用户一次没算成却被记一笔）。 */
+    const body = await readBody(req);
+    const cid = body && Number(body.chart_id);
+    if (!Number.isInteger(cid) || cid < 1) {
+      return send(res, 400, JSON.stringify({ error: 'chart_id 无效' }));
+    }
+
     const box = await withStore(s => {
       const now = Date.now();
       s.hits = s.hits || {};
@@ -462,7 +518,7 @@ const server = http.createServer(async (req, res) => {
       const key = 'A:' + ip;
       const arr = s.hits[key] || [];
       let global = 0;
-      for (const k of Object.keys(s.hits)) if (k[0] === 'A:') global += s.hits[k].length;
+      for (const k of Object.keys(s.hits)) if (k.slice(0, 2) === 'A:') global += s.hits[k].length;
       if (arr.length >= ANALYZE_PER_IP) return { ok: false, why: 'per-ip' };
       if (global >= ANALYZE_GLOBAL) return { ok: false, why: 'global' };
       arr.push(now); s.hits[key] = arr;
@@ -475,17 +531,17 @@ const server = http.createServer(async (req, res) => {
           : '当前请求过多，请稍后再试',
       }));
     }
+
+    /* ⚠ 并发闸门的「检查 + 自增」必须在**同一个 tick** 里完成。
+       以前是：先检查 analyzeInflight，然后 await readBody() 让出事件循环，
+       读完 body 才自增 —— 中间这一让，后面排队的请求全都看到了同一个
+       旧值、一起通过检查，"最多 3 个同时算" 于是只是注释。
+       现在读 body 在前、检查与自增紧挨着，中间没有 await，检查才是真的。 */
     if (analyzeInflight >= ANALYZE_INFLIGHT) {
       return send(res, 503, JSON.stringify({
         error: '服务器正在计算其他谱面（最多同时 ' + ANALYZE_INFLIGHT + ' 个），请几秒后重试',
         retryAfter: 3,
       }));
-    }
-
-    const body = await readBody(req);
-    const cid = body && Number(body.chart_id);
-    if (!Number.isInteger(cid) || cid < 1) {
-      return send(res, 400, JSON.stringify({ error: 'chart_id 无效' }));
     }
     analyzeInflight++;
     try {
@@ -523,7 +579,18 @@ const server = http.createServer(async (req, res) => {
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
-  const rel = cleanHit || (p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, ''));
+  /* ⚠ decodeURIComponent 遇畸形百分号编码会 **抛 URIError**
+     （`/%`、`/%E0%A4%A` 这类）。这个处理函数是 async，外面没有 try/catch，
+     而 Node 默认把未处理的 rejection 当致命错误 → **整个进程被打掉**。
+     一个畸形 URL 就能下线站点，所以必须自己接住、按客户端错误返回。
+     （路径穿越本身是安全的：`%2e%2e` 解码后被 isPublicPath 的白名单挡住。） */
+  let decoded;
+  try {
+    decoded = p === '/' ? null : decodeURIComponent(p);
+  } catch (e) {
+    return send(res, 400, JSON.stringify({ error: 'bad request: 路径编码不合法' }));
+  }
+  const rel = cleanHit || (p === '/' ? 'index.html' : decoded.replace(/^\/+/, ''));
   if (!isPublicPath(rel)) return send404(res);
   const fp = path.resolve(WEB_ROOT, rel);
   if (!fp.startsWith(WEB_ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');

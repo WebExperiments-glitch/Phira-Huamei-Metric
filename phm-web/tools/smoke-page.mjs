@@ -28,6 +28,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const BASE = process.argv[2] || 'http://127.0.0.1:5199';
 const PORT = 9333 + (process.pid % 500);
@@ -114,6 +115,45 @@ const ok = (n, c, d) => {
   if (c) { pass++; console.log('  ✓ ' + n); }
   else { fail++; console.log('  ✗ ' + n + (d ? '  → ' + d : '')); if (d) errors.push('[冒烟] ' + n + ' → ' + d); }
 };
+
+/* ── 开浏览器之前的静态检查：**版本串必须处处一致** ──
+   ES 模块按 **URL 字符串**去重。同一个文件被两种 URL 引用
+   （`/js/i18n.js` 和 `/js/i18n.js?v=X`）会被当成两个模块，两套状态分裂 ——
+   真踩过：设置页切了语言，ui.js 里的导航不跟着变。
+   所以所有 `?v=`（CSS 与 JS 模块）必须等于 `<meta name="app-version">`。
+   这条只能读源码，浏览器里看不到，所以放在这里。 */
+{
+  /* ⚠ 必须用 fileURLToPath —— `new URL(...).pathname` 会给出去百分号编码的
+     路径（这个项目的工作目录名里有中文），fs 直接读不到。 */
+  const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+  const htmlFiles = fs.readdirSync(path.join(root, 'public'))
+    .filter(f => f.endsWith('.html'));
+  const bad = [];
+  let ver = null, refs = 0;
+  for (const f of htmlFiles) {
+    const s = fs.readFileSync(path.join(root, 'public', f), 'utf8');
+    const mv = /<meta name="app-version" content="([^"]+)">/.exec(s);
+    if (mv) ver = ver || mv[1];
+    for (const m of s.matchAll(/\?v=([^"'&\s]+)/g)) {
+      refs++;
+      if (mv && m[1] !== mv[1]) bad.push(f + ' → ?v=' + m[1] + '（meta=' + mv[1] + '）');
+    }
+  }
+  const jsFiles = [];
+  for (const dir of ['js', path.join('js', 'i18n')]) {
+    for (const f of fs.readdirSync(path.join(root, 'public', dir))) {
+      if (f.endsWith('.js')) jsFiles.push(path.join(root, 'public', dir, f));
+    }
+  }
+  for (const fp of jsFiles) {
+    for (const m of fs.readFileSync(fp, 'utf8').matchAll(/\?v=([^"'&\s]+)/g)) {
+      refs++;
+      if (ver && m[1] !== ver) bad.push(path.basename(fp) + ' → ?v=' + m[1]);
+    }
+  }
+  console.log('\n[版本一致性] 版本 ' + ver + ' · 检查了 ' + refs + ' 处 ?v= 引用');
+  ok('所有 ?v= 与 app-version 同串（CSS + JS 模块）', bad.length === 0 || bad.join('; '));
+}
 
 /* 每条路由要检查的东西。⚠ 站点拆页之后**每一页都要走一遍** ——
    真实事故形态是「首页没事、别的页面白屏」。 */

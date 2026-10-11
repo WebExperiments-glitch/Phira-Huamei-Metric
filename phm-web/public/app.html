@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.9.1.0">
+<meta name="app-version" content="V0.9.2.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -33,7 +33,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.1.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.2.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -388,42 +388,42 @@ border:1px solid var(--line);color:var(--fg3)}
 <div class="wrap">
 <nav id="nav"></nav>
 <div class="apphead">
-  <div class="slogan" data-i18n-html="app.head.slogan"></div>
+  <div class="slogan" data-i18n-html="app.head.slogan">拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br><b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。</div>
   <div class="hsearch">
-    <input id="csrch" data-i18n-ph="app.head.search.ph" maxlength="40" autocomplete="off">
-    <button id="cgo" type="button" data-i18n-title="app.head.search.title" data-i18n="app.head.search.btn"></button>
+    <input id="csrch" data-i18n-ph="app.head.search.ph" maxlength="40" autocomplete="off" placeholder="搜谱面：曲名 / 谱师">
+    <button id="cgo" type="button" data-i18n-title="app.head.search.title" data-i18n="app.head.search.btn" title="搜索 Phira 谱面">搜索</button>
   </div>
 </div>
 
 <div class="authbox" id="authpanel" style="display:none">
-  <div class="ahead"><span aria-hidden="true">👤</span> <span data-i18n="app.auth.title"></span><span class="pfx" id="aclose" data-i18n-title="app.auth.collapse">✕</span></div>
+  <div class="ahead"><span aria-hidden="true">👤</span> <span data-i18n="app.auth.title">P.H.M. 账号</span><span class="pfx" id="aclose" data-i18n-title="app.auth.collapse" title="收起">✕</span></div>
 
   <div id="aguest">
-    <div class="adesc" data-i18n-html="app.auth.guest.desc"></div>
+    <div class="adesc" data-i18n-html="app.auth.guest.desc">登录后可以<b>绑定 Phira 账号</b>、留下属于你的记录。不登录也能用全部功能（拖谱面、搜谱面、算 RKS）。<br><span style="color:var(--fg3)">Web 端仅支持<b>邮箱</b>登录（手机短信登录只在小程序里提供）。</span></div>
 
     <div class="atabs">
-      <button type="button" id="atab-login" class="on" data-i18n="app.auth.tab.login"></button>
-      <button type="button" id="atab-signup" data-i18n="app.auth.tab.signup"></button>
-      <button type="button" id="atab-reset" data-i18n="app.auth.tab.reset"></button>
+      <button type="button" id="atab-login" class="on" data-i18n="app.auth.tab.login">登录</button>
+      <button type="button" id="atab-signup" data-i18n="app.auth.tab.signup">注册</button>
+      <button type="button" id="atab-reset" data-i18n="app.auth.tab.reset">找回密码</button>
     </div>
 
     <form id="afGuest" novalidate>
-    <div class="afield"><label for="aemail" data-i18n="app.auth.email"></label>
+    <div class="afield"><label for="aemail" data-i18n="app.auth.email">邮箱</label>
       <input id="aemail" type="email" autocomplete="email" placeholder="you@example.com"></div>
 
-    <div class="afield" id="apwWrap"><label for="apw" id="apwLabel" data-i18n="app.auth.pw"></label>
-      <input id="apw" type="password" autocomplete="current-password" data-i18n-ph="app.auth.pw.ph"></div>
+    <div class="afield" id="apwWrap"><label for="apw" id="apwLabel" data-i18n="app.auth.pw">密码</label>
+      <input id="apw" type="password" autocomplete="current-password" data-i18n-ph="app.auth.pw.ph" placeholder="至少 10 位，建议字母+数字"></div>
 
     <div class="afield" id="acodeWrap" style="display:none">
-      <label for="acode" data-i18n="app.auth.code"></label>
+      <label for="acode" data-i18n="app.auth.code">邮箱验证码</label>
       <div class="coderow">
-        <input id="acode" inputmode="numeric" autocomplete="one-time-code" data-i18n-ph="app.auth.code.ph" maxlength="8">
-        <button type="button" id="asend" data-i18n="app.auth.send"></button>
+        <input id="acode" inputmode="numeric" autocomplete="one-time-code" data-i18n-ph="app.auth.code.ph" maxlength="8" placeholder="收到的数字">
+        <button type="button" id="asend" data-i18n="app.auth.send">获取验证码</button>
       </div>
     </div>
 
     <div class="arow">
-      <button type="submit" id="asubmit" class="aprimary" data-i18n="app.auth.submit.login"></button>
+      <button type="submit" id="asubmit" class="aprimary" data-i18n="app.auth.submit.login">登录</button>
     </div>
     </form>
     <div class="amsg" id="amsg"></div>
@@ -433,18 +433,18 @@ border:1px solid var(--line);color:var(--fg3)}
     <div class="aurow">
       <div><div class="auname" id="auname">—</div>
       <div class="aumeta" id="aumeta"></div></div>
-      <button type="button" id="asignout" class="alink" data-i18n="app.auth.signout"></button>
+      <button type="button" id="asignout" class="alink" data-i18n="app.auth.signout">退出登录</button>
     </div>
     <div class="abind" id="abind"></div>
     <div class="achpw">
-      <button type="button" id="achpwBtn" class="alink" data-i18n="app.auth.chpw"></button>
+      <button type="button" id="achpwBtn" class="alink" data-i18n="app.auth.chpw">修改密码</button>
       <div id="achpwForm" style="display:none">
         <form id="afChpw" novalidate>
-        <div class="afield"><label for="aold" data-i18n="app.auth.old"></label>
+        <div class="afield"><label for="aold" data-i18n="app.auth.old">当前密码</label>
           <input id="aold" type="password" autocomplete="current-password"></div>
-        <div class="afield"><label for="anew" data-i18n="app.auth.new"></label>
-          <input id="anew" type="password" autocomplete="new-password" data-i18n-ph="app.auth.pw.ph"></div>
-        <button type="submit" id="achpwGo" class="aprimary" data-i18n="app.auth.chpw.go"></button>
+        <div class="afield"><label for="anew" data-i18n="app.auth.new">新密码</label>
+          <input id="anew" type="password" autocomplete="new-password" data-i18n-ph="app.auth.pw.ph" placeholder="至少 10 位，建议字母+数字"></div>
+        <button type="submit" id="achpwGo" class="aprimary" data-i18n="app.auth.chpw.go">确认修改</button>
         </form>
       </div>
     </div>
@@ -464,25 +464,25 @@ border:1px solid var(--line);color:var(--fg3)}
      以及引用了**已删除 DOM**（#ppanel / #psearch / #pname / #phiraBtn）的分支调用。
      ⚠ 玩家相关逻辑只在 /user 与 js/phira.js 里，不要再往本文件加第二份实现。 -->
 <div id="drop">
-  <div class="big" data-i18n="app.drop.big"></div>
-  <div data-i18n="app.drop.or"></div>
+  <div class="big" data-i18n="app.drop.big">把 Phira 谱面包拖到这里</div>
+  <div data-i18n="app.drop.or">或点击选择文件 · 支持 .pez / .zip · 可一次多个</div>
   <input id="file" type="file" accept=".pez,.zip" multiple>
-  <div class="what" data-i18n-html="app.drop.what"></div>
+  <div class="what" data-i18n-html="app.drop.what"><b>谱面包是什么？</b>就是 Phira 里下载的谱面文件（<code>.pez</code>），或者解压后含 <code>chart.json</code> 的 <code>.zip</code>。在 Phira 的谱面详情里点下载，或从别人分享的网盘拿到 —— <b>拖进来就会自动解析，文件不会上传</b>。<br>懒得下载？直接用上面的<b>搜索</b>框按曲名找，点「算」即可。</div>
 </div>
 <div class="note" id="msg"></div>
 
 <!-- 第二层：这些是「进阶功能」，不抢第一屏 -->
 <div class="morebar">
-  <a class="gh" href="/user" data-i18n-title="app.more.user.title"><span aria-hidden="true">🔗</span> <span data-i18n="app.more.user"></span></a>
-  <span class="mhint" data-i18n="app.more.user.hint"></span>
-  <a class="gh" href="/charter" data-i18n-title="app.more.charter.title"><span aria-hidden="true">✍️</span> <span data-i18n="app.more.charter"></span></a>
-  <span class="mhint" data-i18n="app.more.charter.hint"></span>
+  <a class="gh" href="/user" data-i18n-title="app.more.user.title" title="读取 Phira 公开资料与成绩（只读，不需要也不接受密码）"><span aria-hidden="true">🔗</span> <span data-i18n="app.more.user">我的成绩</span></a>
+  <span class="mhint" data-i18n="app.more.user.hint">B19 / 单曲 RKS / 最近游玩 · 现在有独立页面了</span>
+  <a class="gh" href="/charter" data-i18n-title="app.more.charter.title" title="查某位谱师的全部作品"><span aria-hidden="true">✍️</span> <span data-i18n="app.more.charter">找谱师</span></a>
+  <span class="mhint" data-i18n="app.more.charter.hint">按谱师看作品与定数</span>
   <button class="gh" id="authBtn" type="button"
-     data-i18n-title="app.more.auth.title"><span aria-hidden="true">👤</span> <span id="authBtnLabel" data-i18n="c.login"></span></button>
-  <span class="mhint" data-i18n="app.more.auth.hint"></span>
+     data-i18n-title="app.more.auth.title" title="P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录"><span aria-hidden="true">👤</span> <span id="authBtnLabel" data-i18n="c.login">登录</span></button>
+  <span class="mhint" data-i18n="app.more.auth.hint">可选</span>
   <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
      target="_blank" rel="noopener" data-i18n-title="app.more.gh.title"
-     aria-label="GitHub"><svg viewBox="0 0 16 16" width="15" height="15"
+     aria-label="GitHub" title="GitHub 仓库 · Phira-Huamei-Metric"><svg viewBox="0 0 16 16" width="15" height="15"
      fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg> GitHub</a>
 </div>
 
@@ -492,33 +492,33 @@ border:1px solid var(--line);color:var(--fg3)}
 
 <div class="pstats" id="pstats" style="display:none"></div>
 <footer>
-  <div><span data-i18n-html="app.foot.engine"></span> ·
-  <span data-i18n="app.foot.source"></span> <a class="link"
+  <div><span data-i18n-html="app.foot.engine">线上引擎：<b>8 维 log1p 特征</b>（NPS / 有效 NPS / 物量 / 加权密度 p99 / 音符间隔 / 高密度均值 / 密集度 / 交叉手） + 双参照 k-NN（<b>9,508 张社区谱</b> 为主结果，1,037 张官谱为对照标度）</span> ·
+  <span data-i18n="app.foot.source">源码</span> <a class="link"
   href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/public/index.html"
   target="_blank" rel="noopener">phm-web/public/index.html</a> ·
   <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
   target="_blank" rel="noopener">GitHub</a> ·
   <span id="verfoot"></span>· GPL-3.0</div>
   <details>
-    <summary data-i18n="app.foot.details"></summary>
-    <div class="fd" data-i18n-html="app.foot.d1"></div>
+    <summary data-i18n="app.foot.details">PS 是什么？本工具的边界与隐私（点开看）</summary>
+    <div class="fd" data-i18n-html="app.foot.d1"><b>三个数不是一回事，别混用</b>：<br>· <b>参考定数（社区共识）</b>—— 9,508 张 Phira 社区谱里结构最相近的 20 张，它们的定数中位。这是<b>谱师实际定价的共识</b>，也是最贴近你在 Phira 上看到的那个数字。<br>· <b>官谱标度</b>—— 同样算法，但参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>· <b>PS</b> —— 本工具自己的负荷标度（0–20），衡量操作与读取负荷，<b>与上面两个都不同标度</b>。</div>
 
-    <div class="fd" data-i18n-html="app.foot.d2"></div>
-    <div class="fd" data-i18n-html="app.foot.d3"></div>
-    <div class="fd" data-i18n-html="app.foot.d4"></div>
-    <div class="fd" data-i18n-html="app.foot.d5"></div>
-    <div class="fd" data-i18n-html="app.foot.d6"></div>
-    <div class="fd" data-i18n-html="app.foot.d7"></div>
+    <div class="fd" data-i18n-html="app.foot.d2"><b>两个标度差得多，说明什么？</b>官谱与社区谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6；社区谱的长条占比只有官谱的 1/3、拖键是 5 倍）。所以同一张谱在两个标度上差 2~3 级是正常的 —— 那是<b>两个尺子的差异，不是某个尺子算错了</b>。只印一个数字才会出问题：「我的 IN 14 被算成 11.6」就是这么来的。</div>
+    <div class="fd" data-i18n-html="app.foot.d3"><b>PS</b> 由四个负荷组加权合成：<span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>，每个维度经饱和函数归一，每一分都能追溯到卡片上的明细。</div>
+    <div class="fd" data-i18n-html="app.foot.d4"><b>PS 与官方定数无关</b> —— 官方定数是人工标注（实测标注噪声约 2.80 级），两者不构成互相验证。<b>本工具不判定「虚标」</b>：在这个噪声水平下，没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」。</div>
+    <div class="fd" data-i18n-html="app.foot.d5"><b>参考定数</b>是 20 张最相似参照谱的<b>定数中位</b>，不是拟合出来的预测值 —— 逐张可以点开看名字，拿回 Phira 自己核对。它在参照集里没有紧密对应物时会偏移，所以卡片上同时给出<b>不确定范围</b>（这 20 张的定数跨度）与<b>平均邻居距离</b>，跨度大就说明结论软。<br>留出验证（1,367 张社区谱，参照集 8,141 张）：<b>|偏差| 均值 0.820 · ≤1.0 命中 84.2%</b>，旧版（官谱 4 维）是 1.187 / 67.0%。</div>
+    <div class="fd" data-i18n-html="app.foot.d6"><b>隐私 · 什么会上传</b>（统一受页面底部「⚙ 设置」的开关控制）：<br>· <b>算 RKS</b>：本机计算。勾选「匿名上传」才写 曲名 / 定数 / ACC 三项 —— 准确说是<b>假名化</b>贡献（带一个随机 client_id），不是严格匿名。<br>· <b>查询 Phira 账号</b>：只对<b>你确认过的本人账号</b>自动上传成绩（含 Phira UID 与用户名，Phira 站内本来就公开）。首次遇到某个 UID 会先问一次「这是你的账号吗」。<br>· <b>拖入谱面</b>：只有<b>谱面结构特征</b>进入共享定数缓存，<b>谱面文件本身不会上传</b>。<br><b>关闭底部开关后，以上三条都不会发生</b>（页面仍会请求聚合统计数字用于显示统计条，不含个人信息）。</div>
+    <div class="fd" data-i18n-html="app.foot.d7">连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>；输入过的用户名 / UID 只存在你浏览器本地（localStorage）用于下次自动填充，不会随请求发出。</div>
   </details>
   <div class="setbox">
-    <button type="button" id="setBtn" class="alink" data-i18n="app.foot.set"></button>
-    <a class="link" href="/settings" data-i18n="app.foot.setall"></a>
-    <a class="link" href="/privacy" target="_blank" rel="noopener" data-i18n="foot.privacy"></a>
+    <button type="button" id="setBtn" class="alink" data-i18n="app.foot.set">⚙ 快速设置</button>
+    <a class="link" href="/settings" data-i18n="app.foot.setall">全部设置 →</a>
+    <a class="link" href="/privacy" target="_blank" rel="noopener" data-i18n="foot.privacy">隐私政策</a>
   </div>
   <div class="setpanel" id="setPanel" style="display:none">
     <label class="setrow"><input type="checkbox" id="setAuto">
-      <span data-i18n-html="app.foot.setdlg.label"></span></label>
-    <div class="setnote" data-i18n-html="app.foot.setdlg.note"></div>
+      <span data-i18n-html="app.foot.setdlg.label">登录 Phira 后<b>自动上传</b>成绩数据 —— 用于校准定数参考</span></label>
+    <div class="setnote" data-i18n-html="app.foot.setdlg.note">关闭后<b>不会上传任何贡献内容</b>（谱面结构特征、成绩数据）—— 拖谱面、算 RKS、搜谱面全部照常。<br><span style="color:var(--fg3)">页面仍会请求本站的聚合统计数字用于显示统计条，不含任何个人信息。</span><br>上传内容：Phira UID 与用户名、谱面名、定数、ACC、单曲 RKS。<b>不会上传</b>密码 / 邮箱 / 谱面文件本身。<br>只对<b>你确认过的本人账号</b>自动上传成绩（查询时会问一次）。对外的统计只有聚合数字，其他人看不到你的 UID 或用户名。</div>
   </div>
 </footer>
 </div>
@@ -545,7 +545,7 @@ border:1px solid var(--line);color:var(--fg3)}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang } from '/js/ui.js';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang } from '/js/ui.js?v=V0.9.2.0';
 
 /* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
    页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。
@@ -569,8 +569,24 @@ applyStatic();
    版本一变 URL 就变，天然破缓存 —— 于是「改版本号」和「让用户拿到新引擎」是同一件事，
    不必再手工维护一个容易忘记同步的 ?v=（服务端因此可以放心地长缓存 js）。
    加载后摊到全局，下面的代码照旧直接调用 zipParse / analyzeChart 等，无需改写。 */
-const __ENGINE = await import("/js/engine.js?v=" + encodeURIComponent(APP_VER));
-Object.assign(globalThis, __ENGINE);
+/* ⚠ 顶层 await 的三个动态 import **都带版本号**，而且**都不能让它把整页拖死**。
+   为什么必须兜底：这是顶层的 `await import(...)`，任何一个抛异常（网络抖一下、
+   浏览器手里是旧副本、CDN 抽风），**整个 module 脚本就到这里结束** ——
+   导航、术语表、静态文案全都没执行过，页面只剩空壳。
+   这就是「整页空白」的成因，所以每一个都要自己接住、各自降级。 */
+let __ENGINE = null;
+try {
+  __ENGINE = await import("/js/engine.js?v=" + encodeURIComponent(APP_VER));
+  Object.assign(globalThis, __ENGINE);
+} catch (e) {
+  /* 引擎是算定数的前提，没有它这一页没法工作 —— 但要**明说**，
+     不能让用户对着一片空白猜。 */
+  console.error("引擎加载失败", e);
+  try {
+    var em = document.getElementById("msg");
+    if (em) { em.className = "status err"; em.innerHTML = "引擎模块加载失败，请强制刷新页面（Ctrl/Cmd+Shift+R）。"; }
+  } catch (e2) {}
+}
 
 /* ── 设置的真源 ──
    键名 / 默认值 / 读写只在 /js/settings.js 里定义一次。
@@ -578,13 +594,19 @@ Object.assign(globalThis, __ENGINE);
    OPTN / saveOptin / noticeAgreed 之类只是**薄包装**，保留它们是为了
    不动原有的调用点，内部一律委托给 settings.js。
    ⚠ 以后加设置项：改 settings.js，不要在页面里再写一个 key。 */
-const __SET = await import("/js/settings.js");
+const __SET = await import("/js/settings.js?v=" + encodeURIComponent(APP_VER));
 
 /* 分享卡片模块（同样是版本化 URL，改版本号即破缓存）。
    抖音里链接点不了、X 上光发文字没人点 —— 能跨平台传播的只有图，
    所以「算完一张谱 → 导出体检卡」是传播链路里最关键的一环。 */
-const { exportCard, fromChartRow, fromReport } = await import(
-  "/js/sharecard.js");
+/* 分享卡是**附加功能**，加载失败不该影响算定数 —— 所以这里单独接住。 */
+let exportCard = null, fromChartRow = null, fromReport = null;
+try {
+  const __SC = await import("/js/sharecard.js?v=" + encodeURIComponent(APP_VER));
+  exportCard = __SC.exportCard; fromChartRow = __SC.fromChartRow; fromReport = __SC.fromReport;
+} catch (e) {
+  console.error("分享卡模块加载失败（不影响算定数）", e);
+}
 
 /* ── 社区参照集（懒加载）──
    9,508 张 Phira 社区谱，约 730 KB（gzip 后约 200 KB）。**不随首屏加载** ——

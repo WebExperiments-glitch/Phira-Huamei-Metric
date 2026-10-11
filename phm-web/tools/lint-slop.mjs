@@ -177,18 +177,57 @@ for (const [name, hits] of fnSeen) {
  * 浏览器当成两个模块，状态分裂（设置页切了语言，导航不跟着变）。
  * 例外：engine.js 与 data/*.json 只在单一位置引入，带 ?v= 是有意的。
  */
-const VER_OK = /(engine\.js|ref-official\.js|ref-com\.json)/;
-for (const f of FILES) {
-  if (!/\.html$/.test(f.rel)) continue;
-  const lines = readFileSync(f.abs, 'utf8').split('\n');
-  lines.forEach((l, i) => {
-    /* 只看 import / 模块加载，不看 <link>（CSS 无实例问题） */
-    if (!/import\s*\(|^\s*import\s/.test(l)) return;
-    if (!/\.js\?v=/.test(l)) return;
-    if (VER_OK.test(l)) return;
-    add('模块带版本串', f.rel, i + 1, l.trim().slice(0, 80),
-      '模块之间必须共用同一实例；带 ?v= 会让同一文件被当成两个模块，状态分裂');
-  });
+/* ══════════════════════════════════════════════════════════════
+ * 4) 项目内模块 import 的 ?v= 必须**统一带、且串值唯一**
+ * ══════════════════════════════════════════════════════════════
+ * 【2026-10-11 改版，规则方向反了，原因要记住】
+ *   上一版这条规则是"禁止模块 import 带 ?v="，理由是 ES 模块按 URL 去重，
+ *   同一文件两种 URL 会变成两个模块实例（真踩过：设置页切语言，导航不跟着变）。
+ *
+ *   但那条规矩挡不住另一件更严重的事：早先有一版 server 对**不带 ?v=** 的 js
+ *   也发了 max-age=604800，那批副本在用户机器上躺满 7 天不协商。于是
+ *   浏览器手里是**旧版 ui.js**（没有 applyStatic 导出），页面却已是新版
+ *   charter.html → 模块在实例化阶段就报错 → **整段脚本不执行、整页空白**。
+ *   （2026-07-11 之前用户 iPad 上的真实故障。）
+ *
+ *   所以现在反过来：**全都带 ?v=，且必须是同一个串**。
+ *   升版本 = 换 URL = 旧副本自动绕过；串值唯一 = 不会分裂成两个实例。
+ *   ⚠ 只查**浏览器侧**（public/ 下的 html 与 js）。tools/ 与 server.mjs 是
+ *     Node 侧，它们 import public/js/engine.js 是走文件系统解析的，
+ *     带查询串反而会找不到文件。
+ */
+{
+  const seen = new Map();     /* ?v= 的值 → 第一条出现的位置 */
+  const bare = [];            /* 没带 ?v= 的项目内模块 import */
+  const SPEC = /(?:import\s*\(|from)\s*['"]((?:\.{1,2}\/|\/js\/)[^'"]*?\.js)(\?v=[^'"]*)?['"]/g;
+  for (const f of FILES) {
+    if (!/^public\/.*\.(html|js)$/.test(f.rel)) continue;
+    const src = readFileSync(f.abs, 'utf8');
+    const lines = src.split('\n');
+    let m;
+    SPEC.lastIndex = 0;
+    while ((m = SPEC.exec(src))) {
+      const lineNo = src.slice(0, m.index).split('\n').length;
+      const line = (lines[lineNo - 1] || '').trim().slice(0, 90);
+      /* 动态拼接（`"/js/engine.js?v=" + encodeURIComponent(APP_VER)`）跳过：
+         它的值运行期才算得出来，静态没法比；而且那种写法本身就是版本化的。 */
+      if (/^\s*\+/.test(src.slice(m.index + m[0].length))) continue;
+      if (!m[2]) { bare.push(f.rel + ':' + lineNo + '  ' + line); continue; }
+      if (!seen.has(m[2])) seen.set(m[2], f.rel + ':' + lineNo);
+    }
+  }
+  if (bare.length) {
+    for (const b of bare.slice(0, 8)) {
+      add('模块 import 缺版本号', b.split('  ')[0], 0, b.split('  ')[1] || '',
+        '不带 ?v= 的 URL 会命中旧缓存；升版本时用户拿不到新模块（曾导致整页空白）');
+    }
+  }
+  if (seen.size > 1) {
+    for (const [v, where] of seen) {
+      add('模块版本串不一致', where, 0, v,
+        '同一个文件被两种 URL 引用会变成两个模块实例，状态分裂（语言/设置会不同步）');
+    }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
