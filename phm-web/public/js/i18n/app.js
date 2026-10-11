@@ -95,10 +95,15 @@ export default {
     /* ── 拖入区 ── */
     'app.drop.big': '把 Phira 谱面包拖到这里',
     'app.drop.or': '或点击选择文件 · 支持 .pez / .zip · 可一次多个',
+    /* 拖拽区说明**拆成两层**：第一屏只留一句主说明，其余（从哪拿、注意什么）
+       收进折叠。原来整段铺开会把拖拽区撑得很高，而这段文字新用户看一次就够，
+       天天用的人每次都要从它上面越过去。 */
     'app.drop.what':
       '<b>谱面包是什么？</b>就是 Phira 里下载的谱面文件（<code>.pez</code>），'
-      + '或者解压后含 <code>chart.json</code> 的 <code>.zip</code>。'
-      + '在 Phira 的谱面详情里点下载，或从别人分享的网盘拿到 —— '
+      + '或解压后含 <code>chart.json</code> 的 <code>.zip</code>。',
+    'app.drop.moreT': '从哪拿到？要注意什么？',
+    'app.drop.more':
+      '在 Phira 的谱面详情里点下载，或从别人分享的网盘拿到 —— '
       + '<b>拖进来就会自动解析，文件不会上传</b>。<br>'
       + '懒得下载？直接用上面的<b>搜索</b>框按曲名找，点「算」即可。',
 
@@ -110,7 +115,6 @@ export default {
     'app.more.charter.title': '查某位谱师的全部作品',
     'app.more.charter.hint': '按谱师看作品与定数',
     'app.more.auth.title': 'P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录',
-    'app.more.auth.hint': '可选',
     'app.more.gh.title': 'GitHub 仓库 · Phira-Huamei-Metric',
 
     /* ── 页脚 ── */
@@ -480,8 +484,10 @@ export default {
     'app.drop.or': 'or click to pick files · .pez / .zip · multiple at once',
     'app.drop.what':
       '<b>What is a chart pack?</b> It is the chart file you download from Phira (<code>.pez</code>), '
-      + 'or a <code>.zip</code> that unpacks to one containing <code>chart.json</code>. '
-      + 'Grab it from a chart\u2019s detail page on Phira, or from a share link someone posted — '
+      + 'or a <code>.zip</code> that unpacks to one containing <code>chart.json</code>.',
+    'app.drop.moreT': 'Where do I get one? Anything to watch out for?',
+    'app.drop.more':
+      'Grab it from a chart\u2019s detail page on Phira, or from a share link someone posted — '
       + '<b>drop it in and it parses automatically, nothing is uploaded</b>.<br>'
       + 'Too lazy to download? Just use the <b>search</b> box above by song name and hit "Analyze".',
 
@@ -493,7 +499,6 @@ export default {
     'app.more.charter.title': 'See every chart by a charter',
     'app.more.charter.hint': 'Browse a charter\u2019s charts and constants',
     'app.more.auth.title': 'P.H.M. account (optional): sign in to link Phira and keep your records',
-    'app.more.auth.hint': 'optional',
     'app.more.gh.title': 'GitHub repository · Phira-Huamei-Metric',
 
     /* ── footer ── */

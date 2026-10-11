@@ -33,18 +33,18 @@
 
 :root {
   /* ── 中性色：一条亮度阶梯（不是功能分类）── */
-  --bg:    #0b0d10;      /* 画布：最底 */
-  --card:  #12151a;      /* 卡片：浮一层 */
-  --card2: #181c22;      /* 次级面 / 行悬浮 */
-  --card3: #20252d;      /* 输入框 / 激活态：浮最高 */
-  --fg:    #e9edf3;      /* 主文字 */
-  --fg2:   #a3adbb;      /* 次要文字 */
-  --fg3:   #6f7887;      /* 弱化文字 / 标签 */
-  --fg4:   #4c535f;      /* 占位符 / 极弱 */
+  --bg:    #0e0d0b;      /* 画布：最底（暖调，与琥珀同温层，见 DESIGN.md §8.1）*/
+  --card:  #161412;      /* 卡片：浮一层 */
+  --card2: #1d1b18;      /* 次级面 / 行悬浮 */
+  --card3: #262320;      /* 输入框 / 激活态：浮最高 */
+  --fg:    #efebe4;      /* 主文字 */
+  --fg2:   #b5aea3;      /* 次要文字 */
+  --fg3:   #948d82;      /* 弱化文字 / 标签（抬亮：旧值 4.37:1 差一点到 AA）*/
+  --fg4:   #7a746a;      /* 占位符 / 极弱（抬亮：旧值只有 2.51:1，严重不达标）*/
 
   /* 半透明边框 —— 见原则 3 */
-  --line:  rgba(255,255,255,.075);
-  --line2: rgba(255,255,255,.13);
+  --line:  rgba(255,240,220,.08);
+  --line2: rgba(255,240,220,.14);
 
   /* ── 主色：琥珀（全站唯一强调色，见原则 1）── */
   --brand:      #f0b03f;
@@ -52,7 +52,7 @@
   --brand-line: rgba(240,176,63,.38);   /* 描边：focus ring / 选中边框 */
   --brand-ink:  #201705;                /* 主色底上的文字（深色，保证对比） */
   --brand-hover:#f7bd5a;                /* 主色按钮的悬停态 */
-  --on-color:   #0d1117;                /* 压在任何**亮色块**上的文字（徽标、色条） */
+  --on-color:   #201705;                /* 压在任何**亮色块**上的文字（徽标、色条）；暖底上不要用冷黑 */
 
   /* ── 语义色：降饱和，别抢注意力 ── */
   --ok:   #3fb950;
@@ -95,11 +95,11 @@
   --ease: cubic-bezier(.4, 0, .2, 1);
 
   /* 滚动条滑块（深浅两套要分开，见下方 .scrollbar 规则） */
-  --scroll-thumb: #20252d;
+  --scroll-thumb: #262320;
 
   /* 导航毛玻璃的底色：半透明即可，模糊由 backdrop-filter 负责。
      ⚠ 别做成完全不透明 —— 那样就只是"一块盖子"，没有毛玻璃的通透感。 */
-  --nav-veil: rgba(11,13,16,.72);
+  --nav-veil: rgba(14,13,11,.72);
 
   /* 让浏览器原生控件（表单、滚动条、自动填充）跟着主题走 —— 少了这行，
      浅色主题里会出现深色的 select 下拉和白色滚动条 */
@@ -122,27 +122,27 @@
  *      这是浅色界面最常见的翻车点。
  * ============================================================ */
 :root[data-theme="light"] {
-  --bg:    #f7f8fa;
-  --card:  #ffffff;
-  --card2: #f1f3f6;
-  --card3: #e7eaef;
-  --fg:    #1a1d21;
-  --fg2:   #4b535e;
-  --fg3:   #7c8592;
-  --fg4:   #a8b0ba;
+  --bg:    #f6f3ee;
+  --card:  #fffdf9;
+  --card2: #efebe4;
+  --card3: #e5e0d7;
+  --fg:    #1d1a16;
+  --fg2:   #4a443c;
+  --fg3:   #665f55;
+  --fg4:   #7d766b;
 
-  --line:  rgba(0,0,0,.09);
-  --line2: rgba(0,0,0,.16);
+  --line:  rgba(40,25,5,.10);
+  --line2: rgba(40,25,5,.17);
 
-  --brand:      #b8791a;
-  --brand-soft: rgba(184,121,26,.11);
-  --brand-line: rgba(184,121,26,.34);
+  --brand:      #9a6208;   /* 压深到过 AA：旧值 #b8791a 在新底上只有 3.4:1 */
+  --brand-soft: rgba(154,98,8,.11);
+  --brand-line: rgba(154,98,8,.34);
   --brand-ink:  #ffffff;
-  --brand-hover:#a86c12;
+  --brand-hover:#85540a;
   --on-color:   #ffffff;                /* 浅色主题里色块本身变深了 → 反白 */
 
   --ok:   #1a7f37;
-  --warn: #9a6700;
+  --warn: #8a5c00;   /* 实测：旧值在新暖底上只有 4.40:1，差一点到 AA */
   --err:  #cf222e;
   --info: #0969da;
 
@@ -150,14 +150,14 @@
 
   --density: #0969da;
   --pattern: #8250df;
-  --coord:   #b8791a;
+  --coord:   #9a6208;   /* 跟着品牌色一起压深，保持图表与主色同一色系 */
   --stamina: #1a7f37;
 
   --sh1: 0 1px 2px rgba(16,24,40,.06);
   --sh2: 0 8px 24px rgba(16,24,40,.10);
 
-  --scroll-thumb: rgba(0,0,0,.20);
-  --nav-veil: rgba(247,248,250,.78);
+  --scroll-thumb: rgba(40,25,5,.22);
+  --nav-veil: rgba(246,243,238,.78);
   color-scheme: light;
 }
 
@@ -345,6 +345,9 @@ td.r, th.r { text-align: right; }
 .note b { color: var(--fg); }
 .note.info { background: var(--card2); }
 .note.warn { background: var(--brand-soft); border-color: var(--brand-line); }
+/* ⚠ 空的提示条什么都不说，却长得像"加载到一半"的一条灰带
+   （用户原话：看着像没加载完）。没内容就不占位。 */
+.note:empty { display: none; }
 
 .empty { padding: 26px 10px; text-align: center; color: var(--fg3); font-size: 13px; }
 

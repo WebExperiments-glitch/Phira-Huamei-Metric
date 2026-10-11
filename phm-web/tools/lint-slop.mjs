@@ -68,9 +68,11 @@ const LS_OK = new Set([
   'public/js/settings.js',        // 真源，本来就该在这里读写
   'tools/verify-pages.mjs',       // 测试：故意塞外部键，验证"清空不误伤"
   'tools/smoke-page.mjs',
-  /* 这个工具**通过 CDP 在页面里**设 phm_lang，用来模拟"用户之前选过英文"。
-     它不是应用代码，不经过 settings.js，也不可能 —— 它跑在 Node 侧。 */
+  /* 这两个工具**通过 CDP 在页面里**设 phm_lang / phm_theme，
+     用来模拟"用户之前选过英文/深色"。它们不是应用代码，
+     不经过 settings.js，也不可能 —— 它们跑在 Node 侧。 */
   'tools/check-i18n-page.mjs',
+  'tools/shot.mjs',
 ]);
 for (const f of FILES) {
   if (LS_OK.has(f.rel)) continue;
@@ -242,10 +244,12 @@ const EMOJI_OK_FILES = [
   /* 分享图生成器：卡面文案本来就是设计的一部分，且是离屏渲染 */
   /^tools\/make-og\.mjs$/,
 ];
-/* 行内豁免：注释行、以及只出现在 title 属性里的（那是给鼠标悬停看的提示文本） */
+/* 行内豁免：注释行、以及 emoji **本身就在 title 属性值里面**的。
+   ⚠ 早先这条写成了 /title="[^"]*"/ —— 那是"这一行里有 title 就整行放过"，
+   于是一行里同时有 aria-hidden 的 emoji 和 title 时全部漏检
+   （morebar 上那三个图标就是这么躲了很久）。现在改成真的判断位置。 */
 const EMOJI_OK_INLINE = [
   /^\s*[*\/]/,
-  /title="[^"]*"/,
 ];
 for (const f of FILES) {
   if (!/\.(html|js|mjs)$/.test(f.rel)) continue;
@@ -257,6 +261,9 @@ for (const f of FILES) {
     if (t.startsWith('<!--') || t.endsWith('-->') || t.includes('-->')) return;   // HTML 注释
     if (EMOJI_OK_INLINE.some(r => r.test(l))) return;
     if (EMOJI_RE.test(l)) {
+      /* 行内 title 属性值里出现的 emoji 不算（那是悬停提示文本，不渲染进界面） */
+      const stripped = l.replace(/title="[^"]*"/g, '');
+      if (!EMOJI_RE.test(stripped)) return;
       add('界面 emoji', f.rel, i + 1, t.slice(0, 70),
         'emoji 是"模板味"最重的信号，且各系统渲染不一致；用内联 SVG 或纯文字代替');
     }

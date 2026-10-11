@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.9.2.0">
+<meta name="app-version" content="V0.9.2.1">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -33,7 +33,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.9.2.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.9.2.1">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -210,19 +210,32 @@ font-size:11.5px;color:var(--fg3);line-height:1.6}
 .csfoot b{color:var(--fg2)}
 #drop{border:2px dashed var(--line);border-radius:16px;padding:46px 22px;text-align:center;
 color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card);margin-top:6px}
-#drop:hover{border-color:var(--blue);background:var(--card2)}
+#drop:hover{border-color:var(--brand-line);background:var(--card2)}
+/* ⚠ 原来 :hover 用 --blue、.hover(拖入中) 用 --amber —— 同一个元素两个强调色，
+   既违反「只有一个主色」原则，视觉上也是两套色系在打架。
+   现在做成同一色系的两档：可点击 = 弱琥珀，正在拖入 = 实琥珀。 */
 #drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
 #drop .big{font-size:19px;font-weight:700;color:var(--fg);margin-bottom:7px}
 /* 「谱面包是什么」——新用户最容易卡在这（不知道文件从哪来） */
 #drop .what{font-size:11.5px;color:var(--fg3);margin-top:12px;line-height:1.7;
 max-width:440px;margin-left:auto;margin-right:auto}
 #drop .what b{color:var(--fg2)}
+/* 次要说明收进折叠：第一屏只留一句主说明，其余按需展开。
+   之前全铺开会把拖拽区撑得很高，而这段文字新用户看一次就够了。 */
+#drop .whatmore{display:inline-block;margin-top:7px;text-align:left;max-width:440px}
+#drop .whatmore summary{cursor:pointer;color:var(--fg3);list-style:none;display:inline-block}
+#drop .whatmore summary::-webkit-details-marker{display:none}
+#drop .whatmore summary::before{content:"? ";color:var(--brand);font-weight:700}
+#drop .whatmore[open] summary{color:var(--fg2);margin-bottom:4px}
+#drop .whatmore summary:hover{color:var(--fg2)}
 #drop .what code{background:var(--card2);border-radius:4px;padding:1px 4px;font-size:11px}
 #drop input{display:none}
 /* 第二层入口：进阶功能不抢第一屏，但要能一眼发现 */
 .morebar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;
 margin:16px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
 .morebar .mhint{font-size:11.5px;color:var(--fg3);margin-right:4px}
+@media (max-width:820px){.morebar .mhint{display:none}}
+/* 窄屏下旁注收进 title，不为它挤掉按钮本身 */
 .note{font-size:11.5px;color:var(--fg3);margin:10px 2px 0}
 .punch{margin-top:10px;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;background:var(--card2)}
 .punch .ptitle{font-weight:700;font-size:13px;color:var(--fg)}
@@ -245,8 +258,15 @@ margin:16px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
 .ps{display:flex;align-items:baseline;gap:10px}
 .ps .num{font-size:54px;font-weight:750;color:var(--amber);letter-spacing:-2px;line-height:1}
 .ps .u{font-size:13px;color:var(--fg3)}
-.scale{position:relative;height:8px;border-radius:4px;background:var(--card2);margin:14px 0 4px;overflow:hidden}
-.scale i{position:absolute;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,var(--info),var(--brand),var(--err))}
+/* 刻度条：一条 0–20 的中性轨 + 一段**不确定范围**色带 + 一根中点标记。
+   ⚠ 原来是 `linear-gradient(info,brand,err)` 的彩虹填充 —— 三个色相，
+   既违反「只有一个主色」，又只表达"位置"、不表达"范围有多宽"。
+   现在：范围本身成为可见的信息（带越宽 = 结论越软），且只有一个色相。 */
+.scale{position:relative;height:10px;border-radius:5px;background:var(--card2);margin:16px 0 4px}
+.scale .band{position:absolute;top:0;bottom:0;background:var(--brand-soft);
+  border-left:1px solid var(--brand-line);border-right:1px solid var(--brand-line);border-radius:2px}
+.scale .mk{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--brand);border-radius:1px;
+  transform:translateX(-1px);box-shadow:0 0 0 2px var(--card)}
 .tick{position:relative;height:16px;font-size:10.5px;color:var(--fg3)}
 .tick span{position:absolute;transform:translateX(-50%)}
 .groups{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:12px 0 4px}
@@ -396,7 +416,7 @@ border:1px solid var(--line);color:var(--fg3)}
 </div>
 
 <div class="authbox" id="authpanel" style="display:none">
-  <div class="ahead"><span aria-hidden="true">👤</span> <span data-i18n="app.auth.title">P.H.M. 账号</span><span class="pfx" id="aclose" data-i18n-title="app.auth.collapse" title="收起">✕</span></div>
+  <div class="ahead"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.4" r="2.7"/><path d="M2.9 13.6c0-2.6 2.3-4.2 5.1-4.2s5.1 1.6 5.1 4.2"/></svg> <span data-i18n="app.auth.title">P.H.M. 账号</span><span class="pfx" id="aclose" data-i18n-title="app.auth.collapse" title="收起">✕</span></div>
 
   <div id="aguest">
     <div class="adesc" data-i18n-html="app.auth.guest.desc">登录后可以<b>绑定 Phira 账号</b>、留下属于你的记录。不登录也能用全部功能（拖谱面、搜谱面、算 RKS）。<br><span style="color:var(--fg3)">Web 端仅支持<b>邮箱</b>登录（手机短信登录只在小程序里提供）。</span></div>
@@ -467,19 +487,23 @@ border:1px solid var(--line);color:var(--fg3)}
   <div class="big" data-i18n="app.drop.big">把 Phira 谱面包拖到这里</div>
   <div data-i18n="app.drop.or">或点击选择文件 · 支持 .pez / .zip · 可一次多个</div>
   <input id="file" type="file" accept=".pez,.zip" multiple>
-  <div class="what" data-i18n-html="app.drop.what"><b>谱面包是什么？</b>就是 Phira 里下载的谱面文件（<code>.pez</code>），或者解压后含 <code>chart.json</code> 的 <code>.zip</code>。在 Phira 的谱面详情里点下载，或从别人分享的网盘拿到 —— <b>拖进来就会自动解析，文件不会上传</b>。<br>懒得下载？直接用上面的<b>搜索</b>框按曲名找，点「算」即可。</div>
+  <div class="what">
+    <div data-i18n-html="app.drop.what"><b>谱面包是什么？</b>就是 Phira 里下载的谱面文件（<code>.pez</code>），或解压后含 <code>chart.json</code> 的 <code>.zip</code>。</div>
+    <details class="whatmore"><summary data-i18n="app.drop.moreT">从哪拿到？要注意什么？</summary>
+      <div data-i18n-html="app.drop.more">在 Phira 的谱面详情里点下载，或从别人分享的网盘拿到 —— <b>拖进来就会自动解析，文件不会上传</b>。<br>懒得下载？直接用上面的<b>搜索</b>框按曲名找，点「算」即可。</div>
+    </details>
+  </div>
 </div>
 <div class="note" id="msg"></div>
 
 <!-- 第二层：这些是「进阶功能」，不抢第一屏 -->
 <div class="morebar">
-  <a class="gh" href="/user" data-i18n-title="app.more.user.title" title="读取 Phira 公开资料与成绩（只读，不需要也不接受密码）"><span aria-hidden="true">🔗</span> <span data-i18n="app.more.user">我的成绩</span></a>
+  <a class="gh" href="/user" data-i18n-title="app.more.user.title" title="读取 Phira 公开资料与成绩（只读，不需要也不接受密码）"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13.5h12"/><path d="M4.6 13.5V9"/><path d="M8 13.5V4.6"/><path d="M11.4 13.5v-3.6"/></svg> <span data-i18n="app.more.user">我的成绩</span></a>
   <span class="mhint" data-i18n="app.more.user.hint">B19 / 单曲 RKS / 最近游玩 · 现在有独立页面了</span>
-  <a class="gh" href="/charter" data-i18n-title="app.more.charter.title" title="查某位谱师的全部作品"><span aria-hidden="true">✍️</span> <span data-i18n="app.more.charter">找谱师</span></a>
+  <a class="gh" href="/charter" data-i18n-title="app.more.charter.title" title="查某位谱师的全部作品"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l.8-2.9 7.6-7.6a1.4 1.4 0 0 1 2 2l-7.6 7.6L3 13Z"/><path d="M10.4 3.5l2 2"/></svg> <span data-i18n="app.more.charter">找谱师</span></a>
   <span class="mhint" data-i18n="app.more.charter.hint">按谱师看作品与定数</span>
   <button class="gh" id="authBtn" type="button"
-     data-i18n-title="app.more.auth.title" title="P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录"><span aria-hidden="true">👤</span> <span id="authBtnLabel" data-i18n="c.login">登录</span></button>
-  <span class="mhint" data-i18n="app.more.auth.hint">可选</span>
+     data-i18n-title="app.more.auth.title" title="P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.4" r="2.7"/><path d="M2.9 13.6c0-2.6 2.3-4.2 5.1-4.2s5.1 1.6 5.1 4.2"/></svg> <span id="authBtnLabel" data-i18n="c.login">登录</span></button>
   <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
      target="_blank" rel="noopener" data-i18n-title="app.more.gh.title"
      aria-label="GitHub" title="GitHub 仓库 · Phira-Huamei-Metric"><svg viewBox="0 0 16 16" width="15" height="15"
@@ -545,7 +569,7 @@ border:1px solid var(--line);color:var(--fg3)}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang } from '/js/ui.js?v=V0.9.2.0';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang } from '/js/ui.js?v=V0.9.2.1';
 
 /* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
    页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。
@@ -752,8 +776,13 @@ function card(r,idx){
       +'</span></div>':'')
     +(vague?t("app.res.vague",{ n:(kn.n20)||0, lo:f1(kn.lo), hi:f1(kn.hi),
         span:span.toFixed(1), desc:basisDesc }):'')
-    +'<div class="scale"><i style="left:0;width:'+pos(kn.ref).toFixed(1)
-    +'%"></i></div>'
+    /* 不确定范围画成条：带 = lo..hi，竖线 = 中点（那个大数字）。
+       带宽本身就是结论 —— 宽到一眼看出来，就不必再读那段警告文字。 */
+    +'<div class="scale">'
+    +(kn.lo!=null&&kn.hi!=null
+        ?'<span class="band" style="left:'+pos(kn.lo).toFixed(1)+'%;width:'
+          +Math.max(0.6,pos(kn.hi)-pos(kn.lo)).toFixed(1)+'%"></span>' : '')
+    +'<span class="mk" style="left:'+pos(kn.ref).toFixed(1)+'%"></span></div>'
     +'<div class="tick"><span style="left:0">0</span>'
       +'<span style="left:50%">10</span><span style="left:100%">20</span></div>'
     +'<div class="srow"><span class="slabel">'+esc(t("app.res.share.label"))+'</span>'
@@ -1336,7 +1365,7 @@ function renderChartSearch(kw){
             ?'<button class="calcbtn" type="button" data-cid="'+c.id
               +'" title="'+esc(t("app.srch.calc.title"))+'">'+esc(t("app.srch.calc"))+'</button>'
              +'<button class="dlbtn" type="button" data-file="'+esc(c.file)+'" data-name="'+esc(c.name)
-              +'" title="'+esc(t("app.srch.dl.title"))+'">📥</button>'
+              +'" title="'+esc(t("app.srch.dl.title"))+'"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.6v6.8"/><path d="M5.1 6.6 8 9.5l2.9-2.9"/><path d="M2.8 13.2h10.4"/></svg></button>'
             :'<span style="color:var(--fg3)">—</span>'))
         +'</span>'
         +'</div>';}).join("")+'</div>'
@@ -1851,7 +1880,7 @@ async function computeChart(cid,btn,info){
     if(typeof renderChartSearch==="function") renderChartSearch();
   }catch(err){
     btn.outerHTML='<a class="cdl" href="'+esc(url)+'" target="_blank" rel="noopener"'
-      +' title="'+esc(t("app.dl.title"))+'">📥 '+esc(t("app.dl.short"))+'</a>';
+      +' title="'+esc(t("app.dl.title"))+'"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.6v6.8"/><path d="M5.1 6.6 8 9.5l2.9-2.9"/><path d="M2.8 13.2h10.4"/></svg> '+esc(t("app.dl.short"))+'</a>';
     csMsg(t("app.calc.corsfail",{name:esc(nm),
       e:esc(err&&err.message?err.message:"fetch failed")}),"warn");
   }

@@ -49,12 +49,21 @@ function fetchTO(url, ms, opts) {
 
 /* ── 谱面文件的下载白名单 ──
  * 【为什么必须有】`recompute()` 拿 Phira 返回的 `info.file` **直接 fetch**，
- * 既不限制协议也不限制主机，而且 fetch 默认跟随重定向 —— 这就是一个 SSRF：
- * 只要有一张谱的 file 字段能指向别处（或被 302 到别处），
- * 服务端就会替攻击者去请求内网地址。
- * 实测真实文件的域名是 phira.5wyxi.com；不在列表里的一律拒绝，
- * 并且**禁止跟随重定向** —— 允许列表只在第一跳有效，跟随就绕过去了。 */
-const FILE_HOSTS = new Set(['phira.5wyxi.com']);
+ * 既不限制协议也不限制主机 —— 这就是一个 SSRF：只要有一张谱的 file 字段
+ * 能指向别处，服务端就会替攻击者去请求内网地址。
+ *
+ * 【⚠ 但重定向不能简单禁掉】实测 `phira.5wyxi.com/files/…` **必然返回 303**
+ * 跳到 `phira-cdn.5wyxi.com/…?sign=…`（签名 CDN），文件本体在第二跳。
+ * 我第一版写的是 `redirect: 'error'` —— 结果**把正常路径也掐死了**：
+ * 未缓存的谱一律 `{"error":"fetch failed"}`，而缓存命中的谱照常返回，
+ * 看起来像"有时能算有时不能"。
+ * 所以正确做法是：**手动跟随，每一跳都过白名单**。
+ *   · `redirect:'error'`  → 功能坏掉（已踩）
+ *   · `redirect:'follow'`（默认）→ 重定向目标完全不受约束，SSRF 照样成立
+ *   · `redirect:'manual'` + 逐跳校验 → 两个问题都解决
+ */
+const FILE_HOSTS = new Set(['phira.5wyxi.com', 'phira-cdn.5wyxi.com']);
+const MAX_HOPS = 3;
 
 function safeFileUrl(raw) {
   let u;
@@ -62,6 +71,19 @@ function safeFileUrl(raw) {
   if (u.protocol !== 'https:') throw new Error('谱面文件必须走 https');
   if (!FILE_HOSTS.has(u.hostname)) throw new Error('谱面文件域名不在允许列表内：' + u.hostname);
   return u.toString();
+}
+
+/** 下载谱面文件：手动跟随重定向，**每一跳都校验域名**。 */
+async function fetchChartFile(rawUrl, ms) {
+  let url = safeFileUrl(rawUrl);
+  for (let hop = 0; hop <= MAX_HOPS; hop++) {
+    const res = await fetchTO(url, ms, { redirect: 'manual' });
+    if (res.status < 300 || res.status >= 400) return res;
+    const loc = res.headers.get('location');
+    if (!loc) throw new Error('谱面文件重定向但没给 Location');
+    url = safeFileUrl(new URL(loc, url).toString());   /* 下一跳照样要过白名单 */
+  }
+  throw new Error('谱面文件重定向次数过多（>' + MAX_HOPS + '）');
 }
 
 /* 用谱面名在 Phira 精确匹配 chart_id。
@@ -82,7 +104,7 @@ export async function recompute(chartId, opts) {
   const info = await (await fetchTO(PHIRA_API + '/chart/' + chartId, FETCH_TIMEOUT)).json();
   if (!info || !info.file) throw new Error('谱面没有可下载的文件');
 
-  const res = await fetchTO(safeFileUrl(info.file), DOWNLOAD_TIMEOUT, { redirect: 'error' });
+  const res = await fetchChartFile(info.file, DOWNLOAD_TIMEOUT);
   if (!res.ok) throw new Error('下载谱面 HTTP ' + res.status);
 
   const len = +(res.headers.get('content-length') || 0);
