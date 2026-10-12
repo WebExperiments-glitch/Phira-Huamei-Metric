@@ -20,6 +20,40 @@
 
 export const RELEASES = [
   {
+    v: 'V0.10.0.0', date: '2026-10-12',
+    zh: [
+      '账号改成<b>我们自己的</b>了。注册只要<b>邮箱 + 密码</b>，不再需要收验证码；'
+        + '之后每次登录<b>只输密码</b>就行（邮箱会记住）。<br>'
+        + '<b>不登录也完全能正常玩</b>，登录只为了一件事：把每局的逐音符判定传上来。',
+      '新增<b>账号密码</b>存的是不可逆的哈希值，服务端看不到你的原密码；'
+        + '登录用的凭证由本站自己签发并校验 —— 顺带补上了一个旧漏洞：'
+        + '以前服务端<b>没法验证</b>登录凭证的真伪，理论上可以伪造身份。<br>'
+        + '另外登录失败时不会告诉你「是邮箱没注册还是密码错了」—— 那等于给人一个'
+        + '批量探测谁注册过的工具。',
+      '客户端结算界面新增两行：<b>早/晚偏差条</b>（你是抢拍还是拖拍，'
+        + '这个在准度上看不出来）和<b>失分构成</b>（丢的分里有多少来自判定、多少来自断连，'
+        + '直接告诉你该练准度还是别断连）。',
+      '修掉结算界面上那个<b>一直是 ±0ms</b> 的误差值 —— 它从来就没被算过，'
+        + '只是写死了一个 0。现在是真的。',
+    ],
+    en: [
+      'Accounts are now <b>ours</b>. Signing up needs only <b>an email and a password</b> — no verification code. '
+        + 'After that, logging in takes <b>just your password</b> (the email is remembered).<br>'
+        + '<b>You can play perfectly well without an account</b>; signing in does one thing only: upload the '
+        + 'per-note judgements of each play.',
+      'Passwords are stored only as an irreversible hash — the server never sees your password. Login tokens are '
+        + 'issued and verified by this site, which also closes an old hole: the server previously <b>could not '
+        + 'verify</b> login tokens, so identities were forgeable.<br>'
+        + 'A failed login no longer tells you whether the email exists or the password was wrong — that would be a '
+        + 'free tool for probing who has registered.',
+      'The in-game result screen gains two rows: a <b>timing bias bar</b> (are you rushing or dragging? accuracy '
+        + 'alone will not tell you) and a <b>loss breakdown</b> (how much of what you lost came from judgement '
+        + 'versus from dropped combo — which tells you what to practise).',
+      'Fixed the <b>±0ms</b> timing error on the result screen — it was never computed, just hardcoded to zero. '
+        + 'It is real now.',
+    ],
+  },
+  {
     v: 'V0.9.6.0', date: '2026-10-11',
     zh: [
       '新增<b>「下载」页</b>（顶栏最后一个入口）：Windows 客户端可以直接从本站下载，'
