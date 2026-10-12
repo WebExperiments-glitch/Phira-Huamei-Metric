@@ -9,12 +9,12 @@
 
 export const RELEASE = {
   "siteVer": "V0.9.6.0",
-  "clientVer": "0.8.2-huamei.10",
-  "built": "2026-10-11",
+  "clientVer": "0.8.2-huamei.11",
+  "built": "2026-10-12",
   "file": "phira-huamei.exe",
   "url": "/download/phira-huamei.exe",
-  "bytes": 36750848,
-  "size": "35.0 MB",
-  "sha256": "b61f1f35e5f9fbbee57ec005789c81a7d8c8a3d8df5750e8798053d25644200f",
+  "bytes": 36845568,
+  "size": "35.1 MB",
+  "sha256": "beb7631556addb6da0748745ec9b407e9e2ff5c528d2ac22c9bf5b528cbe62d5",
   "source": "https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
 };

@@ -74,25 +74,34 @@ const BROWSERISH = {
   'sec-fetch-dest': 'empty',
 };
 
-/** 用用户的 huamei token 换身份（工厂：把站点相关配置关在里面）。
+/** 用用户的 token 换身份（工厂：把站点相关配置关在里面）。
  *
  * @returns `async (token) => {sub, variant, verified}` 或 `{err, tried, jwt}`
  *
- * ⚠⚠ **`Referer` / `Origin` 是硬要求 —— 实测（2026-10-11，同一个真 token）：**
- *   · 只带 key 头            → 401 invalid_grant
- *                              "the session is invalid, expired or issued for another client"
- *   · 带上 Referer 或 Origin → 200，正常返回 sub/email
- *   依据见 `lib/cloud.mjs` 顶部：「身份由 referer 判定」。
- *   浏览器跑 SDK 时这头自动就有，服务端自己调就得自己补。
+ * ── 三条路，按可信度排序 ──────────────────────────────────────
+ *   ① **我们自己的 token**（`verifyOwnToken`）—— HS256 用服务端独有密钥签的，
+ *      **能验签**，所以最可信。这是 2026-10-12 加的自建账号体系。
+ *   ② 云端 `user/me` —— 平台发的 token 走这条路。问题是 HS256 密钥在平台手里，
+ *      **我们验不了签**，只能靠"云端认它"来间接证明。
+ *   ③ `subFromJwt` 本地解析 —— **完全不验签**，只看结构/aud/exp。身份可伪造。
+ *      只作为沙箱出站被掐时的兜底，见下面的信任边界说明。
  *
- * ⚠ **别被那句错误措辞骗了** —— "issued for another client" 听起来像 token 有问题，
- *   其实只是**我们没报身份**。
- *
- * ⚠ 为什么逐个变体试：**本机跑通 ≠ 生产跑通**。实测本机全绿、线上仍 401，
- *   怀疑托管边缘对从沙箱发出的出站请求改写了 headers。所以逐个试，
- *   并把每个变体的上游状态码一起带回去 —— 别再出现「本地好好的、线上不行」
- *   而无从下手的情况。 */
-export function makeWhoami({ cloudAuth, siteOrigin, referer, key, appId }) {
+ * ⚠⚠ 关键顺序问题：如果 token **声称**是我们签的（`iss = phm-huamei`）却验不过，
+ *     必须**当场拒绝**，绝不能掉到 ②③ 去。否则攻击者给自己拼一个标了 iss 的
+ *     token 就能冒充任何人 —— 那比没有自签体系更糟。 */
+export function makeWhoami({ cloudAuth, siteOrigin, referer, key, appId, verifyOwnToken, claimsOwnIssuer }) {
+  /* 云端 `user/me` 的头组合。⚠⚠ **Referer / Origin 是硬要求** ——
+     实测（2026-10-11，同一个真 token）：
+       · 只带 key 头            → 401 invalid_grant
+                                 "the session is invalid, expired or issued for another client"
+       · 带上 Referer 或 Origin → 200，正常返回 sub/email
+     依据见 `lib/cloud.mjs` 顶部：「身份由 referer 判定」。
+     浏览器跑 SDK 时这头自动就有，服务端自己调就得自己补。
+     ⚠ 别被 "issued for another client" 骗了 —— 听起来像 token 有问题，
+       其实只是**我们没报身份**。
+     ⚠ 为什么逐个试：**本机跑通 ≠ 生产跑通**（本机全绿、线上仍 401），
+       怀疑托管边缘改写了出站请求的头。逐个试 + 把每个变体的上游状态码带回去，
+       就不会再出现「本地好好的、线上不行」而无从下手。 */
   const variants = [
     // ① 最像浏览器：Referer + Origin + Sec-Fetch 全套
     Object.assign({ referer: referer, origin: siteOrigin }, BROWSERISH),
@@ -106,6 +115,17 @@ export function makeWhoami({ cloudAuth, siteOrigin, referer, key, appId }) {
 
   return async function whoami(token) {
     if (!token || token.length > 4096) return { err: 'no_token', status: 0 };
+
+    /* ① 我们自己的 token —— 能验签，最可信 */
+    if (verifyOwnToken) {
+      const own = verifyOwnToken(token);
+      if (own) return { sub: own.sub, variant: 'own-jwt', verified: true, email: own.email };
+      /* 声称是我们的却验不过 → 拒绝，**不要**掉到下面的兜底路径 */
+      if (claimsOwnIssuer && claimsOwnIssuer(token)) {
+        return { err: 'own_token_bad_signature' };
+      }
+    }
+
     const tried = [];
     for (const variant of variants) {
       const label = Object.keys(variant).filter(k => !(k in BROWSERISH)).join('+') || '(base)';

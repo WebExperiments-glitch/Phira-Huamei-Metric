@@ -29,6 +29,8 @@ import { reviewContribution, grosslyMismatched, recompute } from './lib/review.m
 import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE, DB, WRITE_SECRET } from './lib/cloud.mjs';
 /* huamei 数据飞轮的身份与成绩校验 —— 单独一个模块，见 lib/hm.mjs 顶部。 */
 import { appIdFromKey, makeWhoami, validatePlay } from './lib/hm.mjs';
+/* 自建账号：注册 / 登录 / 自签 token。见 lib/hm-accounts.mjs 顶部。 */
+import { register as hmRegister, login as hmLogin, verifyOwnToken, claimsOwnIssuer } from './lib/hm-accounts.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -82,6 +84,11 @@ const hmWhoami = makeWhoami({
   referer: DB.referer,
   key: DB.key,
   appId: APP_ID,
+  /* 自建账号的 token 走**真验签**（服务端独有密钥）。
+     ⚠ 必须传这两个：少了 `claimsOwnIssuer`，一个标了我们 iss 却签得不对的 token
+        会掉到下面「不验签也认」的兜底路径上去 —— 那比没有自签体系更糟。 */
+  verifyOwnToken,
+  claimsOwnIssuer,
 });
 
 
@@ -420,6 +427,42 @@ const server = http.createServer(async (req, res) => {
 
   /* ── huamei：成绩接收 ──
      身份 = 用户自己的 huamei token；写入只经 hm_put_play()（SECURITY DEFINER）。 */
+  /* ── huamei 账号：注册 / 登录 ──
+     这是 /api/hm/* 下**唯一**不要求已登录的两条 —— 它们的全部意义就是
+     「把未登录的人变成已登录的」。所以限流和普通写入共用一桶，
+     但错误码要分开，客户端要靠它决定「该注册还是该重试」。
+
+     ⚠ 登录失败只回 `bad_credentials`，**不区分**「账号不存在」和「密码错」——
+       否则这里成了一个账号枚举接口（拿字典跑一遍就知道谁注册过）。
+       注册侧的 `email_taken` 无法避免：注册本来就必须拒绝重复邮箱。 */
+  if (p === '/api/hm/register' || p === '/api/hm/login') {
+    if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
+    if (!(await rateOk(ip))) {
+      return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
+    }
+    const body = await readBody(req);
+    const email = String((body && body.email) || '').trim();
+    const password = String((body && body.password) || '');
+    if (!email || !password) {
+      return send(res, 400, JSON.stringify({ ok: false, error: 'email_and_password_required' }));
+    }
+    const r = p === '/api/hm/register'
+      ? await hmRegister(email, password)
+      : await hmLogin(email, password);
+    if (r.error) {
+      /* 400 = 调用方自己的输入不合法（改一下就能好）；
+         401 = 凭据不被接受（账号已被注册 / 邮箱或密码不对 / 库里没这行）。 */
+      const clientErr = (r.error === 'email_invalid' || r.error === 'password_invalid');
+      const payload = { ok: false, error: r.error };
+      /* detail 只在**输入不合法**时给 —— 那是帮助用户改对的提示。
+         凭据类错误的 detail 可能是库的原始报文，含表名/列名，不外泄。 */
+      if (clientErr && r.detail) payload.detail = r.detail;
+      return send(res, clientErr ? 400 : 401, JSON.stringify(payload));
+    }
+    /* token 只在响应体里回一次，**不落服务端日志** —— 它是 bearer 凭据。 */
+    return send(res, 200, JSON.stringify({ ok: true, sub: r.sub, token: r.token }));
+  }
+
   if (p === '/api/hm/play') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
     if (!(await rateOk(ip))) {
