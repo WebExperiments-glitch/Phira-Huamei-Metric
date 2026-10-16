@@ -24,17 +24,17 @@
  *   社区通用写法，别自己造词 —— 音游玩家看的是社区术语，不是教科书英语。
  * ============================================================ */
 
-import { lang as langStore } from './settings.js?v=V0.10.0.0';
-import common from './i18n/common.js?v=V0.10.0.0';
-import home from './i18n/home.js?v=V0.10.0.0';
-import app from './i18n/app.js?v=V0.10.0.0';
-import charter from './i18n/charter.js?v=V0.10.0.0';
-import user from './i18n/user.js?v=V0.10.0.0';
-import data from './i18n/data.js?v=V0.10.0.0';
-import legal from './i18n/legal.js?v=V0.10.0.0';
-import settings from './i18n/settings.js?v=V0.10.0.0';
-import version from './i18n/version.js?v=V0.10.0.0';
-import download from './i18n/download.js?v=V0.10.0.0';
+import { lang as langStore } from './settings.js?v=V0.11.0.0';
+import common from './i18n/common.js?v=V0.11.0.0';
+import home from './i18n/home.js?v=V0.11.0.0';
+import app from './i18n/app.js?v=V0.11.0.0';
+import charter from './i18n/charter.js?v=V0.11.0.0';
+import user from './i18n/user.js?v=V0.11.0.0';
+import data from './i18n/data.js?v=V0.11.0.0';
+import legal from './i18n/legal.js?v=V0.11.0.0';
+import settings from './i18n/settings.js?v=V0.11.0.0';
+import version from './i18n/version.js?v=V0.11.0.0';
+import download from './i18n/download.js?v=V0.11.0.0';
 
 /* ══════════════════════════════════════════════════════════════
  * 字典：按页面分片，在这里合并
@@ -108,6 +108,13 @@ export function onLangChange(fn) { _subs.add(fn); return () => _subs.delete(fn);
  * 找不到时**返回 key 本身**而不是空串 —— 页面上会直接看到 `set.foo`，
  * 一眼就知道漏翻了，比悄悄显示空白好。
  */
+/* ⚠⚠ 插值**默认不转义**是故意的（2026-10-13 审计后确认保留）：
+   有的调用点就是要插 HTML（`msg.innerHTML=t("app.punch.preview",{r:…})`），
+   默认转义会把它们全变成字面量。
+   但这也意味着：**往 vars 里塞用户可控内容的调用点，必须自己先 esc**。
+   现核对过全部调用点，传的都是自己算出来的数字/固定文案；
+   新增调用点时如果 vars 里出现用户输入（谱名、昵称、邮箱），
+   在调用处 esc 一遍再传，不要改这里。 */
 export function t(key, vars) {
   const bag = DICT[currentLang()] || DICT.zh;
   let s = bag[key];

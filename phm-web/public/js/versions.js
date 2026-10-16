@@ -20,6 +20,47 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.0', date: '2026-10-16',
+    zh: [
+      '<b>安全加固</b>（由授权白帽测试驱动）：修掉「写入限流在生产环境完全失效」——'
+        + '此前连发 70 次请求也不会被拦，因为限流计数写进了一个<b>不可写的文件</b>，'
+        + '每次都从零开始数。现在改为进程内计数，并给所有超限响应加上标准的 '
+        + '<code>Retry-After</code> 头。',
+      '<b>登录/注册加上三重限流</b>：每个 IP 每分钟 5 次、每个<b>邮箱</b>每分钟 3 次、全局每分钟 20 次。'
+        + '按邮箱限流是关键——否则换一个 IP 就能对同一个账号无限试密码。',
+      '<b>成绩上传的校验补上了</b>：一行「成绩」现在必须同时有曲名和准确度才会被接受。'
+        + '此前只填曲名就能写入，测试期间被灌进了 3 行垃圾数据（已清理）。'
+        + '单次提交行数上限从 500 降到 20。',
+      '<b>取谱代理改为路径白名单</b>：只放行客户端真正用到的几个前缀'
+        + '（谱面元数据、自己的成绩、服务条款、音频），'
+        + '不再是把上游整个 API 面透传出去。',
+      '<b>谱面贡献加上并发上限</b>：每次贡献都会让服务端下载谱面并复算，'
+        + '现在最多同时 2 个，超出会明确告知稍后重试。',
+      '修复一个<b>潜在的跨站脚本风险</b>：内联的转义函数漏掉了单引号，'
+        + '现已与主模块的版本完全一致。',
+    ],
+    en: [
+      '<b>Security hardening</b> (driven by an authorised white-hat test): fixed "write rate limiting '
+        + 'completely dead in production" — 70 consecutive requests used to pass unchecked because the '
+        + 'counter was written to an <b>unwritable file</b>, so every request restarted from zero. '
+        + 'Counters now live in-process, and every throttled response carries the standard '
+        + '<code>Retry-After</code> header.',
+      '<b>Three-way rate limiting on login/register</b>: 5/min per IP, 3/min per <b>email</b>, '
+        + '20/min globally. The per-email dimension is the important one — otherwise rotating IPs '
+        + 'gives unlimited password guesses against one account.',
+      '<b>Score uploads are validated again</b>: a "score" row now needs both a chart name and an '
+        + 'accuracy before it is accepted. Previously a chart name alone was enough, and three junk '
+        + 'rows were written during testing (now cleaned up). Per-request row cap lowered from 500 to 20.',
+      '<b>The chart proxy is now a path allowlist</b>: only the prefixes the client actually uses '
+        + '(chart metadata, your own scores, terms of service, audio) are forwarded — no longer a '
+        + 'pass-through to the whole upstream API.',
+      '<b>Concurrency cap on chart contributions</b>: each contribution makes the server download and '
+        + 'recompute a chart, so at most 2 run at once; extra requests are told to retry shortly.',
+      'Fixed a <b>latent XSS risk</b>: the inline escaping function missed the single quote, and now '
+        + 'matches the main module exactly.',
+    ],
+  },
+  {
     v: 'V0.10.0.0', date: '2026-10-12',
     zh: [
       '账号改成<b>我们自己的</b>了。注册只要<b>邮箱 + 密码</b>，不再需要收验证码；'

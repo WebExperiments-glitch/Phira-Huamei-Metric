@@ -42,7 +42,13 @@ const WEB_ROOT = path.join(ROOT, 'public');
 const PORT = process.env.PORT || 3000;
 const BOOT_AT = new Date().toISOString();
 
-/* ── 服务端自有存储（验证沙箱持久性 + 限流计数）── */
+/* ── 服务端自有存储：**已废弃**（2026-10-13）──
+ * 原来这里用 `server-store.json` 存限流计数与写入计数。问题是
+ * `storeSave` 是 `try { writeFileSync } catch {}` —— 线上沙箱的部署目录
+ * **不可写**，失败被静默吞掉，于是每次请求都从空计数开始：
+ * 限流上限（30 次/分/IP）**一次都没触发过**（审计实测 70 连发全 200）。
+ * 现已改为进程内计数（lib/ratelimit.mjs），不再依赖文件系统。
+ * 这两个函数留着只为文档价值，**不要再引用**。 */
 const STORE = path.join(ROOT, 'server-store.json');
 function storeLoad() {
   try { return JSON.parse(fs.readFileSync(STORE, 'utf8')); }
@@ -133,69 +139,23 @@ function sanitize(row, required) {
   return Object.keys(out).length ? out : null;
 }
 
-/* ── 限流：每 IP 每分钟 N 次写 + 全局每分钟上限 ──
- * 文件读改写必须串行（并发请求会互相覆盖丢计数）；
- * 同时加全局桶，防止 X-Forwarded-For 被伪造时无限刷。 */
-const RL_WINDOW = 60_000, RL_MAX = 30, RL_GLOBAL_MAX = 240;
-/* /api/analyze 的独立配额 —— 它是全站最贵的路径（下载 60MB + 同步跑引擎）。
-   分开计数，避免它把普通写入的配额吃光，也便于单独调严。 */
-const ANALYZE_PER_IP = 10, ANALYZE_GLOBAL = 60, ANALYZE_INFLIGHT = 3;
-let analyzeInflight = 0;
-let storeQueue = Promise.resolve();
-function withStore(fn) {
-  const run = storeQueue.then(() => {
-    const s = storeLoad();
-    const out = fn(s);
-    storeSave(s);
-    return out;
-  });
-  storeQueue = run.catch(() => {});
-  return run;
-}
-function rateOk(ip) {
-  return withStore((s) => {
-    const now = Date.now();
-    s.hits = s.hits || {};
-    let global = 0;
-    /* 顺手回收过期键，避免文件随 IP 无限膨胀。
-       ⚠ 全局计数**只统计写桶**（无前缀的键）。
-       以前这里把所有键都加起来，于是 /api/stats（'S:'）和 /api/analyze（'A:'）
-       的计数也被算进「写请求全局上限 240/分」—— 流量一大，正常写入会被
-       只读统计请求挤掉。三个配额本来就是分开设计的，这里必须一致。 */
-    for (const k of Object.keys(s.hits)) {
-      const arr = (s.hits[k] || []).filter(t => now - t < RL_WINDOW);
-      if (arr.length) {
-        s.hits[k] = arr;
-        /* 'S:'=统计、'A:'=分析，各有独立配额，不计入写请求的全局桶 */
-        if (!/^[SA]:/.test(k)) global += arr.length;
-      } else delete s.hits[k];
-    }
-    const arr = s.hits[ip] || [];
-    if (arr.length >= RL_MAX) return false;
-    if (global >= RL_GLOBAL_MAX) return false;
-    arr.push(now);
-    s.hits[ip] = arr;
-    return true;
-  });
-}
-
-/* /api/stats 的配额。
-   它是只读的、便宜的，但没有理由允许被高频刷（审计实测连发 5 次全部 200）。
-   页面只在加载时调一次，60 次/分钟/IP 绰绰有余。
-   键前缀 'S:' 与写入('' 前缀)、分析('A:' 前缀)分开计数，互不挤占。 */
-const STATS_PER_IP = 60;
-function statsOk(ip) {
-  return withStore((s) => {
-    const now = Date.now();
-    s.hits = s.hits || {};
-    const key = 'S:' + ip;
-    const arr = (s.hits[key] || []).filter(t => now - t < RL_WINDOW);
-    if (arr.length >= STATS_PER_IP) { s.hits[key] = arr; return false; }
-    arr.push(now);
-    s.hits[key] = arr;
-    return true;
-  });
-}
+/* ── 限流 ──
+ * ⚠⚠ 2026-10-13 授权渗透审计实测：**原限流在生产环境完全失效**。
+ *   连发 70 个 /api/stats 全 200（源码写的上限 60/分），
+ *   连发 35 个 /api/contribute 也全 200（上限 30/分）。
+ *   根因：计数写进 server-store.json，而线上沙箱的部署目录**不可写**，
+ *   `storeSave` 的 `try{…}catch{}` 把失败吞了 → 每次请求都从空计数开始。
+ *   不是阈值定得松，是**计数压根没存下来**。
+ *
+ *   现已改成进程内计数（lib/ratelimit.mjs），不碰文件系统。
+ *   配额、过闸句柄、429 标准头也都在那个模块里 —— 集中一份策略，
+ *   免得同一个路径在两处写着不同的限额。
+ *   代价：进程重启清零；多实例部署时各算各的。边界见该文件顶部说明。 */
+import {
+  limit as rlLimit, tryEnter, leave as rlLeave, snapshot as rlSnapshot,
+  RL, RL_WINDOW, rlHeaders,
+  gateWrite, gateStats, gateProxy, gateAnalyze, gateAuth,
+} from './lib/ratelimit.mjs';
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
@@ -259,6 +219,29 @@ const SEC_HEADERS = {
     "object-src 'none'",
   ].join('; '),
 };
+
+/* ── 过闸 ──
+ * ⚠⚠ 为什么必须包这一层：`limit()` 返回的是**对象**（带 remaining/resetMs，
+ *   用来填 Retry-After），而 `if (!obj)` 永远为真。这和本文件里记了很久的
+ *   「`if (!rateOk(ip))` 恒为 false」是**同一类 bug** —— 都是把非布尔值
+ *   直接丢进 if，于是 429 从来没出现过。包一层，调用点就只能写
+ *       if (!(await gate(res, gateWrite(ip), '…'))) return;
+ *   结构上没法拉胯。
+ * 没过头时**在这里就把 429 发掉**（带 RFC 6585 标准头），调用方只管 return。 */
+function sendRl429(res, msg, r) {
+  res.writeHead(429, Object.assign({
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+  }, SEC_HEADERS, rlHeaders(r)));
+  res.end(JSON.stringify({ error: msg }));
+}
+async function gate(res, promise, msg) {
+  const r = await promise;
+  if (r.ok) return true;
+  sendRl429(res, msg, r);
+  return false;
+}
+
 
 function send(res, code, body, type) {
   res.writeHead(code, Object.assign({
@@ -377,15 +360,33 @@ const server = http.createServer(async (req, res) => {
   /* ── huamei：取谱代理 ──
      客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。
      ⚠ 只放行 GET/HEAD；⚠ **剥掉入站 Authorization** —— 那是用户的 huamei
-     token，绝不能转给第三方。 */
+     token，绝不能转给第三方。
+
+     ⚠⚠ 路径白名单（2026-10-13 审计新增）。
+     原来是「`/api/phira/*` 一律透传」，等于把我们的出口 IP + 带宽白送给
+     任何人去批量采集上游（审计实测：`/api/phira/user/1` 能透传到
+     `api.phira.cn`，而**上游零限流**，25 连发全 200）。
+     现在只放行客户端**真正会用到**的那几个前缀，其余 404。
+     ⚠ 加新前缀前先确认客户端确实在调 —— 白名单放宽永远比事后收紧容易。 */
+  const PHIRA_PROXY_PATHS = [
+    '/chart',            // 谱面元数据 + 文件直链
+    '/chart/',           // 同上（带 id）
+    '/record/best/',     // 自己的最佳成绩
+    '/record/recent',    // 最近成绩
+    '/terms/',           // 服务条款 / 隐私政策（客户端要读）
+    '/music',            // 谱面音频
+  ];
   if (p === '/api/phira' || p.startsWith('/api/phira/')) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return send(res, 403, JSON.stringify({ error: 'only GET/HEAD' }));
     }
-    if (!(await statsOk(ip))) {
-      return send(res, 429, JSON.stringify({ error: 'rate limit' }));
-    }
+    if (!(await gate(res, gateProxy(ip), 'rate limit'))) return;
     const sub = p.replace(/^\/api\/phira/, '') || '/';
+    /* 前缀不匹配 → 404，**不要**透传。
+       ⚠ 用 startsWith 而不是正则：前缀是写死的字面量，正则只会引入意外。 */
+    if (!PHIRA_PROXY_PATHS.some(pre => sub === pre || sub.startsWith(pre))) {
+      return send(res, 404, JSON.stringify({ error: 'path not allowed' }));
+    }
     const target = PHIRA_API + sub + (url.search || '');
     /* ⚠ 条件请求头必须转发。
        客户端用 HEAD `/terms/{locale}.txt` + `If-Modified-Since` 判断
@@ -437,10 +438,15 @@ const server = http.createServer(async (req, res) => {
        注册侧的 `email_taken` 无法避免：注册本来就必须拒绝重复邮箱。 */
   if (p === '/api/hm/register' || p === '/api/hm/login') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
-    if (!(await rateOk(ip))) {
-      return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
-    }
-    const body = await readBody(req);
+    /* ⚠⚠ 审计实测（2026-10-13）：这里**没有任何速率限制** ——
+       10 连发登录全部 401，零 429、零锁定。配合「注册不验证邮箱所有权」
+       （发现 4），等于开放了在线密码爆破。
+       现在三重限流：per-IP 5/分 + per-邮箱 3/分 + 全局 20/分。
+       per-邮箱那一维是关键 —— 否则攻击者换 XFF 就能对同一个目标全速试。 */
+    const pre = await readBody(req);
+    if (!(await gate(res, gateAuth(ip, pre && pre.email),
+        '尝试太频繁，请一分钟后再试（每邮箱每分钟最多 ' + RL.loginEmail + ' 次）'))) return;
+    const body = pre;
     const email = String((body && body.email) || '').trim();
     const password = String((body && body.password) || '');
     if (!email || !password) {
@@ -465,9 +471,7 @@ const server = http.createServer(async (req, res) => {
 
   if (p === '/api/hm/play') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
-    if (!(await rateOk(ip))) {
-      return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
-    }
+    if (!(await gate(res, gateWrite(ip), 'rate limit: 每分钟最多 ' + RL.writeIp + ' 次写入'))) return;
     /* ⚠⚠ **不要依赖入站的 `Authorization` 头。**
        实测（2026-10-11）：同样的 token，本机整条链全绿，线上**每一步都 401**，
        且降级解析 JWT 时报 `no_sub` —— 说明**线上收到的那个值根本不是我们发出去的 token**。
@@ -540,17 +544,20 @@ const server = http.createServer(async (req, res) => {
   /* 写入网关：校验 + 限流 + 落库 */
   if (p === '/api/contribute' || p === '/api/scores') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
-    /* ⚠ 必须 await。withStore() 返回的是 **Promise**，而 Promise 永远是真值 ——
-       `if (!rateOk(ip))` 恒为 false，429 从来没出现过。只读路径用的是
-       `await statsOk(ip)`（所以那边是好的），写路径漏了 await，等于写接口裸奔。
-       这个 bug 是 2026-10-11 审计实测出来的：连打 35 次非法贡献全部 200。 */
-    if (!(await rateOk(ip))) {
-      return send(res, 429, JSON.stringify({ error: 'rate limit: 每分钟最多 ' + RL_MAX + ' 次写入' }));
-    }
+    /* ⚠ 必须 await。限流函数返回 Promise，而 Promise 永远是真值 ——
+       `if (!rateOk(ip))` 恒为 false，429 从来没出现过。
+       这个 bug 2026-10-11 就审计出来过（写路径漏 await），
+       2026-10-13 又实测到 35 连发全 200 —— 因为计数写不进只读文件系统，
+       于是连 await 对了也不生效。两件事现在一起修了。 */
+    if (!(await gate(res, gateWrite(ip), 'rate limit: 每分钟最多 ' + RL.writeIp + ' 次写入'))) return;
     const body = await readBody(req);
     const rows = Array.isArray(body) ? body : (body && Array.isArray(body.rows) ? body.rows : null);
     if (!rows) return send(res, 400, JSON.stringify({ error: 'body must be an array or {rows:[]}' }));
-    if (rows.length > 500) return send(res, 413, JSON.stringify({ error: '单次最多 500 行' }));
+    /* ⚠ 单次行数从 500 降到 20。
+       500 行/请求是把"灌水"放大了 25 倍 —— 审计实测一次请求就能塞进
+       500 行垃圾。正常用法一次最多几十行（一个玩家的 recent 成绩），
+       20 行足够；真要批量，前端自己分页发，限流会兜住。 */
+    if (rows.length > 20) return send(res, 413, JSON.stringify({ error: '单次最多 20 行' }));
 
     /* ⚠ 两条路径的必填字段**不一样**，别共用一份。
        早先这里对两条路径都用 `['chart_name']`，而 /api/contribute 的前端发的是
@@ -558,8 +565,14 @@ const server = http.createServer(async (req, res) => {
        实测 POST {chart_id,name,ref_const} → {"accepted":0,"rejected":1}。
        定数缓存因此长期停止增长，而 /api/analyze（搜索后点「算」）不走这条校验，
        所以症状看起来像"有时候能算出来、有时候不能"。
-       定数是按 chart_id 关联的，谱名只是展示字段，不该当必填。 */
-    const required = p === '/api/contribute' ? ['chart_id'] : ['chart_name'];
+       定数是按 chart_id 关联的，谱名只是展示字段，不该当必填。
+
+       ⚠⚠ scores 路径加严：2026-10-13 审计实测，只填 `chart_name` 就能落库，
+       于是白帽往里灌了 `SECURITY_PROBE` / `123` / 12 万个 'A' 三行垃圾
+       （`acc` 等字段被 sanitize 丢掉，行却照样写进去了）。
+       一行"成绩"至少要有**曲名 + 准确度**才有意义，所以两个都要必填。
+       这不会误伤正常提交：/user 页发的就是 `{chart_name, acc, client_id, source}`。 */
+    const required = p === '/api/contribute' ? ['chart_id'] : ['chart_name', 'acc'];
     const clean = rows.map(r => sanitize(r, required)).filter(Boolean);
 
     if (!clean.length) {
@@ -574,8 +587,20 @@ const server = http.createServer(async (req, res) => {
        没有就用服务端自己的引擎复算一遍（下载谱面 → 与提交值比对），
        一致才写，且**写入的是服务端算出来的值**。 */
     if (p === '/api/contribute') {
+      /* ⚠⚠ 在途并发上限。审计实测（2026-10-13）：`/api/analyze` 有
+         `analyzeInflight <= 3` 的保护，而 `/api/contribute` **没有**。
+         每一行通过校验的 chart_id 都会让服务端向 Phira 下载 ≤60MB 谱面
+         并**同步**跑引擎 —— 同步跑会卡住整个 Node 事件循环，
+         多来几个并发全站一起变慢。20 行 × 并发 = 可观的带宽与 CPU。
+         所以：拿不到名额就直接 503，**不要**占着事件循环排队。 */
+      if (!tryEnter('contribute', CONTRIBUTE_INFLIGHT)) {
+        return send(res, 503, JSON.stringify({
+          error: '服务端正在复算其他贡献，请稍后再试',
+        }));
+      }
       let verified = 0, skipped = 0, failed = 0, mismatched = 0;
       const notes = [];
+      try {
       for (const row of clean) {
         try {
           const existing = await dbFetch(
@@ -621,6 +646,11 @@ const server = http.createServer(async (req, res) => {
           notes.push(String(e.message || e).slice(0, 100));
         }
       }
+      } finally {
+        /* ⚠ 必须 finally —— 漏了 leave，一次抛错就把名额永久吃掉，
+           之后所有 contribute 全部 503。 */
+        rlLeave('contribute');
+      }
       return send(res, 200, JSON.stringify({
         received: rows.length, accepted: clean.length, rejected: rows.length - clean.length,
         written: verified, skipped, failed,
@@ -640,11 +670,7 @@ const server = http.createServer(async (req, res) => {
   }
   /* 聚合统计（服务端转发 RPC，前端可不再直连） */
   if (p === '/api/stats') {
-    if (!(await statsOk(ip))) {
-      return send(res, 429, JSON.stringify({
-        error: '请求过于频繁（每分钟最多 ' + STATS_PER_IP + ' 次）',
-      }));
-    }
+    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
     /* ⚠ 失败时**不要**把数据库响应正文带给客户端 —— 那里面可能有
        PostgREST 的报错细节（表名、字段、约束）。日志里留，对外只给一句。 */
@@ -667,9 +693,7 @@ const server = http.createServer(async (req, res) => {
    *   分页不是好看，是库变大之后还能用。
    */
   if (p === '/api/charts' && url.searchParams.has('page')) {
-    if (!(await statsOk(ip))) {
-      return send(res, 429, JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
-    }
+    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const qp = url.searchParams;
     const sort = qp.get('sort') || 'chart_id';
     /* ⚠ 排序字段必须白名单。这里直接进查询串，不挡就是把查询表达式交给调用方。 */
@@ -696,18 +720,14 @@ const server = http.createServer(async (req, res) => {
      注意它要扫全表 —— 所以**不是**按 IP 高频配额，而是与 stats 共用一份只读配额，
      并且故意不放进任何自动轮询路径。 */
   if (p === '/api/summary') {
-    if (!(await statsOk(ip))) {
-      return send(res, 429, JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
-    }
+    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const sum = await dbSummary();
     if (!sum) return send(res, 502, JSON.stringify({ error: 'cache unavailable' }));
     return send(res, 200, JSON.stringify(Object.assign({ engineVer: ENGINE_VER }, sum)));
   }
 
   if (p === '/api/charts') {
-    if (!(await statsOk(ip))) {
-      return send(res, 429, JSON.stringify({ error: '请求过于频繁，请稍后再试' }));
-    }
+    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const ids = String(url.searchParams.get('ids') || '')
       .split(',').map(x => Number(x.trim()))
       .filter(x => Number.isInteger(x) && x > 0)
@@ -760,42 +780,25 @@ const server = http.createServer(async (req, res) => {
       return send(res, 400, JSON.stringify({ error: 'chart_id 无效' }));
     }
 
-    const box = await withStore(s => {
-      const now = Date.now();
-      s.hits = s.hits || {};
-      for (const k of Object.keys(s.hits)) {
-        const arr = (s.hits[k] || []).filter(t => now - t < RL_WINDOW);
-        if (arr.length) s.hits[k] = arr; else delete s.hits[k];
-      }
-      const key = 'A:' + ip;
-      const arr = s.hits[key] || [];
-      let global = 0;
-      for (const k of Object.keys(s.hits)) if (k.slice(0, 2) === 'A:') global += s.hits[k].length;
-      if (arr.length >= ANALYZE_PER_IP) return { ok: false, why: 'per-ip' };
-      if (global >= ANALYZE_GLOBAL) return { ok: false, why: 'global' };
-      arr.push(now); s.hits[key] = arr;
-      return { ok: true };
-    });
-    if (!box.ok) {
-      return send(res, 429, JSON.stringify({
-        error: box.why === 'per-ip'
-          ? '算得太频繁了（每分钟最多 ' + ANALYZE_PER_IP + ' 次），请稍后再试'
-          : '当前请求过多，请稍后再试',
-      }));
-    }
+    /* 配额：per-IP + 全局。放行**才**记数 —— 上面 chart_id 无效的请求
+       已经先返回了，不会白扣一笔（以前是先扣配额再发现 chart_id 无效）。 */
+    if (!(await gate(res, gateAnalyze(ip), '算得太频繁了（每分钟最多 ' + RL.analyzeIp + ' 次），请稍后再试'))) return;
 
     /* ⚠ 并发闸门的「检查 + 自增」必须在**同一个 tick** 里完成。
        以前是：先检查 analyzeInflight，然后 await readBody() 让出事件循环，
        读完 body 才自增 —— 中间这一让，后面排队的请求全都看到了同一个
        旧值、一起通过检查，"最多 3 个同时算" 于是只是注释。
        现在读 body 在前、检查与自增紧挨着，中间没有 await，检查才是真的。 */
-    if (analyzeInflight >= ANALYZE_INFLIGHT) {
+    // 并发闸门见下方 tryEnter（"检查+自增"必须在同一个 tick 完成）
+    if (false) {
       return send(res, 503, JSON.stringify({
         error: '服务器正在计算其他谱面（最多同时 ' + ANALYZE_INFLIGHT + ' 个），请几秒后重试',
         retryAfter: 3,
       }));
     }
-    analyzeInflight++;
+    if (!tryEnter('analyze', ANALYZE_INFLIGHT)) {
+      return send(res, 503, JSON.stringify({ error: '服务器正在计算其他谱面（最多同时 ' + ANALYZE_INFLIGHT + ' 个），请几秒后重试', retryAfter: 3 }));
+    }
     try {
       const ex = await dbFetch('/phm_charts?chart_id=eq.' + cid + '&select=*');
       if (ex.ok && ex.body && ex.body !== '[]') {
@@ -816,7 +819,7 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       return send(res, 502, JSON.stringify({ error: String(e.message || e).slice(0, 140) }));
     } finally {
-      analyzeInflight--;
+      rlLeave('analyze');
     }
   }
 
