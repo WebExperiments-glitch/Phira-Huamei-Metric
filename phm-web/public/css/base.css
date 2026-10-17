@@ -639,3 +639,15 @@ button.primary:hover {
 /* 等宽样式只给英文（.exe / 路径 / 字段名）——
    中文套等宽会回退成小号宋体，和周围黑体不一致。 */
 .mono-en { font-family: var(--font-mono); font-size: .95em; }
+
+/* ── 字体 / 字号切换（评审 H）──
+   ⚠ 只覆盖变量、不改任何具体选择器 —— 全站所有用到 --font-display 的地方
+     自动跟着变，不用挨个改。这就是当初把字体抽成令牌的用处。
+   ⚠ 字号用 html 的 font-size 百分比来缩放，配合各处的 rem/em 生效；
+     写死 px 的地方（少数）不跟随 —— 那些是刻意固定的（比如表格数字）。 */
+:root[data-font="sans"] {
+  --font-display: var(--font-body);
+}
+:root[data-size="s"] { font-size: 93.75%; }   /* 15px 基准 */
+:root[data-size="m"] { font-size: 100%;  }    /* 16px 基准（默认） */
+:root[data-size="l"] { font-size: 109.4%; }   /* 17.5px */

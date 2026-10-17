@@ -40,6 +40,18 @@ export default {
     'set.lang': '界面语言',
     'set.lang.desc': '默认跟随浏览器；手动选择后会固定下来。',
 
+    /* ── 字体与字号（评审 H）──
+       ⚠ 正文永远是系统黑体，这两项只影响标题字体与整体缩放。 */
+    'set.font': '标题字体',
+    'set.font.desc': '正文始终用系统黑体。切换只影响标题与数字。',
+    'set.font.serif': '宋体标题',
+    'set.font.sans': '全黑体',
+    'set.size': '字号',
+    'set.size.desc': '只影响正文与说明，标题按比例跟随。',
+    'set.size.s': '小',
+    'set.size.m': '中',
+    'set.size.l': '大',
+
     /* ── 页脚语言开关（显示"另一种语言"的名字，所以两种语言里都一样）── */
     'foot.lang': 'English',
     'foot.lang.back': '中文',
@@ -121,6 +133,17 @@ export default {
     'set.theme.light': 'Light',
     'set.lang': 'Language',
     'set.lang.desc': 'Follows your browser by default; pinning it here overrides that.',
+
+    /* ── typeface & size (review H) ── */
+    'set.font': 'Heading typeface',
+    'set.font.desc': 'Body text always uses the system sans stack. This only affects headings and numerals.',
+    'set.font.serif': 'Serif headings',
+    'set.font.sans': 'All sans',
+    'set.size': 'Text size',
+    'set.size.desc': 'Affects body and captions; headings scale with it.',
+    'set.size.s': 'Small',
+    'set.size.m': 'Medium',
+    'set.size.l': 'Large',
 
     /* ── footer language switch ── */
     'foot.lang': 'English',

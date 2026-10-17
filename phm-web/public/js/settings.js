@@ -38,12 +38,14 @@ export const KEYS = Object.freeze({
   ownPrefix: 'phm_own_',         /* + uid =「我声明这是本人的账号」 */
   theme:     'phm_theme',        /* 外观："dark" / "light" / "auto" */
   lang:      'phm_lang',         /* 界面语言："zh" / "en" */
+  font:      'phm_font',         /* 标题字体："serif"（默认，思源宋体标题）/ "sans"（全黑体） */
+  size:      'phm_size',         /* 字号档位："s" / "m"（默认）/ "l" */
 });
 
 /** 固定键（不含 own 前缀键）—— 用于清空与导出。 */
 export const PLAIN_KEYS = Object.freeze([
   KEYS.optin, KEYS.notice, KEYS.cid, KEYS.phiraName, KEYS.phiraUid, KEYS.lastUid,
-  KEYS.theme, KEYS.lang,
+  KEYS.theme, KEYS.lang, KEYS.font, KEYS.size,
 ]);
 
 /** 本地存储表的行名 —— ⚠ 值是 **i18n 词条名**，不是给人看的字面量。
@@ -246,6 +248,34 @@ export function applyTheme(mode) {
   return isDark;
 }
 
+/** 标题字体：「serif」= 思源宋体标题（默认），「sans」= 全黑体。
+ *  ⚠ 只切 --font-display，正文永远是系统黑体 —— 评审的原话是
+ *    「正文用系统黑体栈」，所以不做「全站换字体」那种大动作。
+ *  ⚠ 霞鹜文楷这一档要等字体子集做完再加（全量中文 10MB 级，会拖死首屏）。 */
+export const font = {
+  get() { return get(KEYS.font, 'serif'); },
+  set(v) {
+    const ok = v === 'sans' ? 'sans' : 'serif';
+    set(KEYS.font, ok);
+    applyFont(ok);
+    return true;
+  },
+  apply: applyFont,
+};
+
+/** 字号三档。用 html 的 font-size 百分比缩放，**不逐个选择器改 px** ——
+ *  全站本来就以 rem/em 为主，改一处全站跟随。 */
+export const size = {
+  get() { return get(KEYS.size, 'm'); },
+  set(v) {
+    const ok = (v === 's' || v === 'l') ? v : 'm';
+    set(KEYS.size, ok);
+    applySize(ok);
+    return true;
+  },
+  apply: applySize,
+};
+
 export const theme = {
   get() { return get(KEYS.theme, 'auto'); },
   set(m) { set(KEYS.theme, m); applyTheme(m); return true; },
@@ -259,6 +289,20 @@ export const theme = {
   },
   apply: applyTheme,
 };
+
+/** 把字体档位写到 <html data-font> 上 —— CSS 里靠它覆盖 --font-display。 */
+export function applyFont(v) {
+  try {
+    document.documentElement.setAttribute('data-font', v === 'sans' ? 'sans' : 'serif');
+  } catch (e) { /* 没有 document 的环境（单测）静默跳过 */ }
+}
+
+/** 把字号档位写到 <html data-size> 上。 */
+export function applySize(v) {
+  try {
+    document.documentElement.setAttribute('data-size', (v === 's' || v === 'l') ? v : 'm');
+  } catch (e) { /* 同上 */ }
+}
 
 /* 系统主题变化时，只有 'auto' 模式需要跟着变 */
 try {

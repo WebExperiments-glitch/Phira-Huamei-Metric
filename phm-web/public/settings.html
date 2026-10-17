@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.11.0.8">
+<meta name="app-version" content="V0.11.1.0">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -13,8 +13,12 @@
      读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.11.0.8">
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+/* 字体与字号也在这里应用 —— 和主题同理，等模块跑完再设会闪一下。
+   键名与 /js/settings.js 的 KEYS.font / KEYS.size 一致。 */
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f);el.setAttribute("data-size",z);})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.11.1.0">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -216,6 +220,31 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
             </div>
           </div>
         </div>
+        <div class="srow">
+          <div class="sl">
+            <b data-i18n="set.font">标题字体</b>
+            <span data-i18n="set.font.desc">正文始终用系统黑体。切换只影响标题与数字。</span>
+          </div>
+          <div class="sc">
+            <div class="seg" id="fontSeg">
+              <button type="button" data-font="serif" data-i18n="set.font.serif">宋体标题</button>
+              <button type="button" data-font="sans" data-i18n="set.font.sans">全黑体</button>
+            </div>
+          </div>
+        </div>
+        <div class="srow">
+          <div class="sl">
+            <b data-i18n="set.size">字号</b>
+            <span data-i18n="set.size.desc">只影响正文与说明，标题按比例跟随。</span>
+          </div>
+          <div class="sc">
+            <div class="seg" id="sizeSeg">
+              <button type="button" data-size="s" data-i18n="set.size.s">小</button>
+              <button type="button" data-size="m" data-i18n="set.size.m">中</button>
+              <button type="button" data-size="l" data-i18n="set.size.l">大</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -352,9 +381,9 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.11.0.8';
-import * as S from '/js/settings.js?v=V0.11.0.8';
-import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.11.0.8';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.11.1.0';
+import * as S from '/js/settings.js?v=V0.11.1.0';
+import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.11.1.0';
 
 renderNav('settings');
 applyStatic();
@@ -387,6 +416,35 @@ $('#themeSeg').addEventListener('click', function (e) {
   if (!b) return;
   S.theme.set(b.getAttribute('data-mode'));
   paintTheme();
+paintFont();
+paintSize();
+});
+
+/* 字体 / 字号 —— 与主题同一套写法：paint = 只翻按钮态，set = 落库 + 应用 */
+function paintFont() {
+  const v = S.font.get();
+  document.querySelectorAll('#fontSeg button').forEach(function (b) {
+    b.classList.toggle('on', b.getAttribute('data-font') === v);
+  });
+}
+$('#fontSeg').addEventListener('click', function (e) {
+  const b = e.target.closest('button[data-font]');
+  if (!b) return;
+  S.font.set(b.getAttribute('data-font'));
+  paintFont();
+});
+
+function paintSize() {
+  const v = S.size.get();
+  document.querySelectorAll('#sizeSeg button').forEach(function (b) {
+    b.classList.toggle('on', b.getAttribute('data-size') === v);
+  });
+}
+$('#sizeSeg').addEventListener('click', function (e) {
+  const b = e.target.closest('button[data-size]');
+  if (!b) return;
+  S.size.set(b.getAttribute('data-size'));
+  paintSize();
 });
 
 /* ═══════════ 语言 ═══════════ */

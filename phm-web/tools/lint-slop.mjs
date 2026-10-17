@@ -80,10 +80,13 @@ for (const f of FILES) {
   const lines = readFileSync(f.abs, 'utf8').split('\n');
   /* 主题防闪烁脚本是**唯一**的例外：它必须同步跑在 <head> 里，
      早于任何模块加载，所以不可能走 settings.js。它的键名有专门的一致性检查。 */
-  const isThemeBoot = /phm_theme/.test(lines.join('\n')) && f.rel.endsWith('.html');
+  /* 这份豁免要同时覆盖主题、字体、字号：三者都必须在 <head> 里**同步**应用
+     （等模块加载完再设会闪一下），所以不可能走 settings.js。
+     键名仍以 js/settings.js 的 KEYS 为真源，这里只是**读**。 */
+  const isBootScript = /phm_(theme|font|size)/.test(lines.join('\n')) && f.rel.endsWith('.html');
   let inBlock = false;   /* 块注释可能跨行，行首不一定带 * */
   lines.forEach((l, i) => {
-    if (isThemeBoot && /phm_theme/.test(l)) return;
+    if (isBootScript && /phm_(theme|font|size)/.test(l)) return;
     const t = l.trim();
     const opens = /\/\*/.test(l) && !/\*\//.test(l);
     const isComment = inBlock || opens || t.startsWith('//') || t.startsWith('*') ||

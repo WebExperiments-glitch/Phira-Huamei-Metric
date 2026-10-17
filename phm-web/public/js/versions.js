@@ -20,6 +20,27 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.1.0', date: '2026-10-17',
+    zh: [
+      '设置 → 外观与语言里新增两项：<b>标题字体</b>（宋体标题 / 全黑体）和<b>字号</b>（小 / 中 / 大）。'
+        + '正文始终用系统黑体，切换只影响标题与比例 —— 选了会记住，刷新和换页都保持。',
+      '<b>不会闪一下</b>：和主题一样在 <code>&lt;head&gt;</code> 里同步应用，'
+        + '所以打开页面时不会先看到默认字体再跳变。',
+      '霞鹜文楷这一档暂时没做 —— 全量中文单字重就是 10MB 级，会直接把首屏拖死。'
+        + '要先像标题字体那样做子集（现在那套是 11.2MB → 83KB）才能加。',
+    ],
+    en: [
+      'Settings → Appearance now has <b>heading typeface</b> (serif / all-sans) and '
+        + '<b>text size</b> (small / medium / large). Body text always stays on the system sans stack; '
+        + 'the setting is remembered across reloads and pages.',
+      '<b>No flash of default styling</b>: like the theme, it is applied synchronously in '
+        + '<code>&lt;head&gt;</code>, so you never see the default font and then a jump.',
+      'The LXGW WenKai option is not included yet — a full Chinese weight is on the order of 10 MB and '
+        + 'would wreck first paint. It needs subsetting first, the same way the heading font is '
+        + '11.2 MB → 83 KB today.',
+    ],
+  },
+  {
     v: 'V0.11.0.8', date: '2026-10-17',
     zh: [
       '<b>去掉了一处重复入口</b>：算定数页在拖放区下面还有一行「我的成绩」「找谱师」，'
