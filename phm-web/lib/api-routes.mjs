@@ -16,6 +16,29 @@ import { generateApiKey, hashApiKey } from './api-keys.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
+const ALL_SCOPES = ['charts:read', 'analyses:write', 'usage:read'];
+
+function hasScope(who, scope) {
+  return who.kind !== 'key' || (Array.isArray(who.scopes) && who.scopes.includes(scope));
+}
+function requireScope(res, who, scope) {
+  if (hasScope(who, scope)) return true;
+  apiErr(res, 403, 'permission_error', 'insufficient_scope',
+    'API key is missing required scope: ' + scope, { 'x-required-scope': scope });
+  return false;
+}
+function normalizeScopesInput(v) {
+  if (v == null) return ALL_SCOPES.slice();
+  if (!Array.isArray(v) || !v.length) return null;
+  const out = [...new Set(v.filter(s => ALL_SCOPES.includes(s)))];
+  return out.length ? out : null;
+}
+function expiryFromDays(v) {
+  if (v == null || v === '') return null;
+  const days = Number(v);
+  if (!Number.isInteger(days) || days < 1 || days > 3650) return undefined;
+  return new Date(Date.now() + days * DAY).toISOString();
+}
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
@@ -78,7 +101,7 @@ function formatReport(r) {
 export function makeApiRoutes(deps) {
   const {
     send, readBody, dbFetch, dbPutChart, recompute, hmWhoami,
-    writeSecret, engineVer, serviceVersion,
+    writeSecret, engineVer, serviceVersion, openapiSpec,
   } = deps;
 
   async function callApiRpc(name, args) {
@@ -99,7 +122,11 @@ export function makeApiRoutes(deps) {
     try { j = JSON.parse(r.body); } catch { return { error: 'key_lookup_failed' }; }
     if (!j || !j.ok) return { error: 'invalid_api_key' };
     if (j.revoked) return { error: 'revoked_api_key' };
-    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash };
+    if (j.expires_at && Date.parse(j.expires_at) <= Date.now()) return { error: 'expired_api_key' };
+    const scopes = Array.isArray(j.scopes) && j.scopes.length
+      ? j.scopes.filter(s => ALL_SCOPES.includes(s))
+      : ALL_SCOPES.slice();
+    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes };
   }
 
   async function gateApi(res, who, ip, { analysis = false } = {}) {
@@ -142,6 +169,7 @@ export function makeApiRoutes(deps) {
     if (!Number.isInteger(id) || id < 1) {
       return apiErr(res, 400, 'invalid_request_error', 'invalid_chart_id', 'chart_id must be a positive integer');
     }
+    if (!requireScope(res, who, 'charts:read')) return;
     if (!(await gateApi(res, who, ip))) return;
     const t0 = Date.now();
     const r = await dbFetch('/phm_charts?chart_id=eq.' + id + '&select=*');
@@ -162,6 +190,7 @@ export function makeApiRoutes(deps) {
     if (!Number.isInteger(id) || id < 1) {
       return apiErr(res, 400, 'invalid_request_error', 'invalid_chart_id', 'chart_id must be a positive integer');
     }
+    if (!requireScope(res, who, 'analyses:write')) return;
     if (!(await gateApi(res, who, ip, { analysis: true }))) return;
     const t0 = Date.now();
     const ex = await dbFetch('/phm_charts?chart_id=eq.' + id + '&select=*');
@@ -195,6 +224,7 @@ export function makeApiRoutes(deps) {
   async function handleUsage(req, res, who) {
     let ownerId = null;
     if (who.kind === 'key') {
+      if (!requireScope(res, who, 'usage:read')) return;
       if (!who.ownerId) {
         return json(res, 200, {
           key_id: who.id, today: 0, week: 0, month: 0, by_endpoint: {},
@@ -212,9 +242,17 @@ export function makeApiRoutes(deps) {
     if (!r.ok) return apiErr(res, 502, 'server_error', 'usage_unavailable', 'usage summary temporarily unavailable');
     let s = {};
     try { s = JSON.parse(r.body); } catch { /* 保底 */ }
-    return json(res, 200, Object.assign({ key_id: who.id || null, account: ownerId }, s, {
+    const out = Object.assign({ key_id: who.id || null, account: ownerId }, s, {
       quota: { hourly: RL.apiKeyHour, analysisDaily: RL.apiAnalyzeDay },
-    }));
+    });
+    if (who.kind === 'key') {
+      const kr = await callApiRpc('hm_api_usage_key_summary', { p_key_id: who.id });
+      if (kr.ok) {
+        const ku = safeJson(kr.body);
+        if (ku) out.key_usage = ku;
+      }
+    }
+    return json(res, 200, out);
   }
 
   async function requireAccount(req, res) {
@@ -231,20 +269,46 @@ export function makeApiRoutes(deps) {
     return who;
   }
 
+  async function metaSet(owner, id, scopes, expiresAt) {
+    const r = await callApiRpc('hm_api_key_meta_set', {
+      p_owner: owner, p_id: id, p_scopes: scopes, p_expires_at: expiresAt,
+    });
+    if (!r.ok) return { ok: false, missing: r.status === 404 };
+    const j = safeJson(r.body);
+    return { ok: !!(j && j.ok), missing: false };
+  }
+
+  function keyOut(k) {
+    return {
+      id: k.id, name: k.name, hint: k.hint,
+      scopes: Array.isArray(k.scopes) && k.scopes.length ? k.scopes : ALL_SCOPES.slice(),
+      created_at: k.created_at, last_used_at: k.last_used_at || null,
+      expires_at: k.expires_at || null,
+    };
+  }
+
   async function handleKeys(req, res, method, path) {
     const who = await requireAccount(req, res);
     if (!who) return;
+
     if (method === 'GET' && path === '/keys') {
       const r = await callApiRpc('hm_api_key_list', { p_owner: who.sub });
       if (!r.ok) return apiErr(res, 502, 'server_error', 'keys_unavailable', 'key list temporarily unavailable');
       let keys = [];
-      try { keys = (JSON.parse(r.body) || []).filter(k => !k.revoked_at); } catch { /* 保底 */ }
+      try { keys = (JSON.parse(r.body) || []).filter(k => !k.revoked_at).map(keyOut); } catch { /* 保底 */ }
       /* 只返回有效 Key：吊销后从列表消失（历史用量仍然保留）。 */
-      return json(res, 200, { keys, max_keys: 100 });
+      return json(res, 200, { keys, max_keys: 100, scopes: ALL_SCOPES });
     }
+
     if (method === 'POST' && path === '/keys') {
       const body = await readBody(req, 16 * 1024);
       const name = String(body && body.name || 'default').trim().slice(0, 40) || 'default';
+      const scopes = normalizeScopesInput(body && body.scopes);
+      if (!scopes) return apiErr(res, 400, 'invalid_request_error', 'invalid_scopes',
+        'scopes must be a non-empty subset of: ' + ALL_SCOPES.join(', '));
+      const expiresAt = expiryFromDays(body && body.expires_in_days);
+      if (expiresAt === undefined) return apiErr(res, 400, 'invalid_request_error', 'invalid_expiry',
+        'expires_in_days must be an integer between 1 and 3650');
       const k = generateApiKey();
       const r = await callApiRpc('hm_api_key_create', {
         p_owner: who.sub, p_name: name, p_hint: k.hint, p_hash: k.hash,
@@ -256,21 +320,92 @@ export function makeApiRoutes(deps) {
         }
         return apiErr(res, 502, 'server_error', 'key_create_failed', 'could not create key');
       }
-      let j = {};
-      try { j = JSON.parse(r.body); } catch { /* 保底 */ }
-      return json(res, 201, { id: j.id, name: j.name || name, hint: j.hint || k.hint, key: k.key });
+      const j = safeJson(r.body) || {};
+      const meta = await metaSet(who.sub, j.id, scopes, expiresAt);
+      if (!meta.ok && !meta.missing) {
+        await callApiRpc('hm_api_key_revoke', { p_owner: who.sub, p_id: j.id }).catch(() => {});
+        return apiErr(res, 502, 'server_error', 'key_meta_failed', 'could not save key scopes/expiry');
+      }
+      return json(res, 201, {
+        id: j.id, name: j.name || name, hint: j.hint || k.hint, key: k.key,
+        scopes, expires_at: expiresAt, metaAvailable: meta.ok,
+        warning: meta.ok ? undefined : 'key metadata table is not migrated; key uses all scopes and never expires',
+      });
     }
+
+    const rot = /^\/keys\/([0-9a-f-]{36})\/rotate$/.exec(path);
+    if (method === 'POST' && rot) {
+      const list = await callApiRpc('hm_api_key_list', { p_owner: who.sub });
+      if (!list.ok) return apiErr(res, 502, 'server_error', 'keys_unavailable', 'key list temporarily unavailable');
+      let keys = [];
+      try { keys = (JSON.parse(list.body) || []).filter(k => !k.revoked_at); } catch { /* 保底 */ }
+      const old = keys.find(k => k.id === rot[1]);
+      if (!old) return apiErr(res, 404, 'invalid_request_error', 'key_not_found', 'key not found');
+      const scopes = Array.isArray(old.scopes) && old.scopes.length ? old.scopes : ALL_SCOPES.slice();
+      const expiresAt = old.expires_at && Date.parse(old.expires_at) > Date.now() ? old.expires_at : null;
+      const k = generateApiKey();
+      const c = await callApiRpc('hm_api_key_create', {
+        p_owner: who.sub, p_name: old.name, p_hint: k.hint, p_hash: k.hash,
+      });
+      if (!c.ok) return apiErr(res, 502, 'server_error', 'key_create_failed', 'could not create replacement key');
+      const cj = safeJson(c.body) || {};
+      const meta = await metaSet(who.sub, cj.id, scopes, expiresAt);
+      const rev = await callApiRpc('hm_api_key_revoke', { p_owner: who.sub, p_id: old.id });
+      if (!meta.ok && !meta.missing) {
+        await callApiRpc('hm_api_key_revoke', { p_owner: who.sub, p_id: cj.id }).catch(() => {});
+        return apiErr(res, 502, 'server_error', 'key_meta_failed', 'could not copy key scopes');
+      }
+      if (!rev.ok) {
+        await callApiRpc('hm_api_key_revoke', { p_owner: who.sub, p_id: cj.id }).catch(() => {});
+        return apiErr(res, 502, 'server_error', 'key_revoke_failed', 'replacement created but old key could not be revoked');
+      }
+      return json(res, 201, {
+        id: cj.id, name: old.name, hint: k.hint, key: k.key,
+        scopes, expires_at: expiresAt, metaAvailable: meta.ok, rotated_from: old.id,
+      });
+    }
+
     const m = /^\/keys\/([0-9a-f-]{36})$/.exec(path);
-    if (m && (method === 'PATCH' || method === 'DELETE')) {
-      if (method === 'PATCH') {
-        const body = await readBody(req, 16 * 1024);
-        const name = String(body && body.name || '').trim().slice(0, 40);
-        if (!name) return apiErr(res, 400, 'invalid_request_error', 'invalid_name', 'name is required');
-        const r = await callApiRpc('hm_api_key_rename', { p_owner: who.sub, p_id: m[1], p_name: name });
+    if (m && method === 'PATCH') {
+      const body = await readBody(req, 16 * 1024);
+      const hasName = typeof (body && body.name) === 'string' && body.name.trim();
+      const hasScopes = !!(body && Object.prototype.hasOwnProperty.call(body, 'scopes'));
+      const hasExpiry = !!(body && Object.prototype.hasOwnProperty.call(body, 'expires_in_days'));
+      if (!hasName && !hasScopes && !hasExpiry) {
+        return apiErr(res, 400, 'invalid_request_error', 'nothing_to_update', 'provide name, scopes or expires_in_days');
+      }
+      if (hasName) {
+        const r = await callApiRpc('hm_api_key_rename', { p_owner: who.sub, p_id: m[1], p_name: hasName.trim().slice(0, 40) });
         const j = r.ok ? safeJson(r.body) : null;
         if (!j || !j.ok) return apiErr(res, 404, 'invalid_request_error', 'key_not_found', 'key not found');
-        return json(res, 200, { ok: true });
       }
+      if (hasScopes || hasExpiry) {
+        const scopes = hasScopes ? normalizeScopesInput(body.scopes) : null;
+        if (hasScopes && !scopes) return apiErr(res, 400, 'invalid_request_error', 'invalid_scopes',
+          'scopes must be a non-empty subset of: ' + ALL_SCOPES.join(', '));
+        /* 未给 scopes 时沿用旧值：先读列表 */
+        let current = null;
+        if (!hasScopes) {
+          const list = await callApiRpc('hm_api_key_list', { p_owner: who.sub });
+          if (list.ok) {
+            const keys = (safeJson(list.body) || []).filter(k => !k.revoked_at);
+            current = keys.find(k => k.id === m[1]) || null;
+          }
+        }
+        const finalScopes = scopes || (current && current.scopes) || ALL_SCOPES.slice();
+        let expiresAt = hasExpiry ? expiryFromDays(body.expires_in_days) : (current ? current.expires_at : null);
+        if (expiresAt === undefined) return apiErr(res, 400, 'invalid_request_error', 'invalid_expiry',
+          'expires_in_days must be an integer between 1 and 3650');
+        const meta = await metaSet(who.sub, m[1], finalScopes, expiresAt || null);
+        if (meta.missing) return apiErr(res, 409, 'invalid_request_error', 'meta_unavailable',
+          'key metadata table is not migrated; run db/api-v2.sql first');
+        if (!meta.ok) return apiErr(res, 502, 'server_error', 'key_meta_failed', 'could not update key scopes/expiry');
+        return json(res, 200, { ok: true, scopes: finalScopes, expires_at: expiresAt || null });
+      }
+      return json(res, 200, { ok: true });
+    }
+
+    if (m && method === 'DELETE') {
       const r = await callApiRpc('hm_api_key_revoke', { p_owner: who.sub, p_id: m[1] });
       const j = r.ok ? safeJson(r.body) : null;
       if (!j || !j.ok) return apiErr(res, 404, 'invalid_request_error', 'key_not_found', 'key not found');
@@ -280,40 +415,8 @@ export function makeApiRoutes(deps) {
   }
 
   function openapi() {
-    return {
-      openapi: '3.1.0',
-      info: { title: 'P.H.M. API', version: 'v1', description: 'Phira / Phigros chart difficulty reference API', 'x-service-version': serviceVersion || null },
-      servers: [{ url: 'https://phm.app.workbuddy.host/api/v1' }],
-      components: {
-        securitySchemes: {
-          bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'sk-...' },
-        },
-        schemas: {
-          Chart: {
-            type: 'object',
-            properties: {
-              chart_id: { type: 'integer' }, name: { type: 'string' }, level: { type: 'string' },
-              difficulty: { type: 'number', nullable: true }, ref_const: { type: 'number', nullable: true },
-              ref_official: { type: 'number', nullable: true }, ps_score: { type: 'number', nullable: true },
-              engine_ver: { type: 'string' }, engine_build: { type: 'string' },
-              analyzed: { type: 'boolean' }, cached: { type: 'boolean' },
-            },
-          },
-          Error: {
-            type: 'object',
-            properties: { error: { type: 'object', properties: { type: { type: 'string' }, code: { type: 'string' }, message: { type: 'string' } } } },
-          },
-        },
-      },
-      paths: {
-        '/meta': { get: { summary: 'Service build metadata', responses: { 200: { description: 'api/service/engine versions' } } } },
-        '/charts/{chart_id}': { get: { summary: 'Read a cached chart', security: [{}, { bearer: [] }], parameters: [{ name: 'chart_id', in: 'path', required: true, schema: { type: 'integer' } }], responses: { 200: { description: 'Chart or { analyzed:false }' } } } },
-        '/analyses': { post: { summary: 'Analyse a chart and cache the result', security: [{}, { bearer: [] }], requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['chart_id'], properties: { chart_id: { type: 'integer' } } } } } }, responses: { 200: { description: 'Chart' }, 429: { description: 'Rate limited' } } } },
-        '/usage': { get: { summary: 'Usage for the current key', security: [{ bearer: [] }], responses: { 200: { description: 'Usage summary' } } } },
-        '/keys': { get: { summary: 'List API keys', security: [{ bearer: [] }], responses: { 200: { description: 'Keys' } } }, post: { summary: 'Create an API key', security: [{ bearer: [] }], responses: { 201: { description: 'Created; plaintext key returned once' } } } },
-        '/keys/{id}': { patch: { summary: 'Rename a key', security: [{ bearer: [] }], responses: { 200: { description: 'OK' } } }, delete: { summary: 'Revoke a key', security: [{ bearer: [] }], responses: { 200: { description: 'OK' } } } },
-      },
-    };
+    /* 单一契约：api/openapi.json。再在代码里维护一份必然漂移。 */
+    return openapiSpec || { openapi: '3.1.0', info: { title: 'P.H.M. API', version: '1.0.0' }, paths: {} };
   }
 
   async function handle(req, res, ip) {
@@ -357,8 +460,11 @@ export function makeApiRoutes(deps) {
     const who = await identify(req);
     if (who.error) {
       const status = who.error === 'key_lookup_failed' ? 503 : 401;
-      return apiErr(res, status, 'authentication_error', who.error,
-        who.error === 'key_lookup_failed' ? 'key store temporarily unavailable' : 'invalid API key');
+      const msg = who.error === 'expired_api_key' ? 'API key has expired'
+        : who.error === 'revoked_api_key' ? 'API key has been revoked'
+        : who.error === 'key_lookup_failed' ? 'key store temporarily unavailable'
+        : 'invalid API key';
+      return apiErr(res, status, 'authentication_error', who.error, msg);
     }
 
     if (req.method === 'GET' && /^\/charts\/[^/]+$/.test(p)) {

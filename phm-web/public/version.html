@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.13.2.2">
+<meta name="app-version" content="V0.14.0.0">
 <title>版本历史 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. Standard 的版本历史：每个版本修了什么、改了什么。只列用户能感知的变化。">
@@ -19,8 +19,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.13.2.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.2.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.14.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.14.0.0">
 <style>
 /* ── 版本列表：一条时间线 ──
    设计上刻意**不用彩色徽标**：唯一的强调色只留给"最新"那一条，
@@ -80,8 +80,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER } from '/js/ui.js?v=V0.13.2.2';
-import { RELEASES } from '/js/versions.js?v=V0.13.2.2';
+import { renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER } from '/js/ui.js?v=V0.14.0.0';
+import { RELEASES } from '/js/versions.js?v=V0.14.0.0';
 
 renderNav('settings');
 applyStatic();
