@@ -238,7 +238,8 @@ export function makeApiRoutes(deps) {
       const r = await callApiRpc('hm_api_key_list', { p_owner: who.sub });
       if (!r.ok) return apiErr(res, 502, 'server_error', 'keys_unavailable', 'key list temporarily unavailable');
       let keys = [];
-      try { keys = JSON.parse(r.body); } catch { /* 保底 */ }
+      try { keys = (JSON.parse(r.body) || []).filter(k => !k.revoked_at); } catch { /* 保底 */ }
+      /* 只返回有效 Key：吊销后从列表消失（历史用量仍然保留）。 */
       return json(res, 200, { keys, max_keys: 100 });
     }
     if (method === 'POST' && path === '/keys') {
