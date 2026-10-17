@@ -20,6 +20,42 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.1', date: '2026-10-17',
+    zh: [
+      '<b>限流重做了一遍</b>：之前的限流在生产环境其实<b>一次都没生效过</b> —— '
+        + '计数写在一个不可写的文件里，每次请求都从零开始数。现在计数放在云端数据库，'
+        + '并且按「身份优先、IP 兜底」来分桶（IP 在网络代理后面本来就不可信）。<br>'
+        + '实测：连续发 25 次超过 20 次/分的上限时，会稳定收到 429 并带一个'
+        + '<code>Retry-After</code> 告诉你几秒后可以再试。',
+      '<b>登录/注册加了按邮箱的限流</b>：每 IP 每分钟 5 次、每个<b>邮箱</b>每分钟 3 次、'
+        + '全局每分钟 20 次。按邮箱那一维是关键 —— 否则换个网络环境就能对同一个账号'
+        + '无限试密码。',
+      '<b>成绩提交的校验收紧了</b>：一行成绩必须同时有曲名和准确度才会被接收，'
+        + '单次最多 20 行（原来 500 行）。',
+      '<b>取谱代理改成路径白名单</b>：只转发客户端真正用到的几个接口，'
+        + '不再把上游整个 API 面暴露出去。',
+      '数据库不可用时：<b>写入和登录会明确报 503「服不可用」</b>（而不是假装被限流），'
+        + '只读页面照常工作。',
+    ],
+    en: [
+      '<b>Rate limiting was rebuilt</b>: the previous version <b>never actually worked in '
+        + 'production</b> — counters were written to a file that cannot be written to, so every '
+        + 'request started counting from zero. Counters now live in the cloud database and are keyed '
+        + 'by <b>identity first, IP second</b> (IPs are inherently unreliable behind proxies).<br>'
+        + 'Measured: sending 25 requests past the 20/min limit reliably returns 429 with a '
+        + '<code>Retry-After</code> telling you when to retry.',
+      '<b>Per-email limits on login/register</b>: 5/min per IP, 3/min per <b>email</b>, '
+        + '20/min globally. The per-email dimension matters — otherwise switching networks gives '
+        + 'unlimited password guesses at one account.',
+      '<b>Score submission validation tightened</b>: a row needs both a chart name and an accuracy, '
+        + 'and a single request is capped at 20 rows (was 500).',
+      '<b>The chart proxy is now a path allowlist</b>: only the endpoints the client actually uses '
+        + 'are forwarded, instead of the whole upstream API surface.',
+      'When the database is unreachable: <b>writes and logins return an explicit 503</b> '
+        + '(instead of pretending to be rate-limited), while read-only pages keep working.',
+    ],
+  },
+  {
     v: 'V0.11.0.0', date: '2026-10-16',
     zh: [
       '<b>安全加固</b>（由授权白帽测试驱动）：修掉「写入限流在生产环境完全失效」——'
