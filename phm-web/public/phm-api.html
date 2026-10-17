@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.13.2.1">
+<meta name="app-version" content="V0.13.2.2">
 <title>P.H.M. API 客户端 · 单文件</title>
 <meta name="description" content="P.H.M. 单文件 API 客户端：填 API Key 即可查询/分析 Phira 谱面难度。零依赖，一个 HTML 文件。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -215,8 +215,18 @@ footer a{color:var(--fg3)}
     try { data = await res.json(); } catch (e) {}
     if (!res.ok) {
       var e = data && data.error ? data.error : null;
-      var msg = e ? (e.code + ': ' + e.message) : ('HTTP ' + res.status);
-      if (res.status === 401) msg = 'API Key 无效或已吊销——请到开放平台确认';
+      var code = e && e.code ? e.code : '';
+      var msg = e ? (code + ': ' + e.message) : ('HTTP ' + res.status);
+      if (res.status === 401) {
+        if (code === 'account_token_invalid') {
+          msg = '服务端 API 版本不一致：它仍在用旧代码校验 Key（不是你的 Key 失效）。请让站点重新部署最新版本后再试。';
+        } else if (code === 'invalid_api_key') {
+          msg = '服务端不认识这把 Key。常见原因：复制时少了字符、Key 已被吊销、或创建 Key 的环境与当前 API 地址不一致。'
+            + '可点「显示」对照开放平台里的掩码，或新建一把 Key。';
+        } else {
+          msg = 'API Key 未被接受（' + (code || '401') + '）';
+        }
+      }
       if (res.status === 429) msg = '额度用完了，稍后再试（' + (res.headers.get('retry-after') || '?') + ' 秒）';
       throw new Error(msg);
     }
@@ -287,11 +297,24 @@ footer a{color:var(--fg3)}
     });
   }
 
+  var serverInfo = null;
+  async function checkServer() {
+    try {
+      var r = await fetch(getBase() + '/meta');
+      serverInfo = r.ok ? await r.json() : { error: r.status };
+    } catch (e) { serverInfo = { error: 'network' }; }
+  }
+  function serverLabel() {
+    if (!serverInfo) return '';
+    if (serverInfo.error) return '服务端版本不可用（/meta ' + serverInfo.error + '）';
+    return '服务端 v' + (serverInfo.service || '?') + ' · API ' + (serverInfo.api || '?');
+  }
+
   async function refreshUsage() {
     if (!getKey()) return;
     try {
       var u = await callApi('/usage');
-      status($('#connStatus'), '已连接 · 今日 ' + (u.today == null ? '—' : u.today) + ' 次 · 本小时额度 ' + (u.quota ? u.quota.hourly : '—'), 'ok');
+      status($('#connStatus'), '已连接 · 今日 ' + (u.today == null ? '—' : u.today) + ' 次 · 本小时额度 ' + (u.quota ? u.quota.hourly : '—') + (serverLabel() ? ' · ' + serverLabel() : ''), 'ok');
     } catch (e) {
       status($('#connStatus'), 'Key 已保存，但用量读取失败：' + String(e.message || e), 'err');
     }
@@ -303,7 +326,7 @@ footer a{color:var(--fg3)}
     if (!/^sk-[0-9a-f]{32}$/.test(v)) return status($('#connStatus'), '格式不对：应为 sk- 加 32 位十六进制', 'err');
     try { localStorage.setItem(LS_KEY, v); } catch (e) { return status($('#connStatus'), '浏览器禁止存储，请检查隐私设置', 'err'); }
     paintKey(); status($('#connStatus'), '已保存，正在验证…', '');
-    refreshUsage();
+    checkServer().then(refreshUsage);
   };
   $('#clearKey').onclick = function () {
     try { localStorage.removeItem(LS_KEY); } catch (e) {}
@@ -344,7 +367,10 @@ footer a{color:var(--fg3)}
 
   $('#apiBase').value = getBase();
   paintKey(); paintRecent();
-  if (getKey()) refreshUsage();
+  checkServer().then(function () {
+    if (getKey()) refreshUsage();
+    else if (serverLabel()) status($('#connStatus'), serverLabel(), '');
+  });
 })();
 </script>
 </body>

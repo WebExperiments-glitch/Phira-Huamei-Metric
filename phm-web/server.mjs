@@ -382,9 +382,13 @@ const contributeRoutes = makeContributeRoutes({
 });
 
 /* API v1 装配：认证 / 配额 / 用量 / Key 管理都在 lib/api-routes.mjs。 */
+/* 服务端构建版本 —— /api/v1/meta 用它和静态页面版本对账，
+   避免「页面是新的、server.mjs 是旧的」这种部署错位被当成 Key 失效。 */
+const SERVICE_VER = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8')).version;
+
 const apiRoutes = makeApiRoutes({
   send, readBody, dbFetch, dbPutChart, recompute, hmWhoami,
-  writeSecret: WRITE_SECRET, engineVer: ENGINE_VER,
+  writeSecret: WRITE_SECRET, engineVer: ENGINE_VER, serviceVersion: SERVICE_VER,
 });
 
 const server = http.createServer(async (req, res) => {

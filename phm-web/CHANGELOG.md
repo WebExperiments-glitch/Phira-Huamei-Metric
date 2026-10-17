@@ -26,6 +26,7 @@
 
 | 版本 | 日期 | commit | 内容 |
 |---|---|---|---|
+| `V0.13.2.2` | 2026-10-17 | 本次 | **部署对账 + Key 诊断**。① 新增公开 `GET /api/v1/meta`（api/service/engine/build time），OpenAPI 同步；服务端版本从 package.json 读取，用于识别「静态页面新、server.mjs 旧」的部署错位。② 单文件客户端启动/保存 Key 时读 `/meta`，在连接状态里显示服务端版本。③ 401 不再一律说「Key 无效/已吊销」：区分 `account_token_invalid`（服务端 API 版本过旧）、`invalid_api_key`（复制少字符/吊销/环境不一致，提示对照掩码或新建）、其他 401 显示 code。 |
 | `V0.13.2.1` | 2026-10-17 | 本次 | **吊销 Key 从列表消失 + 创建 Key 弹窗**。① `GET /api/v1/keys` 与平台页列表都过滤 `revoked_at`，删除后立即消失；「有效 Key」计数同步。② 创建 Key 由页内嵌块改为模态弹窗：一次性明文 + 复制 + 安全提示，关闭后不可再查；顶部 toast「API key 已创建」。③ 删除成功 toast「API key 已删除」。 |
 | `V0.13.2.0` | 2026-10-17 | 本次 | **API 开放平台入口**。① 顶栏新增 `/platform`（中英 i18n：API 开放平台 / API Platform），位置在「设置」与「下载」之间。② 新页面 `platform.html`：左侧「用量信息 / API keys / 接口文档 / 单文件客户端 / 返回站点」；默认落在用量信息（今日 / 7 天 / 30 天 / 有效 Key + 按接口分布条形图 + 免费额度）；API keys 视图复用 Key 创建/改名/吊销与一次性明文展示。③ 未登录显示平台介绍 + 登录入口；登录后显示账号与真实用量。④ `/developer` 保留为旧链接别名，文档/客户端/页脚链接统一指向 `/platform`。⑤ smoke 增加该页、导航入口断言 7→8；i18n 新增 `nav.platform` 中英两条。 |
 | `V0.13.1.0` | 2026-10-17 | 本次 | **单文件 API 客户端**。① 新增 `public/phm-api.html`：零依赖单 HTML，内联样式/JS；填 `sk-` API Key 后调用 `/api/v1/charts/{id}` 与 `/api/v1/analyses`，展示双标度、标称、PS、物量、引擎与原始 JSON；Key/API 地址存 localStorage，支持最近查询、主题切换、用量读取。② 自带「下载本文件」（fetch 当前文件生成 Blob；file:// 下回退 outerHTML）与 Windows 客户端入口；`/download` 页新增单文件客户端卡片。③ 路由 `/phm-api`、白名单、smoke 新增该页。 |
