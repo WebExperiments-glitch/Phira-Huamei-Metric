@@ -20,6 +20,24 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.7', date: '2026-10-17',
+    zh: [
+      '<b>修复「拖入谱面后算不出定数」</b>。结果卡的渲染函数里残留了一行对已删除变量的引用，'
+        + '于是<b>每算一次就抛一次错，整张结果卡渲染不出来</b> —— 表现就是拖进去没反应。'
+        + '已删掉那行孤儿代码。',
+      '这类问题的共性是「重构时删了变量、忘了删引用」。今天已经因此出过两次事故，'
+        + '两次都是同一个动作。',
+    ],
+    en: [
+      '<b>Fixed "dropping a chart produces no result"</b>. The result-card renderer still referenced '
+        + 'a variable that a refactor had removed, so <b>every analysis threw and the whole card '
+        + 'failed to render</b> — which looks like nothing happens when you drop a file. The orphan '
+        + 'reference is gone.',
+      'The common thread is "a refactor deleted a variable but left a reference behind". '
+        + 'That has now caused two outages in one day.',
+    ],
+  },
+  {
     v: 'V0.11.0.6', date: '2026-10-17',
     zh: [
       '<b>两个最关键的按钮终于像按钮了</b>：首页「开始算定数」和下载页「下载 Windows 版」'
