@@ -20,6 +20,23 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.3', date: '2026-10-17',
+    zh: [
+      '<b>注册恢复正常</b>：上一版把「注册需要邮箱验证码」的服务端逻辑打开了，'
+        + '但唯一的注册入口是 Windows 客户端，它还没带验证码字段 —— 于是注册直接失败。'
+        + '现在验证码改成<b>开关控制、默认关闭</b>，注册回到原来的样子；'
+        + '等客户端加上验证码再打开。',
+      '<b>登录、谱面分析、下载都不受影响。</b>',
+    ],
+    en: [
+      '<b>Registration works again</b>: the previous build turned on the server-side "registration '
+        + 'needs an email code" rule, but the only registration entry point is the Windows client, '
+        + 'which does not send a code yet - so signing up failed. The code requirement is now '
+        + '<b>behind a switch, off by default</b>; it will be turned on once the client supports it.',
+      '<b>Login, chart analysis and downloads are unaffected.</b>',
+    ],
+  },
+  {
     v: 'V0.11.0.2', date: '2026-10-17',
     zh: [
       '<b>修复「谱面分析打不开」</b>：昨晚改限流时误删了两个并发控制用的常量，'

@@ -243,6 +243,8 @@ const codeRoutes = makeCodeRoutes({
   send, gate, gateCode, gateAuth,
   sendCode: hmSendCode, resetPassword: hmResetPassword,
   verifyCode: hmVerifyCode, register: hmRegister, login: hmLogin,
+  /* 见 lib/hm-code-routes.mjs：默认关，客户端跟上验证码后再设 1 */
+  requireCode: process.env.REQUIRE_EMAIL_CODE === '1',
 });
 
 

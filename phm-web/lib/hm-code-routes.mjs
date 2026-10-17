@@ -12,7 +12,8 @@
 /** @param deps `{send, gate, gateCode, gateAuth, readBody, ip, sendCode, resetPassword}`
  *  返回两个可直接 await 的处理函数，参数都是 `(res, body)`。 */
 export function makeCodeRoutes(deps) {
-  const { send, gate, gateCode, gateAuth, sendCode, resetPassword, verifyCode, register, login } = deps;
+  const { send, gate, gateCode, gateAuth, sendCode, resetPassword, verifyCode, register, login,
+    requireCode = false } = deps;
 
   /* ── 发邮箱验证码 ──
      用途只有两个：注册、重置密码。**登录永远不需要验证码**。
@@ -70,10 +71,18 @@ export function makeCodeRoutes(deps) {
     }
     let r;
     if (p === '/api/hm/register') {
-      const code = String((body && body.code) || '').trim();
-      if (!code) return send(res, 400, JSON.stringify({ ok: false, error: 'code_required' }));
-      const v = await verifyCode(email, 'register', code);
-      if (v.error) return send(res, 400, JSON.stringify({ ok: false, error: v.error }));
+      /* ⚠⚠ 开关：REQUIRE_EMAIL_CODE=1 才强制验证码。
+         默认**关**，因为唯一的注册入口是 Windows 客户端（phira/src/login.rs），
+         它还没带 code 字段 —— 现在强制会让 exe 注册直接失败。
+         客户端跟上（加发码按钮 + 验证码输入框）之后再设成 1 打开。
+         ⚠ 关着 = **可以拿别人邮箱批量注册**，这个洞在开关打开前一直存在。
+           只应作为过渡，不该长期关。 */
+      if (requireCode) {
+        const code = String((body && body.code) || '').trim();
+        if (!code) return send(res, 400, JSON.stringify({ ok: false, error: 'code_required' }));
+        const v = await verifyCode(email, 'register', code);
+        if (v.error) return send(res, 400, JSON.stringify({ ok: false, error: v.error }));
+      }
       r = await register(email, password);
     } else {
       r = await login(email, password);
