@@ -20,6 +20,27 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.2', date: '2026-10-17',
+    zh: [
+      '<b>修复「谱面分析打不开」</b>：昨晚改限流时误删了两个并发控制用的常量，'
+        + '而分析接口还在引用它们 —— 于是<b>每请求一次分析，服务进程就退出一次</b>。'
+        + '已补回，并加了一套「把每个接口都打一遍、再确认服务还活着」的回归测试，'
+        + '这类问题不会再无声无息地漏过去。',
+      '⚠ <b>注册现在需要邮箱验证码</b>（登录仍然只要密码）。'
+        + '但<b>网页端的注册表单还没做完</b> —— 在这个版本上注册会提示缺少验证码。'
+        + '已经有账号的话不受影响。',
+    ],
+    en: [
+      '<b>Fixed “chart analysis will not open”</b>: while reworking rate limiting last night I '
+        + 'accidentally deleted two concurrency constants that the analysis endpoint still referenced — '
+        + 'so <b>every analysis request killed the server process</b>. Restored, plus a regression test '
+        + 'that hammers every endpoint and then checks the server is still alive.',
+      '⚠ <b>Registration now requires an email code</b> (login still only needs a password). '
+        + 'The <b>web registration form is not finished yet</b>, so signing up returns “code required” '
+        + 'on this build. Existing accounts are unaffected.',
+    ],
+  },
+  {
     v: 'V0.11.0.1', date: '2026-10-17',
     zh: [
       '<b>限流重做了一遍</b>：之前的限流在生产环境其实<b>一次都没生效过</b> —— '

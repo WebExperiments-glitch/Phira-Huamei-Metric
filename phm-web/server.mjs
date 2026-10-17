@@ -226,6 +226,15 @@ const SEC_HEADERS = {
 
 /* 过闸 —— 实现与理由都在 lib/ratelimit.mjs 的 makeGate()。
    这里只把站点的安全头注进去。 */
+
+/* ⚠⚠ 在途并发上限（与限流是两回事：限流管频率，这里管同时几个）。
+   ⚠ 这两个常量 2026-10-17 被我**误删过** —— 当时把限流配置挪进 lib/ratelimit.mjs，
+      /  一起被带走，而路由还在引用。
+     症状是**一请求 /api/analyze 就抛 ReferenceError、整个进程退出**，
+     全站的谱面分析直接死掉。而冒烟测试不覆盖这条路径，所以 176/0 放过了它。
+     教训：删常量前先 grep 全文件；以及**冒烟必须打一遍所有 API 路由**。 */
+const ANALYZE_INFLIGHT = 3, CONTRIBUTE_INFLIGHT = 2;
+
 const gate = makeGate(SEC_HEADERS);
 
 /* 账号邮件环节（发码 / 重置密码）—— 逻辑在 lib/hm-code-routes.mjs。
@@ -787,13 +796,10 @@ const server = http.createServer(async (req, res) => {
        读完 body 才自增 —— 中间这一让，后面排队的请求全都看到了同一个
        旧值、一起通过检查，"最多 3 个同时算" 于是只是注释。
        现在读 body 在前、检查与自增紧挨着，中间没有 await，检查才是真的。 */
-    // 并发闸门见下方 tryEnter（"检查+自增"必须在同一个 tick 完成）
-    if (false) {
-      return send(res, 503, JSON.stringify({
-        error: '服务器正在计算其他谱面（最多同时 ' + ANALYZE_INFLIGHT + ' 个），请几秒后重试',
-        retryAfter: 3,
-      }));
-    }
+    /* ⚠ 这条闸是「在途并发」，和限流不是一回事：
+       限流管**频率**（每分钟几次），这条管**同时有几个**。
+       `/api/analyze` 会让服务端下载 ≤60MB 谱面并**同步**跑引擎 ——
+       同步跑会卡住整个 Node 事件循环，所以在途数必须封顶。 */
     if (!tryEnter('analyze', ANALYZE_INFLIGHT)) {
       return send(res, 503, JSON.stringify({ error: '服务器正在计算其他谱面（最多同时 ' + ANALYZE_INFLIGHT + ' 个），请几秒后重试', retryAfter: 3 }));
     }
