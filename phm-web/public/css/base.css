@@ -588,15 +588,22 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 主操作：实心琥珀 + 深色字（--brand-ink 是为对比度专门定的令牌）。
    ⚠ 评审写的是「白字」，但本站 --brand 是暖亮琥珀，白字对比度不够；
-     用 --brand-ink（深暖褐）才是达标的写法。 */
+     用 --brand-ink（深暖褐）才是达标的写法。
+   ⚠⚠ 选择器必须包含 `.btn.primary` —— 站内两个主操作（首页「开始算定数」、
+     下载页「下载 Windows 版」）写的是 `class="btn primary"`（两个类、中间空格），
+     不是 `.btn-primary`。第一版只写了 `.btn-primary` 和 `button.primary`，
+     于是这两个**最关键的行动点**完全没吃到样式，还是文字链的样子。 */
 .btn-primary,
+.btn.primary,
 button.primary {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--brand-ink);
   font-weight: 600;
 }
-.btn-primary:hover, button.primary:hover {
+.btn-primary:hover,
+.btn.primary:hover,
+button.primary:hover {
   background: var(--brand-hover);
   border-color: var(--brand-hover);
   color: var(--brand-ink);

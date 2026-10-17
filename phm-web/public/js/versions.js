@@ -20,6 +20,21 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.6', date: '2026-10-17',
+    zh: [
+      '<b>两个最关键的按钮终于像按钮了</b>：首页「开始算定数」和下载页「下载 Windows 版」'
+        + '此前只是带下划线的文字链，而下载是全站最重要的一步。'
+        + '现在是实心琥珀按钮。（上一版补了按钮样式，但选择器漏了这两个元素用的写法，'
+        + '所以没吃到样式 —— 这次补上了。）',
+    ],
+    en: [
+      '<b>The two most important actions finally look like buttons</b>: "Start" on the home page '
+        + 'and "Download for Windows" were plain underlined links, even though downloading is the '
+        + 'single most important step on the site. They are solid amber buttons now. (The previous '
+        + 'build added button styles but its selector missed the markup these two use.)',
+    ],
+  },
+  {
     v: 'V0.11.0.5', date: '2026-10-17',
     zh: [
       '<b>界面里不再出现开发笔记</b>。页脚原来写着「线上引擎：8 维 log1p 特征（NPS / 有效 NPS / '
