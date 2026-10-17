@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.11.1.0">
+<meta name="app-version" content="V0.11.1.1">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -33,7 +33,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.11.1.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.11.1.1">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -206,7 +206,12 @@ padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
    两端标出数值；标记很近时 a 的标签在上、b 的标签在下，避免重叠。
    ⚠ 轨道的对比度不能太弱（评审：像没画完），所以用 inset 描边而不是纯底色。 */
 .meter{--min:0;--max:20;--a:0;--b:0;position:relative;height:10px;
-  border-radius:999px;margin:38px 0 30px;background:var(--card3);
+  border-radius:999px;margin:38px 0 32px;background-color:var(--card3);
+  /* 细刻度：量表 0–20，每一格 = 5% —— 让它看起来**真的是一把尺子**，
+     而不是一根进度条。评审的原话：「分隔线也换成细刻度线，一个主题贯穿」。 */
+  background-image:repeating-linear-gradient(to right,
+    var(--line2) 0 1px, transparent 1px 5%);
+  background-size:100% 6px; background-position:0 100%; background-repeat:no-repeat;
   box-shadow:inset 0 0 0 1px var(--line2)}
 .meter__range{position:absolute;top:0;bottom:0;border-radius:inherit;
   left:calc((var(--min) - 0) / 20 * 100%);width:calc((var(--max) - var(--min)) / 20 * 100%);
@@ -218,6 +223,12 @@ padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 .meter__label{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);
   color:var(--brand);font-size:11.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .meter__pin--b .meter__label{top:calc(100% + 6px);bottom:auto;color:var(--fg2)}
+.meter__gap{position:absolute;top:1px;height:8px;pointer-events:none;
+  left:calc((var(--g1) - 0) / 20 * 100%);width:calc((var(--g2) - var(--g1)) / 20 * 100%);
+  border-top:2px dotted var(--brand);opacity:.9}
+.meter__gap::after{content:attr(data-d);position:absolute;left:50%;top:-14px;
+  transform:translateX(-50%);color:var(--brand);font-size:11px;font-weight:600;
+  white-space:nowrap;font-variant-numeric:tabular-nums}
 .meter__tick{position:absolute;top:16px;transform:translateX(-50%);
   color:var(--fg3);font-size:11px;font-variant-numeric:tabular-nums}
 .meter__tick:first-of-type{transform:none}
@@ -615,7 +626,7 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.11.1.0';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.11.1.1';
 
 /* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
    页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。
@@ -847,6 +858,13 @@ function card(r,idx){
         +(knOff&&knOff.ref!=null
           ?'<span class="meter__pin meter__pin--b"><span class="meter__label">'
             +(isCom?esc(t("app.res.basis.off")):esc(basisName))+' '+f1(knOff.ref)+'</span></span>':'')
+        /* 两个标度之间的**差值**直接画在尺子上（虚线连接 + Δ 数字）——
+           评审的原话：「15.6 和 16.1 各一个标记，中间标出差值」。
+           之前只有文字说明，得读一行字才知道差多少；现在看尺子就知道。 */
+        +(gap!=null&&Math.abs(gap)>=0.05
+          ?'<span class="meter__gap" data-d="Δ'+Math.abs(gap).toFixed(1)+'" style="--g1:'
+            +Math.min(kn.ref,knOff.ref).toFixed(2)+';--g2:'
+            +Math.max(kn.ref,knOff.ref).toFixed(2)+'"></span>':'')
         +'<span class="meter__tick" style="--at:0">'+f1(kn.lo)+'</span>'
         +'<span class="meter__tick" style="--at:100">'+f1(kn.hi)+'</span>'
       +'</div>'

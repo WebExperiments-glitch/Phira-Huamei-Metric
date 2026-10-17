@@ -20,6 +20,24 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.1.1', date: '2026-10-17',
+    zh: [
+      '结果里的那把<b>刻度尺</b>现在真的像一把尺子：底下加了细刻度线（每格 1 个定数点），'
+        + '两个标度之间用虚线连起来，<b>中间直接标出差值</b>（Δ0.5）。'
+        + '以前要看一行文字才知道「社区共识 15.6」和「官谱标度 16.1」差多少，现在看尺子就行。',
+      '同时把站里同一个页面的三个叫法统一了：首页按钮「开始算定数」、首页卡片「进入工作台」、'
+        + '顶栏「算定数」—— 现在一律叫<b>算定数</b>。',
+    ],
+    en: [
+      'The <b>ruler</b> in the result now behaves like a ruler: fine tick marks underneath (one per chart '
+        + 'constant), a dotted connector between the two scales, and <b>the difference labelled right in '
+        + 'the middle</b> (Δ0.5). You used to need a sentence to know how far "community 15.6" sits from '
+        + '"official 16.1"; now you can just look at the ruler.',
+      'Also unified three names for the same page: the home button said "Start analysing", the home card '
+        + 'said "Open the workbench", the nav said "Analyze" — all three now read <b>Analyze</b>.',
+    ],
+  },
+  {
     v: 'V0.11.1.0', date: '2026-10-17',
     zh: [
       '设置 → 外观与语言里新增两项：<b>标题字体</b>（宋体标题 / 全黑体）和<b>字号</b>（小 / 中 / 大）。'
