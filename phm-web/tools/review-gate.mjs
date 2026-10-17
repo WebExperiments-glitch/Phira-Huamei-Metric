@@ -129,7 +129,7 @@ const dbFiles = [];
 })(path.join(WEB, 'db'));
 for (const p of dbFiles) {
   /* 拆成单语句的文件只用于 MCP 逐条执行；整体安全属性由合并版 api-v1.sql 守。 */
-  if (p.includes('db' + path.sep + 'api-v1' + path.sep)) continue;
+  if (/[\\/]api-v[12][\\/]/.test(p)) continue;   /* 单语句拆分文件由合并版守 */
   const sql = fs.readFileSync(p, 'utf8');
   const tables = (sql.match(/create table/gi) || []).length;
   if (tables) {
