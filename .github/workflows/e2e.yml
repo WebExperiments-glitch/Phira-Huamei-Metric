@@ -1,5 +1,8 @@
 name: E2E (browser)
 
+permissions:
+  contents: read
+
 # 浏览器测试要起服务 + Chrome，跑得慢；放夜间和手动触发，不挡日常 PR。
 # 失败会发 GitHub 通知（默认），相当于"站点的自动体检"。
 on:

@@ -1,0 +1,89 @@
+name: Audit
+
+permissions:
+  contents: read
+
+# 最硬的一道 CI：静态审计 + 15 项离线检查 + 全页面浏览器冒烟 + 交互流。
+# main 的分支保护要求 check 与 audit 两个检查都通过。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PHM_WRITE_SECRET: ci-test-write-secret-not-real
+      PHM_TOKEN_SECRET: ci-test-token-secret-not-real
+      PHM_RL_FORCE_DB_DOWN: '1'
+      PHM_SMOKE_OFFLINE: '1'
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Static review gate
+        working-directory: phm-web
+        run: node tools/review-gate.mjs
+
+      - name: Offline checks (15)
+        working-directory: phm-web
+        run: npm run check
+
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Create download fixture (exe is gitignored)
+        working-directory: phm-web
+        run: |
+          node -e "const fs=require('fs');const s=fs.readFileSync('public/js/release.js','utf8');const n=+s.match(/\"bytes\":\s*(\d+)/)[1];fs.mkdirSync('downloads',{recursive:true});fs.writeFileSync('downloads/phira-huamei.exe',Buffer.alloc(n));console.log('fixture bytes',n)"
+
+      - name: Start local server
+        working-directory: phm-web
+        run: |
+          PORT=5199 node server.mjs > /tmp/phm-server.log 2>&1 &
+          echo $! > /tmp/phm-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5199/api/health > /dev/null; then
+              echo "server up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "server failed to start"; cat /tmp/phm-server.log; exit 1
+
+      - name: Smoke (218 · offline mode)
+        working-directory: phm-web
+        run: node tools/smoke-page.mjs http://127.0.0.1:5199
+
+      - name: UI flows (24)
+        working-directory: phm-web
+        run: node tools/test-ui-flows.mjs http://127.0.0.1:5199
+
+      - name: Stop server + show log
+        if: always()
+        run: |
+          if [ -f /tmp/phm-server.pid ]; then kill "$(cat /tmp/phm-server.pid)" 2>/dev/null || true; fi
+          echo '--- server log (tail) ---'
+          tail -n 80 /tmp/phm-server.log || true
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phm-audit-server-log
+          path: /tmp/phm-server.log

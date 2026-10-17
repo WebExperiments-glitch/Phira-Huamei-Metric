@@ -1,0 +1,11 @@
+#!/bin/sh
+# ============================================================
+# pre-push —— 本地最后一道闸门
+# ============================================================
+# 安装：git config core.hooksPath .githooks
+# 绕过：git push --no-verify（不推荐；CI 的 audit + 分支保护仍会拦）
+# ============================================================
+set -e
+cd "$(git rev-parse --show-toplevel)"
+echo "[pre-push] review-gate + npm run check ..."
+node phm-web/tools/preflight.mjs

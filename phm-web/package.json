@@ -6,6 +6,8 @@
   "description": "P.H.M. Standard — 静态前端 + 轻量 Node 服务（零依赖）",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node tools/check.mjs"
+    "check": "node tools/check.mjs",
+    "gate": "node tools/review-gate.mjs",
+    "preflight": "node tools/preflight.mjs"
   }
 }
