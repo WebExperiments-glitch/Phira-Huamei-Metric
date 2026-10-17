@@ -153,7 +153,7 @@ function sanitize(row, required) {
  *   代价：进程重启清零；多实例部署时各算各的。边界见该文件顶部说明。 */
 import {
   limit as rlLimit, tryEnter, leave as rlLeave, snapshot as rlSnapshot,
-  RL, RL_WINDOW, rlHeaders,
+  RL, RL_WINDOW, makeGate,
   gateWrite, gateStats, gateProxy, gateAnalyze, gateAuth,
 } from './lib/ratelimit.mjs';
 
@@ -220,27 +220,11 @@ const SEC_HEADERS = {
   ].join('; '),
 };
 
-/* ── 过闸 ──
- * ⚠⚠ 为什么必须包这一层：`limit()` 返回的是**对象**（带 remaining/resetMs，
- *   用来填 Retry-After），而 `if (!obj)` 永远为真。这和本文件里记了很久的
- *   「`if (!rateOk(ip))` 恒为 false」是**同一类 bug** —— 都是把非布尔值
- *   直接丢进 if，于是 429 从来没出现过。包一层，调用点就只能写
- *       if (!(await gate(res, gateWrite(ip), '…'))) return;
- *   结构上没法拉胯。
- * 没过头时**在这里就把 429 发掉**（带 RFC 6585 标准头），调用方只管 return。 */
-function sendRl429(res, msg, r) {
-  res.writeHead(429, Object.assign({
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store',
-  }, SEC_HEADERS, rlHeaders(r)));
-  res.end(JSON.stringify({ error: msg }));
-}
-async function gate(res, promise, msg) {
-  const r = await promise;
-  if (r.ok) return true;
-  sendRl429(res, msg, r);
-  return false;
-}
+/* 过闸 —— 实现与理由都在 lib/ratelimit.mjs 的 makeGate()。
+   这里只把站点的安全头注进去。 */
+const gate = makeGate(SEC_HEADERS);
+
+
 
 
 function send(res, code, body, type) {

@@ -47,8 +47,15 @@
  *   对本站量级可接受；真要省，可以给热点路径加本地 TTL 缓存。 */
 import { dbFetch, WRITE_SECRET } from './cloud.mjs';
 
-/** DB 侧计数。返回 `{ok, remaining, resetMs}`，失败返回 null（调用方退回内存）。 */
+/** DB 侧计数。返回 `{ok, remaining, resetMs}`，失败返回 null
+ *  （调用方按 `failClosed` 决定是拒绝还是退回内存）。 */
 async function dbHit(key, max, windowMs) {
+  /* 测试缝：单测要验「DB 打不通时的行为」，不能真去把线上库弄挂。
+     只在显式设了这个环境变量时生效，且会在日志里留痕。 */
+  if (process.env.PHM_RL_FORCE_DB_DOWN === '1') {
+    console.warn('[ratelimit] PHM_RL_FORCE_DB_DOWN=1 —— 模拟 DB 不可用（仅测试）');
+    return null;
+  }
   if (!WRITE_SECRET) return null;
   const r = await dbFetch('/rpc/hm_rate_hit', {
     method: 'POST',
@@ -128,7 +135,16 @@ async function runLimit(specs, windowMs, opts) {
     for (const { k, max: m } of specs) {
       const r = await dbHit(k, m, windowMs);
       if (r === null) {
-        /* DB 不可用 → 退回内存结果（已经预筛过） */
+        /* ⚠⚠ DB 调不通，两条路要**分开**处理：
+           `failClosed: true`（登录/注册/写入）→ **拒绝**。这些路径本来就要
+             读写库，库不通时无论如何都做不成事；放行只会让「限流在库抖动时
+             静默消失」—— 2026-10-13 审计暴露的正是这种形态
+             （一度实测到 70 连发全 200，就是这条路走出来的）。
+           `failClosed` 没开（只读统计/charts/代理）→ **放行**。便宜的读，
+             为了库抖一下把全站只读接口全关掉不值得。退回内存结果（已过预筛）。 */
+        if (opts.failClosed) {
+          return { ok: false, remaining: -1, resetMs: windowMs, via: 'db-down' };
+        }
         return Object.assign({}, mem, { via: 'memory' });
       }
       if (!r.ok) return { ok: false, remaining: -1, resetMs: r.resetMs, via: 'db' };
@@ -256,7 +272,9 @@ export const RL_WINDOW = 60_000;
 
 /** 各路径的过闸句柄 —— 消息文案跟着配额走，改 RL 不用翻遍全文件找 429。
  *  `opts` 会透传给 limit()，测试用 `{db:false}` 只测内存路径。 */
-export const gateWrite = (ip, opts) => limit([`w:ip:${ip}`, 'w:g'], RL.writeIp, RL_WINDOW, opts);
+/* 写入与登录走 failClosed：库不通时它们本来就做不成事，放行等于限流静默消失。 */
+export const gateWrite = (ip, opts) =>
+  limit([`w:ip:${ip}`, 'w:g'], RL.writeIp, RL_WINDOW, Object.assign({ failClosed: true }, opts));
 /* 读路径同时挂 per-IP 与**全局**两个键 —— 全局是对付"IP 键失效"的后手。
    2026-10-16 实测：平台每次请求注入不同 XFF，per-IP 形同虚设；
    改用 socket 地址后 per-IP 恢复，但全局桶留着更稳（换 IP 也绕不开）。 */
@@ -273,7 +291,7 @@ export function gateAuth(ip, email, opts) {
     { k: 'a:g', max: RL.loginGlobal },
   ];
   if (e) keys.push({ k: `a:e:${e}`, max: RL.loginEmail });
-  return limit(keys, null, RL_WINDOW, opts);
+  return limit(keys, null, RL_WINDOW, Object.assign({ failClosed: true }, opts));
 }
 
 /** 429 的标准响应头（RFC 6585 + IETF Rate Limit 草案）。
@@ -286,5 +304,47 @@ export function rlHeaders(r) {
     'retry-after': String(secs),
     'ratelimit-remaining': '0',
     'ratelimit-reset': String(secs),
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 过闸 —— 把「检查 → 拒绝时发响应」这一步封起来
+ * ══════════════════════════════════════════════════════════════
+ * ⚠⚠ 为什么必须包这一层：`limit()` 返回的是**对象**（带 remaining / resetMs /
+ *   via），而 `if (!obj)` 永远为真 —— 这正是本项目 2026-10-13 那次
+ *   「限流 70 连发全 200」的同类 bug（当时是 Promise 恒真值）。
+ *   包一层之后调用点只能写
+ *       if (!(await gate(res, gateWrite(ip), '…'))) return;
+ *   结构上没法拉胯。
+ *
+ * ⚠ `secHeaders` 由调用方注入（server.mjs 的 SEC_HEADERS）——
+ *   模块本身不该知道站点的安全头长什么样。
+ */
+export function makeGate(secHeaders) {
+  function sendRl429(res, msg, r) {
+    res.writeHead(429, Object.assign({
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+    }, secHeaders, rlHeaders(r)));
+    res.end(JSON.stringify({ error: msg }));
+  }
+  /** 没过头就在这里把响应发掉并返回 false；调用方只管 `if (!ok) return;`。
+   *  ⚠ 库不通（fail-closed 拒了）回 **503** 而不是 429 ——
+   *    「服务端故障」和「你发太快」是两回事，混在一起两边都会查错方向。 */
+  return async function gate(res, promise, msg) {
+    const r = await promise;
+    if (r.ok) return true;
+    if (r.via === 'db-down') {
+      res.writeHead(503, Object.assign({
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      }, secHeaders, { 'retry-after': '5' }));
+      res.end(JSON.stringify({
+        error: '服务端暂时不可用（数据库不通），请几秒后重试', retryAfter: 5,
+      }));
+      return false;
+    }
+    sendRl429(res, msg, r);
+    return false;
   };
 }

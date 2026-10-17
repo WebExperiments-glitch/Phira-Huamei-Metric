@@ -222,6 +222,28 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
   const memOnly = await limit([K], 3, 120_000, { db: false });
   T('内存预筛路径仍可强制走', memOnly.via === 'memory');
 
+  /* DB 调不通时的行为要分两类，这是**必须分开**的：
+       写入/登录 → fail-closed（拒绝）：它们本来就要读写库，库不通时无论如何
+                   都做不成事，放行只会让「限流在库抖动时静默消失」——
+                   2026-10-13 审计暴露的正是这种形态（一度出现 70 连发全 200）。
+       只读统计/charts/代理 → fail-open（放行）：便宜的读，
+                   为了库抖一下把全站只读接口全关掉不值得。 */
+  process.env.PHM_RL_FORCE_DB_DOWN = '1';
+  const K2 = 'failmode-' + Date.now();
+  const w = await limit([K2], 3, 120_000, { failClosed: true });
+  T('★ 库不通时写入/登录 fail-closed（拒绝）',
+    w.ok === false && w.via === 'db-down', JSON.stringify(w));
+  const rd = await limit([K2 + ':r'], 3, 120_000);
+  T('★ 库不通时只读 fail-open（放行）',
+    rd.ok === true && rd.via === 'memory', JSON.stringify(rd));
+  const gw = await gateWrite('g1', { db: undefined });
+  T('gateWrite 自带 failClosed', gw.ok === false && gw.via === 'db-down', JSON.stringify(gw));
+  const ga = await gateAuth('g1', 'fc@b.com');
+  T('gateAuth 自带 failClosed', ga.ok === false && ga.via === 'db-down', JSON.stringify(ga));
+  delete process.env.PHM_RL_FORCE_DB_DOWN;
+  const back = await limit([K2 + ':back' + Date.now()], 3, 120_000);
+  T('撤掉故障标记后恢复走 DB', back.via === 'db', JSON.stringify(back));
+
   /* ★ 跨进程：起一个子进程打同一把钥匙。子进程内存是空的，
      只有 DB 还记得前 3 次 —— 所以第 4 次必须被 DB 挡下。
      这一步是整个 DB 路径存在的理由，不能省。
