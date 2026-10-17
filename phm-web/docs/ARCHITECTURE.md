@@ -265,6 +265,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | 成绩校验 | `lib/hm.mjs` 的 `validatePlay()` | 用 `phiraScore()` 重算 acc/score，只告警不拒收 | 不信客户端报的 score/accuracy |
 | 限流 | `lib/ratelimit.mjs` | 进程内预筛 + DB `hm_rate_hit` 权威计数；身份优先、IP 兜底、全局兜底 | **不读 X-Forwarded-For**（源码级禁用，测试守着） |
 | 贡献准入 | `lib/contribute-ticket.mjs` + `lib/contribute-routes.mjs` | 给 /api/contribute 签/验 5 分钟 HMAC 凭证；换票只查 Phira 元数据、不下载谱面；未持票请求在解析 body 前拒绝 | 不把「匿名可写」当默认；无写凭据时 fail-closed |
+| API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、控制台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
 | 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |
 | 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |
 | 界面 | `public/*.html`（见上面站点结构表） | 渲染、交互、调 API | 不做可信判定 |

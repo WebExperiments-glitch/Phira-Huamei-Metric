@@ -48,6 +48,7 @@ phm-web/
 │   ├── ratelimit.mjs          ← 限流：进程内预筛 + DB hm_rate_hit 权威计数
 │   ├── contribute-ticket.mjs  ← /api/contribute 的 HMAC 贡献凭证（签 / 验）
 │   ├── contribute-routes.mjs  ← 换票路由 + 验票 + 服务端复核后落库
+│   ├── api-keys.mjs           ← API Key 生成 / sha256 哈希 / 掩码（sk-…）
 │   └── download.mjs           ← 下载端点：流式 + Range + ETag
 │
 ├── public/                    ← 静态资源根目录（只有这里的内容会被送出）
