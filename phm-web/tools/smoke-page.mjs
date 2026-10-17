@@ -281,7 +281,11 @@ for (const R of ROUTES) {
     info.lang === 'zh' || info.lang === 'en', 'lang=' + info.lang);
   for (const sel of R.sel) ok('DOM ' + sel + ' 存在', info.dom[sel] === true);
 
-  if (R.mod === 'data') {
+  if (R.mod === 'data' && process.env.PHM_SMOKE_OFFLINE === '1') {
+    /* GitHub Actions 里没有生产数据库的写权限，读到的是空页；
+       这类断言留在本地/生产环境跑，CI 只验证页面能加载。 */
+    console.log('  - 跳过数据页分页断言（PHM_SMOKE_OFFLINE=1）');
+  } else if (R.mod === 'data') {
     /* 数据管理页的核心是「真分页」：等第一页渲染出来，
        并确认页码里写的是**真实总数**（而不是"这一页有多少条"）。 */
     let got = 0;

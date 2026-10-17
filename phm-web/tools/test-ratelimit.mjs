@@ -208,6 +208,9 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
      预筛本来就是为了省一次 DB 往返。所以「DB 真的在计数」这件事
      必须在**另一个进程**里验：那里内存是空的，只有 DB 还记得。 */
 {
+  const SKIP_DB = process.env.PHM_RL_FORCE_DB_DOWN === '1';
+  if (SKIP_DB) console.log('  - 跳过真实 DB 断言（CI 无写入凭据；本地发版前会跑真实 DB 路径）');
+  else {
   const K = 'test-db-' + Date.now();
   const seq = [];
   for (let i = 0; i < 4; i++) seq.push(await limit([K], 3, 120_000));
@@ -222,6 +225,7 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
     String(seq[3].resetMs));
   const memOnly = await limit([K], 3, 120_000, { db: false });
   T('内存预筛路径仍可强制走', memOnly.via === 'memory');
+  }
 
   /* DB 调不通时的行为要分两类，这是**必须分开**的：
        写入/登录 → fail-closed（拒绝）：它们本来就要读写库，库不通时无论如何
@@ -242,6 +246,7 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
   const ga = await gateAuth('g1', 'fc@b.com');
   T('gateAuth 自带 failClosed', ga.ok === false && ga.via === 'db-down', JSON.stringify(ga));
   delete process.env.PHM_RL_FORCE_DB_DOWN;
+  if (!SKIP_DB) {
   const back = await limit([K2 + ':back' + Date.now()], 3, 120_000);
   T('撤掉故障标记后恢复走 DB', back.via === 'db', JSON.stringify(back));
 
@@ -261,6 +266,7 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
   T('★ 跨进程仍被挡下（无状态环境也管得住）',
     out.includes('CHILD_REJECTED_DB'),
     out.trim().split('\n').filter(l => l.startsWith('CHILD')).join(' ') || '(子进程无输出)');
+  }
 }
 
 /* 子进程模式：父进程用 --child <key> <max> 调起来，只打一次并把结论打进 stdout。 */

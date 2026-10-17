@@ -20,6 +20,8 @@ jobs:
       # 不是生产凭据，也不会写入任何远端服务。
       PHM_WRITE_SECRET: ci-test-write-secret-not-real
       PHM_TOKEN_SECRET: ci-test-token-secret-not-real
+      # 单测不应打生产数据库：显式走进程内限流路径（lib/ratelimit.mjs 的测试缝）。
+      PHM_RL_FORCE_DB_DOWN: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

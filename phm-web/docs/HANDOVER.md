@@ -80,8 +80,10 @@ node tools/lint-docs.mjs                              # 88 条 · 死链 / 版�
 **期望数字**：176 / 123 / 24 / 22 / 80 / 45 / 79，加 `test-contribute-ticket` 11，全部 `0 失败`。
 `lint-slop` / `lint-i18n` 必须 0。
 
-> **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`；
-> `.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑四套浏览器测试。
+> **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`（14 项）；
+> `.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑 **offline 版 smoke（172 条）+ ui-flows（24 条）**。
+> CI 没有生产数据库读写权限，所以 smoke 用 `PHM_SMOKE_OFFLINE=1` 跳过数据页分页断言；
+> `verify-pages` / `api-routes` 依赖真实数据与 Phira 写入路径，留在本地发版前跑。
 > 出事时的操作顺序见 [`RUNBOOK.md`](RUNBOOK.md)。
 
 > `verify-pages` 偶发 3 条字体断言失败时，先确认没有残留的无头 Chrome 进程，
