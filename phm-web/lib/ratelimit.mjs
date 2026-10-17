@@ -115,8 +115,82 @@ async function dbHit(key, max, windowMs) {
  *    代价：限流检查在全进程内排队。本站量级无所谓，换来计数准确。 */
 let rlTail = Promise.resolve();
 
+/* ══════════════════════════════════════════════════════════════
+ * 限流键怎么选（对齐 GitHub / Stripe / Cloudflare 的做法）
+ * ══════════════════════════════════════════════════════════════
+ * 原则：**身份优先，IP 兜底**。IP 在 NAT / CDN / 反代后面本来就不可信，
+ * 大厂都是先按 token / 账号限，IP 只做粗粒度兜底，并且**永远有一层全局上限**。
+ *
+ * ⚠⚠ 为什么不采信 X-Forwarded-For（2026-10-17 定案，实测两次）：
+ *   · 客户端可以随便写这个头 → 拿它当键等于把钥匙交给攻击方
+ *     （白帽实测：伪造 XFF 换个 IP 就能接着打，旧版确实被绕穿）。
+ *   · 平台网关对这个头的处理**不保证**（实测同一秒内它给每个请求塞了
+ *     不同的值 125.94.247.208 / 125.94.248.102 / 1.71.146.239 …），
+ *     所以「取第一段」「取最后一段」在这里都不可靠。
+ *   · 唯一能确定的是 `req.socket.remoteAddress` —— 那是真实的 TCP 对端。
+ *     它可能被网关收敛成一个地址（实测线上是 127.0.0.1），那也只是
+ *     "所有人共用一个桶"（偏严、可被 DoS），**不是"能绕过"**。
+ *
+ * 所以本模块的键分三层，调用方按需组合：
+ *   `id:<sub>`  身份（我们自己签发的 JWT，伪造不了）—— 最优先
+ *   `ip:<addr>` 真实对端 —— 仅当它不是网关/内网地址时才有区分意义
+ *   `g:<scope>` 全局 —— 永远挂，防"换键绕过"的最后一层
+ */
+const LOOPBACK_OR_PRIVATE = /^(127\.|::1$|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::ffff:127\.)/;
+
+/** 归一化「限流主体」。
+ *  ⚠ 为什么要它：早先的签名是 `gateWrite(ip)`（字符串），改成 `{sub, ip}` 之后
+ *    传字符串会静默变成「谁都不是」→ 只剩全局桶 → 看起来"还能用"，
+ *    实际 per-IP 那一维**悄悄消失了**。这种退化不会报错，最难查。
+ *    所以两种形态都收：字符串按 ip 处理，对象照常。 */
+const asWho = w => (typeof w === 'string' ? { ip: w } : (w || {}));
+
+/** 对端是不是「网关/内网」—— 是的话 per-IP 桶没有区分意义，要跳过。
+ *  说清楚后果：跳过之后靠全局桶兜底（偏严）。这比"所有人共用一个 20/分
+ *  的桶、一个人就能把全站堵死"要好，也比"用 XFF 换 IP 随便绕"安全得多。 */
+export function isSharedPeer(addr) {
+  return !addr || addr === 'unknown' || LOOPBACK_OR_PRIVATE.test(addr);
+}
+
+/** 把「身份 / 对端 / 全局」组装成一组键。
+ *
+ *  ⚠⚠ 三条分支的**上限必须各自明确**，尤其第三条：
+ *    · 有身份      → 身份桶（perId）+ 全局桶（global）
+ *    · 有公网对端  → per-IP 桶（perIp）+ 全局桶（global）
+ *    · 共享对端    → **只有全局桶，且它必须用 perIp 这一档**
+ *
+ *  第三条是 2026-10-17 实测踩出来的坑：网关把所有人收敛成 127.0.0.1，
+ *  per-IP 键被丢掉之后只剩 `global`，于是「20 次/分」悄悄变成了「120 次/分」——
+ *  38 连发全部 200。**这种放宽不会报错，只会让限流静默失效**，
+ *  所以在代码层面把它钉死：共享对端下全局桶就是唯一防线，必须用严格档。
+ */
+export function buildKeys(scope, who, limits = {}) {
+  const { perIp = 20, perId = 60, global = 120 } = limits;
+  const w = asWho(who);
+  if (w.sub) {
+    return [
+      { k: `${scope}:id:${w.sub}`, max: perId },
+      { k: `${scope}:g`, max: global },
+    ];
+  }
+  if (w.ip && !isSharedPeer(w.ip)) {
+    return [
+      { k: `${scope}:ip:${w.ip}`, max: perIp },
+      { k: `${scope}:g`, max: global },
+    ];
+  }
+  /* 共享对端：没有任何维度能区分客户端 → 全局桶就是唯一的限流，
+     必须用 perIp（严格档）而不是 global（宽松档）。 */
+  return [{ k: `${scope}:g`, max: perIp }];
+}
+
 export async function limit(keys, max, windowMs = 60_000, opts = {}) {
-  const specs = keys.map(k => (typeof k === 'string' ? { k, max } : { k: k.k, max: k.max }));
+  /* 允许调用方传 `{k, max: undefined}` —— 这时用默认 max 补上，
+     省得每个调用点都重复写一遍数字。 */
+  const specs = keys.map(k => {
+    if (typeof k === 'string') return { k, max };
+    return { k: k.k, max: k.max == null ? max : k.max };
+  });
   /* 同步挂到队尾 —— 这一行就是顺序的来源，必须写在任何 await 之前 */
   const mine = rlTail.then(() => runLimit(specs, windowMs, opts));
   rlTail = mine.catch(() => {});
@@ -262,29 +336,47 @@ export function reset() {
  * 每类同时挂 per-IP 与全局两个键，谁先撞谁拒。
  * 全局键是对付 X-Forwarded-For 伪造的后手 —— 换 IP 绕得开 per-IP，绕不开全局。 */
 export const RL = {
-  writeIp: 20, writeGlobal: 120,
+  writeIp: 20, writeGlobal: 120, writeId: 60,
   loginIp: 5, loginGlobal: 20, loginEmail: 3,
-  statsIp: 60, statsGlobal: 400,
-  analyzeIp: 10, analyzeGlobal: 60,
-  proxyIp: 60,
+  statsIp: 60, statsId: 120, statsGlobal: 400,
+  analyzeIp: 10, analyzeId: 60, analyzeGlobal: 60,
+  proxyIp: 60, proxyId: 120, proxyGlobal: 300,
 };
 export const RL_WINDOW = 60_000;
 
 /** 各路径的过闸句柄 —— 消息文案跟着配额走，改 RL 不用翻遍全文件找 429。
  *  `opts` 会透传给 limit()，测试用 `{db:false}` 只测内存路径。 */
 /* 写入与登录走 failClosed：库不通时它们本来就做不成事，放行等于限流静默消失。 */
-export const gateWrite = (ip, opts) =>
-  limit([`w:ip:${ip}`, 'w:g'], RL.writeIp, RL_WINDOW, Object.assign({ failClosed: true }, opts));
-/* 读路径同时挂 per-IP 与**全局**两个键 —— 全局是对付"IP 键失效"的后手。
-   2026-10-16 实测：平台每次请求注入不同 XFF，per-IP 形同虚设；
-   改用 socket 地址后 per-IP 恢复，但全局桶留着更稳（换 IP 也绕不开）。 */
-export const gateStats = (ip, opts) => limit([`S:ip:${ip}`, 'S:g'], RL.statsIp, RL_WINDOW, opts);
-export const gateProxy = (ip, opts) => limit([`A:ip:${ip}`], RL.proxyIp, RL_WINDOW, opts);
-export const gateAnalyze = (ip, opts) => limit([`A:ip:${ip}`, 'A:g'], RL.analyzeIp, RL_WINDOW, opts);
+/* 写入：身份优先（有 sub 就按 sub），否则用真实对端；全局键永远挂。
+   ⚠ 网关把对端收敛成 127.0.0.1 时，per-IP 桶会被 buildKeys 丢掉 ——
+     留着它只会让全站共用一个桶，一个人就能把所有人堵死。 */
+export const gateWrite = (who, opts) =>
+  limit(buildKeys('w', who, { perIp: RL.writeIp, perId: RL.writeId, global: RL.writeGlobal }),
+    RL.writeIp, RL_WINDOW, Object.assign({ failClosed: true }, opts));
+
+/** 身份维度的第二道闸：**只按 sub 计**，不挂全局键 ——
+ *  否则同一次请求会把全局桶扣两遍，等于把全站上限砍半。
+ *  用在「已经验明身份」之后（例如成绩上报），挡的是「一个账号刷爆」。 */
+export const gateWriteId = (sub, opts) =>
+  limit([{ k: `w:id:${sub}`, max: RL.writeId }], RL.writeId, RL_WINDOW,
+    Object.assign({ failClosed: true }, opts));
+
+/* 读：同样身份优先，但配额宽松，且**不做 fail-closed**（便宜的读）。 */
+export const gateStats = (who, opts) =>
+  limit(buildKeys('S', who, { perIp: RL.statsIp, perId: RL.statsId, global: RL.statsGlobal }),
+    RL.statsIp, RL_WINDOW, opts);
+export const gateProxy = (who, opts) =>
+  limit(buildKeys('A', who, { perIp: RL.proxyIp, perId: RL.proxyId, global: RL.proxyGlobal }),
+    RL.proxyIp, RL_WINDOW, opts);
+export const gateAnalyze = (who, opts) =>
+  limit(buildKeys('A', who, { perIp: RL.analyzeIp, perId: RL.analyzeId, global: RL.analyzeGlobal }),
+    RL.analyzeIp, RL_WINDOW, opts);
+
 /** 登录/注册：per-IP + per-邮箱 + 全局 三重，**各自不同上限**。
  *  per-邮箱那一维最关键 —— 否则攻击者换 XFF 就能对同一个目标全速爆破
  *  （实测：per-IP 撞限后换一个 XFF，per-邮箱键仍然把它挡住了）。 */
-export function gateAuth(ip, email, opts) {
+export function gateAuth(who, email, opts) {
+  const ip = asWho(who).ip;
   const e = String(email || '').trim().toLowerCase();
   const keys = [
     { k: `a:ip:${ip}`, max: RL.loginIp },

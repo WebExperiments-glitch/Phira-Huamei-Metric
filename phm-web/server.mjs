@@ -153,7 +153,7 @@ function sanitize(row, required) {
  *   代价：进程重启清零；多实例部署时各算各的。边界见该文件顶部说明。 */
 import {
   limit as rlLimit, tryEnter, leave as rlLeave, snapshot as rlSnapshot,
-  RL, RL_WINDOW, makeGate,
+  RL, RL_WINDOW, makeGate, gateWriteId,
   gateWrite, gateStats, gateProxy, gateAnalyze, gateAuth,
 } from './lib/ratelimit.mjs';
 
@@ -372,7 +372,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return send(res, 403, JSON.stringify({ error: 'only GET/HEAD' }));
     }
-    if (!(await gate(res, gateProxy(ip), 'rate limit'))) return;
+    if (!(await gate(res, gateProxy({ ip }), 'rate limit'))) return;
     const sub = p.replace(/^\/api\/phira/, '') || '/';
     /* 前缀不匹配 → 404，**不要**透传。
        ⚠ 用 startsWith 而不是正则：前缀是写死的字面量，正则只会引入意外。 */
@@ -436,7 +436,7 @@ const server = http.createServer(async (req, res) => {
        现在三重限流：per-IP 5/分 + per-邮箱 3/分 + 全局 20/分。
        per-邮箱那一维是关键 —— 否则攻击者换 XFF 就能对同一个目标全速试。 */
     const pre = await readBody(req);
-    if (!(await gate(res, gateAuth(ip, pre && pre.email),
+    if (!(await gate(res, gateAuth({ ip }, pre && pre.email),
         '尝试太频繁，请一分钟后再试（每邮箱每分钟最多 ' + RL.loginEmail + ' 次）'))) return;
     const body = pre;
     const email = String((body && body.email) || '').trim();
@@ -463,7 +463,7 @@ const server = http.createServer(async (req, res) => {
 
   if (p === '/api/hm/play') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
-    if (!(await gate(res, gateWrite(ip), 'rate limit: 每分钟最多 ' + RL.writeIp + ' 次写入'))) return;
+    if (!(await gate(res, gateWrite({ ip }), 'rate limit: 每分钟最多 ' + RL.writeIp + ' 次写入'))) return;
     /* ⚠⚠ **不要依赖入站的 `Authorization` 头。**
        实测（2026-10-11）：同样的 token，本机整条链全绿，线上**每一步都 401**，
        且降级解析 JWT 时报 `no_sub` —— 说明**线上收到的那个值根本不是我们发出去的 token**。
@@ -492,6 +492,14 @@ const server = http.createServer(async (req, res) => {
         dots: token.split('.').length - 1,
       }));
     }
+
+    /* ⚠ 第二道闸：按**身份**限流（身份优先于 IP —— GitHub/Stripe 的做法）。
+       IP 在 NAT/网关后面不可信（实测线上对端恒为 127.0.0.1），
+       而我们自己签发的 sub 伪造不了。
+       第一道（IP/全局）挡未鉴权的洪水；这一道挡「一个账号刷爆」，
+       而且**只按 sub 计**，不重复占用全局桶。 */
+    if (!(await gate(res, gateWriteId(String(who.sub)),
+      'rate limit: 每分钟最多 ' + RL.writeId + ' 次上报'))) return;
     const ownerId = who.sub;
 
     let body;
@@ -541,7 +549,7 @@ const server = http.createServer(async (req, res) => {
        这个 bug 2026-10-11 就审计出来过（写路径漏 await），
        2026-10-13 又实测到 35 连发全 200 —— 因为计数写不进只读文件系统，
        于是连 await 对了也不生效。两件事现在一起修了。 */
-    if (!(await gate(res, gateWrite(ip), 'rate limit: 每分钟最多 ' + RL.writeIp + ' 次写入'))) return;
+    if (!(await gate(res, gateWrite({ ip }), 'rate limit: 每分钟最多 ' + RL.writeIp + ' 次写入'))) return;
     const body = await readBody(req);
     const rows = Array.isArray(body) ? body : (body && Array.isArray(body.rows) ? body.rows : null);
     if (!rows) return send(res, 400, JSON.stringify({ error: 'body must be an array or {rows:[]}' }));
@@ -662,7 +670,7 @@ const server = http.createServer(async (req, res) => {
   }
   /* 聚合统计（服务端转发 RPC，前端可不再直连） */
   if (p === '/api/stats') {
-    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
+    if (!(await gate(res, gateStats({ ip }), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
     /* ⚠ 失败时**不要**把数据库响应正文带给客户端 —— 那里面可能有
        PostgREST 的报错细节（表名、字段、约束）。日志里留，对外只给一句。 */
@@ -685,7 +693,7 @@ const server = http.createServer(async (req, res) => {
    *   分页不是好看，是库变大之后还能用。
    */
   if (p === '/api/charts' && url.searchParams.has('page')) {
-    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
+    if (!(await gate(res, gateStats({ ip }), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const qp = url.searchParams;
     const sort = qp.get('sort') || 'chart_id';
     /* ⚠ 排序字段必须白名单。这里直接进查询串，不挡就是把查询表达式交给调用方。 */
@@ -712,14 +720,14 @@ const server = http.createServer(async (req, res) => {
      注意它要扫全表 —— 所以**不是**按 IP 高频配额，而是与 stats 共用一份只读配额，
      并且故意不放进任何自动轮询路径。 */
   if (p === '/api/summary') {
-    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
+    if (!(await gate(res, gateStats({ ip }), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const sum = await dbSummary();
     if (!sum) return send(res, 502, JSON.stringify({ error: 'cache unavailable' }));
     return send(res, 200, JSON.stringify(Object.assign({ engineVer: ENGINE_VER }, sum)));
   }
 
   if (p === '/api/charts') {
-    if (!(await gate(res, gateStats(ip), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
+    if (!(await gate(res, gateStats({ ip }), '请求过于频繁（每分钟最多 ' + RL.statsIp + ' 次）'))) return;
     const ids = String(url.searchParams.get('ids') || '')
       .split(',').map(x => Number(x.trim()))
       .filter(x => Number.isInteger(x) && x > 0)
@@ -774,7 +782,7 @@ const server = http.createServer(async (req, res) => {
 
     /* 配额：per-IP + 全局。放行**才**记数 —— 上面 chart_id 无效的请求
        已经先返回了，不会白扣一笔（以前是先扣配额再发现 chart_id 无效）。 */
-    if (!(await gate(res, gateAnalyze(ip), '算得太频繁了（每分钟最多 ' + RL.analyzeIp + ' 次），请稍后再试'))) return;
+    if (!(await gate(res, gateAnalyze({ ip }), '算得太频繁了（每分钟最多 ' + RL.analyzeIp + ' 次），请稍后再试'))) return;
 
     /* ⚠ 并发闸门的「检查 + 自增」必须在**同一个 tick** 里完成。
        以前是：先检查 analyzeInflight，然后 await readBody() 让出事件循环，

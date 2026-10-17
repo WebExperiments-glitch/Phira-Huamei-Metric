@@ -8,6 +8,7 @@
  * 跑法： node tools/test-ratelimit.mjs
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   limit, tryEnter, leave, snapshot, reset, rlHeaders,
@@ -263,6 +264,60 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
 }
 
 /* 子进程模式：父进程用 --child <key> <max> 调起来，只打一次并把结论打进 stdout。 */
+
+console.log('\n【13】★ 限流键怎么选（身份优先 / IP 兜底 / 全局兜底）');
+/* 这一块对应 2026-10-17 的结论：不采信 XFF，改用「真实对端 + 身份」。
+   白帽报告说 XFF 能 100% 绕过 —— 那是旧版（取 XFF 第一段）。
+   现在的行为要在测试里钉死，免得哪天又改回去。 */
+{
+  const { isSharedPeer, buildKeys } = await import('../lib/ratelimit.mjs');
+
+  T('127.0.0.1 判为共享对端（网关）', isSharedPeer('127.0.0.1') === true);
+  T('::1 判为共享对端', isSharedPeer('::1') === true);
+  T('10.x 判为共享对端', isSharedPeer('10.1.2.3') === true);
+  T('192.168.x 判为共享对端', isSharedPeer('192.168.1.5') === true);
+  T('172.16~31 判为共享对端', isSharedPeer('172.20.3.4') === true);
+  T('公网 IP 不是共享对端', isSharedPeer('49.233.240.214') === false);
+
+  /* 共享对端 → 不生成 per-IP 键，**而且全局键必须用严格档**
+     （2026-10-17 实测踩过：丢掉 per-IP 后只剩宽松的 global，
+      20/分 悄悄变成 120/分，38 连发全 200）。 */
+  const LIM = { perIp: 20, perId: 60, global: 120 };
+  const kShared = buildKeys('w', { ip: '127.0.0.1' }, LIM);
+  T('共享对端不生成 per-IP 键', !kShared.some(k => k.k.includes(':ip:')),
+    JSON.stringify(kShared));
+  T('★ 共享对端时全局键用**严格档**（不是 120）',
+    kShared.length === 1 && kShared[0].k === 'w:g' && kShared[0].max === LIM.perIp,
+    JSON.stringify(kShared));
+
+  /* 公网对端 → per-IP 20 + 全局 120 */
+  const kPub = buildKeys('w', { ip: '49.233.240.214' }, LIM);
+  T('公网对端生成 per-IP 键且上限 20',
+    kPub.some(k => k.k === 'w:ip:49.233.240.214' && k.max === 20), JSON.stringify(kPub));
+  T('公网对端仍保留全局键（120）',
+    kPub.some(k => k.k === 'w:g' && k.max === 120), JSON.stringify(kPub));
+
+  /* 有身份 → 按身份 60 + 全局 120，且**不再**叠加 per-IP（身份更准） */
+  const kId = buildKeys('w', { sub: '1184199020533149554', ip: '49.233.240.214' }, LIM);
+  T('★ 有身份时按身份计（上限 60）',
+    kId.some(k => k.k === 'w:id:1184199020533149554' && k.max === 60), JSON.stringify(kId));
+  T('★ 有身份时不再叠加 per-IP', !kId.some(k => k.k.includes(':ip:')), JSON.stringify(kId));
+  T('有身份时仍保留全局键', kId.some(k => k.k === 'w:g'), JSON.stringify(kId));
+
+  /* 字符串入参要按 ip 处理，不能静默退化成"谁都不是" */
+  const kStr = buildKeys('w', '49.233.240.214', LIM);
+  T('字符串入参按 ip 处理', kStr.some(k => k.k === 'w:ip:49.233.240.214'), JSON.stringify(kStr));
+
+  /* 防回归：绝不能有**读这个头**的代码 —— 一旦有人加回去，这条立刻红。
+     ⚠ 只查「读请求头」的用法，不查注释里的文字：本文件与模块的注释里
+       大量讨论 XFF（为什么不用它），用裸字符串匹配会假红。 */
+  const HEAD_ACCESS = /headers\s*\[\s*['"]x-(forwarded-for|real-ip)['"]\s*\]/i;
+  const src = readFileSync(fileURLToPath(new URL('../lib/ratelimit.mjs', import.meta.url)), 'utf8');
+  T('★ 模块里没有读 XFF 的代码（不采信 XFF）', !HEAD_ACCESS.test(src));
+  /* server.mjs 里也不该有 */
+  const srv = readFileSync(fileURLToPath(new URL('../server.mjs', import.meta.url)), 'utf8');
+  T('★ server.mjs 里没有读 XFF 的代码', !HEAD_ACCESS.test(srv));
+}
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
 if (fail) process.exit(1);
