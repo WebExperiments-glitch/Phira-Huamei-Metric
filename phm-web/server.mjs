@@ -351,7 +351,15 @@ function readBody(req, max = 512 * 1024) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  /* ── 客户端身份（限流键用）──
+     ⚠⚠ 只用 `req.socket.remoteAddress`，**不采信 X-Forwarded-For**。
+        2026-10-16 实测：托管平台给**每个请求**注入不同的 XFF
+        （同一秒内打到 DB 里的键是 125.94.247.208 / 125.94.248.102 /
+         1.71.146.239 …），于是 per-IP 限额永远撞不到上限 —— 70 连发全 200。
+        而 socket 真实对端是稳定的（实测 3 次全是 49.233.240.214）。
+     顺带修掉白帽报告里那条「XFF 可伪造」：客户端可以随便写这个头，
+        拿它当限流键等于把钥匙交给攻击方。 */
+  const ip = req.socket.remoteAddress || 'unknown';
 
   /* 健康检查：只回 ok。
      此前返回 Node 版本 / 启动时间 / uptime / 存储状态 —— 那是给攻击者的情报，已删。 */

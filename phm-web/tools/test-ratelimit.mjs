@@ -7,10 +7,27 @@
  *
  * 跑法： node tools/test-ratelimit.mjs
  */
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   limit, tryEnter, leave, snapshot, reset, rlHeaders,
   RL, RL_WINDOW, gateWrite, gateStats, gateAuth, gateAnalyze, gateProxy,
 } from '../lib/ratelimit.mjs';
+
+/* ── 子进程模式 ──
+ * 父进程用 `--child <key> <max>` 把自己再起一遍，只打一次限流并把结论打进 stdout。
+ * ⚠ 必须放在**所有测试之前**：放在末尾的话，子进程会把块 1~12 全跑一遍 ——
+ *   不但慢，还会把内存桶和 DB 里的键搞乱，测出来的「跨进程」结论没有意义
+ *   （第一版就因此测出一个假的 CHILD_ALLOWED）。
+ * 存在的理由：验证「DB 计数跨进程可见」。进程内计数在无状态托管环境里
+ * 必然失效（每个请求都落在一个新进程上），这是 DB 那条路唯一的验收标准。 */
+if (process.argv.includes('--child')) {
+  const k = process.argv[process.argv.indexOf('--child') + 1];
+  const mx = Number(process.argv[process.argv.indexOf('--child') + 2]);
+  const r = await limit([k], mx, 120_000);
+  console.log(r.ok ? `CHILD_ALLOWED via=${r.via}` : `CHILD_REJECTED_DB via=${r.via}`);
+  process.exit(0);
+}
 
 let pass = 0, fail = 0;
 const T = (name, cond, extra = '') => {
@@ -23,14 +40,14 @@ console.log('\n【1】基本额度：第 N 次放行，第 N+1 次拒绝');
 {
   reset();
   const key = 't1';
-  for (let i = 1; i <= 3; i++) T(`第 ${i} 次放行`, (await limit([key], 3)).ok);
-  const r = await limit([key], 3);
+  for (let i = 1; i <= 3; i++) T(`第 ${i} 次放行`, (await limit([key], 3, 60_000, { db: false })).ok);
+  const r = await limit([key], 3, 60_000, { db: false });
   T('第 4 次拒绝', r.ok === false);
   T('拒绝时 remaining = -1', r.remaining === -1, `实际 ${r.remaining}`);
   T('拒绝时 resetMs > 0', r.resetMs > 0, `实际 ${r.resetMs}`);
   /* remaining 报的是「这一发之后还能发几次」——第一次放行后应是 max-1 */
   reset();
-  const first = await limit(['t1b'], 3);
+  const first = await limit(['t1b'], 3, 60_000, { db: false });
   T('放行时 remaining = max-1', first.remaining === 2, `实际 ${first.remaining}`);
 }
 
@@ -39,10 +56,10 @@ console.log('\n【2】窗口过期后额度恢复');
   reset();
   const key = 't2';
   const W = 120;
-  for (let i = 0; i < 2; i++) await limit([key], 2, W);
-  T('第 3 次被拒', (await limit([key], 2, W)).ok === false);
+  for (let i = 0; i < 2; i++) await limit([key], 2, W, { db: false });
+  T('第 3 次被拒', (await limit([key], 2, W, { db: false })).ok === false);
   await sleep(W + 40);
-  T('过了窗口又能放行', (await limit([key], 2, W)).ok === true);
+  T('过了窗口又能放行', (await limit([key], 2, W, { db: false })).ok === true);
 }
 
 console.log('\n【3】★ 滑动窗口 —— 不是固定窗口');
@@ -52,15 +69,15 @@ console.log('\n【3】★ 滑动窗口 —— 不是固定窗口');
   reset();
   const key = 't3';
   const W = 200;
-  for (let i = 0; i < 3; i++) await limit([key], 3, W);
-  T('先打满 3 次', (await limit([key], 3, W)).ok === false);
+  for (let i = 0; i < 3; i++) await limit([key], 3, W, { db: false });
+  T('先打满 3 次', (await limit([key], 3, W, { db: false })).ok === false);
   /* 等到窗口刚过一点点 —— 固定窗口会在这里「整块清零」，
      滑动窗口只放走最早那一两条，所以仍然接近满。 */
   await sleep(W + 20);
-  T('窗口过后放行 1 次', (await limit([key], 3, W)).ok === true);
+  T('窗口过后放行 1 次', (await limit([key], 3, W, { db: false })).ok === true);
   /* 关键：这一发之后不应该又白送 3 次 */
   let allowed = 1;
-  while (allowed < 10 && (await limit([key], 3, W)).ok) allowed++;
+  while (allowed < 10 && (await limit([key], 3, W, { db: false })).ok) allowed++;
   T('★ 没有出现「边界双倍」', allowed <= 3, `窗口过后又放行了 ${allowed} 次`);
 }
 
@@ -69,22 +86,22 @@ console.log('\n【4】每个键可以有不同上限（{k, max}）');
   reset();
   /* 登录场景：per-IP 5 次，但 per-邮箱 3 次 */
   const spec = () => [{ k: 't4:ip', max: 5 }, { k: 't4:e', max: 3 }];
-  T('第 1 次放行', (await limit(spec(), null)).ok);
-  T('第 2 次放行', (await limit(spec(), null)).ok);
-  T('第 3 次放行（per-邮箱到顶）', (await limit(spec(), null)).ok);
-  const r = await limit(spec(), null);
+  T('第 1 次放行', (await limit(spec(), null, 60_000, { db: false })).ok);
+  T('第 2 次放行', (await limit(spec(), null, 60_000, { db: false })).ok);
+  T('第 3 次放行（per-邮箱到顶）', (await limit(spec(), null, 60_000, { db: false })).ok);
+  const r = await limit(spec(), null, 60_000, { db: false });
   T('第 4 次被 per-邮箱 挡下', r.ok === false);
   /* 换个邮箱（同 IP）应该还能放行 —— 证明两个键是独立计数的 */
-  T('换个邮箱同 IP 仍放行', (await limit([{ k: 't4:ip', max: 5 }, { k: 't4:e2', max: 3 }], null)).ok === true);
+  T('换个邮箱同 IP 仍放行', (await limit([{ k: 't4:ip', max: 5 }, { k: 't4:e2', max: 3 }], null, 60_000, { db: false })).ok === true);
 }
 
 console.log('\n【5】多键任一超限就整体拒绝');
 {
   reset();
-  await limit(['t5:a', 't5:b'], 1);          // 两个键各用掉 1 次
-  T('两个键都满 → 拒绝', (await limit(['t5:a', 't5:b'], 1)).ok === false);
-  T('只换掉超限的那个 → 放行', (await limit(['t5:c', 't5:b'], 1)).ok === false);
-  T('只换掉没超的那个 → 也放行', (await limit(['t5:a', 't5:d'], 1)).ok === false);
+  await limit(['t5:a', 't5:b'], 1, 60_000, { db: false });          // 两个键各用掉 1 次
+  T('两个键都满 → 拒绝', (await limit(['t5:a', 't5:b'], 1, 60_000, { db: false })).ok === false);
+  T('只换掉超限的那个 → 放行', (await limit(['t5:c', 't5:b'], 1, 60_000, { db: false })).ok === false);
+  T('只换掉没超的那个 → 也放行', (await limit(['t5:a', 't5:d'], 1, 60_000, { db: false })).ok === false);
 }
 
 console.log('\n【6】被拒的请求不消耗配额（恢复更快）');
@@ -95,26 +112,28 @@ console.log('\n【6】被拒的请求不消耗配额（恢复更快）');
   reset();
   const key = 't6';
   const MAX = 3;
-  for (let i = 0; i < MAX; i++) await limit([key], MAX, 60_000);
+  for (let i = 0; i < MAX; i++) await limit([key], MAX, 60_000, { db: false });
   const full = snapshot().buckets[key];
   T('额度已用干净', full === MAX, `桶里 ${full} 条`);
-  for (let i = 0; i < 30; i++) await limit([key], MAX, 60_000);
+  for (let i = 0; i < 30; i++) await limit([key], MAX, 60_000, { db: false });
   T('★ 撞 30 次后桶没有变厚', snapshot().buckets[key] === MAX,
     `桶里 ${snapshot().buckets[key]} 条`);
-  T('仍然被拒', (await limit([key], MAX, 60_000)).ok === false);
-  T('remaining = -1', (await limit([key], MAX, 60_000)).remaining === -1);
+  T('仍然被拒', (await limit([key], MAX, 60_000, { db: false })).ok === false);
+  T('remaining = -1', (await limit([key], MAX, 60_000, { db: false })).remaining === -1);
 }
 
 console.log('\n【7】★ 并发不丢计数');
-/* 读改写不串行时，并发请求会读到同一个旧值、一起通过检查。 */
+/* 读改写不串行时，并发请求会读到同一个旧值、一起通过检查。
+   ⚠ key 必须带时间戳：DB 里的行有 120 秒窗口，两次测试间隔往往不到 120 秒，
+     复用同一个 key 会让上一轮留下的行把这一轮的额度用光（实测：50 个全被拒）。 */
 {
   reset();
-  const key = 't7';
+  const key = 't7-' + Date.now();
   const N = 50;
   const results = await Promise.all(Array.from({ length: N }, () => limit([key], N)));
   T(`${N} 个并发全部放行`, results.every(r => r.ok === true),
     `实际放行 ${results.filter(r => r.ok).length}`);
-  const after = await limit([key], N);
+  const after = await limit([key], N, 60_000, { db: false });
   T('第 ' + (N + 1) + ' 个被拒', after.ok === false);
   /* ⚠ snapshot().buckets[k] 返回的是**条数**（number），不是数组 ——
      第一版写成 `.length` 于是恒为 undefined，断言假红。 */
@@ -159,23 +178,69 @@ console.log('\n【10】配额表本身合理');
   T('analyze 有全局桶', RL.analyzeGlobal > 0);
   T('代理有独立配额', RL.proxyIp > 0);
   T('所有配额都是正数', Object.values(RL).every(v => Number.isInteger(v) && v > 0));
+  T('读路径有全局桶兜底（IP 键失效时的后手）', RL.statsGlobal > RL.statsIp);
 }
 
 console.log('\n【11】各 gate 句柄真的能跑（不起服务器）');
 {
   reset();
-  T('gateWrite 放行', (await gateWrite('g1')).ok === true);
-  T('gateStats 放行', (await gateStats('g1')).ok === true);
-  T('gateProxy 放行', (await gateProxy('g1')).ok === true);
-  T('gateAnalyze 放行', (await gateAnalyze('g1')).ok === true);
-  T('gateAuth 放行', (await gateAuth('g1', 'a@b.com')).ok === true);
+  T('gateWrite 放行', (await gateWrite('g1', { db: false })).ok === true);
+  T('gateStats 放行', (await gateStats('g1', { db: false })).ok === true);
+  T('gateProxy 放行', (await gateProxy('g1', { db: false })).ok === true);
+  T('gateAnalyze 放行', (await gateAnalyze('g1', { db: false })).ok === true);
+  T('gateAuth 放行', (await gateAuth('g1', 'a@b.com', { db: false })).ok === true);
   /* per-邮箱 3 次后第 4 次必拒，且换 IP 也绕不过 */
-  for (let i = 0; i < 2; i++) await gateAuth('g1', 'a@b.com');
-  T('per-邮箱第 4 次被拒', (await gateAuth('g1', 'a@b.com')).ok === false);
+  for (let i = 0; i < 2; i++) await gateAuth('g1', 'a@b.com', { db: false });
+  T('per-邮箱第 4 次被拒', (await gateAuth('g1', 'a@b.com', { db: false })).ok === false);
   T('★ 换 IP 打同一邮箱仍被拒',
-    (await gateAuth('g-other', 'a@b.com')).ok === false);
-  T('换邮箱同 IP 放行', (await gateAuth('g1', 'other@b.com')).ok === true);
+    (await gateAuth('g-other', 'a@b.com', { db: false })).ok === false);
+  T('换邮箱同 IP 放行', (await gateAuth('g1', 'other@b.com', { db: false })).ok === true);
 }
+
+console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解）');
+/* 进程内计数在无状态环境里必然失效 —— 实测（2026-10-16）：
+   同一出口 IP 连发 200 个 /api/stats 零 429，换 250 个 XFF 也零 429。
+   不是多实例分裂，是**每个请求都落在新进程上**，桶活了不到一个请求的寿命。
+   所以权威计数必须放在进程外（数据库）。
+
+   ⚠ 第 4 次在同进程里是被**内存预筛**挡下的（via='memory'）—— 这是对的：
+     预筛本来就是为了省一次 DB 往返。所以「DB 真的在计数」这件事
+     必须在**另一个进程**里验：那里内存是空的，只有 DB 还记得。 */
+{
+  const K = 'test-db-' + Date.now();
+  const seq = [];
+  for (let i = 0; i < 4; i++) seq.push(await limit([K], 3, 120_000));
+  T('前 3 次走 DB 且放行', seq.slice(0, 3).every(r => r.ok && r.via === 'db'),
+    JSON.stringify(seq.slice(0, 3)));
+  T('第 4 次被拒（同进程里由内存预筛挡下，省一次 DB 往返）',
+    seq[3].ok === false && seq[3].via === 'memory', JSON.stringify(seq[3]));
+  T('remaining 递减 2/1/0',
+    seq[0].remaining === 2 && seq[1].remaining === 1 && seq[2].remaining === 0,
+    `${seq[0].remaining}/${seq[1].remaining}/${seq[2].remaining}`);
+  T('resetMs 在窗口内', seq[3].resetMs > 0 && seq[3].resetMs <= 120_000,
+    String(seq[3].resetMs));
+  const memOnly = await limit([K], 3, 120_000, { db: false });
+  T('内存预筛路径仍可强制走', memOnly.via === 'memory');
+
+  /* ★ 跨进程：起一个子进程打同一把钥匙。子进程内存是空的，
+     只有 DB 还记得前 3 次 —— 所以第 4 次必须被 DB 挡下。
+     这一步是整个 DB 路径存在的理由，不能省。
+     ⚠ execFileSync 失败时会把子进程的 stderr 全塞进 error.message，
+       直接拿去当断言消息会刷出几十万字符。这里只取第一行。 */
+  let out = '';
+  try {
+    out = execFileSync(process.execPath, [
+      fileURLToPath(import.meta.url), '--child', K, '3',
+    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (e) {
+    out = String(e.stdout || '') + '\n' + String(e.stderr || '').split('\n')[0];
+  }
+  T('★ 跨进程仍被挡下（无状态环境也管得住）',
+    out.includes('CHILD_REJECTED_DB'),
+    out.trim().split('\n').filter(l => l.startsWith('CHILD')).join(' ') || '(子进程无输出)');
+}
+
+/* 子进程模式：父进程用 --child <key> <max> 调起来，只打一次并把结论打进 stdout。 */
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
 if (fail) process.exit(1);
