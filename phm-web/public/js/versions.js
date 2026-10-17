@@ -20,6 +20,19 @@
 
 export const RELEASES = [
   {
+    v: 'V0.13.2.1', date: '2026-10-17',
+    zh: [
+      'API keys 列表现在<b>只显示有效 Key</b>：删除（吊销）后立即从列表消失，不再显示「已吊销」行。',
+      '创建 Key 改为<b>弹窗</b>：一次性显示明文和复制按钮，关闭后无法再次查看；顶部会提示「API key 已创建」。',
+    ],
+    en: [
+      'The API keys list now shows <b>active keys only</b>: a revoked key disappears immediately instead of '
+        + 'remaining as a "revoked" row.',
+      'Creating a key now opens a <b>dialog</b> that shows the secret once with a copy button; after closing it '
+        + 'cannot be viewed again. A toast confirms "API key created".',
+    ],
+  },
+  {
     v: 'V0.13.2.0', date: '2026-10-17',
     zh: [
       '导航新增 <b>API 开放平台</b>。点进去先看到<b>用量信息</b>（今日 / 7 天 / 30 天 / 有效 Key），'
