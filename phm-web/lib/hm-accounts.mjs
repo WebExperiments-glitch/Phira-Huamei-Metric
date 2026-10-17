@@ -266,6 +266,152 @@ export async function login(email, password) {
   return { ok: true, sub: row.sub, token: signJwt({ sub: row.sub, email: e }) };
 }
 
+/* ══════════════════════════════════════════════════════════════
+ * 邮箱验证码（注册 / 重置密码用；**登录不需要**）
+ * ══════════════════════════════════════════════════════════════
+ * 为什么现在要它：注册不验证邮箱所有权 = 可以拿别人的邮箱批量注册
+ * （白帽报告发现 4）。登录仍然只要密码 —— 那是用户要的体验，
+ * 而且登录本来就有 per-IP + per-邮箱 三重限流兜着。
+ *
+ * 发信走**平台自带的** `/.cloud/auth/v1/verification`（CloudBase 网关）：
+ *   · 零配置、零成本，不用注册第三方、不用域名、不用存 SMTP 凭据
+ *   · 平台自己保管验证码（我们只拿到一个带邮箱 + 过期时间的 verification_id）
+ *   · 实测：发码 200 返回 verification_id；错码 400 `verification code does not match the id`
+ *
+ * ⚠⚠ 三条必须守住的：
+ *   ① **verification_id 只存服务端，绝不接受客户端传来**。
+ *      否则攻击者给自己邮箱领一个 id、用自己的码验过，再拿去注册别人的邮箱。
+ *   ② 尝试次数上限 5（在 hm_code_get 里）。10 分钟窗口 + 6 位码不封顶是能枚举的。
+ *   ③ 发信必须限流，否则就成了给别人邮箱灌垃圾邮件的工具（报告发现 7 的形态）。
+ */
+const AUTH_BASE = 'https://phm.app.workbuddy.host/.cloud/auth/v1';
+/* 平台网关要求这两个头才认我们的调用（与站点前端同源的那把 publishable key） */
+const AUTH_HEADERS = {
+  'content-type': 'application/json',
+  'x-wb-webapp-access-key': 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b',
+  'referer': 'https://phm.app.workbuddy.host/',
+};
+const CODE_PURPOSES = new Set(['register', 'reset']);
+const CODE_TTL_SECONDS = 600;   /* 平台给的窗口就是 10 分钟 */
+
+/** 让平台给这个邮箱发一封验证码，并把 verification_id 存进我们的库。
+ *  返回 {ok} 或 {error}。**不把 verification_id 回给客户端**。 */
+export async function sendCode(email, purpose) {
+  const e = String(email || '').trim().toLowerCase();
+  const eErr = validateEmail(e);
+  if (eErr) return { error: 'email_invalid', detail: eErr };
+  if (!CODE_PURPOSES.has(purpose)) return { error: 'purpose_invalid' };
+  if (!WRITE_SECRET) return { error: 'unavailable', detail: '服务端未配置写入凭据' };
+
+  /* 注册前先看这个邮箱是不是已经被注册了 —— 免得白发一封、也免得用户
+     收完码才被告知"这邮箱已注册"。代价是会泄露「某邮箱注册过没」，
+     但 register 本来就要回 email_taken，所以没有新增暴露面。 */
+  if (purpose === 'register') {
+    const ex = await rpc('hm_account_lookup', { p_email: e });
+    if (ex.ok) {
+      let rows = [];
+      try { rows = JSON.parse(ex.body || '[]'); } catch { rows = []; }
+      if (Array.isArray(rows) && rows[0]) return { error: 'email_taken' };
+    }
+  }
+
+  let vid;
+  try {
+    const r = await fetch(AUTH_BASE + '/verification', {
+      method: 'POST', headers: AUTH_HEADERS,
+      body: JSON.stringify({ email: e, usage: 'email' }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const txt = await r.text();
+    if (!r.ok) {
+      console.warn('[hm/send-code] 平台发信失败:', r.status, txt.slice(0, 200));
+      return { error: 'send_failed' };
+    }
+    vid = JSON.parse(txt).verification_id;
+  } catch (err) {
+    console.warn('[hm/send-code] 平台请求异常:', String(err.message || err));
+    return { error: 'send_failed' };
+  }
+  if (!vid) return { error: 'send_failed' };
+
+  const exp = Math.floor(Date.now() / 1000) + CODE_TTL_SECONDS;
+  const put = await rpc('hm_code_put', { p_email: e, p_purpose: purpose, p_vid: vid, p_exp: exp });
+  if (!put.ok) return { error: 'store_failed', detail: String(put.body || put.error || '').slice(0, 160) };
+  return { ok: true, ttl: CODE_TTL_SECONDS };
+}
+
+/** 验码。成功时**作废**这条码（同一个码不能再用第二次）。
+ *  错误码：code_missing / code_expired / code_used / code_too_many /
+ *          code_wrong / code_invalid。 */
+export async function verifyCode(email, purpose, code) {
+  const e = String(email || '').trim().toLowerCase();
+  const c = String(code || '').trim();
+  if (!c) return { error: 'code_missing' };
+  if (!CODE_PURPOSES.has(purpose)) return { error: 'purpose_invalid' };
+
+  const g = await rpc('hm_code_get', { p_email: e, p_purpose: purpose });
+  if (!g.ok) return { error: 'store_failed', detail: String(g.body || g.error || '').slice(0, 160) };
+  let j = {};
+  try { j = JSON.parse(g.body || '{}'); } catch { j = {}; }
+  if (j.ok !== true) {
+    /* 把 DB 的内部原因翻成稳定错误码，不直接透给客户端 */
+    const map = {
+      not_found: 'code_missing', expired: 'code_expired',
+      used: 'code_used', too_many: 'code_too_many',
+    };
+    return { error: map[j.reason] || 'code_invalid' };
+  }
+
+  let ok = false;
+  try {
+    const r = await fetch(AUTH_BASE + '/verification/verify', {
+      method: 'POST', headers: AUTH_HEADERS,
+      body: JSON.stringify({ verification_id: j.vid, verification_code: c }),
+      signal: AbortSignal.timeout(15000),
+    });
+    ok = r.ok;
+    if (!ok) {
+      const txt = await r.text();
+      console.warn('[hm/verify-code] 平台拒绝:', r.status, txt.slice(0, 160));
+    }
+  } catch (err) {
+    console.warn('[hm/verify-code] 平台请求异常:', String(err.message || err));
+    return { error: 'verify_failed' };
+  }
+  if (!ok) return { error: 'code_wrong' };
+
+  const c2 = await rpc('hm_code_consume', { p_email: e, p_purpose: purpose });
+  if (!c2.ok) console.warn('[hm/verify-code] 作废失败（不影响本次通过）:', String(c2.body || '').slice(0, 120));
+  return { ok: true };
+}
+
+/** 重置密码：先验码，再换 hash。**不需要旧密码**（有码就够）。 */
+export async function resetPassword(email, password, code) {
+  const e = String(email || '').trim().toLowerCase();
+  const pErr = validatePassword(password);
+  if (pErr) return { error: 'password_invalid', detail: pErr };
+  if (!WRITE_SECRET) return { error: 'unavailable', detail: '服务端未配置写入凭据' };
+
+  const v = await verifyCode(e, 'reset', code);
+  if (v.error) return v;
+
+  const r = await rpc('hm_account_lookup', { p_email: e });
+  if (!r.ok) return { error: 'store_failed', detail: String(r.body || r.error || '').slice(0, 160) };
+  let rows = [];
+  try { rows = JSON.parse(r.body || '[]'); } catch { rows = []; }
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) return { error: 'bad_credentials' };
+
+  const salt = crypto.randomBytes(16).toString('hex');
+  let hash;
+  try { hash = await hashPassword(password, salt); }
+  catch (err) { return { error: 'hash_failed', detail: String(err.message || err) }; }
+
+  const w = await rpc('hm_account_setpw', { p_sub: row.sub, p_hash: hash, p_salt: salt });
+  if (!w.ok) return { error: 'store_failed', detail: String(w.body || w.error || '').slice(0, 160) };
+  return { ok: true, sub: row.sub };
+}
+
 /** 诊断用：当前 token 密钥来自哪一路。**不返回值本身**。 */
 export function tokenSecretSource() { return TOKEN_SECRET.source; }
 

@@ -339,6 +339,9 @@ export const RL = {
   writeIp: 20, writeGlobal: 120, writeId: 60,
   loginIp: 5, loginGlobal: 20, loginEmail: 3,
   statsIp: 60, statsId: 120, statsGlobal: 400,
+  /* 发验证码：每封都是真邮件，per-邮箱 1 分钟 1 封是硬底线 ——
+     否则就成了给别人邮箱灌垃圾的工具（白帽报告发现 7）。 */
+  codeIp: 3, codeEmail: 1, codeGlobal: 30,
   analyzeIp: 10, analyzeId: 60, analyzeGlobal: 60,
   proxyIp: 60, proxyId: 120, proxyGlobal: 300,
 };
@@ -383,6 +386,19 @@ export function gateAuth(who, email, opts) {
     { k: 'a:g', max: RL.loginGlobal },
   ];
   if (e) keys.push({ k: `a:e:${e}`, max: RL.loginEmail });
+  return limit(keys, null, RL_WINDOW, Object.assign({ failClosed: true }, opts));
+}
+
+/** 发验证码的闸：per-IP 3/分 + **per-邮箱 1/分** + 全局 30/分。
+ *  每发一封都是真邮件（成本 + 发件域声誉），所以比登录还严。 */
+export function gateCode(who, email, opts) {
+  const ip = asWho(who).ip;
+  const e = String(email || '').trim().toLowerCase();
+  const keys = [
+    { k: `c:ip:${ip}`, max: RL.codeIp },
+    { k: 'c:g', max: RL.codeGlobal },
+  ];
+  if (e) keys.push({ k: `c:e:${e}`, max: RL.codeEmail });
   return limit(keys, null, RL_WINDOW, Object.assign({ failClosed: true }, opts));
 }
 

@@ -30,8 +30,12 @@ import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE, DB
 /* huamei 数据飞轮的身份与成绩校验 —— 单独一个模块，见 lib/hm.mjs 顶部。 */
 import { appIdFromKey, makeWhoami, validatePlay } from './lib/hm.mjs';
 /* 自建账号：注册 / 登录 / 自签 token。见 lib/hm-accounts.mjs 顶部。 */
-import { register as hmRegister, login as hmLogin, verifyOwnToken, claimsOwnIssuer } from './lib/hm-accounts.mjs';
+import {
+  register as hmRegister, login as hmLogin, verifyOwnToken, claimsOwnIssuer,
+  sendCode as hmSendCode, verifyCode as hmVerifyCode, resetPassword as hmResetPassword,
+} from './lib/hm-accounts.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
+import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -154,7 +158,7 @@ function sanitize(row, required) {
 import {
   limit as rlLimit, tryEnter, leave as rlLeave, snapshot as rlSnapshot,
   RL, RL_WINDOW, makeGate, gateWriteId,
-  gateWrite, gateStats, gateProxy, gateAnalyze, gateAuth,
+  gateWrite, gateStats, gateProxy, gateAnalyze, gateAuth, gateCode,
 } from './lib/ratelimit.mjs';
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
@@ -223,6 +227,14 @@ const SEC_HEADERS = {
 /* 过闸 —— 实现与理由都在 lib/ratelimit.mjs 的 makeGate()。
    这里只把站点的安全头注进去。 */
 const gate = makeGate(SEC_HEADERS);
+
+/* 账号邮件环节（发码 / 重置密码）—— 逻辑在 lib/hm-code-routes.mjs。
+   这里只把 send / 闸句柄 / 两个账号入口注进去。 */
+const codeRoutes = makeCodeRoutes({
+  send, gate, gateCode, gateAuth,
+  sendCode: hmSendCode, resetPassword: hmResetPassword,
+  verifyCode: hmVerifyCode, register: hmRegister, login: hmLogin,
+});
 
 
 
@@ -428,37 +440,23 @@ const server = http.createServer(async (req, res) => {
      ⚠ 登录失败只回 `bad_credentials`，**不区分**「账号不存在」和「密码错」——
        否则这里成了一个账号枚举接口（拿字典跑一遍就知道谁注册过）。
        注册侧的 `email_taken` 无法避免：注册本来就必须拒绝重复邮箱。 */
+  /* ── 账号的邮件环节：发验证码 / 重置密码 ──
+     实现与理由都在 lib/hm-code-routes.mjs（server.mjs 有 900 行上限）。 */
+  if (p === '/api/hm/send-code' || p === '/api/hm/reset-password') {
+    if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
+    const body = await readBody(req);
+    return p === '/api/hm/send-code'
+      ? codeRoutes.sendCodeRoute(res, body, ip)
+      : codeRoutes.resetPasswordRoute(res, body, ip);
+  }
+
   if (p === '/api/hm/register' || p === '/api/hm/login') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
-    /* ⚠⚠ 审计实测（2026-10-13）：这里**没有任何速率限制** ——
-       10 连发登录全部 401，零 429、零锁定。配合「注册不验证邮箱所有权」
-       （发现 4），等于开放了在线密码爆破。
-       现在三重限流：per-IP 5/分 + per-邮箱 3/分 + 全局 20/分。
-       per-邮箱那一维是关键 —— 否则攻击者换 XFF 就能对同一个目标全速试。 */
-    const pre = await readBody(req);
-    if (!(await gate(res, gateAuth({ ip }, pre && pre.email),
+    const body = await readBody(req);
+    /* 限流在**读 body 之后** —— per-邮箱那一维要拿到 email 才能算。 */
+    if (!(await gate(res, gateAuth({ ip }, body && body.email),
         '尝试太频繁，请一分钟后再试（每邮箱每分钟最多 ' + RL.loginEmail + ' 次）'))) return;
-    const body = pre;
-    const email = String((body && body.email) || '').trim();
-    const password = String((body && body.password) || '');
-    if (!email || !password) {
-      return send(res, 400, JSON.stringify({ ok: false, error: 'email_and_password_required' }));
-    }
-    const r = p === '/api/hm/register'
-      ? await hmRegister(email, password)
-      : await hmLogin(email, password);
-    if (r.error) {
-      /* 400 = 调用方自己的输入不合法（改一下就能好）；
-         401 = 凭据不被接受（账号已被注册 / 邮箱或密码不对 / 库里没这行）。 */
-      const clientErr = (r.error === 'email_invalid' || r.error === 'password_invalid');
-      const payload = { ok: false, error: r.error };
-      /* detail 只在**输入不合法**时给 —— 那是帮助用户改对的提示。
-         凭据类错误的 detail 可能是库的原始报文，含表名/列名，不外泄。 */
-      if (clientErr && r.detail) payload.detail = r.detail;
-      return send(res, clientErr ? 400 : 401, JSON.stringify(payload));
-    }
-    /* token 只在响应体里回一次，**不落服务端日志** —— 它是 bearer 凭据。 */
-    return send(res, 200, JSON.stringify({ ok: true, sub: r.sub, token: r.token }));
+    return codeRoutes.accountRoute(res, p, body, ip);
   }
 
   if (p === '/api/hm/play') {
