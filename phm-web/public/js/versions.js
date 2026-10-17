@@ -20,6 +20,21 @@
 
 export const RELEASES = [
   {
+    v: 'V0.13.2.2', date: '2026-10-17',
+    zh: [
+      '单文件客户端现在会显示<b>服务端版本</b>（<code>/api/v1/meta</code>），并在 Key 被拒时给出可操作的诊断：'
+        + '区分「复制少字符 / 已吊销 / 环境不一致」和「服务端 API 版本过旧」。',
+      '服务端新增公开的 <code>/api/v1/meta</code>，返回 API、服务端构建版本与引擎版本；部署错位可以一眼看出来。',
+    ],
+    en: [
+      'The single-file client now shows the <b>server build version</b> (via <code>/api/v1/meta</code>) and gives '
+        + 'actionable diagnostics when a key is rejected: truncated key, revoked key, environment mismatch, '
+        + 'or a stale server build.',
+      'New public <code>/api/v1/meta</code> returns API, service build, and engine versions, making deployment '
+        + 'mismatches visible at a glance.',
+    ],
+  },
+  {
     v: 'V0.13.2.1', date: '2026-10-17',
     zh: [
       'API keys 列表现在<b>只显示有效 Key</b>：删除（吊销）后立即从列表消失，不再显示「已吊销」行。',
