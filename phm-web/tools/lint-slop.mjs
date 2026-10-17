@@ -76,6 +76,8 @@ const LS_OK = new Set([
   'tools/collect-display-chars.mjs',   /* 同上：CDP 里塞 phm_lang，采集标题用字 */
   'tools/test-ui-flows.mjs',           /* 交互测试：读 phm_font 断言"设置跨页面持久化"。
                                           它是**验证**存储，不是**定义**键名——真源仍是 settings.js。 */
+  'public/phm-api.html',               /* 单文件客户端：下载到本地后没有 settings.js 可依赖，
+                                          只能自带一套最小 KEYS（phm_api_*），这是它的设计前提。 */
 ]);
 for (const f of FILES) {
   if (LS_OK.has(f.rel)) continue;
@@ -111,6 +113,7 @@ for (const f of FILES) {
  */
 const COLOR_OK = [
   /^public\/css\/(base|docs|api)\.css$/, // 令牌定义处；api.css 的代码块是固定暗色语法区
+  /^public\/phm-api\.html$/,             // 单文件客户端：必须自带整套令牌，才能在离线/双击时独立渲染
   /* 404 错误页**必须自包含**：它连不上任何东西时也得能正常显示，
      所以宁愿自带一套最小令牌。改 base.css 的令牌时要同步这里。 */
   /^public\/404\.html$/,

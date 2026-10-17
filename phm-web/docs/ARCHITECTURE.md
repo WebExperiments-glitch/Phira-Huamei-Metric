@@ -47,11 +47,12 @@
 | `/download` | `download.html` | **下载页**：Windows 客户端。exe 本体在 `downloads/`，只走 `/download/phira-huamei.exe` 这一条流式路由（`lib/download.mjs`） |
 | `/developers` | `developers.html` | **开发者文档**：快速开始 / 认证 / 接口 / 错误码 / 限流 / 更新日志（API v1） |
 | `/developer` | `developer.html` | **API 控制台**：登录后管理 Key（创建/改名/吊销）与查看用量 |
+| `/phm-api` | `phm-api.html` | **单文件 API 客户端**：下载后双击即用，填 API Key 查询/分析；零依赖 |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
 | `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |
 
-> 共 **13 个 HTML**（12 个页面 + 404）。`privacy` / `terms` 是自包含文档页，所以
-> **11 个页面**才带 `<meta name="app-version">`。英文不再是单独页面，而是站内双语切换，
+> 共 **14 个 HTML**（13 个页面 + 404）。`privacy` / `terms` 是自包含文档页，所以
+> **12 个页面**才带 `<meta name="app-version">`。英文不再是单独页面，而是站内双语切换，
 > 原 `en.html` 已删除。
 
 **为什么拆**：①面板方案下链接没法指向"某人的成绩 / 某谱师的作品"，

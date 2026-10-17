@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN" data-lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.13.1.0">
+<title>P.H.M. API 客户端 · 单文件</title>
+<meta name="description" content="P.H.M. 单文件 API 客户端：填 API Key 即可查询/分析 Phira 谱面难度。零依赖，一个 HTML 文件。">
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+document.documentElement.setAttribute("data-theme",d?"dark":"light");})();</script>
+<style>
+:root{
+  --bg:#f6f3ee;--card:#fffdf9;--card2:#efebe4;--fg:#1d1a16;--fg2:#4a443c;--fg3:#665f55;
+  --line:#e2dbd0;--line2:#cfc6b8;--brand:#9a6208;--brand-ink:#fff;--brand-soft:#f4ecdf;
+  --ok:#2f7d32;--err:#b3261e;--shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,monospace;
+}
+html[data-theme="dark"]{
+  --bg:#0d1117;--card:#151b23;--card2:#1c242e;--fg:#e6edf3;--fg2:#b7c2cf;--fg3:#8b98a8;
+  --line:#26303c;--line2:#364250;--brand:#e8a33d;--brand-ink:#1a1206;--brand-soft:#2a2113;
+  --ok:#5cc46a;--err:#ff7b72;--shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;}
+a{color:var(--brand);text-decoration:underline;text-underline-offset:2px}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+header.nav{display:flex;align-items:center;gap:14px;padding:16px 0 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-size:19px;font-weight:600;letter-spacing:.3px;color:var(--fg);text-decoration:none}
+.brand b{color:var(--brand)}
+.nav .links{margin-left:auto;display:flex;gap:14px;align-items:center;font-size:13px;flex-wrap:wrap}
+.nav .links a{color:var(--fg2);text-decoration:none}
+.nav .links a:hover{color:var(--brand)}
+.iconbtn{border:1px solid var(--line);background:var(--card);color:var(--fg2);border-radius:8px;padding:4px 9px;cursor:pointer;font:inherit;font-size:12.5px}
+.hero{padding:26px 0 8px}
+.hero h1{font-size:28px;font-weight:400;margin:0 0 6px;letter-spacing:.3px}
+.hero h1 b{color:var(--brand);font-weight:600}
+.hero p{color:var(--fg2);margin:0;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:16px 0;box-shadow:var(--shadow)}
+.card h2{font-size:16px;margin:0 0 4px;font-weight:600}
+.card .sub{color:var(--fg3);font-size:12.5px;line-height:1.65;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row .grow{flex:1 1 220px}
+input{width:100%;padding:9px 11px;border:1px solid var(--line2);border-radius:9px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;min-height:38px}
+input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+button{font:inherit;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 15px;border-radius:9px;border:1px solid var(--line2);background:var(--card);color:var(--fg);font-size:13px;min-height:38px}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.primary:hover{color:var(--brand-ink);filter:brightness(1.04)}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.status{font-size:12.5px;color:var(--fg3);min-height:19px;margin-top:8px}
+.status.err{color:var(--err)}
+.status.ok{color:var(--ok)}
+.keyline{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.keymask{font-family:var(--mono);font-size:12.5px;color:var(--fg2)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.chip{border:1px solid var(--line);background:var(--card2);color:var(--fg2);border-radius:99px;padding:3px 10px;font-size:12px;cursor:pointer}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.result-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.result-head .name{font-size:20px;font-weight:600}
+.badge{font-size:11px;border:1px solid var(--line2);border-radius:99px;padding:1px 8px;color:var(--fg3)}
+.scale{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.scale .box{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.scale .k{font-size:11.5px;color:var(--fg3);letter-spacing:.04em}
+.scale .v{font-size:40px;line-height:1.15;font-variant-numeric:tabular-nums;margin:3px 0}
+.scale .a .v{color:var(--brand)}
+.scale .n{font-size:11.5px;color:var(--fg3);line-height:1.6}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:10px}
+.meta div{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+.meta .k{font-size:11px;color:var(--fg3)}
+.meta .v{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+details.raw{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+details.raw summary{cursor:pointer;color:var(--fg3);font-size:12.5px}
+pre.rawjson{background:#0d1117;color:#e6edf3;border-radius:10px;padding:12px 14px;overflow:auto;font:12px/1.6 var(--mono);margin-top:8px}
+.dl{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dl .item{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--card2)}
+.dl .item b{display:block;font-size:14px;margin-bottom:3px}
+.dl .item p{color:var(--fg3);font-size:12px;margin:0 0 10px;line-height:1.6}
+.dl .item .btn{width:100%}
+footer{border-top:1px solid var(--line);margin-top:26px;padding:16px 0 40px;color:var(--fg3);font-size:12px;display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+footer a{color:var(--fg3)}
+@media(max-width:620px){.scale{grid-template-columns:1fr}.dl{grid-template-columns:1fr}.hero h1{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="nav">
+    <a class="brand" href="https://phm.app.workbuddy.host/">P.<b>H</b>.M. <span style="font-size:12px;color:var(--fg3);font-weight:400">API 客户端</span></a>
+    <div class="links">
+      <a href="https://phm.app.workbuddy.host/developers">API 文档</a>
+      <a href="https://phm.app.workbuddy.host/developer">控制台</a>
+      <a href="https://phm.app.workbuddy.host/">云端版</a>
+      <button class="iconbtn" id="themeBtn" type="button">切换主题</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>单文件 API 客户端 <b>·</b> 填 Key 即用</h1>
+    <p>一个 HTML 文件，零依赖。请求只发往 P.H.M. API；API Key 只存在你的浏览器里。</p>
+  </section>
+
+  <div class="card">
+    <h2>1. 连接</h2>
+    <div class="sub">在控制台创建一个 <span style="font-family:var(--mono)">sk-…</span> 开头的 API Key，粘贴到这里。没有 Key 也可以在控制台免费创建。</div>
+    <div class="row">
+      <div class="grow"><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
+      <button class="btn primary" id="saveKey" type="button">保存 Key</button>
+      <button class="btn ghost" id="clearKey" type="button">清除</button>
+    </div>
+    <div class="keyline">
+      <span id="keyState" class="keymask">未保存 Key</span>
+      <button class="btn ghost" id="showKey" type="button" style="padding:3px 9px;min-height:28px;font-size:12px">显示</button>
+    </div>
+    <details style="margin-top:12px">
+      <summary style="color:var(--fg3);font-size:12.5px;cursor:pointer">高级：API 地址</summary>
+      <div class="row" style="margin-top:8px">
+        <div class="grow"><input id="apiBase" type="text" spellcheck="false"></div>
+        <button class="btn" id="saveBase" type="button">保存地址</button>
+      </div>
+      <div class="sub" style="margin:6px 0 0">默认 <span style="font-family:var(--mono)">https://phm.app.workbuddy.host/api/v1</span>；本地调试可改成 <span style="font-family:var(--mono)">http://127.0.0.1:5199/api/v1</span>。</div>
+    </details>
+    <div class="status" id="connStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 查询 / 分析</h2>
+    <div class="sub">输入 Phira 的 chart_id。查询只读缓存；分析会下载谱面、复算并写入共享缓存（可能需要几秒）。</div>
+    <div class="row">
+      <div class="grow"><input id="chartId" type="text" inputmode="numeric" autocomplete="off" placeholder="chart_id，例如 22681"></div>
+      <button class="btn primary" id="queryBtn" type="button">查询</button>
+      <button class="btn" id="analyzeBtn" type="button">分析</button>
+    </div>
+    <div class="chips" id="recent"></div>
+    <div class="status" id="runStatus"></div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="result-head">
+      <span class="name" id="rName">—</span>
+      <span class="badge" id="rLevel">—</span>
+      <span class="badge" id="rState">—</span>
+    </div>
+    <div class="scale">
+      <div class="box a"><div class="k">社区共识标度</div><div class="v" id="rRef">—</div><div class="n">ref_const · 9,508 张社区谱的 k-NN</div></div>
+      <div class="box"><div class="k">官谱标度</div><div class="v" id="rOff">—</div><div class="n">ref_official · 1,037 张官谱的 k-NN</div></div>
+    </div>
+    <div class="meta">
+      <div><div class="k">标称定数</div><div class="v" id="rDiff">—</div></div>
+      <div><div class="k">PS 负荷</div><div class="v" id="rPs">—</div></div>
+      <div><div class="k">物量</div><div class="v" id="rNotes">—</div></div>
+      <div><div class="k">引擎</div><div class="v" id="rEng">—</div></div>
+      <div><div class="k">缓存</div><div class="v" id="rCache">—</div></div>
+    </div>
+    <details class="raw"><summary>原始 JSON</summary><pre class="rawjson" id="rJson"></pre></details>
+    <div class="status" id="resultNote"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. 下载</h2>
+    <div class="sub">这个页面本身就是完整客户端。保存一份到本地，之后双击即可使用。</div>
+    <div class="dl">
+      <div class="item">
+        <b>单文件 HTML</b>
+        <p>零依赖、离线可打开；API 请求仍需要联网。</p>
+        <button class="btn primary" id="dlSelf" type="button">下载本文件</button>
+      </div>
+      <div class="item">
+        <b>Windows 客户端</b>
+        <p>边打谱边采集逐音符判定，用于数据飞轮。</p>
+        <a class="btn" href="https://phm.app.workbuddy.host/download/phira-huamei.exe" download>下载 Windows 版</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>P.H.M. Standard · 单文件 API 客户端 · 免费</span>
+    <span><a href="https://phm.app.workbuddy.host/">云端版</a> · <a href="https://phm.app.workbuddy.host/developers">API 文档</a> · <a href="https://phm.app.workbuddy.host/privacy">隐私政策</a></span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var LS_KEY = 'phm_api_key', LS_BASE = 'phm_api_base', LS_RECENT = 'phm_api_recent', LS_THEME = 'phm_theme';
+  var DEFAULT_BASE = 'https://phm.app.workbuddy.host/api/v1';
+  var $ = function (s) { return document.querySelector(s); };
+  var keyHidden = true;
+
+  function getKey() { try { return localStorage.getItem(LS_KEY) || ''; } catch (e) { return ''; } }
+  function getBase() { try { return (localStorage.getItem(LS_BASE) || DEFAULT_BASE).replace(/\/$/, ''); } catch (e) { return DEFAULT_BASE; } }
+  function mask(k) { return /^sk-[0-9a-f]{32}$/.test(k) ? k.slice(0, 9) + '****' + k.slice(-4) : 'Key 格式看起来不对'; }
+  function status(el, msg, kind) { el.textContent = msg || ''; el.className = 'status' + (kind ? ' ' + kind : ''); }
+
+  function paintKey() {
+    var k = getKey();
+    $('#keyState').textContent = k ? (keyHidden ? mask(k) : k) : '未保存 Key';
+    $('#showKey').textContent = keyHidden ? '显示' : '隐藏';
+    $('#apiKey').value = '';
+    $('#apiKey').placeholder = k ? '已保存（输入新 Key 可替换）' : 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+  }
+
+  async function callApi(path, opts) {
+    var k = getKey();
+    if (!k) throw new Error('请先在「连接」里保存 API Key');
+    opts = opts || {};
+    var headers = { authorization: 'Bearer ' + k };
+    if (opts.body) headers['content-type'] = 'application/json';
+    var res = await fetch(getBase() + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    var data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) {
+      var e = data && data.error ? data.error : null;
+      var msg = e ? (e.code + ': ' + e.message) : ('HTTP ' + res.status);
+      if (res.status === 401) msg = 'API Key 无效或已吊销——请到控制台确认';
+      if (res.status === 429) msg = '额度用完了，稍后再试（' + (res.headers.get('retry-after') || '?') + ' 秒）';
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  function renderResult(d) {
+    $('#resultCard').style.display = '';
+    $('#rName').textContent = d.name || ('chart ' + d.chart_id);
+    $('#rLevel').textContent = d.level || '—';
+    $('#rState').textContent = d.analyzed === false ? '未分析' : (d.cached ? '缓存命中' : '刚刚分析');
+    $('#rRef').textContent = d.ref_const == null ? '—' : Number(d.ref_const).toFixed(1);
+    $('#rOff').textContent = d.ref_official == null ? '—' : Number(d.ref_official).toFixed(1);
+    $('#rDiff').textContent = d.difficulty == null ? '—' : d.difficulty;
+    $('#rPs').textContent = d.ps_score == null ? '—' : Number(d.ps_score).toFixed(2);
+    $('#rNotes').textContent = d.notes == null ? '—' : d.notes;
+    $('#rEng').textContent = d.engine_build || d.engine_ver || '—';
+    $('#rCache').textContent = d.cached ? 'yes' : 'no';
+    $('#rJson').textContent = JSON.stringify(d, null, 2);
+    if (d.analyzed === false) {
+      status($('#resultNote'), '这张谱还没有缓存，点「分析」让服务端算一次。', '');
+    } else if (d.cacheWrite && d.cacheWrite.ok === false) {
+      status($('#resultNote'), '算出来了，但写缓存失败：' + (d.cacheWrite.detail || ''), 'err');
+    } else {
+      status($('#resultNote'), '', '');
+    }
+  }
+
+  async function run(analyze) {
+    var id = ($('#chartId').value || '').trim();
+    if (!/^[0-9]+$/.test(id) || +id < 1) return status($('#runStatus'), '请输入正整数 chart_id', 'err');
+    if (!getKey()) return status($('#runStatus'), '请先在「连接」里保存 API Key', 'err');
+    var btn = analyze ? $('#analyzeBtn') : $('#queryBtn');
+    var old = btn.textContent;
+    btn.disabled = true; btn.textContent = analyze ? '分析中…' : '查询中…';
+    status($('#runStatus'), analyze ? '服务端正在下载谱面并复算，可能需要几秒…' : '读取缓存…', '');
+    try {
+      var d = analyze
+        ? await callApi('/analyses', { method: 'POST', body: { chart_id: +id } })
+        : await callApi('/charts/' + id);
+      renderResult(d);
+      status($('#runStatus'), '', '');
+      saveRecent(id);
+      refreshUsage();
+    } catch (e) {
+      status($('#runStatus'), String(e.message || e), 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = old;
+    }
+  }
+
+  function saveRecent(id) {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(LS_RECENT) || '[]'); } catch (e) {}
+    list = [String(id)].concat(list.filter(function (x) { return x !== String(id); })).slice(0, 8);
+    try { localStorage.setItem(LS_RECENT, JSON.stringify(list)); } catch (e) {}
+    paintRecent();
+  }
+  function paintRecent() {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem(LS_RECENT) || '[]'); } catch (e) {}
+    var box = $('#recent'); box.innerHTML = '';
+    list.forEach(function (id) {
+      var b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button'; b.textContent = id;
+      b.onclick = function () { $('#chartId').value = id; run(false); };
+      box.appendChild(b);
+    });
+  }
+
+  async function refreshUsage() {
+    if (!getKey()) return;
+    try {
+      var u = await callApi('/usage');
+      status($('#connStatus'), '已连接 · 今日 ' + (u.today == null ? '—' : u.today) + ' 次 · 本小时额度 ' + (u.quota ? u.quota.hourly : '—'), 'ok');
+    } catch (e) {
+      status($('#connStatus'), 'Key 已保存，但用量读取失败：' + String(e.message || e), 'err');
+    }
+  }
+
+  $('#saveKey').onclick = function () {
+    var v = ($('#apiKey').value || '').trim();
+    if (!v) return status($('#connStatus'), '请先粘贴 API Key', 'err');
+    if (!/^sk-[0-9a-f]{32}$/.test(v)) return status($('#connStatus'), '格式不对：应为 sk- 加 32 位十六进制', 'err');
+    try { localStorage.setItem(LS_KEY, v); } catch (e) { return status($('#connStatus'), '浏览器禁止存储，请检查隐私设置', 'err'); }
+    paintKey(); status($('#connStatus'), '已保存，正在验证…', '');
+    refreshUsage();
+  };
+  $('#clearKey').onclick = function () {
+    try { localStorage.removeItem(LS_KEY); } catch (e) {}
+    paintKey(); status($('#connStatus'), '已清除 Key', '');
+  };
+  $('#showKey').onclick = function () { keyHidden = !keyHidden; paintKey(); };
+  $('#saveBase').onclick = function () {
+    var v = ($('#apiBase').value || '').trim();
+    if (!/^https?:\/\//.test(v)) return status($('#connStatus'), 'API 地址必须以 http(s):// 开头', 'err');
+    try { localStorage.setItem(LS_BASE, v.replace(/\/$/, '')); } catch (e) {}
+    status($('#connStatus'), 'API 地址已保存', 'ok');
+    refreshUsage();
+  };
+  $('#queryBtn').onclick = function () { run(false); };
+  $('#analyzeBtn').onclick = function () { run(true); };
+  $('#chartId').addEventListener('keydown', function (e) { if (e.key === 'Enter') run(false); });
+  $('#apiKey').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#saveKey').click(); });
+  $('#themeBtn').onclick = function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem(LS_THEME, next); } catch (e) {}
+  };
+  $('#dlSelf').onclick = async function () {
+    var blob;
+    try {
+      var r = await fetch(location.href);
+      if (!r.ok) throw new Error('fetch ' + r.status);
+      blob = await r.blob();
+    } catch (e) {
+      blob = new Blob(['<!doctype html>\n' + document.documentElement.outerHTML], { type: 'text/html' });
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'PHM-API-Client.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  };
+
+  $('#apiBase').value = getBase();
+  paintKey(); paintRecent();
+  if (getKey()) refreshUsage();
+})();
+</script>
+</body>
+</html>

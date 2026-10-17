@@ -218,6 +218,7 @@ const ROUTES = [
   { path: '/download', name: '下载客户端', sel: ['#dlbtn', '#hash', '#mf', '#verfoot'], mod: 'release' },
   { path: '/developers', name: '开发者文档', sel: ['.api-side', '.api-main'], mod: 'ui' },
   { path: '/developer', name: 'API 控制台', sel: ['#authGate', '#consoleBody'], mod: 'ui' },
+  { path: '/phm-api', name: '单文件 API 客户端', sel: ['#apiKey', '#chartId', '#dlSelf'], mod: 'ui', standalone: true },
 ];
 
 for (const R of ROUTES) {
@@ -236,8 +237,9 @@ for (const R of ROUTES) {
     out.navLinks = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); });
     /* 顶栏与内容区的横向位置 —— 内容区可以随页面宽窄不同（宽表 vs 正文），
        但顶栏全站必须对齐，否则切页面时 logo 会横向跳一下。 */
-    var nb = document.getElementById('nav').getBoundingClientRect();
-    out.navLeft = Math.round(nb.left); out.navW = Math.round(nb.width);
+    var navEl = document.getElementById('nav');
+    if (navEl) { var nb = navEl.getBoundingClientRect(); out.navLeft = Math.round(nb.left); out.navW = Math.round(nb.width); }
+    else { out.navLeft = null; out.navW = null; }
     var wp = document.querySelector('.wrap');
     out.wrapW = wp ? Math.round(wp.getBoundingClientRect().width) : null;
     /* 样式表的缓存键 —— 它必须与 app-version 是同一个串。
@@ -263,18 +265,22 @@ for (const R of ROUTES) {
   /* 顶栏对齐：内容区宽度可以不同（数据页 1100 / 正文页 880），
      但顶栏必须全站一个位置 —— 否则点导航切页时 logo 会横向跳。
      ⚠ 用真浏览器的几何值来判，别看源码猜。 */
+  if (!R.standalone) {
   if (CC.navLeft == null) CC.navLeft = info.navLeft;
   else ok('★ 顶栏横向位置与其他页一致', Math.abs(CC.navLeft - info.navLeft) <= 1,
     '本页 left=' + info.navLeft + '，首见 ' + CC.navLeft);
+  }
   CC.wrapW = info.wrapW;
   /* 缓存键必须跟版本号同步 —— 这两处漏改任何一处都会"改了看不到" */
   ok('样式表 ?v= 与 app-version 一致',
     info.cssV == null || info.cssV === info.ver, 'cssV=' + info.cssV + ' ver=' + info.ver);
   ok('有页面标题', !!info.title && info.title.length > 3, info.title);
+  if (!R.standalone) {
   ok('导航已渲染', info.hasNav === true);
   /* 导航入口数 = NAV 数组长度（首页/算定数/谱师/玩家/数据/设置/下载）。
      写死具体数字是有意的：**少一个入口是回归**，而"≥6"这种松断言拦不住它。 */
   ok('导航含 7 个入口', (info.navLinks || []).length >= 7, JSON.stringify(info.navLinks));
+  }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
   ok('主题已初始化（防闪烁脚本生效）',

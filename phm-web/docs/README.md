@@ -94,7 +94,7 @@ phm-web/
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
 │   ├── reconcile-cache.mjs    ← ★ 缓存对账（--recompute-stale / --fix，退出码可挂 CI）
 │   ├── verify-engine.mjs      ← ★ 引擎回归测试（45 条；--net 比对真实基线）
-│   ├── smoke-page.mjs         ← ★ 冒烟（208 条：页面 / 版本号 / 缓存策略）
+│   ├── smoke-page.mjs         ← ★ 冒烟（222 条：页面 / 版本号 / 缓存策略）
 │   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
 │   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）
 │   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（22 条）

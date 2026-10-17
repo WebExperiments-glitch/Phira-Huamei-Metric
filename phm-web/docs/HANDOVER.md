@@ -66,7 +66,7 @@ node tools/verify-engine.mjs                          # 45 条 · 引擎纯计�
 node tools/test-ratelimit.mjs                         # 80 条 · 限流
 PORT=5199 node server.mjs &                           # 先起服务
 
-node tools/smoke-page.mjs      http://127.0.0.1:5199  # 208 条 · 页面加载/版本号/缓存策略
+node tools/smoke-page.mjs      http://127.0.0.1:5199  # 222 条 · 页面加载/版本号/缓存策略
 node tools/verify-pages.mjs    http://127.0.0.1:5199  # 123 条 · 真浏览器驱动 UI + 双语
 node tools/test-ui-flows.mjs   http://127.0.0.1:5199  #  24 条 · 真浏览器**交互**（拖文件/结果卡/字体）
 node tools/test-api-routes.mjs http://127.0.0.1:5199  #  22 条 · 打完接口 + 贡献凭证认证再验进程没死
@@ -77,11 +77,11 @@ node tools/lint-i18n.mjs                              # 必须 0（821 词条 / 
 node tools/lint-docs.mjs                              # 88 条 · 死链 / 版本号 / 页面与模块清单
 ```
 
-**期望数字**：208 / 123 / 24 / 22 / 80 / 45 / 79，加 `test-contribute-ticket` 11，全部 `0 失败`。
+**期望数字**：222 / 123 / 24 / 22 / 80 / 45 / 79，加 `test-contribute-ticket` 11，全部 `0 失败`。
 `lint-slop` / `lint-i18n` 必须 0。
 
 > **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`（14 项）；
-> `.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑 **offline 版 smoke（204 条）+ ui-flows（24 条）**。
+> `.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑 **offline 版 smoke（218 条）+ ui-flows（24 条）**。
 > CI 没有生产数据库读写权限，所以 smoke 用 `PHM_SMOKE_OFFLINE=1` 跳过数据页分页断言；
 > `verify-pages` / `api-routes` 依赖真实数据与 Phira 写入路径，留在本地发版前跑。
 > 出事时的操作顺序见 [`RUNBOOK.md`](RUNBOOK.md)。

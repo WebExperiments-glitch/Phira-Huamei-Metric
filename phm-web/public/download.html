@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.13.0.0">
+<meta name="app-version" content="V0.13.1.0">
 <title>下载客户端 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="下载 P.H.M. 谱面定数参考的 Windows 客户端：单文件、免安装，边打谱边把每一局的判定明细记进数据飞轮。">
@@ -19,8 +19,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.13.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.13.1.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.1.0">
 <style>
 /* ── 下载主面板 ──
    全站只有一个主色，这里把主色用满：这是页面上**唯一**要做的事。
@@ -86,6 +86,23 @@ ol.steps li b{color:var(--fg)}
 </div>
 
 <div class="card">
+  <h2>单文件 API 客户端</h2>
+  <div class="sub">不想装客户端、也不想开网页？下载这个 HTML，双击打开，填 API Key 就能查询 / 分析谱面。零依赖，只有这一个文件。</div>
+  <div class="dlbox">
+    <div class="big">
+      <a class="btn primary" href="/phm-api" download>下载单文件 HTML</a>
+      <a class="btn" href="/developers" style="min-height:44px;padding:10px 18px;border-radius:10px">API 文档</a>
+      <span class="dim2" style="font-size:12.5px">需要 API Key（免费创建）</span>
+    </div>
+    <dl class="dlmeta">
+      <div><dt>文件</dt><dd>phm-api.html</dd></div>
+      <div><dt>依赖</dt><dd>0</dd></div>
+      <div><dt>调用</dt><dd>P.H.M. API v1</dd></div>
+    </dl>
+  </div>
+</div>
+
+<div class="card">
   <h2 data-i18n="dl.how.title">怎么用</h2>
   <ol class="steps">
     <li data-i18n-html="dl.how.s1">下载上面那个 <span class="mono">.exe</span>，放到任意目录，<b>双击即可运行</b>——单文件，不需要安装，也不需要额外的资源文件夹。</li>
@@ -128,8 +145,8 @@ ol.steps li b{color:var(--fg)}
 </div>
 
 <script type="module">
-import { renderNav, esc, applyStatic, t, onLangChange, APP_VER } from '/js/ui.js?v=V0.13.0.0';
-import { RELEASE } from '/js/release.js?v=V0.13.0.0';
+import { renderNav, esc, applyStatic, t, onLangChange, APP_VER } from '/js/ui.js?v=V0.13.1.0';
+import { RELEASE } from '/js/release.js?v=V0.13.1.0';
 
 renderNav('download');
 applyStatic();
