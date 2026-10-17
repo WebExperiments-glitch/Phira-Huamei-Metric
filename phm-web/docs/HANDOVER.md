@@ -73,7 +73,7 @@ node tools/test-api-routes.mjs http://127.0.0.1:5199  #  22 条 · 打完接口 
 node tools/test-contribute-ticket.mjs                  #  11 条 · 贡献凭证签/验（不联网）
 
 node tools/lint-slop.mjs                              # 必须 0
-node tools/lint-i18n.mjs                              # 必须 0（821 词条 / 803 引用）
+node tools/lint-i18n.mjs                              # 必须 0（822 词条 / 804 引用）
 node tools/lint-docs.mjs                              # 94 条 · 死链 / 版本号 / 页面与模块清单
 
 node tools/review-gate.mjs                            # ★ 静态审计（凭据/版本/白名单/SQL/禁用模式/workflow）

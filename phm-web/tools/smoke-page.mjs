@@ -217,7 +217,7 @@ const ROUTES = [
      ① 主按钮的 href 真的指向可下载的地址；② 哈希与 release.js 一致。 */
   { path: '/download', name: '下载客户端', sel: ['#dlbtn', '#hash', '#mf', '#verfoot'], mod: 'release' },
   { path: '/developers', name: '开发者文档', sel: ['.api-side', '.api-main'], mod: 'ui' },
-  { path: '/developer', name: 'API 控制台', sel: ['#authGate', '#consoleBody'], mod: 'ui' },
+  { path: '/platform', name: 'API 开放平台', sel: ['#authGate', '#app'], mod: 'ui' },
   { path: '/phm-api', name: '单文件 API 客户端', sel: ['#apiKey', '#chartId', '#dlSelf'], mod: 'ui', standalone: true },
 ];
 
@@ -279,7 +279,7 @@ for (const R of ROUTES) {
   ok('导航已渲染', info.hasNav === true);
   /* 导航入口数 = NAV 数组长度（首页/算定数/谱师/玩家/数据/设置/下载）。
      写死具体数字是有意的：**少一个入口是回归**，而"≥6"这种松断言拦不住它。 */
-  ok('导航含 7 个入口', (info.navLinks || []).length >= 7, JSON.stringify(info.navLinks));
+  ok('导航含 8 个入口', (info.navLinks || []).length >= 8, JSON.stringify(info.navLinks));
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */

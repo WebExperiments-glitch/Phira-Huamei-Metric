@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.13.1.0">
+<meta name="app-version" content="V0.13.2.0">
 <title>P.H.M. API 客户端 · 单文件</title>
 <meta name="description" content="P.H.M. 单文件 API 客户端：填 API Key 即可查询/分析 Phira 谱面难度。零依赖，一个 HTML 文件。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -90,7 +90,7 @@ footer a{color:var(--fg3)}
     <a class="brand" href="https://phm.app.workbuddy.host/">P.<b>H</b>.M. <span style="font-size:12px;color:var(--fg3);font-weight:400">API 客户端</span></a>
     <div class="links">
       <a href="https://phm.app.workbuddy.host/developers">API 文档</a>
-      <a href="https://phm.app.workbuddy.host/developer">控制台</a>
+      <a href="https://phm.app.workbuddy.host/platform">开放平台</a>
       <a href="https://phm.app.workbuddy.host/">云端版</a>
       <button class="iconbtn" id="themeBtn" type="button">切换主题</button>
     </div>
@@ -103,7 +103,7 @@ footer a{color:var(--fg3)}
 
   <div class="card">
     <h2>1. 连接</h2>
-    <div class="sub">在控制台创建一个 <span style="font-family:var(--mono)">sk-…</span> 开头的 API Key，粘贴到这里。没有 Key 也可以在控制台免费创建。</div>
+    <div class="sub">在开放平台创建一个 <span style="font-family:var(--mono)">sk-…</span> 开头的 API Key，粘贴到这里。没有 Key 也可以在开放平台免费创建。</div>
     <div class="row">
       <div class="grow"><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
       <button class="btn primary" id="saveKey" type="button">保存 Key</button>
@@ -216,7 +216,7 @@ footer a{color:var(--fg3)}
     if (!res.ok) {
       var e = data && data.error ? data.error : null;
       var msg = e ? (e.code + ': ' + e.message) : ('HTTP ' + res.status);
-      if (res.status === 401) msg = 'API Key 无效或已吊销——请到控制台确认';
+      if (res.status === 401) msg = 'API Key 无效或已吊销——请到开放平台确认';
       if (res.status === 429) msg = '额度用完了，稍后再试（' + (res.headers.get('retry-after') || '?') + ' 秒）';
       throw new Error(msg);
     }

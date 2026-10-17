@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.13.2.0">
+<title>API 开放平台 · P.H.M.</title>
+<meta name="description" content="P.H.M. API 开放平台：查看调用用量、管理 API Key、接入免费的谱面难度查询/分析接口。">
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.13.2.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.2.0">
+<link rel="stylesheet" href="/css/api.css?v=V0.13.2.0">
+<style>
+.platwrap{max-width:1100px;grid-template-columns:190px minmax(0,1fr);gap:28px}
+.plat-side{position:sticky;top:74px;align-self:start;font-size:13px}
+.plat-side .grp{color:var(--fg3);font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin:18px 0 5px}
+.plat-side a{display:flex;align-items:center;gap:7px;color:var(--fg2);text-decoration:none;padding:6px 9px;border-radius:7px;margin:1px 0}
+.plat-side a:hover{background:var(--card2);color:var(--fg)}
+.plat-side a.on{background:var(--brand-soft);color:var(--brand);font-weight:600}
+.plat-side .ic{width:14px;text-align:center;opacity:.75}
+.plat-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 16px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.plat-top .who{font-size:13px;color:var(--fg2)} .plat-top .who b{color:var(--fg)}
+.plat-panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:16px 0}
+.plat-panel h2{font-size:15px;margin:0 0 4px} .plat-panel .sub{color:var(--fg3);font-size:12px;margin-bottom:12px;line-height:1.6}
+.bars{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.bar-row{display:grid;grid-template-columns:100px minmax(0,1fr) 52px;gap:10px;align-items:center;font-size:12px}
+.bar-row .nm{color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .n{text-align:right;font-family:var(--mono);font-size:11.5px;color:var(--fg3)}
+.bar-track{height:7px;border-radius:99px;background:var(--card2);overflow:hidden}
+.bar-fill{height:100%;border-radius:99px;background:var(--brand);min-width:2px}
+.landing h1{font-size:30px;font-weight:400;margin:16px 0 8px} .landing h1 b{color:var(--brand);font-weight:600}
+.landing .lead{color:var(--fg2);font-size:14.5px;line-height:1.85;max-width:640px}
+.landing .steps{color:var(--fg2);font-size:13.5px;line-height:1.9;padding-left:20px;margin:6px 0}
+.landing .steps b{color:var(--fg)}
+@media(max-width:860px){.platwrap{grid-template-columns:1fr}.plat-side{display:flex;gap:4px;flex-wrap:wrap;position:static;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:6px}.plat-side .grp{display:none}.plat-side a{padding:5px 9px}.bar-row{grid-template-columns:78px minmax(0,1fr) 44px}}
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
+  integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
+  crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="wrap"><nav id="nav"></nav></div>
+<div class="apiwrap platwrap">
+  <aside class="plat-side" aria-label="开放平台导航">
+    <div class="grp">API 开放平台</div>
+    <a href="#usage" data-view="usage" class="on"><span class="ic">▥</span>用量信息</a>
+    <a href="#keys" data-view="keys"><span class="ic">⌘</span>API keys</a>
+    <div class="grp">资源</div>
+    <a href="/developers"><span class="ic">▤</span>接口文档</a>
+    <a href="/phm-api"><span class="ic">↓</span>单文件客户端</a>
+    <a href="/"><span class="ic">←</span>返回站点</a>
+  </aside>
+
+  <main class="api-main">
+    <div id="authGate" class="console-empty">正在检查登录状态…</div>
+    <div id="app" style="display:none">
+      <div class="plat-top">
+        <span class="who">当前账号 <b id="acctEmail">—</b></span>
+        <span style="flex:1"></span>
+        <a class="api-btn sm" href="/developers">接口文档</a>
+        <button class="api-btn sm" id="logout" type="button">退出登录</button>
+      </div>
+
+      <section id="view-usage">
+        <h1>用量信息</h1>
+        <p class="lead">所有日期均按 <b>GMT+8</b> 时间显示，数据可能有 5 分钟延迟。</p>
+        <div class="console-grid">
+          <div class="console-card"><div class="k">今日调用</div><div class="v" id="uToday">—</div><div class="n">00:00 起（北京时间）</div></div>
+          <div class="console-card"><div class="k">近 7 天</div><div class="v" id="uWeek">—</div></div>
+          <div class="console-card"><div class="k">近 30 天</div><div class="v" id="uMonth">—</div></div>
+          <div class="console-card"><div class="k">有效 Key</div><div class="v" id="uKeys">—</div><div class="n">上限 100</div></div>
+        </div>
+        <div class="plat-panel">
+          <h2>按接口分布</h2>
+          <div class="sub">近 30 天 · 查询 / 分析分别统计</div>
+          <div class="bars" id="byEndpoint"><div class="console-empty">还没有调用记录。</div></div>
+        </div>
+        <div class="plat-panel">
+          <h2>免费额度</h2>
+          <div class="sub">不收费、不需要绑定支付方式。额度按账号与 Key 计算。</div>
+          <table class="api-table" style="margin:6px 0 0">
+            <tr><th>身份</th><th>额度</th><th>说明</th></tr>
+            <tr><td>匿名</td><td><b>100 次/小时</b></td><td>不登录直接调；按真实对端 IP</td></tr>
+            <tr><td>API Key</td><td><b>1000 次/小时</b></td><td>分析接口另有 <b>200 次/天</b></td></tr>
+          </table>
+        </div>
+      </section>
+
+      <section id="view-keys" style="display:none">
+        <h1>API keys</h1>
+        <p class="lead">列表内是你全部 API key，<b>仅在创建时可见可复制</b>，请妥善保存。
+          不要与他人共享，也不要把 Key 暴露在浏览器或客户端代码里。每个账号最多保留 <b>100</b> 个有效 Key。</p>
+        <div class="console-bar">
+          <input id="keyName" maxlength="40" placeholder="给新 Key 起个名字（例如：笔记本 / CI）">
+          <button class="api-btn primary" id="createKey" type="button">创建 API key</button>
+        </div>
+        <div class="status-line" id="keyStatus"></div>
+        <div id="oneKey"></div>
+        <div style="overflow:auto;margin-top:6px">
+          <table class="key-table">
+            <thead><tr><th>名称</th><th>Tracking ID</th><th>Key</th><th>创建日期</th><th>最近使用</th><th></th></tr></thead>
+            <tbody id="keyRows"><tr><td colspan="6" class="console-empty">加载中…</td></tr></tbody>
+          </table>
+        </div>
+        <p class="api-note" style="margin-top:18px">用量按「账号」汇总；删除 Key 会立即吊销、但保留历史用量记录。
+          完整参数见 <a href="/developers">接口文档</a>，或下载 <a href="/phm-api">单文件客户端</a> 直接试。</p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <div class="row" style="justify-content:space-between">
+    <span>P.H.M. Standard · API 开放平台 · 免费</span>
+    <span><a href="/developers">接口文档</a> · <a href="/">返回站点</a> · <a href="/privacy">隐私政策</a></span>
+  </div>
+</footer>
+
+<script type="module">
+import { renderNav } from '/js/ui.js?v=V0.13.2.0';
+renderNav('platform');
+
+const CLOUD_CFG = { endpoint: 'https://phm.app.workbuddy.host', publishableKey: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b' };
+const $ = s => document.querySelector(s);
+let cloud = null, account = null, currentView = 'usage';
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function fmtDate(v) { if (!v) return '—'; const d = new Date(v); return isNaN(d) ? '—' : d.toISOString().slice(0, 10); }
+function setStatus(msg, isErr) { const el = $('#keyStatus'); if (el) { el.textContent = msg || ''; el.className = 'status-line' + (isErr ? ' err' : ''); } }
+
+async function getIdToken() { try { return await cloud.auth.getAccessToken(); } catch (e) { return null; } }
+async function api(path, opts) {
+  const token = await getIdToken();
+  if (!token) throw new Error('account_token_required');
+  const r = await fetch('/api/v1' + path, Object.assign({ headers: { 'x-hm-token': token, 'content-type': 'application/json' } }, opts || {}));
+  let j = null; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(j && j.error ? (j.error.code + ': ' + j.error.message) : ('HTTP ' + r.status));
+  return j;
+}
+
+function showView(view, push) {
+  currentView = view === 'keys' ? 'keys' : 'usage';
+  $('#view-usage').style.display = currentView === 'usage' ? '' : 'none';
+  $('#view-keys').style.display = currentView === 'keys' ? '' : 'none';
+  document.querySelectorAll('.plat-side a[data-view]').forEach(a => a.classList.toggle('on', a.getAttribute('data-view') === currentView));
+  if (push) { try { history.replaceState(null, '', '#' + currentView); } catch (e) {} }
+}
+
+function renderLanding() {
+  $('#authGate').innerHTML = '<div class="landing">'
+    + '<h1>P.H.M. <b>API 开放平台</b></h1>'
+    + '<p class="lead">把 Phira / Phigros 的谱面难度参考接进你的工具。查询已缓存的定数，'
+    + '或提交分析让服务端复算并写入共享缓存。<b>免费</b>，匿名与 API Key 都能用。</p>'
+    + '<div class="console-grid" style="margin-top:18px">'
+    + '<div class="console-card"><div class="k">查询定数</div><div class="v">GET</div><div class="n">/api/v1/charts/{id}</div></div>'
+    + '<div class="console-card"><div class="k">分析谱面</div><div class="v">POST</div><div class="n">/api/v1/analyses</div></div>'
+    + '<div class="console-card"><div class="k">Key 额度</div><div class="v">1000</div><div class="n">次/小时 · 分析 200/天</div></div>'
+    + '</div>'
+    + '<div class="plat-panel"><h2>开始使用</h2>'
+    + '<ol class="steps"><li>登录站点账号（与客户端同一个账号）。</li>'
+    + '<li>在「API keys」里创建一个 <b>sk-</b> Key。</li>'
+    + '<li>带上 <b>Authorization: Bearer sk-…</b> 调用 <b>/api/v1</b>。</li></ol>'
+    + '<div class="console-bar" style="margin-top:12px">'
+    + '<a class="api-btn primary" href="/app#account">登录 / 注册 →</a>'
+    + '<a class="api-btn" href="/developers">接口文档</a>'
+    + '<a class="api-btn" href="/phm-api">下载单文件客户端</a>'
+    + '</div></div></div>';
+}
+
+function paintBars(byEndpoint) {
+  const box = $('#byEndpoint');
+  const entries = Object.entries(byEndpoint || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) { box.innerHTML = '<div class="console-empty">还没有调用记录。</div>'; return; }
+  const max = Math.max.apply(null, entries.map(e => e[1])) || 1;
+  box.innerHTML = entries.map(([name, n]) =>
+    '<div class="bar-row"><span class="nm" title="' + esc(name) + '">' + esc(name) + '</span>'
+    + '<span class="bar-track"><span class="bar-fill" style="width:' + Math.max(2, Math.round(n / max * 100)) + '%"></span></span>'
+    + '<span class="n">' + n + '</span></div>').join('');
+}
+
+async function loadUsage() {
+  try {
+    const u = await api('/usage');
+    $('#uToday').textContent = u.today == null ? '—' : u.today;
+    $('#uWeek').textContent = u.week == null ? '—' : u.week;
+    $('#uMonth').textContent = u.month == null ? '—' : u.month;
+    paintBars(u.by_endpoint);
+  } catch (e) {
+    $('#byEndpoint').innerHTML = '<div class="console-empty">用量读取失败：' + esc(String(e.message || e)) + '</div>';
+  }
+}
+
+async function loadKeys() {
+  try {
+    const data = await api('/keys');
+    const keys = (data && data.keys) || [];
+    $('#uKeys').textContent = keys.filter(k => !k.revoked_at).length;
+    const tbody = $('#keyRows'); tbody.innerHTML = '';
+    if (!keys.length) { tbody.innerHTML = '<tr><td colspan="6" class="console-empty">还没有 Key，创建一个吧。</td></tr>'; return; }
+    for (const k of keys) {
+      const tr = document.createElement('tr');
+      const revoked = !!k.revoked_at;
+      tr.innerHTML = '<td>' + esc(k.name) + (revoked ? ' <span class="k">(已吊销)</span>' : '') + '</td>'
+        + '<td class="mono">' + esc(k.id) + '</td><td class="mono">' + esc(k.hint) + '</td>'
+        + '<td>' + fmtDate(k.created_at) + '</td><td>' + fmtDate(k.last_used_at) + '</td>'
+        + '<td><div class="key-actions"></div></td>';
+      const actions = tr.querySelector('.key-actions');
+      if (!revoked) {
+        const ren = document.createElement('button');
+        ren.className = 'api-btn sm'; ren.type = 'button'; ren.textContent = '改名';
+        ren.onclick = async function () {
+          const name = prompt('新的名称', k.name); if (!name) return;
+          try { await api('/keys/' + k.id, { method: 'PATCH', body: JSON.stringify({ name }) }); await loadKeys(); }
+          catch (e) { setStatus(String(e.message || e), true); }
+        };
+        const del = document.createElement('button');
+        del.className = 'api-btn sm danger'; del.type = 'button'; del.textContent = '删除';
+        del.onclick = async function () {
+          if (!confirm('删除后这个 Key 立即失效，确定？')) return;
+          try { await api('/keys/' + k.id, { method: 'DELETE' }); await loadKeys(); }
+          catch (e) { setStatus(String(e.message || e), true); }
+        };
+        actions.append(ren, del);
+      }
+      tbody.appendChild(tr);
+    }
+  } catch (e) {
+    $('#keyRows').innerHTML = '<tr><td colspan="6" class="console-empty">Key 列表读取失败：' + esc(String(e.message || e)) + '</td></tr>';
+  }
+}
+
+async function boot() {
+  if (!window.WorkBuddyCloud || !window.WorkBuddyCloud.createWorkBuddyCloud) { $('#authGate').textContent = '云 SDK 加载失败，请刷新页面。'; return; }
+  cloud = window.WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG);
+  try { const r = await cloud.auth.getUser(); account = (r && (r.data ? (r.data.user || r.data) : r.user)) || null; } catch (e) { account = null; }
+  if (!account) { renderLanding(); return; }
+  $('#authGate').style.display = 'none'; $('#app').style.display = '';
+  $('#acctEmail').textContent = account.email || account.username || account.id || '已登录';
+  const hash = (location.hash || '').replace('#', '');
+  showView(hash === 'keys' ? 'keys' : 'usage', false);
+  await Promise.all([loadUsage(), loadKeys()]);
+}
+
+document.querySelectorAll('.plat-side a[data-view]').forEach(a => a.addEventListener('click', function (e) {
+  e.preventDefault();
+  if (!account) { $('#authGate').scrollIntoView({ behavior: 'smooth' }); return; }
+  showView(a.getAttribute('data-view'), true);
+}));
+window.addEventListener('hashchange', function () {
+  if (!account) return;
+  const h = (location.hash || '').replace('#', '');
+  showView(h === 'keys' ? 'keys' : 'usage', false);
+});
+$('#logout').addEventListener('click', async function () {
+  try { if (cloud && cloud.auth && cloud.auth.signOut) await cloud.auth.signOut(); } catch (e) {}
+  location.reload();
+});
+$('#createKey').addEventListener('click', async function () {
+  const name = ($('#keyName').value || '').trim() || 'default';
+  setStatus('创建中…');
+  try {
+    const j = await api('/keys', { method: 'POST', body: JSON.stringify({ name }) });
+    $('#oneKey').innerHTML = '<div class="onekey"><b>Key 已创建，只显示这一次：</b>'
+      + '<code id="oneKeyVal">' + esc(j.key) + '</code>'
+      + '<button class="api-btn sm" id="copyKey" type="button">复制</button>'
+      + '<div class="k" style="margin-top:6px">' + esc(j.hint) + ' · 请保存到安全的地方</div></div>';
+    $('#copyKey').onclick = async function () {
+      try { await navigator.clipboard.writeText(j.key); $('#copyKey').textContent = '已复制'; }
+      catch (e) { setStatus('复制失败，请手动选中', true); }
+    };
+    $('#keyName').value = ''; setStatus('创建成功'); await loadKeys();
+  } catch (e) { setStatus(String(e.message || e), true); }
+});
+boot();
+</script>
+</body>
+</html>

@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.13.1.0';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.13.1.0';
+import { PHIRA_API } from './phira.js?v=V0.13.2.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.13.2.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -35,6 +35,7 @@ const NAV = [
   ['/user', 'nav.user', 'user'],
   ['/data', 'nav.data', 'data'],
   ['/settings', 'nav.settings', 'settings'],
+  ['/platform', 'nav.platform', 'platform'],
   /* 下载放最后 —— 它是一次性的动作，不是常来的页面。
      ⚠ 顺序就是**设置之后**，别往中间插：导航顺序是用户的空间记忆，
      挪一个位置会让所有人找错一次。 */
