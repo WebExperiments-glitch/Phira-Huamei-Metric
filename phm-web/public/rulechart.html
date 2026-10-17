@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.16.0.0">
+<meta name="app-version" content="V0.16.0.3">
 <title>自动写谱 · P.H.M.</title>
 <meta name="description" content="导入 MP3，自动提取 BPM / 时长 / 拍点 / 踩音点，按 EZ/HD/IN/AT 规则生成谱面，下载 .pez 或 .zip。全程本地，音频不上传。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,8 +11,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.16.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.16.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.16.0.3">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.16.0.3">
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -117,7 +117,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <div class="rc-card">
     <h2>规则说明</h2>
     <div class="rc-note">
-      拍点与踩音点来自音频分析；拍网格按难度细分（EZ 4 / HD 8 / IN 8 / AT 16 分音符）。
+      拍点与踩音点来自音频分析；拍网格按难度细分（EZ 4 / HD 8 / IN 8 / AT 16 分音符），
+      轨道 4K/6K/7K。类型比例与目标 NPS 来自 9,684 张真实 Phira 谱面统计；主判定线有段落动效，另有 3 条装饰线。
       同轨最小间隔、Hold 不重叠、和弦上限、lead-in 2 拍、收尾留 1 拍都由校验器强制检查；
       下载前校验不通过会禁止下载。规则细节见 <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/docs/RULECHART.md" target="_blank" rel="noopener">RULECHART.md</a>。
     </div>
@@ -132,9 +133,9 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.16.0.0';
-import { analyzeFile } from '/js/audio-analysis.js?v=V0.16.0.0';
-import { buildChartFromAnalysis, buildPez } from '/js/rulechart.js?v=V0.16.0.0';
+import { renderNav } from '/js/ui.js?v=V0.16.0.3';
+import { analyzeFile } from '/js/audio-analysis.js?v=V0.16.0.3';
+import { buildChartFromAnalysis, buildPez } from '/js/rulechart.js?v=V0.16.0.3';
 renderNav('rulechart');
 
 const $ = s => document.querySelector(s);
@@ -202,16 +203,16 @@ async function loadFile(f) {
     analysis = await analyzeFile(f);
     showAnalysis(analysis);
     $('#rcGo').disabled = false;
-    setStatus($('#rcStatus'), '分析完成 · ' + analysis.bpm.toFixed(1) + ' BPM · ' + fmtTime(analysis.duration) + ' · ' + analysis.onsets.length + ' 个踩音点', 'ok');
+    rcStatusMsg($('#rcStatus'), '分析完成 · ' + analysis.bpm.toFixed(1) + ' BPM · ' + fmtTime(analysis.duration) + ' · ' + analysis.onsets.length + ' 个踩音点', 'ok');
   } catch (e) {
     console.error(e);
-    setStatus($('#rcStatus'), '分析失败：' + String(e.message || e), 'err');
+    rcStatusMsg($('#rcStatus'), '分析失败：' + String(e.message || e), 'err');
   }
 }
 
 async function generate() {
   if (!analysis) return;
-  setStatus($('#rcGenStatus'), '生成中…');
+  rcStatusMsg($('#rcGenStatus'), '生成中…');
   try {
     const stem = (file.name || 'chart').replace(/\.[^.]+$/, '') || 'chart';
     const built = buildChartFromAnalysis(analysis, {
@@ -241,13 +242,13 @@ async function generate() {
     drawPreview(chartJson);
     if (!built.stats.valid) {
       $('#rcPez').style.display = 'none'; $('#rcZip').style.display = 'none'; $('#rcJson').style.display = 'none';
-      setStatus($('#rcGenStatus'), '规则校验失败：' + built.stats.violations.slice(0, 3).join('；'), 'err');
+      rcStatusMsg($('#rcGenStatus'), '规则校验失败：' + built.stats.violations.slice(0, 3).join('；'), 'err');
       return;
     }
-    setStatus($('#rcGenStatus'), '完成 · ZIP 内 ' + (built.stats.notes) + ' notes · 规则校验 0 违规', 'ok');
+    rcStatusMsg($('#rcGenStatus'), '完成 · ZIP 内 ' + (built.stats.notes) + ' notes · 规则校验 0 违规', 'ok');
   } catch (e) {
     console.error(e);
-    setStatus($('#rcGenStatus'), '生成失败：' + String(e.message || e), 'err');
+    rcStatusMsg($('#rcGenStatus'), '生成失败：' + String(e.message || e), 'err');
   }
 }
 

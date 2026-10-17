@@ -105,7 +105,7 @@ phm-web/
 │   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
 │   ├── lint-openapi.mjs       ← ★★ OpenAPI 契约校验（零依赖，81 条）
 │   ├── rulechart.mjs          ← ★ 规则写谱 CLI（BPM/难度 → RPE v160 .pez）
-│   ├── test-rulechart.mjs     ← 规则写谱单测（27 条）
+│   ├── test-rulechart.mjs     ← 规则写谱单测（28 条）
 │   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL / workflow
 │   ├── preflight.mjs          ← ★★ pre-push 闸门：review-gate + check
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测

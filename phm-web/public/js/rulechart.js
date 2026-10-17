@@ -13,6 +13,7 @@ const LANES = {
   2: [-225, 225],
   4: [-225, -75, 75, 225],
   6: [-450, -300, -150, 150, 300, 450],
+  7: [-450, -300, -150, 0, 150, 300, 450],
 };
 
 const PRESETS = {
@@ -38,15 +39,18 @@ const TYPE = { tap: 1, hold: 2, flick: 3, drag: 4 };
 /* ============================================================
  * 音频自动排谱：用户只选 EZ / HD / IN / AT
  * ============================================================ */
+/* 参数来自 9,684 张真实 Phira 谱面的统计（见 RULECHART.md）：
+ * Tap ~55–62% / Drag ~22–35% / Hold ~9–13% / Flick ~5–8%；
+ * 难度越高 NPS 越高，但类型比例不会反过来变成 Flick 为主。 */
 const AUDIO_PRESETS = {
-  ez: { label: 'EZ 7',  keep: 0.52, subdivision: 4,  minGap: 1.0,  maxChord: 1, lanes: 4,
-        weights: { tap: .58, hold: .16, flick: .08, drag: .18 }, holds: [.5, 1],       phrase: 12 },
-  hd: { label: 'HD 11', keep: 0.70, subdivision: 8,  minGap: 0.5,  maxChord: 2, lanes: 6,
-        weights: { tap: .46, hold: .18, flick: .14, drag: .22 }, holds: [.5, .75, 1],  phrase: 10 },
-  in: { label: 'IN 14', keep: 0.84, subdivision: 8,  minGap: 0.25, maxChord: 3, lanes: 6,
-        weights: { tap: .36, hold: .18, flick: .20, drag: .26 }, holds: [.25, .5, .75, 1], phrase: 8 },
-  at: { label: 'AT 16', keep: 0.94, subdivision: 16, minGap: 0.2,  maxChord: 3, lanes: 6,
-        weights: { tap: .30, hold: .18, flick: .24, drag: .28 }, holds: [.25, .5, .75, 1], phrase: 8 },
+  ez: { label: 'EZ 7',  keep: 0.55, targetNps: 3.6,  subdivision: 4,  minGap: 1.0,  maxChord: 2, lanes: 4,
+        weights: { tap: .58, hold: .12, flick: .06, drag: .24 }, holds: [.5, 1],       phrase: 12 },
+  hd: { label: 'HD 11', keep: 0.68, targetNps: 5.2,  subdivision: 8,  minGap: 0.5,  maxChord: 2, lanes: 6,
+        weights: { tap: .56, hold: .12, flick: .07, drag: .25 }, holds: [.5, .75, 1],  phrase: 10 },
+  in: { label: 'IN 14', keep: 0.82, targetNps: 7.8,  subdivision: 8,  minGap: 0.25, maxChord: 3, lanes: 7,
+        weights: { tap: .55, hold: .12, flick: .07, drag: .26 }, holds: [.25, .5, .75, 1], phrase: 8 },
+  at: { label: 'AT 16', keep: 0.94, targetNps: 11.0, subdivision: 16, minGap: 0.2,  maxChord: 3, lanes: 7,
+        weights: { tap: .55, hold: .10, flick: .08, drag: .27 }, holds: [.25, .5, .75, 1], phrase: 8 },
 };
 
 const RULE_VERSION = '1.0';
@@ -155,7 +159,7 @@ export function buildChart(opts) {
   }, opts || {});
   const bpm = Math.max(30, Math.min(300, Number(o.bpm) || 128));
   const duration = Math.max(10, Math.min(900, Number(o.duration) || 60));
-  const preset = AUDIO_PRESETS[o.difficulty] || PRESETS[o.difficulty] || PRESETS.hard;
+  const preset = PRESETS[o.difficulty] || PRESETS.hard;
   const lanes = LANES[o.lanes] ? Number(o.lanes) : 4;
   const density = Math.max(0.4, Math.min(2, Number(o.density) || 1));
   const rng = mulberry32(hashSeed(String(o.seed || '') + '|' + bpm + '|' + o.difficulty + '|' + lanes + '|' + density));
@@ -247,6 +251,58 @@ export function buildChart(opts) {
   };
 }
 
+/* RPE 事件：0..255 alpha、moveX/moveY、rotate；按段落生成连续关键帧。 */
+function ev(startBeat, endBeat, start, end, ease) {
+  return {
+    bezier: 0, bezierPoints: [0, 0, 0, 0], easingLeft: 0, easingRight: 1,
+    easingType: ease == null ? 1 : ease, start: Number(start), end: Number(end),
+    startTime: frac(startBeat), endTime: frac(endBeat), linkgroup: 0,
+  };
+}
+function speedEv(startBeat, endBeat, value) {
+  return { start: Number(value), end: Number(value), startTime: frac(startBeat), endTime: frac(endBeat), linkgroup: 0 };
+}
+function lastEvent(list, fromBeat, value, isSpeed) {
+  list.push(isSpeed ? speedEv(fromBeat, fromBeat + 999999, value) : ev(fromBeat, fromBeat + 999999, value, value));
+  return list;
+}
+function buildLineData(analysis, bpm, totalBeats) {
+  const secs = (analysis.sections && analysis.sections.length) ? analysis.sections : [
+    { start: 0, end: analysis.duration / 4, label: 'intro', energy: 0.4 },
+    { start: analysis.duration / 4, end: analysis.duration / 2, label: 'verse', energy: 0.6 },
+    { start: analysis.duration / 2, end: analysis.duration * 3 / 4, label: 'chorus', energy: 0.9 },
+    { start: analysis.duration * 3 / 4, end: analysis.duration, label: 'outro', energy: 0.5 },
+  ];
+  const main = { alphaEvents: [], moveXEvents: [], moveYEvents: [], rotateEvents: [], speedEvents: [] };
+  const deco = { alphaEvents: [], moveXEvents: [], moveYEvents: [], rotateEvents: [], speedEvents: [] };
+  let prev = 0, mx = 0, my = 0, rot = 0;
+  secs.forEach((s, i) => {
+    const a = Math.min(totalBeats, Math.max(prev, s.start * bpm / 60));
+    const b = Math.min(totalBeats, Math.max(a + 0.01, s.end * bpm / 60));
+    const chorus = s.label === 'chorus';
+    const nextX = chorus ? (i % 2 ? -45 : 45) : (i % 2 ? 18 : -18);
+    const nextY = chorus ? 25 : -15;
+    const nextRot = chorus ? (i % 2 ? 4 : -4) : (i % 2 ? 1.2 : -1.2);
+    main.moveXEvents.push(ev(a, b, mx, nextX, 3));
+    main.moveYEvents.push(ev(a, b, my, nextY, 3));
+    main.rotateEvents.push(ev(a, b, rot, nextRot, 3));
+    main.alphaEvents.push(ev(a, b, 255, 255, 1));
+    deco.moveXEvents.push(ev(a, b, -nextX * 1.6, nextX * 1.6, 2));
+    deco.moveYEvents.push(ev(a, b, nextY * 2, -nextY, 2));
+    deco.rotateEvents.push(ev(a, b, -nextRot * 2, nextRot * 2, 2));
+    deco.alphaEvents.push(ev(a, b, chorus ? 140 : 70, chorus ? 220 : 120, 1));
+    prev = b; mx = nextX; my = nextY; rot = nextRot;
+  });
+  main.speedEvents.push(speedEv(0, 999999, 10));
+  deco.speedEvents.push(speedEv(0, 999999, 10));
+  for (const arr of [main.moveXEvents, main.moveYEvents, main.rotateEvents, main.alphaEvents,
+                     deco.moveXEvents, deco.moveYEvents, deco.rotateEvents, deco.alphaEvents]) {
+    const last = arr[arr.length - 1];
+    if (last) arr.push(ev(prev, prev + 999999, last.end, last.end, 1));
+  }
+  return { main, deco };
+}
+
 /* ============================================================
  * buildChartFromAnalysis —— 从音频分析结果自动排谱
  * ============================================================
@@ -320,13 +376,73 @@ export function buildChartFromAnalysis(analysis, opts) {
       }
     }
   }
+  /* 补到真实谱面统计得出的目标 NPS（EZ≈3.6 / HD≈5.2 / IN≈7.8 / AT≈11） */
+  const target = Math.max(1, Math.round(preset.targetNps * duration));
+  /* 沿拍网格补位：每个拍点最多 maxChord 个不同轨道，直到达到目标 NPS。 */
+  const slots = Math.max(0, Math.floor((totalBeats - 3) / step));
+  for (let i = 0; i < slots && notes.length < target; i++) {
+    const snapped = 2 + i * step;
+    while (notes.length < target) {
+      const same = notes.filter(n => Math.abs((n.startTime[0] + n.startTime[1] / n.startTime[2]) - snapped) < 1e-6);
+      if (same.length >= preset.maxChord) break;
+      const free = [];
+      for (let l = 0; l < lanes; l++) {
+        const px = LANES[lanes][l];
+        if (same.some(n => n.positionX === px)) continue;
+        /* 与已有音符按真实时间比较：前后 minGap 内都不补，避免和初始排布打架。 */
+        if (notes.some(n => {
+          if (n.positionX !== px) return false;
+          const s = n.startTime[0] + n.startTime[1] / n.startTime[2];
+          const e = n.endTime[0] + n.endTime[1] / n.endTime[2];
+          if (snapped > s - 1e-6 && snapped < e - 1e-6) return true;  /* 正处在 Hold 内 */
+          return Math.abs(s - snapped) < preset.minGap - 1e-6;
+        })) continue;
+        free.push(l);
+      }
+      if (!free.length) break;
+      const lane = free[Math.floor(rng() * free.length)];
+      let type = pickWeighted(rng, preset.weights);
+      let endBeat = snapped;
+      if (type === 'hold') {
+        const hb = preset.holds[Math.floor(rng() * preset.holds.length)];
+        endBeat = Math.min(totalBeats - 0.5, snapped + hb);
+        const pxh = LANES[lanes][lane];
+        /* Hold 区间内不能有同轨已有音符，否则改成 Tap。 */
+        const clash = notes.some(n => n.positionX === pxh &&
+          (n.startTime[0] + n.startTime[1] / n.startTime[2]) > snapped + 1e-6 &&
+          (n.startTime[0] + n.startTime[1] / n.startTime[2]) < endBeat - 1e-6);
+        if (clash || endBeat - snapped < 0.25) type = 'tap';
+      }
+      notes.push({
+        above: 1, alpha: 255, endTime: frac(endBeat),
+        isFake: 0, positionX: LANES[lanes][lane], size: 1, speed: 1,
+        startTime: frac(snapped), type: TYPE[type], visibleTime: 999999, yOffset: 0,
+      });
+      lastLaneBeat[lane] = type === 'hold' ? endBeat : snapped;
+      prevLane = lane;
+    }
+  }
   notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
-  const id = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
-  const chartId = id + '_' + o.difficulty;
+  /* 最后一道结构修复：丢掉落入同轨 Hold 区间内的 note（补位/和弦可能造成）。 */
+  const holdEnd = {};
+  const fixed = [];
+  for (const n of notes) {
+    const s = n.startTime[0] + n.startTime[1] / n.startTime[2];
+    const e = n.endTime[0] + n.endTime[1] / n.endTime[2];
+    const lane = n.positionX;
+    if (holdEnd[lane] != null && s < holdEnd[lane] - 1e-6) continue;
+    fixed.push(n);
+    if (n.type === 2) holdEnd[lane] = Math.max(holdEnd[lane] || 0, e);
+  }
+  notes.length = 0;
+  for (const n of fixed) notes.push(n);
+  const slug = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
+  const chartId = slug + '_' + hashSeed(name + '|' + bpm).toString(16).slice(0, 6) + '_' + o.difficulty;
+  const lineLayers = buildLineData(analysis, bpm, totalBeats);
   const mainLine = {
     Group: 0, Name: '主判定线', Texture: 'line.png',
     alphaControl: [{ alpha: 1, easing: 1, x: 0 }, { alpha: 1, easing: 1, x: 9999999 }],
-    bpmfactor: 1, eventLayers: defaultEvents(10),
+    bpmfactor: 1, eventLayers: [lineLayers.main],
     extended: { inclineEvents: [incline()] }, father: -1, isCover: 1,
     notes, numOfNotes: notes.length,
     posControl: [{ easing: 1, pos: 1, x: 0 }, { easing: 1, pos: 1, x: 9999999 }],
@@ -335,15 +451,27 @@ export function buildChartFromAnalysis(analysis, opts) {
     yControl: [{ easing: 1, x: 0, y: 1 }, { easing: 1, x: 9999999, y: 1 }],
     zOrder: 0,
   };
+  const decoLines = [0, 1, 2].map((i) => ({
+    Group: 1 + i, Name: '装饰线' + i, Texture: 'line.png',
+    alphaControl: [{ alpha: 1, easing: 1, x: 0 }, { alpha: 1, easing: 1, x: 9999999 }],
+    bpmfactor: 1, eventLayers: [i === 0 ? lineLayers.deco : { ...lineLayers.deco }],
+    extended: { inclineEvents: [incline()] }, father: -1, isCover: 0,
+    notes: [], numOfNotes: 0,
+    posControl: [{ easing: 1, pos: 1, x: 0 }, { easing: 1, pos: 1, x: 9999999 }],
+    sizeControl: [{ easing: 1, size: 1, x: 0 }, { easing: 1, size: 1, x: 9999999 }],
+    skewControl: [{ easing: 1, skew: 0, x: 0 }, { easing: 1, skew: 0, x: 9999999 }],
+    yControl: [{ easing: 1, x: 0, y: 1 }, { easing: 1, x: 9999999, y: 1 }],
+    zOrder: -1 - i,
+  }));
   const chart = {
     BPMList: [{ startTime: [0, 0, 1], bpm }],
     META: {
       RPEVersion: 160, background: 'background.png',
       charter: String(o.charter || 'P.H.M. rulechart'), composer: String(o.artist || 'Unknown'),
       illustration: '', id: chartId, level: preset.label, name,
-      offset: Number(analysis.offset) || 0, song: 'audio.wav', duration,
+      offset: 0, song: 'audio.wav', duration,
     },
-    judgeLineGroup: ['Default'], judgeLineList: [mainLine],
+    judgeLineGroup: ['Default', 'Deco'], judgeLineList: [mainLine].concat(decoLines),
   };
   const validation = validateChart(chart, { difficulty: o.difficulty, lanes });
   const typeCounts = { tap: 0, hold: 0, flick: 0, drag: 0 };
@@ -352,7 +480,8 @@ export function buildChartFromAnalysis(analysis, opts) {
     chart,
     stats: {
       notes: notes.length, bpm, duration, difficulty: preset.label, lanes, onsets: onsets.length,
-      nps: notes.length / duration, typeCounts, valid: validation.ok,
+      nps: notes.length / duration, targetNps: preset.targetNps, targetNotes: target,
+      typeCounts, valid: validation.ok,
       violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,
     },
   };
@@ -367,7 +496,7 @@ export function buildChartFromAnalysis(analysis, opts) {
  * ============================================================ */
 export function validateChart(chart, opts) {
   const o = opts || {};
-  const preset = PRESETS[o.difficulty] || PRESETS.hard;
+  const preset = AUDIO_PRESETS[o.difficulty] || PRESETS[o.difficulty] || PRESETS.hard;
   const laneVals = LANES[o.lanes] || LANES[4];
   const violations = [];
   const line = chart && chart.judgeLineList && chart.judgeLineList[0];
@@ -405,10 +534,10 @@ export function validateChart(chart, opts) {
     if (rec) {
       const gap = start - rec.start;
       if (gap < preset.minGap - 1e-6) violations.push(where + ' same-lane gap ' + gap.toFixed(3) + ' < ' + preset.minGap);
-      if (start < rec.end - 1e-6) violations.push(where + ' overlaps previous hold on lane ' + lane);
+      if (rec.type === 2 && start < rec.end - 1e-6) violations.push(where + ' overlaps previous hold on lane ' + lane);
       minGap = Math.min(minGap, gap);
     }
-    byLane.set(lane, { start, end });
+    byLane.set(lane, { start, end, type: n.type });
     const key = start.toFixed(4);
     byTime.set(key, (byTime.get(key) || 0) + 1);
     if (n.type === 1) types.tap++;

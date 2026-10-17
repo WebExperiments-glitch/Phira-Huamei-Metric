@@ -20,6 +20,29 @@
 
 export const RELEASES = [
   {
+    v: 'V0.16.0.3', date: '2026-10-17',
+    zh: [
+      '自动写谱按 <b>9,684 张真实 Phira 谱面</b>重做规则：Tap / Drag / Hold / Flick 比例、目标 NPS、'
+        + '7K 轨道、主判定线动效 + 3 条装饰线。',
+      'EZ/HD/IN/AT 目标 NPS 分别约 3.6 / 5.2 / 7.8 / 11；补位按拍网格与真实间隔，不再随机撒点。',
+    ],
+    en: [
+      'Rule charting rebuilt from <b>9,684 real Phira charts</b>: note-type ratios, target NPS, 7K lanes, '
+        + 'main judge-line movement + 3 decorative lines.',
+      'EZ/HD/IN/AT target roughly 3.6 / 5.2 / 7.8 / 11 NPS; fill follows the beat grid and real spacing instead of random notes.',
+    ],
+  },
+  {
+    v: 'V0.16.0.2', date: '2026-10-17',
+    zh: ['修复 Phira 导入报错：chart 的 <code>META.offset</code> 改为整数 0（之前是浮点秒，RPE 要求 i32 毫秒）。'],
+    en: ['Fixed the Phira import error: chart <code>META.offset</code> is now integer 0 (it was a float; RPE expects i32 milliseconds).'],
+  },
+  {
+    v: 'V0.16.0.1', date: '2026-10-17',
+    zh: ['修复自动写谱的规则校验：IN/AT 按各自最小间隔校验（不再误用 HD 的 0.5 拍）；生成文件 ID 带短哈希，避免中文名被清空。'],
+    en: ['Fixed rule validation for auto charting: IN/AT use their own minimum gap (no longer HD\'s 0.5 beat); generated file IDs include a short hash.'],
+  },
+  {
     v: 'V0.16.0.0', date: '2026-10-17',
     zh: [
       '写谱页改为<b>导入 MP3，自动提取</b>：BPM、时长、拍点、踩音点、段落能量全部自动分析，不再手填 BPM/时长/密度。',

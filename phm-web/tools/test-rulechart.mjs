@@ -56,6 +56,7 @@ const auto = buildChartFromAnalysis(analysis, { difficulty: 'hd', name: 'Auto Te
 T('自动排谱有音符', auto.stats.notes > 0, String(auto.stats.notes));
 T('自动排谱规则校验 0 违规', auto.stats.valid === true, JSON.stringify(auto.stats.violations).slice(0, 200));
 T('AT 难度标签', AUDIO_PRESETS.at.label === 'AT 16' && buildChartFromAnalysis(analysis, { difficulty: 'at', name: 'X' }).chart.META.level === 'AT 16');
+T('META.offset 是整数（Phira 要求 i32）', Number.isInteger(auto.chart.META.offset), String(auto.chart.META.offset));
 T('自动排谱可复现', JSON.stringify(buildChartFromAnalysis(analysis, { difficulty: 'hd', name: 'Auto Test' }).chart) === JSON.stringify(auto.chart));
 
 console.log('\n规则写谱：' + pass + ' 通过 / ' + fail + ' 失败');
