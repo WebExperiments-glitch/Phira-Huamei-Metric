@@ -210,11 +210,15 @@ gh api repos/WebExperiments-glitch/Phira-Huamei-Metric --jq '{private,visibility
 
 ### 3.11 静态白名单不许放松
 
-`server.mjs` 的 `PUBLIC_DIRS` 是白名单。这些必须永远 404：
+`server.mjs` 的 `PUBLIC_DIRS` 是白名单。这些必须永远拿不到内容：
 
 ```
 /server.mjs   /lib/*   /write-secret.txt   /.env   /downloads/*
 ```
+
+> ⚠ `.env` 在**生产**上可能被平台 WAF 直接拦成 **403**（不是 Node 的 404）。
+> 判定标准是「没有内容返回」，403 与 404 都算通过；**不要把 403 当成泄漏**。
+> 2026-10-17 实测：`/server.mjs` `/lib/*` `/write-secret.txt` 404，`/.env` 403（WAF 拦截页）。
 
 `downloads/` 与 `public/` **故意分开**：`public/` 的语义是"白名单里的可以送"，
 `downloads/` 的语义是"只准走 `/download/phira-huamei.exe` 这一条路由"。

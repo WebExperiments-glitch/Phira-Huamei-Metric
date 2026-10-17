@@ -57,7 +57,10 @@ node tools/smoke-page.mjs https://phm.app.workbuddy.host
 curl -s -o /dev/null -w "%{http_code}\n" https://phm.app.workbuddy.host/server.mjs        # 必须 404
 curl -s -o /dev/null -w "%{http_code}\n" https://phm.app.workbuddy.host/lib/cloud.mjs    # 必须 404
 curl -s -o /dev/null -w "%{http_code}\n" https://phm.app.workbuddy.host/write-secret.txt # 必须 404
+curl -s -o /dev/null -w "%{http_code}\n" https://phm.app.workbuddy.host/.env             # 404 或 WAF 403
 ```
+
+> `.env` 可能被平台 WAF 拦成 403 而不是 Node 的 404；只要没有内容返回就算通过。
 
 ---
 
