@@ -61,7 +61,7 @@ phm-web/
 │   ├── version.html           ← 版本历史 /version（面向用户；数据源 js/versions.js）
 │   ├── download.html          ← 下载页 /download（Windows 客户端）
 │   ├── developers.html        ← 开发者文档 /developers（API v1）
-│   ├── developer.html         ← API 控制台 /developer（Key 管理 + 用量）
+│   ├── platform.html          ← API 开放平台 /platform（默认用量 + Key 管理）
 │   ├── privacy.html / terms.html ← 法务页（不带版本 meta，也不是 ES module 页面）
 │   ├── 404.html               ← 错误页（服务端对未命中路径下发它，状态码仍是 404）
 │   ├── robots.txt / sitemap.xml
@@ -75,7 +75,7 @@ phm-web/
 │   │   ├── base.css           ← 底座：令牌 / reset / 排版 / 布局骨架 / 导航 / 卡片 / 表格
 │   │   ├── ui-kit.css         ← 组件：控件 / 按钮 / callout / 芯片 / 字体与字号档位
 │   │   ├── docs.css           ← 法务长文版式（privacy / terms）
-│   │   └── api.css            ← 开发者文档 / API 控制台版式
+│   │   └── api.css            ← 开发者文档 / API 开放平台版式
 │   └── js/
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源（纯计算）
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
@@ -105,7 +105,7 @@ phm-web/
 │   ├── preflight.mjs          ← ★★ pre-push 闸门：review-gate + check
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
 │   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
-│   ├── lint-i18n.mjs          ← 双语完整性（821 词条 / 803 引用）
+│   ├── lint-i18n.mjs          ← 双语完整性（822 词条 / 804 引用）
 │   ├── check-contrast.mjs     ← 配色对比度校验
 │   ├── bump-version.py        ← 一次改全站版本号
 │   ├── version-module-imports.py ← 给模块 import 补/换 ?v=
