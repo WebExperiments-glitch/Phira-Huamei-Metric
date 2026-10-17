@@ -45,17 +45,19 @@ end $$;
 create or replace function public.hm_api_key_lookup(p_secret text, p_hash text)
 returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare k public.hm_api_keys; m public.hm_api_key_meta;
+declare s text; rec public.hm_api_keys; m public.hm_api_key_meta;
 begin
-  if p_secret is null or p_secret <> (select v from phm_secrets where k='writer') then
+  -- ⚠ 记录变量**不能叫 k**：会与 phm_secrets.k 撞名 → 42702 ambiguous（同 api-v1/11.sql）。
+  select v into s from phm_secrets where k = 'writer';
+  if s is null or p_secret is null or p_secret <> s then
     raise exception 'unauthorized writer' using errcode = '42501';
   end if;
-  select * into k from hm_api_keys where key_hash = p_hash;
+  select * into rec from hm_api_keys where key_hash = p_hash;
   if not found then return jsonb_build_object('ok', false); end if;
-  select * into m from hm_api_key_meta where key_id = k.id;
+  select * into m from hm_api_key_meta where key_id = rec.id;
   return jsonb_build_object(
-    'ok', true, 'id', k.id, 'owner_id', k.owner_id, 'plan', k.plan,
-    'revoked', k.revoked_at is not null,
+    'ok', true, 'id', rec.id, 'owner_id', rec.owner_id, 'plan', rec.plan,
+    'revoked', rec.revoked_at is not null,
     'scopes', coalesce(m.scopes, '{charts:read,analyses:write,usage:read}'::text[]),
     'expires_at', m.expires_at
   );

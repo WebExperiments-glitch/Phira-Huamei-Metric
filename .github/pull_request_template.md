@@ -11,7 +11,7 @@
 - [ ] 安全修复
 
 ## 自检（缺一不可）
-- [ ] `cd phm-web && npm run preflight` 通过（review-gate + OpenAPI 契约 + 16 项离线检查）
+- [ ] `cd phm-web && npm run preflight` 通过（review-gate + OpenAPI 契约 + 17 项离线检查）
 - [ ] CI 的 `check` **和** `audit` 都通过（分支保护会强制）
 - [ ] 没有提交任何密钥：`.env` / `write-secret.txt` / token / 私钥 / 带密码的连接串
 - [ ] 用户可见改动：版本号（`bump-version.py`）、`CHANGELOG.md`、`versions.js` 已同步

@@ -187,7 +187,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
   '404.html', 'sitemap.xml', 'og.png', 'version.html', 'download.html',
-  'developers.html', 'platform.html', 'phm-api.html']);
+  'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html']);
 /* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
    只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
 
@@ -834,7 +834,7 @@ const server = http.createServer(async (req, res) => {
                   '/version': 'version.html', '/download': 'download.html',
                   '/developers': 'developers.html', '/platform': 'platform.html',
                   '/developer': 'platform.html',   /* 旧链接兼容 */
-                  '/phm-api': 'phm-api.html' };
+                  '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

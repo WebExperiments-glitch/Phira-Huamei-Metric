@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.15.0.0">
+<title>规则写谱 · P.H.M.</title>
+<meta name="description" content="零依赖规则写谱：按 BPM / 时长 / 难度生成 RPE v160 谱面并打包 .pez，可直接导入 Phira。全程本地，文件不上传。">
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.15.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.15.0.0">
+<style>
+.rc-wrap{max-width:1060px;margin:0 auto}
+.rc-hero{text-align:center;padding:20px 0 6px}
+.rc-hero h1{font-size:28px;font-weight:400;margin:0 0 6px} .rc-hero h1 b{color:var(--brand)}
+.rc-hero p{color:var(--fg2);font-size:14px;line-height:1.8;margin:0}
+.rc-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin:18px 0}
+.rc-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.rc-card h2{font-size:16px;margin:0 0 4px}
+.rc-card .sub{color:var(--fg3);font-size:12px;line-height:1.6;margin-bottom:12px}
+.rc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.rc-row.three{grid-template-columns:1fr 1fr 1fr}
+.rc-row .full{grid-column:1/-1}
+.rc-field{display:flex;flex-direction:column;gap:4px}
+.rc-field label{font-size:12px;color:var(--fg3)}
+.rc-field input,.rc-field select{padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;min-height:36px}
+.rc-field input[type=range]{padding:0;min-height:24px;accent-color:var(--brand)}
+.rc-field .val{font-size:12px;color:var(--fg2);font-family:var(--mono)}
+.rc-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.rc-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
+.rc-stat{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+.rc-stat .k{font-size:11px;color:var(--fg3)} .rc-stat .v{font-size:18px;font-variant-numeric:tabular-nums}
+#preview{width:100%;height:190px;background:var(--card2);border:1px solid var(--line);border-radius:10px;margin-top:12px}
+.rc-note{font-size:12px;color:var(--fg3);line-height:1.7;margin-top:10px}
+.rc-note b{color:var(--fg2)}
+.rc-status{font-size:12.5px;min-height:20px;margin-top:8px;color:var(--fg3)}
+.rc-status.err{color:var(--red)} .rc-status.ok{color:var(--green)}
+.rc-dl{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:780px){.rc-grid{grid-template-columns:1fr}.rc-row,.rc-row.three{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap"><nav id="nav"></nav></div>
+<div class="wrap rc-wrap">
+  <section class="rc-hero">
+    <h1>规则<b>写谱</b> · 生成可导入 Phira 的谱面</h1>
+    <p>按 BPM / 时长 / 难度用规则排布 Tap · Hold · Flick · Drag，输出 RPE v160 的 <b>.pez</b>。<br>全程在浏览器本地完成，音频与谱面都不上传。</p>
+  </section>
+
+  <div class="rc-grid">
+    <div class="rc-card">
+      <h2>参数</h2>
+      <div class="sub">先生成节奏骨架；音频可选，不提供时会内置节拍 click 音轨。</div>
+      <div class="rc-row">
+        <div class="rc-field"><label>曲名</label><input id="rcName" value="Rule Chart" maxlength="60"></div>
+        <div class="rc-field"><label>曲师</label><input id="rcArtist" value="Unknown" maxlength="40"></div>
+      </div>
+      <div class="rc-row three">
+        <div class="rc-field"><label>BPM</label><input id="rcBpm" type="number" value="128" min="30" max="300"></div>
+        <div class="rc-field"><label>时长（秒）</label><input id="rcDur" type="number" value="60" min="10" max="900"></div>
+        <div class="rc-field"><label>难度</label><select id="rcDiff">
+          <option value="easy">EASY</option><option value="normal">NORMAL</option>
+          <option value="hard" selected>HARD</option><option value="expert">EXPERT</option>
+          <option value="master">MASTER</option></select></div>
+      </div>
+      <div class="rc-row three">
+        <div class="rc-field"><label>轨道</label><select id="rcLanes"><option value="2">2K</option><option value="4" selected>4K</option><option value="6">6K</option></select></div>
+        <div class="rc-field"><label>密度 <span class="val" id="rcDensityVal">1.00</span></label><input id="rcDensity" type="range" min="0.4" max="2" step="0.05" value="1"></div>
+        <div class="rc-field"><label>随机种子</label><input id="rcSeed" value="phm" maxlength="24"></div>
+      </div>
+      <div class="rc-row">
+        <div class="rc-field full"><label>谱师</label><input id="rcCharter" value="P.H.M. rulechart" maxlength="40"></div>
+      </div>
+      <div class="rc-row">
+        <div class="rc-field full"><label>音频（可选，mp3 / wav / ogg / flac）</label><input id="rcAudio" type="file" accept="audio/*"></div>
+      </div>
+      <div class="rc-actions">
+        <button class="btn primary" id="rcGo" type="button">生成谱面</button>
+        <button class="btn" id="rcRandom" type="button">换一个种子</button>
+        <span class="rc-status" id="rcStatus"></span>
+      </div>
+    </div>
+
+    <div class="rc-card">
+      <h2>预览</h2>
+      <div class="sub">生成后可下载 .pez（直接导入 Phira）或单独 JSON。</div>
+      <div class="rc-stats">
+        <div class="rc-stat"><div class="k">音符</div><div class="v" id="rcNotes">—</div></div>
+        <div class="rc-stat"><div class="k">NPS</div><div class="v" id="rcNps">—</div></div>
+        <div class="rc-stat"><div class="k">难度</div><div class="v" id="rcLevel">—</div></div>
+        <div class="rc-stat"><div class="k">文件</div><div class="v" id="rcSize">—</div></div>
+        <div class="rc-stat"><div class="k">规则校验</div><div class="v" id="rcValid">—</div></div>
+      </div>
+      <canvas id="preview" width="520" height="190"></canvas>
+      <div class="rc-dl">
+        <a class="btn primary" id="rcPez" style="display:none">下载 .pez</a>
+        <a class="btn" id="rcJson" style="display:none">下载 JSON</a>
+      </div>
+      <div class="rc-note">
+        <b>导入：</b>把 .pez 放进 Phira 的谱面包目录，或在 Phira 里选择「导入谱面」。<br>
+        <b>音频：</b>未上传音频时会生成 22050Hz 的节拍 click 音轨，方便先试谱；正式发布请带上原曲。
+      </div>
+    </div>
+  </div>
+
+  <div class="rc-card">
+    <h2>规则说明</h2>
+    <div class="rc-note">
+      拍网格按难度细分（4/8/16 分音符），段落密度按 intro / 主歌 / 副歌递增；
+      音符类型与轨道按权重和乐句模式（alternate / stair / flow / jump / stream / burst）选择。
+      高难度会在强拍加入和弦，Hold 有最短/最长拍数限制，同轨有最小间隔。
+      同一组参数 + 种子可复现；换种子会得到不同排布。
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="row" style="justify-content:space-between">
+    <span>P.H.M. Standard · 规则写谱 · 本地生成</span>
+    <span><a href="/">返回站点</a> · <a href="/platform">API 开放平台</a> · <a href="/privacy">隐私政策</a></span>
+  </div>
+</footer>
+
+<script type="module">
+import { renderNav } from '/js/ui.js?v=V0.15.0.0';
+import { buildChart, buildPez } from '/js/rulechart.js?v=V0.15.0.0';
+renderNav('rulechart');
+
+const $ = s => document.querySelector(s);
+const state = { chart: null, pez: null, urls: [] };
+
+function rcSetStatus(msg, kind) {
+  const el = $('#rcStatus');
+  el.textContent = msg || '';
+  el.className = 'rc-status' + (kind ? ' ' + kind : '');
+}
+function rcNum(n) { return n == null ? '—' : String(n); }
+
+function drawPreview(chart) {
+  const c = $('#preview'); const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  const cs = getComputedStyle(document.documentElement);
+  const line = cs.getPropertyValue('--line').trim() || '#ddd';
+  // ⚠ 兜底值刻意用中性灰而非品牌色：canvas 读不到 CSS 变量说明主题没就位，
+  // 这时画什么都对，宁可画成「明显的占位」也不要假品牌色（对比度还测不过）。
+  const brand = cs.getPropertyValue('--brand').trim() || '#888';
+  const fg3 = cs.getPropertyValue('--fg3').trim() || '#888';
+  ctx.strokeStyle = line; ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) { const y = H * i / 4; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  const notes = chart.judgeLineList[0].notes;
+  const dur = chart.META.duration || 1;
+  const lanes = [...new Set(notes.map(n => n.positionX))].sort((a, b) => a - b);
+  const laneIndex = new Map(lanes.map((v, i) => [v, i]));
+  ctx.fillStyle = brand;
+  for (const n of notes) {
+    const t = n.startTime[0] + n.startTime[1] / n.startTime[2];
+    const x = Math.max(2, Math.min(W - 2, t / dur * (W - 4) + 2));
+    const li = laneIndex.get(n.positionX) ?? 0;
+    const y = 10 + (H - 20) * (li / Math.max(1, lanes.length - 1));
+    ctx.globalAlpha = n.type === 2 ? 0.55 : n.type === 4 ? 0.7 : 1;
+    ctx.beginPath(); ctx.arc(x, y, n.type === 2 ? 2 : 1.6, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = fg3; ctx.font = '11px system-ui';
+  ctx.fillText('轨 ' + lanes.length + ' · ' + notes.length + ' notes · ' + dur + 's', 8, H - 8);
+}
+
+async function generate() {
+  const audioFile = $('#rcAudio').files && $('#rcAudio').files[0];
+  rcSetStatus('生成中…');
+  try {
+    const opts = {
+      bpm: Number($('#rcBpm').value),
+      duration: Number($('#rcDur').value),
+      difficulty: $('#rcDiff').value,
+      lanes: Number($('#rcLanes').value),
+      density: Number($('#rcDensity').value),
+      name: $('#rcName').value.trim() || 'Rule Chart',
+      artist: $('#rcArtist').value.trim() || 'Unknown',
+      charter: $('#rcCharter').value.trim() || 'P.H.M. rulechart',
+      seed: $('#rcSeed').value.trim(),
+    };
+    const built = buildChart(opts);
+    let audio = null, audioName = 'audio.wav';
+    if (audioFile) { audio = new Uint8Array(await audioFile.arrayBuffer()); audioName = audioFile.name; }
+    const { pez, chartJson } = buildPez(built.chart, { audio, audioName });
+    state.chart = chartJson;
+    state.pez = pez;
+    for (const u of state.urls) URL.revokeObjectURL(u);
+    state.urls = [];
+    const pezUrl = URL.createObjectURL(new Blob([pez], { type: 'application/zip' }));
+    const jsonUrl = URL.createObjectURL(new Blob([JSON.stringify(chartJson, null, 2)], { type: 'application/json' }));
+    state.urls.push(pezUrl, jsonUrl);
+    $('#rcPez').href = pezUrl; $('#rcPez').download = chartJson.META.id + '.pez'; $('#rcPez').style.display = '';
+    $('#rcJson').href = jsonUrl; $('#rcJson').download = chartJson.META.id + '.json'; $('#rcJson').style.display = '';
+    $('#rcNotes').textContent = rcNum(built.stats.notes);
+    $('#rcNps').textContent = (built.stats.notes / built.stats.duration).toFixed(2);
+    $('#rcLevel').textContent = built.stats.difficulty;
+    $('#rcSize').textContent = (pez.length / 1048576).toFixed(2) + ' MB';
+    drawPreview(chartJson);
+    rcSetStatus('生成完成 · 同参数可复现', 'ok');
+  } catch (e) {
+    console.error(e);
+    rcSetStatus('生成失败：' + String(e.message || e), 'err');
+  }
+}
+
+$('#rcDensity').addEventListener('input', function () { $('#rcDensityVal').textContent = Number(this.value).toFixed(2); });
+$('#rcGo').addEventListener('click', generate);
+$('#rcRandom').addEventListener('click', function () {
+  $('#rcSeed').value = Math.random().toString(36).slice(2, 10);
+  generate();
+});
+generate();
+</script>
+</body>
+</html>

@@ -14,6 +14,7 @@ export default {
     /* ── 导航 ── */
     'nav.home': '首页',
     'nav.app': '算定数',
+    'nav.rulechart': '写谱',
     'nav.charter': '谱师',
     'nav.user': '玩家',
     'nav.data': '数据',
@@ -110,6 +111,7 @@ export default {
     /* ── nav ── */
     'nav.home': 'Home',
     'nav.app': 'Analyze',
+    'nav.rulechart': 'Chart',
     'nav.charter': 'Charters',
     'nav.user': 'Players',
     'nav.data': 'Data',

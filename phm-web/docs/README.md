@@ -54,6 +54,7 @@ phm-web/
 ├── public/                    ← 静态资源根目录（只有这里的内容会被送出）
 │   ├── index.html             ← 落地页 /（定位、双标度、入口）
 │   ├── app.html               ← 工作台 /app（拖入 + 搜索 + 定数 + 分享卡）
+│   ├── rulechart.html         ← 规则写谱 /rulechart（RPE v160 → .pez，本地生成）
 │   ├── charter.html           ← 谱师页 /charter（某谱师的全部作品）
 │   ├── user.html              ← 玩家页 /user（成绩 / RKS / 逐谱成绩）
 │   ├── data.html              ← 数据管理 /data（全库分页浏览、排序、过滤）
@@ -88,13 +89,13 @@ phm-web/
 │       ├── versions.js        ← 用户向版本历史（与 CHANGELOG.md 分工不同）
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
-├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（28 个）
+├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（30 个）
 │   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件）
 │   ├── gen-release.mjs        ← 从实际 exe 算大小 / sha256 / 客户端版本
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
 │   ├── reconcile-cache.mjs    ← ★ 缓存对账（--recompute-stale / --fix，退出码可挂 CI）
 │   ├── verify-engine.mjs      ← ★ 引擎回归测试（45 条；--net 比对真实基线）
-│   ├── smoke-page.mjs         ← ★ 冒烟（222 条：页面 / 版本号 / 缓存策略）
+│   ├── smoke-page.mjs         ← ★ 冒烟（239 条：页面 / 版本号 / 缓存策略）
 │   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
 │   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）
 │   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（22 条）
@@ -102,11 +103,13 @@ phm-web/
 │   ├── golden-engine.mjs      ← 引擎数值金标（固定谱面 → 固定输出，防悄悄变数）
 │   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
 │   ├── lint-openapi.mjs       ← ★★ OpenAPI 契约校验（零依赖，81 条）
+│   ├── rulechart.mjs          ← ★ 规则写谱 CLI（BPM/难度 → RPE v160 .pez）
+│   ├── test-rulechart.mjs     ← 规则写谱单测（20 条）
 │   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL / workflow
 │   ├── preflight.mjs          ← ★★ pre-push 闸门：review-gate + check
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
 │   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
-│   ├── lint-i18n.mjs          ← 双语完整性（822 词条 / 804 引用）
+│   ├── lint-i18n.mjs          ← 双语完整性（823 词条 / 805 引用）
 │   ├── check-contrast.mjs     ← 配色对比度校验
 │   ├── bump-version.py        ← 一次改全站版本号
 │   ├── version-module-imports.py ← 给模块 import 补/换 ?v=
@@ -151,6 +154,7 @@ phm-web/
 | 难度算法 / 特征 / k-NN | `public/js/engine.js` |
 | 页面交互 / 渲染 | `public/app.html`（**工作台主体**，找对应函数名）。⚠ 里面还有约 300 行**休眠代码**（玩家面板迁到 `/user` 后遗留），见 `ARCHITECTURE.md` 的已知技术债 |
 | 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
+| 规则写谱（RPE v160 ↔ .pez 互转） | `public/js/rulechart.js` —— 纯浏览器本地生成，页面 `public/rulechart.html`（⚠ 未进导航） |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |

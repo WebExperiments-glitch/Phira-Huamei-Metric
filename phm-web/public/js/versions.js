@@ -20,6 +20,23 @@
 
 export const RELEASES = [
   {
+    v: 'V0.15.0.0', date: '2026-10-17',
+    zh: [
+      '新增 <b>规则写谱</b>页：按 BPM / 时长 / 难度 / 轨道 / 密度生成 RPE v160 谱面，直接下载 <code>.pez</code>，'
+        + '可直接导入 Phira；全程本地，音频与谱面不上传。',
+      '内置 5 档难度、2K/4K/6K、随机种子；没上传音频时会生成节拍 click 音轨方便试谱。',
+      '同步提供 <b>audio2pez 二次修改版</b>（<code>phm/audio2pez</code>）：<code>--from-points</code> 接踩音模型，'
+        + 'points 模式不再强依赖 librosa。',
+    ],
+    en: [
+      'New <b>rule-based charting</b> page: generate RPE v160 charts from BPM / duration / difficulty / lanes / density '
+        + 'and download a <code>.pez</code> for Phira. Everything runs locally; audio and charts are never uploaded.',
+      'Five difficulties, 2K/4K/6K, reproducible seeds; a click track is generated when no audio is provided.',
+      'Also ships a <b>patched audio2pez fork</b> (<code>phm/audio2pez</code>) with <code>--from-points</code> for '
+        + 'beat-detection models and no hard librosa dependency in points mode.',
+    ],
+  },
+  {
     v: 'V0.14.0.0', date: '2026-10-17',
     zh: [
       'API Key 现在支持<b>权限（scopes）</b>：查询 / 分析 / 用量可分开授权；可设 <b>30 / 90 / 365 天</b>或永不过期；'
