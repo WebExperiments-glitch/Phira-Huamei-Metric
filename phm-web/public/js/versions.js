@@ -20,6 +20,30 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.4', date: '2026-10-17',
+    zh: [
+      '<b>输入框和按钮终于有了统一样式</b>。此前谱师页、玩家页的输入框是浏览器默认外观'
+        + '（灰边框、约 20px 高），按钮约 39px —— 两者不等高、没间距，占位提示还被截断。'
+        + '现在统一成 40px 高、圆角 10px，和按钮同高、间距 8px，聚焦时有一圈琥珀描边。',
+      '说明文字统一成一个口径（14px、行高 1.7）。此前卡片外的说明比卡片里的正文'
+        + '更大更黑，读起来像是漏了样式 —— 现在和正文一致。',
+      '字号从五六档收成五档（14 / 16 / 20 / 28 / 40），'
+        + '并新增一种「提示块」（左侧琥珀竖线），留给「样本量还小，仅供参考」这类'
+        + '真正需要被看到的信息 —— 它以前是页面里最小最淡的字。',
+    ],
+    en: [
+      '<b>Inputs and buttons finally have a consistent style.</b> The charter and player pages '
+        + 'previously used raw browser controls (grey border, ~20px tall) next to ~39px buttons — '
+        + 'unequal heights, no spacing, and truncated placeholders. Both are now 40px tall with an '
+        + '10px radius, 8px apart, and gain an amber ring on focus.',
+      'Explanatory text now follows one scale (14px, 1.7 line-height). Previously text outside cards '
+        + 'was larger and darker than body text inside them, which read like a missing stylesheet.',
+      'The type scale is consolidated from five or six ad-hoc sizes down to five (14 / 16 / 20 / 28 / 40), '
+        + 'plus a new "callout" block (amber rule on the left) reserved for notes that genuinely need '
+        + 'attention — such as the small-sample caveat, previously the smallest and faintest text on the page.',
+    ],
+  },
+  {
     v: 'V0.11.0.3', date: '2026-10-17',
     zh: [
       '<b>注册恢复正常</b>：上一版把「注册需要邮箱验证码」的服务端逻辑打开了，'
