@@ -1,0 +1,8 @@
+# points 模式（不跑音频检测）只需要 numpy：
+numpy>=1.24
+
+# 音频检测（可选；不装也能用 --from-points）：
+# librosa>=0.10
+
+# 封面转 PNG（可选；缺失时使用内置占位封面）：
+# Pillow>=9.0

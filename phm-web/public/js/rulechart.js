@@ -34,6 +34,29 @@ const PRESETS = {
 };
 
 const TYPE = { tap: 1, hold: 2, flick: 3, drag: 4 };
+const RULE_VERSION = '1.0';
+
+/* 对外公开的规则表：页面/docs 与校验器共用同一份。 */
+const RULES = {
+  version: RULE_VERSION,
+  leadInBeats: 2,
+  endMarginBeats: 1,
+  beatGrid: '4 / 8 / 16 分音符（按难度）',
+  sections: [
+    { from: 0.00, to: 0.12, label: 'intro', factor: 0.30 },
+    { from: 0.12, to: 0.70, label: 'verse', factor: 0.72 },
+    { from: 0.70, to: 0.90, label: 'chorus', factor: 1.08 },
+    { from: 0.90, to: 1.00, label: 'outro', factor: 0.62 },
+  ],
+  constraints: [
+    '同轨最小间隔 = 难度 minGap（拍）',
+    '同一时刻最多 maxChord 个音符',
+    'Hold 长度限制在预设 holds 列表内，且 end <= duration - 1 拍',
+    '任何音符 start >= 2 拍（lead-in）',
+    '同轨 Hold 与下一个音符不重叠',
+    'Type 只能是 Tap/Hold/Flick/Drag',
+  ],
+};
 
 /* 1280x720 深色占位封面（Phira 不接受 1x1 当作有图） */
 const COVER_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAABQAAAALQCAIAAABAH0oBAAAOfklEQVR42u3XMQ0AAAgEsZfBhBz8S0IDK2lSBbddugYAAADeiwQAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAgAFWAQAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAAAwwCoAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAADLAEAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAIABVgEAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAMMAqAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAAAywBAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAAAYYAAAADDAAAAAYYAAAADDAAAAAYIABAADAAAMAAIABBgAAAAMMAACAAVYBAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAwwAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAAGGAAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAwwAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAAAGGAAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAAAAAwwAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAAMAAAwAAgAEGAADAAAMAAIABBgAAAAMMAAAABhgAAAAMMAAAABhgAAAAMMAAAABggAEAADDAKgAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAADDAAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAAAYYAAAADDAAAAAYYAAAAAwwAAAAGGAAAAAwwAAAAGCAAQAAwAADAACAAQYAAAADDAAAADcLAH8mMaVp40wAAAAASUVORK5CYII=';
@@ -186,18 +209,104 @@ export function buildChart(opts) {
     zOrder: 0,
   };
 
-  return {
-    chart: {
-      BPMList: [{ startTime: [0, 0, 1], bpm }],
-      META: {
-        RPEVersion: 160, background: 'background.png',
-        charter: String(o.charter || 'P.H.M. rulechart'), composer: String(o.artist || 'Unknown'),
-        illustration: '', id: chartId, level: preset.label, name: String(o.name || 'Rule Chart'),
-        offset: Number(o.offset) || 0, song: 'audio.wav', duration,
-      },
-      judgeLineGroup: ['Default'], judgeLineList: [mainLine],
+  const chart = {
+    BPMList: [{ startTime: [0, 0, 1], bpm }],
+    META: {
+      RPEVersion: 160, background: 'background.png',
+      charter: String(o.charter || 'P.H.M. rulechart'), composer: String(o.artist || 'Unknown'),
+      illustration: '', id: chartId, level: preset.label, name: String(o.name || 'Rule Chart'),
+      offset: Number(o.offset) || 0, song: 'audio.wav', duration,
     },
-    stats: { notes: notes.length, bpm, duration, difficulty: preset.label, lanes, density },
+    judgeLineGroup: ['Default'], judgeLineList: [mainLine],
+  };
+  const validation = validateChart(chart, { difficulty: o.difficulty, lanes });
+  const typeCounts = { tap: 0, hold: 0, flick: 0, drag: 0 };
+  for (const n of notes) for (const [k, v] of Object.entries(TYPE)) if (v === n.type) typeCounts[k]++;
+  return {
+    chart,
+    stats: {
+      notes: notes.length, bpm, duration, difficulty: preset.label, lanes, density,
+      nps: notes.length / duration, typeCounts, valid: validation.ok,
+      violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,
+    },
+  };
+}
+
+/* ============================================================
+ * validateChart —— 规则校验器
+ * ============================================================
+ * 返回 { ok, violations[], metrics }。页面/CLI 在下载前跑同一份规则，
+ * 保证「规则写谱」不是随口说说：同轨间隔、和弦数、Hold 重叠、时序、
+ * 轨道/类型合法性都能被程序验证。
+ * ============================================================ */
+export function validateChart(chart, opts) {
+  const o = opts || {};
+  const preset = PRESETS[o.difficulty] || PRESETS.hard;
+  const laneVals = LANES[o.lanes] || LANES[4];
+  const violations = [];
+  const line = chart && chart.judgeLineList && chart.judgeLineList[0];
+  if (!line || !Array.isArray(line.notes)) {
+    return { ok: false, violations: ['chart has no judge line notes'], metrics: null };
+  }
+  const notes = line.notes;
+  const duration = Number(chart.META && chart.META.duration) || 0;
+  const bpm = Number(chart.BPMList && chart.BPMList[0] && chart.BPMList[0].bpm) || 120;
+  const totalBeats = duration * bpm / 60;
+  const toBeat = (f) => (Array.isArray(f) ? f[0] + f[1] / f[2] : Number(f));
+  const types = { tap: 0, hold: 0, flick: 0, drag: 0 };
+  const lanes = new Set();
+  const byLane = new Map();
+  const byTime = new Map();
+  let minGap = Infinity;
+  let prevStart = -Infinity;
+
+  notes.forEach((n, i) => {
+    const where = 'note[' + i + ']';
+    const start = toBeat(n.startTime);
+    const end = toBeat(n.endTime);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) { violations.push(where + ' invalid time'); return; }
+    if (start < 2 - 1e-6) violations.push(where + ' starts before lead-in');
+    if (start > totalBeats - 1 + 1e-6) violations.push(where + ' starts after end margin');
+    if (end < start - 1e-6) violations.push(where + ' end < start');
+    if (![1, 2, 3, 4].includes(n.type)) violations.push(where + ' invalid type');
+    if (!laneVals.includes(n.positionX)) violations.push(where + ' invalid lane ' + n.positionX);
+    if (n.type === 2 && end - start < 0.25 - 1e-6) violations.push(where + ' hold too short');
+    if (start < prevStart - 1e-6) violations.push(where + ' notes not sorted');
+    prevStart = Math.max(prevStart, start);
+    const lane = n.positionX;
+    lanes.add(lane);
+    const rec = byLane.get(lane);
+    if (rec) {
+      const gap = start - rec.start;
+      if (gap < preset.minGap - 1e-6) violations.push(where + ' same-lane gap ' + gap.toFixed(3) + ' < ' + preset.minGap);
+      if (start < rec.end - 1e-6) violations.push(where + ' overlaps previous hold on lane ' + lane);
+      minGap = Math.min(minGap, gap);
+    }
+    byLane.set(lane, { start, end });
+    const key = start.toFixed(4);
+    byTime.set(key, (byTime.get(key) || 0) + 1);
+    if (n.type === 1) types.tap++;
+    else if (n.type === 2) types.hold++;
+    else if (n.type === 3) types.flick++;
+    else if (n.type === 4) types.drag++;
+  });
+
+  let maxChord = 0;
+  byTime.forEach((count) => { if (count > maxChord) maxChord = count; });
+  if (maxChord > preset.maxChord) violations.push('chord ' + maxChord + ' > maxChord ' + preset.maxChord);
+  if (notes.length === 0) violations.push('no notes');
+
+  return {
+    ok: violations.length === 0,
+    violations,
+    metrics: {
+      notes: notes.length,
+      nps: duration ? notes.length / duration : 0,
+      maxChord,
+      minGap: minGap === Infinity ? null : minGap,
+      types,
+      lanes: [...lanes].sort((a, b) => a - b),
+    },
   };
 }
 
@@ -301,4 +410,4 @@ export function buildPez(chart, opts) {
   return { pez: zipStore(files), chartJson: chart, info };
 }
 
-export { PRESETS, LANES, TYPE };
+export { PRESETS, LANES, TYPE, RULES };

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.14.0.0">
+<meta name="app-version" content="V0.15.0.0">
 <title>规则写谱 · P.H.M.</title>
 <meta name="description" content="零依赖规则写谱：按 BPM / 时长 / 难度生成 RPE v160 谱面并打包 .pez，可直接导入 Phira。全程本地，文件不上传。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,8 +11,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.14.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.14.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.15.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.15.0.0">
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:20px 0 6px}
@@ -93,6 +93,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
         <div class="rc-stat"><div class="k">NPS</div><div class="v" id="rcNps">—</div></div>
         <div class="rc-stat"><div class="k">难度</div><div class="v" id="rcLevel">—</div></div>
         <div class="rc-stat"><div class="k">文件</div><div class="v" id="rcSize">—</div></div>
+        <div class="rc-stat"><div class="k">规则校验</div><div class="v" id="rcValid">—</div></div>
       </div>
       <canvas id="preview" width="520" height="190"></canvas>
       <div class="rc-dl">
@@ -125,8 +126,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.14.0.0';
-import { buildChart, buildPez } from '/js/rulechart.js?v=V0.14.0.0';
+import { renderNav } from '/js/ui.js?v=V0.15.0.0';
+import { buildChart, buildPez } from '/js/rulechart.js?v=V0.15.0.0';
 renderNav('rulechart');
 
 const $ = s => document.querySelector(s);
