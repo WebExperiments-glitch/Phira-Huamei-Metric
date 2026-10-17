@@ -57,26 +57,31 @@ function fft(re, im, t) {
 function mean(a) { let s = 0; for (let i = 0; i < a.length; i++) s += a[i]; return a.length ? s / a.length : 0; }
 function std(a, m) { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - m; s += d * d; } return Math.sqrt(a.length ? s / a.length : 0); }
 
-function onsetEnvelope(samples) {
+function onsetEnvelope(samples, sampleRate) {
   const t = fftTables(FRAME);
   const nFrames = Math.max(1, Math.floor((samples.length - FRAME) / HOP) + 1);
   const env = new Float32Array(nFrames);
+  const centroid = new Float32Array(nFrames);
   const prev = new Float32Array(FRAME / 2 + 1);
   const re = new Float32Array(FRAME), im = new Float32Array(FRAME);
+  const nyquist = sampleRate / 2;
   for (let f = 0; f < nFrames; f++) {
     const off = f * HOP;
     for (let i = 0; i < FRAME; i++) { re[i] = (samples[off + i] || 0) * t.win[i]; im[i] = 0; }
     fft(re, im, t);
-    let flux = 0;
+    let flux = 0, magSum = 0, weighted = 0;
     for (let k = 1; k <= FRAME / 2; k++) {
       const mag = Math.hypot(re[k], im[k]);
       const d = mag - prev[k];
       if (d > 0) flux += d;
       prev[k] = mag;
+      magSum += mag;
+      weighted += mag * ((k / (FRAME / 2)) * nyquist);
     }
     env[f] = flux;
+    centroid[f] = magSum > 1e-9 ? Math.max(0, Math.min(1, weighted / magSum / nyquist)) : 0.5;
   }
-  return env;
+  return { env, centroid };
 }
 
 function tempoAndBeats(env, fps, duration) {
@@ -150,10 +155,13 @@ function sections(samples, sampleRate, duration) {
 /** 纯函数：直接分析 Float32 单声道样本（测试/Node 可用）。 */
 export function analyzeSamples(samples, sampleRate, durationSec) {
   const duration = durationSec || samples.length / sampleRate;
-  const env = onsetEnvelope(samples);
+  const { env, centroid } = onsetEnvelope(samples, sampleRate);
   const fps = sampleRate / HOP;
   const tb = tempoAndBeats(env, fps, duration);
-  const onsets = detectPeaks(env, fps).filter(p => p.time < duration);
+  const onsets = detectPeaks(env, fps).filter(p => p.time < duration).map(p => {
+    const idx = Math.max(0, Math.min(centroid.length - 1, Math.round(p.time * fps)));
+    return Object.assign({}, p, { centroid: centroid[idx] || 0.5 });
+  });
   const sec = sections(samples, sampleRate, duration);
   return {
     bpm: Math.round(tb.bpm * 10) / 10,
@@ -163,6 +171,8 @@ export function analyzeSamples(samples, sampleRate, durationSec) {
     offset: tb.offset,
     onsets,
     sections: sec.sections,
+    centroid,
+    avgCentroid: mean(centroid),
     fps,
   };
 }

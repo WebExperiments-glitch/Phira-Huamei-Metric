@@ -10,7 +10,8 @@
  * ============================================================ */
 
 const LANES = {
-  2: [-225, 225],
+  /* 2K = 两根手指可打，不是两根固定轨道：x 分散在整屏，左右手交替。 */
+  2: [-540, -450, -360, -270, -180, -90, 0, 90, 180, 270, 360, 450, 540],
   4: [-225, -75, 75, 225],
   6: [-450, -300, -150, 150, 300, 450],
   7: [-450, -300, -150, 0, 150, 300, 450],
@@ -43,14 +44,14 @@ const TYPE = { tap: 1, hold: 2, flick: 3, drag: 4 };
  * Tap ~55–62% / Drag ~22–35% / Hold ~9–13% / Flick ~5–8%；
  * 难度越高 NPS 越高，但类型比例不会反过来变成 Flick 为主。 */
 const AUDIO_PRESETS = {
-  ez: { label: 'EZ 7',  keep: 0.55, targetNps: 3.6,  subdivision: 4,  minGap: 1.0,  maxChord: 2, lanes: 4,
+  ez: { label: 'EZ 7',  keep: 0.55, targetNps: 2.0,  subdivision: 4,  minGap: 1.0,  maxChord: 1, lanes: 2,
         weights: { tap: .58, hold: .12, flick: .06, drag: .24 }, holds: [.5, 1],       phrase: 12 },
-  hd: { label: 'HD 11', keep: 0.68, targetNps: 5.2,  subdivision: 8,  minGap: 0.5,  maxChord: 2, lanes: 6,
-        weights: { tap: .56, hold: .12, flick: .07, drag: .25 }, holds: [.5, .75, 1],  phrase: 10 },
-  in: { label: 'IN 14', keep: 0.82, targetNps: 7.8,  subdivision: 8,  minGap: 0.25, maxChord: 3, lanes: 7,
-        weights: { tap: .55, hold: .12, flick: .07, drag: .26 }, holds: [.25, .5, .75, 1], phrase: 8 },
-  at: { label: 'AT 16', keep: 0.94, targetNps: 11.0, subdivision: 16, minGap: 0.2,  maxChord: 3, lanes: 7,
-        weights: { tap: .55, hold: .10, flick: .08, drag: .27 }, holds: [.25, .5, .75, 1], phrase: 8 },
+  hd: { label: 'HD 11', keep: 0.68, targetNps: 2.6,  subdivision: 8,  minGap: 0.5,  maxChord: 1, lanes: 2,
+        weights: { tap: .58, hold: .10, flick: .07, drag: .25 }, holds: [.5, .75, 1],  phrase: 10 },
+  in: { label: 'IN 14', keep: 0.82, targetNps: 3.6,  subdivision: 8,  minGap: 0.25, maxChord: 1, lanes: 2,
+        weights: { tap: .56, hold: .10, flick: .07, drag: .27 }, holds: [.25, .5, .75], phrase: 8 },
+  at: { label: 'AT 16', keep: 0.94, targetNps: 4.0,  subdivision: 16, minGap: 0.2,  maxChord: 1, lanes: 2,
+        weights: { tap: .57, hold: .08, flick: .08, drag: .27 }, holds: [.25, .5], phrase: 8 },
 };
 
 const RULE_VERSION = '1.0';
@@ -303,6 +304,39 @@ function buildLineData(analysis, bpm, totalBeats) {
   return { main, deco };
 }
 
+/* 系统判定难度：不再让用户选。用音频的踩音密度、能量、频谱重心与 BPM
+ * 估算“这张音频适合的 NPS”，再映射到 EZ/HD/IN/AT。 */
+export function detectDifficulty(analysis) {
+  const duration = Math.max(1, Number(analysis.duration) || 1);
+  const onsets = analysis.onsets || [];
+  const rate = onsets.length / duration;
+  const strength = onsets.length ? onsets.reduce((s, p) => s + (p.strength || 0), 0) / onsets.length : 0.3;
+  const secs = analysis.sections || [];
+  const energy = secs.length ? secs.reduce((s, x) => s + (x.energy || 0.5), 0) / secs.length : 0.5;
+  const centroid = Number.isFinite(analysis.avgCentroid) ? analysis.avgCentroid : 0.5;
+  const bpm = Number(analysis.bpm) || 120;
+  const potential = Math.max(2.5, Math.min(12.5,
+    rate * 1.55 + energy * 1.8 + centroid * 0.8 + strength * 0.9 + Math.min(0.8, Math.abs(bpm - 120) / 120) + 0.6));
+  /* 难度阈值与 2K 目标 NPS 解耦：先判档，再按该档 2K 密度生成。 */
+  const key = potential < 4.2 ? 'ez' : potential < 5.6 ? 'hd' : potential < 7.0 ? 'in' : 'at';
+  const preset = AUDIO_PRESETS[key];
+  return {
+    key, label: preset.label, targetNps: preset.targetNps, potential,
+    reason: { onsetRate: rate, energy, centroid, strength, bpm },
+  };
+}
+
+function centroidAtBeat(analysis, beat, bpm) {
+  const arr = analysis.centroid;
+  if (!arr || !arr.length || !analysis.fps) return Number.isFinite(analysis.avgCentroid) ? analysis.avgCentroid : 0.5;
+  const idx = Math.round((beat * 60 / bpm) * analysis.fps);
+  return arr[Math.max(0, Math.min(arr.length - 1, idx))] || 0.5;
+}
+function laneFromCentroid(c, lanes) {
+  const v = Number.isFinite(c) ? Math.max(0, Math.min(1, c)) : 0.5;
+  return Math.max(0, Math.min(lanes - 1, Math.round(v * (lanes - 1))));
+}
+
 /* ============================================================
  * buildChartFromAnalysis —— 从音频分析结果自动排谱
  * ============================================================
@@ -315,127 +349,147 @@ export function buildChartFromAnalysis(analysis, opts) {
   const preset = AUDIO_PRESETS[o.difficulty] || AUDIO_PRESETS.hd;
   const bpm = Math.max(30, Math.min(300, Number(analysis.bpm) || 120));
   const duration = Math.max(10, Math.min(900, Number(analysis.duration) || 60));
-  const lanes = preset.lanes;
   const totalBeats = duration * bpm / 60;
-  const step = 1 / preset.subdivision;
-  const name = String(o.name || 'Rule Chart');
+  const beatSec = 60 / bpm;
+  const lanes = preset.lanes;
+  const name = String(o.name || 'Auto Chart');
   const rng = mulberry32(hashSeed(name + '|' + bpm + '|' + duration + '|' + (analysis.onsets || []).length + '|' + o.difficulty));
-  const onsets = (analysis.onsets || []).filter(p => Number.isFinite(p.time));
-  const onsetAt = new Map();
-  for (const p of onsets) {
-    const key = Math.round((p.time * bpm / 60) / step);
-    const prev = onsetAt.get(key);
-    if (!prev || p.strength > prev) onsetAt.set(key, p.strength);
-  }
   const sections = analysis.sections || [];
-  const sectionFactor = (progress) => {
-    const sec = sections.find(s => progress * duration >= s.start && progress * duration < s.end);
-    const label = sec ? sec.label : '';
-    const base = label === 'intro' ? 0.38 : label === 'chorus' ? 1.08 : label === 'outro' ? 0.62 : 0.74;
-    const energy = sec ? 0.65 + 0.55 * Math.min(1, sec.energy || 0.5) : 1;
-    return base * energy;
+  const sectionAt = (sec) => sections.find(s => sec >= s.start && sec < s.end) || null;
+  const laneSet = LANES[lanes];
+  const left = laneSet.filter(x => x < 0);
+  const right = laneSet.filter(x => x > 0);
+
+  /* ── 候选时刻：以检测到的拍点网格为骨架；onset 先吸附到 1/4 或 1/8 拍，避免“听起来不在拍上”。 ── */
+  const beats = (analysis.beats || []).filter(x => Number.isFinite(x));
+  const phase = beats.length ? beats[0] / beatSec : 0;
+  const snapStep = 1 / preset.subdivision;
+  const snapBeat = (b) => phase + Math.round((b - phase) / snapStep) * snapStep;
+  const candidates = new Map();
+  const add = (time, strength, source) => {
+    if (!Number.isFinite(time) || time < 2 * beatSec || time > (totalBeats - 1) * beatSec) return;
+    const beat = time / beatSec;
+    const key = Math.round(beat * 32) / 32;
+    const old = candidates.get(key);
+    if (!old || strength > old.strength) candidates.set(key, { beat, time, strength, source });
   };
+  for (const p of (analysis.onsets || [])) {
+    const raw = p.time / beatSec;
+    const snapped = beats.length ? snapBeat(raw) : raw;
+    const dist = Math.abs(snapped - raw);
+    /* 离拍网格太远的 onset 视为噪声/装饰音，不强行当主拍 */
+    if (dist > snapStep * 0.62) continue;
+    add(snapped * beatSec, p.strength || 0.35, 'onset');
+  }
+  if (beats.length) {
+    for (const bt of beats) {
+      for (let s = 0; s < preset.subdivision; s++) {
+        add(bt + s * beatSec / preset.subdivision, 0.22, 'grid');
+      }
+    }
+  } else {
+    for (let b = 2; b < totalBeats - 1; b += 1 / preset.subdivision) add(b * beatSec, 0.22, 'grid');
+  }
+  let events = [...candidates.values()].sort((a, b) => a.beat - b.beat);
+  const target = Math.max(1, Math.round(preset.targetNps * duration));
+  const selectCap = Math.round(target * 1.6);
+  if (events.length > selectCap) {
+    /* 优先保留真实 onset + 强拍，再按时间排序 */
+    events = events
+      .map(e => ({ ...e, score: (e.source === 'onset' ? 2 : 0) + e.strength + (Math.abs(e.beat - Math.round(e.beat)) < 1e-6 ? 0.4 : 0) }))
+      .sort((a, b) => b.score - a.score || a.beat - b.beat)
+      .slice(0, selectCap)
+      .sort((a, b) => a.beat - b.beat);
+  }
+
   const notes = [];
   const lastLaneBeat = {};
-  let prevLane = null;
-  let idx = 0;
-  for (let beat = Math.ceil(2 / step) * step; beat < totalBeats - 1; beat += step) {
-    idx++;
-    const progress = beat / totalBeats;
-    const k = Math.round(beat / step);
-    const strength = onsetAt.has(k) ? onsetAt.get(k) : 0;
-    const force = strength > 0.72;
-    const p = preset.keep * sectionFactor(progress) * (0.55 + 0.9 * strength);
-    if (!force && rng() > p) continue;
-    const phrase = Math.floor(idx / preset.phrase) % 4;
-    const pattern = ['alternate', 'stair', 'flow', 'jump'][phrase];
-    const lane = pickLane(pattern, idx, lanes, rng, prevLane);
-    if (lastLaneBeat[lane] != null && beat - lastLaneBeat[lane] < preset.minGap) continue;
-    let type = pickWeighted(rng, preset.weights);
-    if (type === 'hold' && beat + 2 > totalBeats - 1) type = 'tap';
-    const holdBeats = type === 'hold' ? preset.holds[Math.floor(rng() * preset.holds.length)] : 0;
-    const endBeat = Math.min(totalBeats - 0.5, beat + holdBeats);
-    if (type === 'hold' && endBeat - beat < 0.25) type = 'tap';
+  const holdUntil = {};
+  let noteIndex = 0;
+
+  const place = (beat, lane, type, holdBeats) => {
+    const endBeat = type === 2 ? Math.min(totalBeats - 0.5, beat + (holdBeats || 0.5)) : beat;
+    if (beat < (holdUntil[lane] || -1) - 1e-6) return false;
+    if (lastLaneBeat[lane] != null && beat - lastLaneBeat[lane] < preset.minGap - 1e-6) return false;
     notes.push({
-      above: 1, alpha: 255, endTime: frac(type === 'hold' ? endBeat : beat),
-      isFake: 0, positionX: LANES[lanes][lane], size: 1, speed: 1,
-      startTime: frac(beat), type: TYPE[type], visibleTime: 999999, yOffset: 0,
+      above: 1, alpha: 255, endTime: frac(endBeat), isFake: 0,
+      positionX: lane, size: 1, speed: 1,
+      startTime: frac(beat), type, visibleTime: 999999, yOffset: 0,
     });
-    lastLaneBeat[lane] = type === 'hold' ? endBeat : beat;
-    prevLane = lane;
-    if (preset.maxChord > 1 && Math.abs(beat - Math.round(beat)) < 1e-6 && Math.round(beat) % 4 === 0 && rng() < 0.20 * preset.keep) {
-      let lane2 = (lane + 1 + Math.floor(rng() * (lanes - 1))) % lanes;
-      if (lane2 === lane) lane2 = (lane + 1) % lanes;
-      if (!(lastLaneBeat[lane2] != null && beat - lastLaneBeat[lane2] < preset.minGap)) {
-        notes.push({
-          above: 1, alpha: 255, endTime: frac(beat), isFake: 0,
-          positionX: LANES[lanes][lane2], size: 1, speed: 1,
-          startTime: frac(beat), type: TYPE.tap, visibleTime: 999999, yOffset: 0,
-        });
-        lastLaneBeat[lane2] = beat;
+    lastLaneBeat[lane] = endBeat;
+    if (type === 2) holdUntil[lane] = endBeat;
+    return true;
+  };
+
+  for (const e of events) {
+    if (notes.length >= target) break;
+    const beat = e.beat;
+    const sec = e.time;
+    const section = sectionAt(sec);
+    const chorus = section && section.label === 'chorus';
+    const phrase = Math.floor(beat / 8);
+    const hand = (noteIndex + phrase) % 2;
+    const pool = hand === 0 ? left : right;
+
+    /* 手内选轨：优先未在 Hold 中的轨道；同轨太近换一条 */
+    let lane = null;
+    const start = (noteIndex * 2 + phrase) % pool.length;
+    const order = pool.map((_, i) => pool[(start + i) % pool.length]);
+    for (const px of order) {
+      if (beat < (holdUntil[px] || -1) - 1e-6) continue;
+      if (lastLaneBeat[px] != null && beat - lastLaneBeat[px] < preset.minGap - 1e-6) continue;
+      lane = px; break;
+    }
+    /* 当前手被 Hold/间隔挡住时，允许换到另一只手，避免 2K 直接漏音。 */
+    if (lane == null) {
+      for (const px of (hand === 0 ? right : left)) {
+        if (beat < (holdUntil[px] || -1) - 1e-6) continue;
+        if (lastLaneBeat[px] != null && beat - lastLaneBeat[px] < preset.minGap - 1e-6) continue;
+        lane = px; break;
+      }
+    }
+    if (lane == null) continue;
+
+    /* 类型先按真实谱面权重抽，再对 Hold 加结构约束（副歌/非乐句起点降级为 Tap）。 */
+    let type = TYPE[pickWeighted(rng, preset.weights)];
+    let holdBeats = 0;
+    if (type === 2) {
+      if (chorus || beat < 4) {
+        type = 1;
+      } else {
+        holdBeats = preset.holds[Math.floor(rng() * preset.holds.length)];
+        if (beat + holdBeats > totalBeats - 1) { type = 1; holdBeats = 0; }
+      }
+    }
+    if (!place(beat, lane, type, holdBeats)) continue;
+    noteIndex++;
+
+    /* 强拍和弦：一左一右，最多 maxChord，且不同轨 */
+    if (preset.maxChord > 1 && Math.abs(beat - Math.round(beat)) < 1e-6 && Math.round(beat) % 4 === 0 && notes.length < target && rng() < 0.10) {
+      const other = hand === 0 ? right : left;
+      for (const px of other) {
+        if (beat < (holdUntil[px] || -1) - 1e-6) continue;
+        if (lastLaneBeat[px] != null && beat - lastLaneBeat[px] < preset.minGap - 1e-6) continue;
+        place(beat, px, 1, 0);
+        break;
       }
     }
   }
-  /* 补到真实谱面统计得出的目标 NPS（EZ≈3.6 / HD≈5.2 / IN≈7.8 / AT≈11） */
-  const target = Math.max(1, Math.round(preset.targetNps * duration));
-  /* 沿拍网格补位：每个拍点最多 maxChord 个不同轨道，直到达到目标 NPS。 */
-  const slots = Math.max(0, Math.floor((totalBeats - 3) / step));
-  for (let i = 0; i < slots && notes.length < target; i++) {
-    const snapped = 2 + i * step;
-    while (notes.length < target) {
-      const same = notes.filter(n => Math.abs((n.startTime[0] + n.startTime[1] / n.startTime[2]) - snapped) < 1e-6);
-      if (same.length >= preset.maxChord) break;
-      const free = [];
-      for (let l = 0; l < lanes; l++) {
-        const px = LANES[lanes][l];
-        if (same.some(n => n.positionX === px)) continue;
-        /* 与已有音符按真实时间比较：前后 minGap 内都不补，避免和初始排布打架。 */
-        if (notes.some(n => {
-          if (n.positionX !== px) return false;
-          const s = n.startTime[0] + n.startTime[1] / n.startTime[2];
-          const e = n.endTime[0] + n.endTime[1] / n.endTime[2];
-          if (snapped > s - 1e-6 && snapped < e - 1e-6) return true;  /* 正处在 Hold 内 */
-          return Math.abs(s - snapped) < preset.minGap - 1e-6;
-        })) continue;
-        free.push(l);
-      }
-      if (!free.length) break;
-      const lane = free[Math.floor(rng() * free.length)];
-      let type = pickWeighted(rng, preset.weights);
-      let endBeat = snapped;
-      if (type === 'hold') {
-        const hb = preset.holds[Math.floor(rng() * preset.holds.length)];
-        endBeat = Math.min(totalBeats - 0.5, snapped + hb);
-        const pxh = LANES[lanes][lane];
-        /* Hold 区间内不能有同轨已有音符，否则改成 Tap。 */
-        const clash = notes.some(n => n.positionX === pxh &&
-          (n.startTime[0] + n.startTime[1] / n.startTime[2]) > snapped + 1e-6 &&
-          (n.startTime[0] + n.startTime[1] / n.startTime[2]) < endBeat - 1e-6);
-        if (clash || endBeat - snapped < 0.25) type = 'tap';
-      }
-      notes.push({
-        above: 1, alpha: 255, endTime: frac(endBeat),
-        isFake: 0, positionX: LANES[lanes][lane], size: 1, speed: 1,
-        startTime: frac(snapped), type: TYPE[type], visibleTime: 999999, yOffset: 0,
-      });
-      lastLaneBeat[lane] = type === 'hold' ? endBeat : snapped;
-      prevLane = lane;
-    }
-  }
+
   notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
-  /* 最后一道结构修复：丢掉落入同轨 Hold 区间内的 note（补位/和弦可能造成）。 */
+  /* 结构修复：丢掉落入同轨 Hold 的 note */
   const holdEnd = {};
   const fixed = [];
   for (const n of notes) {
     const s = n.startTime[0] + n.startTime[1] / n.startTime[2];
     const e = n.endTime[0] + n.endTime[1] / n.endTime[2];
-    const lane = n.positionX;
-    if (holdEnd[lane] != null && s < holdEnd[lane] - 1e-6) continue;
+    if (holdEnd[n.positionX] != null && s < holdEnd[n.positionX] - 1e-6) continue;
     fixed.push(n);
-    if (n.type === 2) holdEnd[lane] = Math.max(holdEnd[lane] || 0, e);
+    if (n.type === 2) holdEnd[n.positionX] = Math.max(holdEnd[n.positionX] || 0, e);
   }
   notes.length = 0;
   for (const n of fixed) notes.push(n);
+
   const slug = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
   const chartId = slug + '_' + hashSeed(name + '|' + bpm).toString(16).slice(0, 6) + '_' + o.difficulty;
   const lineLayers = buildLineData(analysis, bpm, totalBeats);
@@ -454,7 +508,7 @@ export function buildChartFromAnalysis(analysis, opts) {
   const decoLines = [0, 1, 2].map((i) => ({
     Group: 1 + i, Name: '装饰线' + i, Texture: 'line.png',
     alphaControl: [{ alpha: 1, easing: 1, x: 0 }, { alpha: 1, easing: 1, x: 9999999 }],
-    bpmfactor: 1, eventLayers: [i === 0 ? lineLayers.deco : { ...lineLayers.deco }],
+    bpmfactor: 1, eventLayers: [lineLayers.deco],
     extended: { inclineEvents: [incline()] }, father: -1, isCover: 0,
     notes: [], numOfNotes: 0,
     posControl: [{ easing: 1, pos: 1, x: 0 }, { easing: 1, pos: 1, x: 9999999 }],
@@ -479,7 +533,7 @@ export function buildChartFromAnalysis(analysis, opts) {
   return {
     chart,
     stats: {
-      notes: notes.length, bpm, duration, difficulty: preset.label, lanes, onsets: onsets.length,
+      notes: notes.length, bpm, duration, difficulty: preset.label, lanes, onsets: (analysis.onsets || []).length,
       nps: notes.length / duration, targetNps: preset.targetNps, targetNotes: target,
       typeCounts, valid: validation.ok,
       violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,

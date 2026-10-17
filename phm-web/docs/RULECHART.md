@@ -1,6 +1,6 @@
-# 自动写谱（MP3 → 规则谱面）v1.2
+# 自动写谱（MP3 → 规则谱面）v1.3
 
-> 用户只做两件事：**导入 MP3**，选 **EZ / HD / IN / AT**。
+> 用户只做一件事：**导入 MP3**。难度由系统判定，用户不能手动选择。
 > BPM、时长、拍点、踩音点、段落能量全部自动提取；生成 **.pez**（ZIP）或 **.zip**。
 > 全程浏览器本地，音频不上传。
 
@@ -21,14 +21,43 @@ MP3/WAV/OGG/FLAC/M4A
 
 页面上直接显示：BPM、时长、拍点数、踩音点数、段落能量。**没有 BPM/时长/密度输入框。**
 
-## 2. 难度（Phigros 式）
+## 2. 2K 的含义：2 指可打，不是 2 条固定轨道
+
+2K 指“最多两根手指可以完成”，音符的 x 分布在整屏（约 ±540），左右手交替，
+不是只放在 -450/+450 两条线上。这样视觉上才是“分散”的，也符合你给的旧版参考图。
+
+## 3. 节奏：onset 先吸附拍网格
+
+原始频谱峰值不等于“拍点”。生成前先把 onset 吸附到检测到的拍网格：
+
+- EZ：1/4 拍
+- HD / IN：1/8 拍
+- AT：1/16 拍
+
+然后再按拍点/onset 时间排谱，避免「听起来不在拍上」。
+
+## 4. 难度由系统判定（用户不可选）
+
+`detectDifficulty(analysis)` 用音频特征估算“潜力 NPS”：
+
+```text
+potential = onsetRate×1.55 + energy×1.8 + avgCentroid×0.8
+          + avgStrength×0.9 + BPM偏离×0.8 + 0.6
+```
+
+判档阈值：`<4.2 EZ / <5.6 HD / <7.0 IN / ≥7.0 AT`。判档后再按该档的 2K 目标 NPS
+（EZ 2.0 / HD 2.6 / IN 3.6 / AT 4.0）生成，所以「难度档」与「2K 密度」是解耦的。
+页面只显示「系统判定：IN 14 · 潜力 6.5 NPS（踩音 2.9/s · BPM 120.2）」，
+**没有难度按钮**。这样避免用户随意选一个不匹配音频的难度。
+
+### 2.1 预设（系统内部使用）
 
 | 难度 | Level | 目标 NPS | 细分 | 同轨最小间隔 | 和弦上限 | 轨道 | 判定线 |
 |---|---|---|---|---|---|---|---|
-| EZ | EZ 7 | 3.6 | 4 | 1.0 拍 | 2 | 4K | 1 主 + 3 装饰 |
-| HD | HD 11 | 5.2 | 8 | 0.5 拍 | 2 | 6K | 1 主 + 3 装饰 |
-| IN | IN 14 | 7.8 | 8 | 0.25 拍 | 3 | 7K | 1 主 + 3 装饰 |
-| AT | AT 16 | 11.0 | 16 | 0.2 拍 | 3 | 7K | 1 主 + 3 装饰 |
+| EZ | EZ 7 | 2.0 | 4 | 1.0 拍 | 2 | 2K | 1 主 + 3 装饰 |
+| HD | HD 11 | 2.6 | 8 | 0.5 拍 | 2 | 2K | 1 主 + 3 装饰 |
+| IN | IN 14 | 3.6 | 8 | 0.25 拍 | 2 | 2K | 1 主 + 3 装饰 |
+| AT | AT 16 | 4.0 | 16 | 0.2 拍 | 2 | 2K | 1 主 + 3 装饰 |
 
 - 类型权重按真实谱面统计：Tap ~55%、Drag ~25%、Hold ~10–12%、Flick ~6–8%（不再让 Flick 在高难度反超 Tap）。
 - 段落能量决定密度：intro 低、chorus 高；踩音强度越高越优先保留。
@@ -48,8 +77,9 @@ MP3/WAV/OGG/FLAC/M4A
 | 17+ | 12.11 | 1833 | 30 | 61.7 / 11.2 / 5.1 / 22.0 |
 
 这组数据直接决定了：类型权重、目标 NPS、以及「必须有多条判定线/动效」而不是一根静止的线。
+难度选择也由这组 NPS 区间反推，而不是让用户凭感觉选。
 
-## 3. 硬规则（下载前逐条校验）
+## 5. 硬规则（下载前逐条校验）
 
 | # | 规则 |
 |---|---|
@@ -60,7 +90,7 @@ MP3/WAV/OGG/FLAC/M4A
 | R5 | 同轨 Hold 与下一个 note 不重叠 |
 | R6 | 同一时刻 ≤ `maxChord` 个音符 |
 | R7 | 类型只能是 Tap/Hold/Flick/Drag |
-| R8 | 轨道只能是 4K/6K/7K 的合法 X（7K 含中心 0） |
+| R8 | 2 指可打；x 在整屏分散，不要求两条固定轨；同一时刻最多 1 个 note |
 | R9 | Hold 长度 0.25–2 拍，且 end > start |
 | R10 | 同一音频 + 同一难度 → 逐字节可复现 |
 | R11 | 音符必须来自拍点/踩音点（允许按网格吸附） |
@@ -72,7 +102,7 @@ MP3/WAV/OGG/FLAC/M4A
 `validateChart(chart)` 返回 `{ok, violations, metrics}`；页面在生成后、显示下载前执行。
 失败时隐藏下载按钮并显示前 3 条违规。
 
-## 4. 输出
+## 6. 输出
 
 ```text
 <id>.pez   # 本身就是 ZIP（Phira 直接导入）
@@ -89,14 +119,15 @@ audio.<ext>        # 用户导入的原音频
 background.png     # 1280×720 占位封面（stdlib PNG）
 ```
 
-## 5. 不用 Rana / 不接模型
+## 7. 不用 Rana / 不接模型
 
 Rana 是 B 站「小百合-official」的 Transformer 踩音模型：作者说「按设定开源」但代码未公开、
 权重走 QQ 群、许可证不明确，因此本项目不集成。若以后有合规的踩音 points 输出，
 可以用 `phm/audio2pez --from-points notes.json` 走另一条规则排谱路径。
 
-## 6. 调研与参考
+## 8. 调研与参考
 
+- [HorieYuuka/BMS-Generator](https://horieyuuka.github.io/BMS-Generator) —— **规则写谱**管线：band quota、频谱重心选轨、per-measure 确定性 RNG、17 点 conformance；本项目借鉴了重心选轨与确定性/校验思路。
 - [anikiphi/rephiraedit-audio2pez](https://github.com/anikiphi/rephiraedit-audio2pez)（MIT，本项目的 `phm/audio2pez` 上游）
 - [sedthh/BeatLearning](https://github.com/sedthh/BeatLearning)（Apache-2.0）
 - [3podi/audio2chart](https://github.com/3podi/audio2chart)
@@ -106,7 +137,7 @@ Rana 是 B 站「小百合-official」的 Transformer 踩音模型：作者说�
 - *ITGPT*（arXiv:2607.14148）
 - *STRUM*（arXiv:2605.12135）
 
-## 7. 已知边界
+## 9. 已知边界
 
 - BPM/拍点来自通用谱通量 + 自相关，复杂曲风可能偏 1–2 BPM；页面会显示实际提取值。
 - 判定线动效是规则化的（段落级 move/rotate/alpha），不是逐帧手工编排；视觉复杂度和真实谱面仍有差距。

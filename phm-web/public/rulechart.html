@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.16.0.3">
+<meta name="app-version" content="V0.17.3.0">
 <title>自动写谱 · P.H.M.</title>
 <meta name="description" content="导入 MP3，自动提取 BPM / 时长 / 拍点 / 踩音点，按 EZ/HD/IN/AT 规则生成谱面，下载 .pez 或 .zip。全程本地，音频不上传。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,8 +11,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.16.0.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.16.0.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.17.3.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.17.3.0">
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -31,6 +31,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .rc-stat{background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 11px}
 .rc-stat .k{font-size:11px;color:var(--fg3)} .rc-stat .v{font-size:18px;font-variant-numeric:tabular-nums}
 .rc-stat .v.small{font-size:13px;font-family:var(--mono)}
+.auto-diff{background:var(--brand-soft);border:1px solid var(--brand-line);border-radius:10px;padding:11px 14px;margin:10px 0 2px;font-size:13px;line-height:1.7;color:var(--fg2)}
+.auto-diff b{color:var(--brand);font-size:15px}
 .diffs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
 .diff{border:1px solid var(--line2);background:var(--card);color:var(--fg2);border-radius:9px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
 .diff:hover{border-color:var(--brand);color:var(--brand)}
@@ -68,7 +70,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <div class="rc-grid">
     <div class="rc-card">
       <h2>2. 自动提取结果</h2>
-      <div class="sub">下列数值由音频分析得到，不需要手填。</div>
+      <div class="sub">下列数值由音频分析得到，不需要手填；谱面为 2 指可打，音符分散在整屏。</div>
       <div class="rc-info">
         <div class="rc-stat"><div class="k">BPM</div><div class="v" id="rcBpm">—</div></div>
         <div class="rc-stat"><div class="k">时长</div><div class="v" id="rcDur">—</div></div>
@@ -77,13 +79,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
         <div class="rc-stat" style="grid-column:1/-1"><div class="k">段落</div><div class="v small" id="rcSections">—</div></div>
       </div>
 
-      <h2 style="margin-top:18px">3. 难度</h2>
-      <div class="diffs" id="rcDiffs" role="group" aria-label="难度">
-        <button class="diff" data-diff="ez" type="button">EZ</button>
-        <button class="diff" data-diff="hd" type="button">HD</button>
-        <button class="diff on" data-diff="in" type="button">IN</button>
-        <button class="diff" data-diff="at" type="button">AT</button>
-      </div>
+      <h2 style="margin-top:18px">3. 系统判定难度</h2>
+      <div class="auto-diff" id="rcAutoDiff">导入音频后由系统判定；你不能手动选择。</div>
       <div class="rc-actions">
         <button class="btn primary" id="rcGo" type="button" disabled>生成谱面</button>
         <span class="rc-status" id="rcGenStatus"></span>
@@ -118,7 +115,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
     <h2>规则说明</h2>
     <div class="rc-note">
       拍点与踩音点来自音频分析；拍网格按难度细分（EZ 4 / HD 8 / IN 8 / AT 16 分音符），
-      轨道 4K/6K/7K。类型比例与目标 NPS 来自 9,684 张真实 Phira 谱面统计；主判定线有段落动效，另有 3 条装饰线。
+      2 指可打：音符 x 分散在整屏，不是两条固定轨道。难度由系统根据踩音密度/能量/频谱重心/BPM 判定，用户不可选；类型比例与目标 NPS 来自 9,684 张真实 Phira 谱面统计；主判定线有段落动效，另有 3 条装饰线。
       同轨最小间隔、Hold 不重叠、和弦上限、lead-in 2 拍、收尾留 1 拍都由校验器强制检查；
       下载前校验不通过会禁止下载。规则细节见 <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/docs/RULECHART.md" target="_blank" rel="noopener">RULECHART.md</a>。
     </div>
@@ -133,13 +130,13 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.16.0.3';
-import { analyzeFile } from '/js/audio-analysis.js?v=V0.16.0.3';
-import { buildChartFromAnalysis, buildPez } from '/js/rulechart.js?v=V0.16.0.3';
+import { renderNav } from '/js/ui.js?v=V0.17.3.0';
+import { analyzeFile } from '/js/audio-analysis.js?v=V0.17.3.0';
+import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.17.3.0';
 renderNav('rulechart');
 
 const $ = s => document.querySelector(s);
-let file = null, analysis = null, difficulty = 'in';
+let file = null, analysis = null, autoDiff = null;
 let urls = [];
 
 function rcStatusMsg(el, msg, kind) {
@@ -192,9 +189,10 @@ function drawPreview(chart) {
 
 async function loadFile(f) {
   if (!f) return;
-  file = f; analysis = null;
+  file = f; analysis = null; autoDiff = null;
   resetDownloads();
   $('#rcGo').disabled = true;
+  $('#rcAutoDiff').textContent = '正在分析音频，系统将自动判定难度……';
   showAnalysis({ bpm: 0, duration: 0, beats: [], onsets: [], sections: [] });
   $('#rcNotes').textContent = '—'; $('#rcNps').textContent = '—'; $('#rcLevel').textContent = '—';
   $('#rcValid').textContent = '—'; $('#rcSize').textContent = '—'; $('#rcName').textContent = f.name;
@@ -216,7 +214,7 @@ async function generate() {
   try {
     const stem = (file.name || 'chart').replace(/\.[^.]+$/, '') || 'chart';
     const built = buildChartFromAnalysis(analysis, {
-      difficulty,
+      difficulty: autoDiff ? autoDiff.key : 'hd',
       name: stem,
       artist: 'Unknown',
       charter: 'P.H.M. rulechart',
@@ -258,11 +256,7 @@ input.addEventListener('change', () => { const f = input.files && input.files[0]
 ['dragenter', 'dragover'].forEach(k => drop.addEventListener(k, e => { e.preventDefault(); drop.classList.add('hover'); }));
 ['dragleave', 'drop'].forEach(k => drop.addEventListener(k, e => { e.preventDefault(); drop.classList.remove('hover'); }));
 drop.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadFile(f); });
-$('#rcDiffs').addEventListener('click', e => {
-  const b = e.target.closest('button[data-diff]'); if (!b) return;
-  difficulty = b.getAttribute('data-diff');
-  document.querySelectorAll('.diff').forEach(x => x.classList.toggle('on', x === b));
-});
+
 $('#rcGo').addEventListener('click', generate);
 </script>
 </body>

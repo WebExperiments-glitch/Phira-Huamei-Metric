@@ -20,6 +20,39 @@
 
 export const RELEASES = [
   {
+    v: 'V0.17.3.0', date: '2026-10-18',
+    zh: ['2K 改为<b>2 指可打、音符整屏分散</b>：x 在 ±540 范围内取 12 个分散位置，左右手交替，同一时刻最多 1 个 note；不再固定两条轨道。'],
+    en: ['2K now means <b>two-finger playable with notes spread across the screen</b>: 12 x positions across ±540, alternating hands, at most one note at a time; no fixed two-lane layout.'],
+  },
+  {
+    v: 'V0.17.2.1', date: '2026-10-17',
+    zh: ['2K 两条轨道从 ±225 拉开到 <b>±450</b>，避免视觉上挤成“单键位”。'],
+    en: ['2K lanes moved from ±225 to <b>±450</b> so they no longer look like a single key.'],
+  },
+  {
+    v: 'V0.17.2.0', date: '2026-10-17',
+    zh: ['修节奏：onset 先吸附到检测拍网格（EZ 1/4、HD/IN 1/8、AT 1/16 拍）再排谱，不再直接拿原始频谱峰值落 note。2K 左右轨保持交替，避免看起来只有单键。'],
+    en: ['Rhythm fix: onsets are snapped to the detected beat grid (EZ 1/4, HD/IN 1/8, AT 1/16 beat) before charting instead of using raw spectral peaks. 2K left/right lanes stay alternated.'],
+  },
+  {
+    v: 'V0.17.1.0', date: '2026-10-17',
+    zh: ['自动写谱固定为 <b>2K</b>（左右两条轨道），不再出现 4K/6K/7K。2K 目标 NPS 调整为 EZ 2.0 / HD 2.6 / IN 3.6 / AT 4.0；系统判档阈值与密度解耦。'],
+    en: ['Auto charting is now fixed to <b>2K</b> (two lanes); no 4K/6K/7K. 2K target NPS is EZ 2.0 / HD 2.6 / IN 3.6 / AT 4.0; difficulty thresholds are decoupled from density.'],
+  },
+  {
+    v: 'V0.17.0.0', date: '2026-10-17',
+    zh: [
+      '自动写谱现在<b>由系统判定难度</b>，用户不能再手选 EZ/HD/IN/AT。系统按踩音密度、能量、频谱重心、BPM 与力度估算潜力 NPS，再映射到最接近的难度。',
+      '页面会显示判定结果和依据；生成后仍可下载 <b>.pez</b> / <b>.zip</b>。',
+      '参考 BMS-Generator 的规则写谱方法，加入<b>频谱重心选轨</b>：亮的声音偏右、暗的偏左。',
+    ],
+    en: [
+      'Auto charting now <b>decides the difficulty itself</b>; users can no longer pick EZ/HD/IN/AT. Onset density, energy, spectral centroid, BPM, and strength estimate a potential NPS, then map to the closest tier.',
+      'The page shows the decision and its evidence; .pez / .zip downloads are unchanged.',
+      'Borrowed from BMS-Generator: <b>centroid-based lane assignment</b> (brighter sounds move right, darker left).',
+    ],
+  },
+  {
     v: 'V0.16.0.3', date: '2026-10-17',
     zh: [
       '自动写谱按 <b>9,684 张真实 Phira 谱面</b>重做规则：Tap / Drag / Hold / Flick 比例、目标 NPS、'
