@@ -309,3 +309,31 @@ AS $$ ... $$;
 REVOKE ALL ON FUNCTION phm_xxx(TYPE) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION phm_xxx(TYPE) TO anon, authenticated;
 ```
+
+
+---
+
+## API Key 元数据（v2，2026-10-17）
+
+> 迁移：[../db/api-v2.sql](../db/api-v2.sql)。**必须先执行 v1，再执行 v2。**
+> 不改 `hm_api_keys` 已有列；旧 Key 没有 meta 行时默认全部 scope、永不过期。
+
+### `hm_api_key_meta`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `key_id` | uuid **主键** / FK → hm_api_keys | 一把 Key 一行 |
+| `scopes` | text[] | `charts:read` / `analyses:write` / `usage:read` |
+| `expires_at` | timestamptz | null = 永不过期 |
+| `created_at` | timestamptz | 默认 now() |
+
+### v2 RPC
+
+| 函数 | 用途 |
+|---|---|
+| `hm_api_key_meta_set(p_secret,p_owner,p_id,p_scopes,p_expires_at)` | 设置/更新 scope 与到期；校验 owner 与 scope 白名单 |
+| `hm_api_key_lookup`（替换） | 返回值增加 `scopes` / `expires_at` |
+| `hm_api_key_list`（替换） | 列表增加 `scopes` / `expires_at` |
+| `hm_api_usage_key_summary(p_secret,p_key_id)` | 单 Key 的今日/7日/30日与按接口分布 |
+
+RLS 开启、无直连；只有带写入凭据的 SECURITY DEFINER 函数可访问。

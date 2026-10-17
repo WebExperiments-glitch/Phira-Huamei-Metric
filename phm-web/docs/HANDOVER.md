@@ -76,6 +76,7 @@ node tools/lint-slop.mjs                              # 必须 0
 node tools/lint-i18n.mjs                              # 必须 0（822 词条 / 804 引用）
 node tools/lint-docs.mjs                              # 94 条 · 死链 / 版本号 / 页面与模块清单
 
+node tools/lint-openapi.mjs                          # ★ OpenAPI 契约（81 条）
 node tools/review-gate.mjs                            # ★ 静态审计（凭据/版本/白名单/SQL/禁用模式/workflow）
 node tools/preflight.mjs                              # ★ review-gate + npm run check（pre-push 自动跑）
 ```
@@ -83,7 +84,7 @@ node tools/preflight.mjs                              # ★ review-gate + npm ru
 **期望数字**：222 / 123 / 24 / 22 / 80 / 45 / 79，加 `test-contribute-ticket` 11，全部 `0 失败`。
 `lint-slop` / `lint-i18n` 必须 0。
 
-> **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`（15 项）；
+> **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`（16 项）；
 > `.github/workflows/audit.yml` 在每次 push/PR 跑 **review-gate + check + Chrome smoke（218 条）+ ui-flows（24 条）**；
 > `.github/workflows/codeql.yml` 扫 JS/TS + Python；`.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑同款浏览器测试。
 >

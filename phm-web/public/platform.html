@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.13.2.2">
+<meta name="app-version" content="V0.14.0.0">
 <title>API 开放平台 · P.H.M.</title>
 <meta name="description" content="P.H.M. API 开放平台：查看调用用量、管理 API Key、接入免费的谱面难度查询/分析接口。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.13.2.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.2.2">
-<link rel="stylesheet" href="/css/api.css?v=V0.13.2.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.14.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.14.0.0">
+<link rel="stylesheet" href="/css/api.css?v=V0.14.0.0">
 <style>
 .platwrap{max-width:1100px;grid-template-columns:190px minmax(0,1fr);gap:28px}
 .plat-side{position:sticky;top:74px;align-self:start;font-size:13px}
@@ -36,6 +36,12 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .landing .lead{color:var(--fg2);font-size:14.5px;line-height:1.85;max-width:640px}
 .landing .steps{color:var(--fg2);font-size:13.5px;line-height:1.9;padding-left:20px;margin:6px 0}
 .landing .steps b{color:var(--fg)}
+.scope-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--fg2);margin:8px 0 2px}
+.scope-row .k{color:var(--fg3);font-size:12px}
+.scope-row label{display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.scope-row input{width:auto;min-height:0;accent-color:var(--brand)}
+.key-scopes{display:flex;gap:3px;flex-wrap:wrap}
+.key-scope{display:inline-block;font-size:10.5px;border:1px solid var(--line);border-radius:99px;padding:1px 7px;color:var(--fg3);white-space:nowrap}
 .modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal[hidden]{display:none}
 .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45)}
@@ -113,13 +119,26 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
           不要与他人共享，也不要把 Key 暴露在浏览器或客户端代码里。每个账号最多保留 <b>100</b> 个有效 Key；删除后立即从列表消失。</p>
         <div class="console-bar">
           <input id="keyName" maxlength="40" placeholder="给新 Key 起个名字（例如：笔记本 / CI）">
+          <select id="keyExpiry" class="api-btn" style="min-height:38px">
+            <option value="">永不过期</option>
+            <option value="30">30 天</option>
+            <option value="90">90 天</option>
+            <option value="365">365 天</option>
+          </select>
           <button class="api-btn primary" id="createKey" type="button">创建 API key</button>
+        </div>
+        <div class="scope-row" id="keyScopes">
+          <span class="k">权限</span>
+          <label><input type="checkbox" value="charts:read" checked> 查询定数</label>
+          <label><input type="checkbox" value="analyses:write" checked> 提交分析</label>
+          <label><input type="checkbox" value="usage:read" checked> 读取用量</label>
+          <span class="k" style="margin-left:auto">按最小权限原则，CI/只读工具可以只勾「查询定数」</span>
         </div>
         <div class="status-line" id="keyStatus"></div>
         <div style="overflow:auto;margin-top:6px">
           <table class="key-table">
-            <thead><tr><th>名称</th><th>Tracking ID</th><th>Key</th><th>创建日期</th><th>最近使用</th><th></th></tr></thead>
-            <tbody id="keyRows"><tr><td colspan="6" class="console-empty">加载中…</td></tr></tbody>
+            <thead><tr><th>名称</th><th>Tracking ID</th><th>Key</th><th>权限</th><th>创建日期</th><th>最近使用</th><th>到期</th><th></th></tr></thead>
+            <tbody id="keyRows"><tr><td colspan="8" class="console-empty">加载中…</td></tr></tbody>
           </table>
         </div>
         <p class="api-note" style="margin-top:18px">用量按「账号」汇总；删除 Key 会立即吊销、但保留历史用量记录。
@@ -156,7 +175,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <div id="toast" class="toast" hidden></div>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.13.2.2';
+import { renderNav } from '/js/ui.js?v=V0.14.0.0';
 renderNav('platform');
 
 const CLOUD_CFG = { endpoint: 'https://phm.app.workbuddy.host', publishableKey: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b' };
@@ -253,6 +272,16 @@ async function loadUsage() {
   }
 }
 
+const SCOPE_LABELS = { 'charts:read': '查询', 'analyses:write': '分析', 'usage:read': '用量' };
+function scopesLabel(list) {
+  return (list && list.length ? list : ['charts:read', 'analyses:write', 'usage:read'])
+    .map(s => SCOPE_LABELS[s] || s).join(' / ');
+}
+function expiryLabel(v) { return v ? fmtDate(v) : '永不'; }
+function keyHint(k) {
+  return (k.hint || '') + ' · 权限：' + scopesLabel(k.scopes) + (k.expires_at ? ' · 到期 ' + fmtDate(k.expires_at) : ' · 永不过期');
+}
+
 async function loadKeys() {
   try {
     const data = await api('/keys');
@@ -260,12 +289,15 @@ async function loadKeys() {
     const keys = ((data && data.keys) || []).filter(k => !k.revoked_at);
     $('#uKeys').textContent = keys.length;
     const tbody = $('#keyRows'); tbody.innerHTML = '';
-    if (!keys.length) { tbody.innerHTML = '<tr><td colspan="6" class="console-empty">还没有 Key，创建一个吧。</td></tr>'; return; }
+    if (!keys.length) { tbody.innerHTML = '<tr><td colspan="8" class="console-empty">还没有 Key，创建一个吧。</td></tr>'; return; }
     for (const k of keys) {
       const tr = document.createElement('tr');
+      const scopes = Array.isArray(k.scopes) && k.scopes.length ? k.scopes : ['charts:read', 'analyses:write', 'usage:read'];
       tr.innerHTML = '<td>' + esc(k.name) + '</td>'
         + '<td class="mono">' + esc(k.id) + '</td><td class="mono">' + esc(k.hint) + '</td>'
+        + '<td><div class="key-scopes">' + scopes.map(s => '<span class="key-scope">' + esc(SCOPE_LABELS[s] || s) + '</span>').join('') + '</div></td>'
         + '<td>' + fmtDate(k.created_at) + '</td><td>' + fmtDate(k.last_used_at) + '</td>'
+        + '<td>' + expiryLabel(k.expires_at) + '</td>'
         + '<td><div class="key-actions"></div></td>';
       const actions = tr.querySelector('.key-actions');
       const ren = document.createElement('button');
@@ -275,6 +307,17 @@ async function loadKeys() {
         try { await api('/keys/' + k.id, { method: 'PATCH', body: JSON.stringify({ name }) }); await loadKeys(); }
         catch (e) { setStatus(String(e.message || e), true); }
       };
+      const rot = document.createElement('button');
+      rot.className = 'api-btn sm'; rot.type = 'button'; rot.textContent = '轮换';
+      rot.onclick = async function () {
+        if (!confirm('轮换会创建一把新 Key 并立即吊销旧 Key，继续？')) return;
+        try {
+          const j = await api('/keys/' + k.id + '/rotate', { method: 'POST' });
+          openKeyModal(j.key, keyHint(j));
+          showToast('API key 已轮换');
+          await loadKeys();
+        } catch (e) { setStatus(String(e.message || e), true); }
+      };
       const del = document.createElement('button');
       del.className = 'api-btn sm danger'; del.type = 'button'; del.textContent = '删除';
       del.onclick = async function () {
@@ -282,11 +325,11 @@ async function loadKeys() {
         try { await api('/keys/' + k.id, { method: 'DELETE' }); await loadKeys(); showToast('API key 已删除'); }
         catch (e) { setStatus(String(e.message || e), true); }
       };
-      actions.append(ren, del);
+      actions.append(ren, rot, del);
       tbody.appendChild(tr);
     }
   } catch (e) {
-    $('#keyRows').innerHTML = '<tr><td colspan="6" class="console-empty">Key 列表读取失败：' + esc(String(e.message || e)) + '</td></tr>';
+    $('#keyRows').innerHTML = '<tr><td colspan="8" class="console-empty">Key 列表读取失败：' + esc(String(e.message || e)) + '</td></tr>';
   }
 }
 
@@ -318,12 +361,20 @@ $('#logout').addEventListener('click', async function () {
 });
 $('#createKey').addEventListener('click', async function () {
   const name = ($('#keyName').value || '').trim() || 'default';
+  const scopes = Array.prototype.map.call(document.querySelectorAll('#keyScopes input:checked'), function (c) { return c.value; });
+  if (!scopes.length) return setStatus('至少选择一个权限', true);
+  const days = $('#keyExpiry').value;
+  const body = { name: name, scopes: scopes };
+  if (days) body.expires_in_days = Number(days);
   setStatus('创建中…');
   try {
-    const j = await api('/keys', { method: 'POST', body: JSON.stringify({ name }) });
-    openKeyModal(j.key, j.hint);
+    const j = await api('/keys', { method: 'POST', body: JSON.stringify(body) });
+    openKeyModal(j.key, keyHint(j));
     showToast('API key 已创建');
-    $('#keyName').value = ''; setStatus('');
+    $('#keyName').value = '';
+    setStatus(j.metaAvailable === false
+      ? '注意：数据库尚未执行 api-v2 迁移，Key 暂时按全部权限、永不过期。'
+      : (j.warning || ''), j.metaAvailable === false);
     await loadKeys();
   } catch (e) { setStatus(String(e.message || e), true); }
 });

@@ -20,6 +20,21 @@
 
 export const RELEASES = [
   {
+    v: 'V0.14.0.0', date: '2026-10-17',
+    zh: [
+      'API Key 现在支持<b>权限（scopes）</b>：查询 / 分析 / 用量可分开授权；可设 <b>30 / 90 / 365 天</b>或永不过期；'
+        + '支持<b>轮换</b>（新建同权限 Key 并立即吊销旧 Key）。',
+      '开放平台可按 Key 查看用量；缺少权限返回 403，过期返回 401。',
+      '新增 <b>OpenAPI 单一契约</b>（<code>/api/v1/openapi.json</code>）与 81 条自动校验，接口文档和实现不再各写一份。',
+    ],
+    en: [
+      'API keys now support <b>scopes</b> (charts / analyses / usage), <b>30/90/365-day expiry</b> or never, '
+        + 'and <b>rotation</b> (new key with the same scopes, old one revoked immediately).',
+      'The platform shows per-key usage; missing scopes return 403 and expired keys return 401.',
+      'New <b>single OpenAPI contract</b> (<code>/api/v1/openapi.json</code>) with 81 automated checks.',
+    ],
+  },
+  {
     v: 'V0.13.2.2', date: '2026-10-17',
     zh: [
       '单文件客户端现在会显示<b>服务端版本</b>（<code>/api/v1/meta</code>），并在 Key 被拒时给出可操作的诊断：'
