@@ -34,6 +34,21 @@ const PRESETS = {
 };
 
 const TYPE = { tap: 1, hold: 2, flick: 3, drag: 4 };
+
+/* ============================================================
+ * 音频自动排谱：用户只选 EZ / HD / IN / AT
+ * ============================================================ */
+const AUDIO_PRESETS = {
+  ez: { label: 'EZ 7',  keep: 0.52, subdivision: 4,  minGap: 1.0,  maxChord: 1, lanes: 4,
+        weights: { tap: .58, hold: .16, flick: .08, drag: .18 }, holds: [.5, 1],       phrase: 12 },
+  hd: { label: 'HD 11', keep: 0.70, subdivision: 8,  minGap: 0.5,  maxChord: 2, lanes: 6,
+        weights: { tap: .46, hold: .18, flick: .14, drag: .22 }, holds: [.5, .75, 1],  phrase: 10 },
+  in: { label: 'IN 14', keep: 0.84, subdivision: 8,  minGap: 0.25, maxChord: 3, lanes: 6,
+        weights: { tap: .36, hold: .18, flick: .20, drag: .26 }, holds: [.25, .5, .75, 1], phrase: 8 },
+  at: { label: 'AT 16', keep: 0.94, subdivision: 16, minGap: 0.2,  maxChord: 3, lanes: 6,
+        weights: { tap: .30, hold: .18, flick: .24, drag: .28 }, holds: [.25, .5, .75, 1], phrase: 8 },
+};
+
 const RULE_VERSION = '1.0';
 
 /* 对外公开的规则表：页面/docs 与校验器共用同一份。 */
@@ -140,7 +155,7 @@ export function buildChart(opts) {
   }, opts || {});
   const bpm = Math.max(30, Math.min(300, Number(o.bpm) || 128));
   const duration = Math.max(10, Math.min(900, Number(o.duration) || 60));
-  const preset = PRESETS[o.difficulty] || PRESETS.hard;
+  const preset = AUDIO_PRESETS[o.difficulty] || PRESETS[o.difficulty] || PRESETS.hard;
   const lanes = LANES[o.lanes] ? Number(o.lanes) : 4;
   const density = Math.max(0.4, Math.min(2, Number(o.density) || 1));
   const rng = mulberry32(hashSeed(String(o.seed || '') + '|' + bpm + '|' + o.difficulty + '|' + lanes + '|' + density));
@@ -226,6 +241,117 @@ export function buildChart(opts) {
     chart,
     stats: {
       notes: notes.length, bpm, duration, difficulty: preset.label, lanes, density,
+      nps: notes.length / duration, typeCounts, valid: validation.ok,
+      violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,
+    },
+  };
+}
+
+/* ============================================================
+ * buildChartFromAnalysis —— 从音频分析结果自动排谱
+ * ============================================================
+ * analysis: { bpm, duration, beats, onsets:[{time,strength}], sections }
+ * difficulty: ez | hd | in | at
+ * 时间点来自真实音频（onsets），不再由用户手填 BPM/时长。
+ * ============================================================ */
+export function buildChartFromAnalysis(analysis, opts) {
+  const o = opts || {};
+  const preset = AUDIO_PRESETS[o.difficulty] || AUDIO_PRESETS.hd;
+  const bpm = Math.max(30, Math.min(300, Number(analysis.bpm) || 120));
+  const duration = Math.max(10, Math.min(900, Number(analysis.duration) || 60));
+  const lanes = preset.lanes;
+  const totalBeats = duration * bpm / 60;
+  const step = 1 / preset.subdivision;
+  const name = String(o.name || 'Rule Chart');
+  const rng = mulberry32(hashSeed(name + '|' + bpm + '|' + duration + '|' + (analysis.onsets || []).length + '|' + o.difficulty));
+  const onsets = (analysis.onsets || []).filter(p => Number.isFinite(p.time));
+  const onsetAt = new Map();
+  for (const p of onsets) {
+    const key = Math.round((p.time * bpm / 60) / step);
+    const prev = onsetAt.get(key);
+    if (!prev || p.strength > prev) onsetAt.set(key, p.strength);
+  }
+  const sections = analysis.sections || [];
+  const sectionFactor = (progress) => {
+    const sec = sections.find(s => progress * duration >= s.start && progress * duration < s.end);
+    const label = sec ? sec.label : '';
+    const base = label === 'intro' ? 0.38 : label === 'chorus' ? 1.08 : label === 'outro' ? 0.62 : 0.74;
+    const energy = sec ? 0.65 + 0.55 * Math.min(1, sec.energy || 0.5) : 1;
+    return base * energy;
+  };
+  const notes = [];
+  const lastLaneBeat = {};
+  let prevLane = null;
+  let idx = 0;
+  for (let beat = Math.ceil(2 / step) * step; beat < totalBeats - 1; beat += step) {
+    idx++;
+    const progress = beat / totalBeats;
+    const k = Math.round(beat / step);
+    const strength = onsetAt.has(k) ? onsetAt.get(k) : 0;
+    const force = strength > 0.72;
+    const p = preset.keep * sectionFactor(progress) * (0.55 + 0.9 * strength);
+    if (!force && rng() > p) continue;
+    const phrase = Math.floor(idx / preset.phrase) % 4;
+    const pattern = ['alternate', 'stair', 'flow', 'jump'][phrase];
+    const lane = pickLane(pattern, idx, lanes, rng, prevLane);
+    if (lastLaneBeat[lane] != null && beat - lastLaneBeat[lane] < preset.minGap) continue;
+    let type = pickWeighted(rng, preset.weights);
+    if (type === 'hold' && beat + 2 > totalBeats - 1) type = 'tap';
+    const holdBeats = type === 'hold' ? preset.holds[Math.floor(rng() * preset.holds.length)] : 0;
+    const endBeat = Math.min(totalBeats - 0.5, beat + holdBeats);
+    if (type === 'hold' && endBeat - beat < 0.25) type = 'tap';
+    notes.push({
+      above: 1, alpha: 255, endTime: frac(type === 'hold' ? endBeat : beat),
+      isFake: 0, positionX: LANES[lanes][lane], size: 1, speed: 1,
+      startTime: frac(beat), type: TYPE[type], visibleTime: 999999, yOffset: 0,
+    });
+    lastLaneBeat[lane] = type === 'hold' ? endBeat : beat;
+    prevLane = lane;
+    if (preset.maxChord > 1 && Math.abs(beat - Math.round(beat)) < 1e-6 && Math.round(beat) % 4 === 0 && rng() < 0.20 * preset.keep) {
+      let lane2 = (lane + 1 + Math.floor(rng() * (lanes - 1))) % lanes;
+      if (lane2 === lane) lane2 = (lane + 1) % lanes;
+      if (!(lastLaneBeat[lane2] != null && beat - lastLaneBeat[lane2] < preset.minGap)) {
+        notes.push({
+          above: 1, alpha: 255, endTime: frac(beat), isFake: 0,
+          positionX: LANES[lanes][lane2], size: 1, speed: 1,
+          startTime: frac(beat), type: TYPE.tap, visibleTime: 999999, yOffset: 0,
+        });
+        lastLaneBeat[lane2] = beat;
+      }
+    }
+  }
+  notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
+  const id = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
+  const chartId = id + '_' + o.difficulty;
+  const mainLine = {
+    Group: 0, Name: '主判定线', Texture: 'line.png',
+    alphaControl: [{ alpha: 1, easing: 1, x: 0 }, { alpha: 1, easing: 1, x: 9999999 }],
+    bpmfactor: 1, eventLayers: defaultEvents(10),
+    extended: { inclineEvents: [incline()] }, father: -1, isCover: 1,
+    notes, numOfNotes: notes.length,
+    posControl: [{ easing: 1, pos: 1, x: 0 }, { easing: 1, pos: 1, x: 9999999 }],
+    sizeControl: [{ easing: 1, size: 1, x: 0 }, { easing: 1, size: 1, x: 9999999 }],
+    skewControl: [{ easing: 1, skew: 0, x: 0 }, { easing: 1, skew: 0, x: 9999999 }],
+    yControl: [{ easing: 1, x: 0, y: 1 }, { easing: 1, x: 9999999, y: 1 }],
+    zOrder: 0,
+  };
+  const chart = {
+    BPMList: [{ startTime: [0, 0, 1], bpm }],
+    META: {
+      RPEVersion: 160, background: 'background.png',
+      charter: String(o.charter || 'P.H.M. rulechart'), composer: String(o.artist || 'Unknown'),
+      illustration: '', id: chartId, level: preset.label, name,
+      offset: Number(analysis.offset) || 0, song: 'audio.wav', duration,
+    },
+    judgeLineGroup: ['Default'], judgeLineList: [mainLine],
+  };
+  const validation = validateChart(chart, { difficulty: o.difficulty, lanes });
+  const typeCounts = { tap: 0, hold: 0, flick: 0, drag: 0 };
+  for (const n of notes) for (const [k, v] of Object.entries(TYPE)) if (v === n.type) typeCounts[k]++;
+  return {
+    chart,
+    stats: {
+      notes: notes.length, bpm, duration, difficulty: preset.label, lanes, onsets: onsets.length,
       nps: notes.length / duration, typeCounts, valid: validation.ok,
       violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,
     },
@@ -410,4 +536,4 @@ export function buildPez(chart, opts) {
   return { pez: zipStore(files), chartJson: chart, info };
 }
 
-export { PRESETS, LANES, TYPE, RULES };
+export { PRESETS, AUDIO_PRESETS, LANES, TYPE, RULES };

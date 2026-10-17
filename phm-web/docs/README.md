@@ -79,6 +79,7 @@ phm-web/
 │   │   └── api.css            ← 开发者文档 / API 开放平台版式
 │   └── js/
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源（纯计算）
+│       ├── audio-analysis.js  ← ★ 浏览器音频提取：BPM / 拍点 / 踩音点 / 段落
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
 │       ├── ui.js              ← 导航 / 格式化 / 缓存读取 / P.H.M. RKS
 │       ├── settings.js        ← ★★ 用户设置的**唯一真源**：键名 / 默认值 / 读写 / 清理
@@ -104,7 +105,7 @@ phm-web/
 │   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
 │   ├── lint-openapi.mjs       ← ★★ OpenAPI 契约校验（零依赖，81 条）
 │   ├── rulechart.mjs          ← ★ 规则写谱 CLI（BPM/难度 → RPE v160 .pez）
-│   ├── test-rulechart.mjs     ← 规则写谱单测（20 条）
+│   ├── test-rulechart.mjs     ← 规则写谱单测（27 条）
 │   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL / workflow
 │   ├── preflight.mjs          ← ★★ pre-push 闸门：review-gate + check
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
@@ -154,7 +155,7 @@ phm-web/
 | 难度算法 / 特征 / k-NN | `public/js/engine.js` |
 | 页面交互 / 渲染 | `public/app.html`（**工作台主体**，找对应函数名）。⚠ 里面还有约 300 行**休眠代码**（玩家面板迁到 `/user` 后遗留），见 `ARCHITECTURE.md` 的已知技术债 |
 | 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
-| 规则写谱（RPE v160 ↔ .pez 互转） | `public/js/rulechart.js` —— 纯浏览器本地生成，页面 `public/rulechart.html`（⚠ 未进导航） |
+| 自动写谱（MP3 → 提取 → RPE v160 .pez/.zip） | `public/js/audio-analysis.js` + `public/js/rulechart.js` —— 浏览器本地提取/排谱，页面 `/rulechart` |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |

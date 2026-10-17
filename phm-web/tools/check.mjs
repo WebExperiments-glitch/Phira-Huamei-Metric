@@ -30,7 +30,7 @@ const STEPS = [
   ['贡献凭证单测（11 条）', 'node', ['tools/test-contribute-ticket.mjs']],
   ['API Key 单测（8 条）', 'node', ['tools/test-api-keys.mjs']],
   ['OpenAPI 契约', 'node', ['tools/lint-openapi.mjs']],
-  ['规则写谱单测（20 条）', 'node', ['tools/test-rulechart.mjs']],
+  ['规则写谱单测（27 条）', 'node', ['tools/test-rulechart.mjs']],
   ['账号单测', 'node', ['tools/test-hm-accounts.mjs']],
   ['成绩校验单测', 'node', ['tools/test-hm-validate.mjs']],
   ['双语完整性', 'node', ['tools/lint-i18n.mjs']],

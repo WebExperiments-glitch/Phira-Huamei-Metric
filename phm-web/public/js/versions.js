@@ -20,6 +20,20 @@
 
 export const RELEASES = [
   {
+    v: 'V0.16.0.0', date: '2026-10-17',
+    zh: [
+      '写谱页改为<b>导入 MP3，自动提取</b>：BPM、时长、拍点、踩音点、段落能量全部自动分析，不再手填 BPM/时长/密度。',
+      '难度改为 Phigros 式 <b>EZ / HD / IN / AT</b>；生成后提供 <b>.pez</b>（本身就是 ZIP）和 <b>.zip</b> 下载，另可单独下载 chart JSON。',
+      '音频在浏览器本地解码分析，<b>不上传</b>；规则校验不通过会禁止下载。',
+    ],
+    en: [
+      'The charting page now takes an <b>MP3 and extracts everything automatically</b>: BPM, duration, beats, onsets, '
+        + 'and section energy. No manual BPM/duration/density fields.',
+      'Difficulties are now <b>EZ / HD / IN / AT</b>; download <b>.pez</b> (itself a ZIP) or <b>.zip</b>, plus the chart JSON.',
+      'Audio is decoded and analysed locally in the browser and <b>never uploaded</b>; downloads are blocked if rule validation fails.',
+    ],
+  },
+  {
     v: 'V0.15.0.0', date: '2026-10-17',
     zh: [
       '新增 <b>规则写谱</b>页：按 BPM / 时长 / 难度 / 轨道 / 密度生成 RPE v160 谱面，直接下载 <code>.pez</code>，'
