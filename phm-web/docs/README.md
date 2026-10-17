@@ -97,7 +97,7 @@ phm-web/
 │   ├── test-ratelimit.mjs     ← 限流（80 条，含禁读 XFF 的防回归断言）
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
 │   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
-│   ├── lint-i18n.mjs          ← 双语完整性（820 词条 / 802 引用）
+│   ├── lint-i18n.mjs          ← 双语完整性（821 词条 / 803 引用）
 │   ├── check-contrast.mjs     ← 配色对比度校验
 │   ├── bump-version.py        ← 一次改全站版本号
 │   ├── version-module-imports.py ← 给模块 import 补/换 ?v=

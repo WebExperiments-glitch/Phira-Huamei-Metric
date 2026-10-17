@@ -18,12 +18,12 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.12.1.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.12.1.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.12.1.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.12.1.1">
 <!-- ⚠ 必须**先** base.css 再 docs.css：前者给令牌与标题字体，
      后者只负责阅读排版。以前这里只链了 docs.css，
      所以法务页完全在另一套令牌里长大 —— 白底蓝链接，像换了个网站。 -->
-<link rel="stylesheet" href="/css/docs.css?v=V0.12.1.0">
+<link rel="stylesheet" href="/css/docs.css?v=V0.12.1.1">
 </head>
 <body>
 <div class="doc">
@@ -37,7 +37,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   </div>
 
   <h1 data-i18n-html="pv.h1"><b>P.H.M.</b> Standard 隐私政策</h1>
-  <div class="meta"><span data-i18n-html="pv.meta">版本 v1.1 · 生效日期 2026-10-07 · 适用站点 <code>phm.app.workbuddy.host</code></span><br><span data-i18n="lg.auth">本协议以简体中文版本为准；英文译本仅供参考。</span></div>
+  <div class="meta"><span data-i18n-html="pv.meta">版本 v1.3 · 生效日期 2026-10-17 · 适用站点 <code>phm.app.workbuddy.host</code></span><br><span data-i18n="lg.auth">本协议以简体中文版本为准；英文译本仅供参考。</span></div>
 
   <div class="lead">
     <p data-i18n-html="pv.lead"><b>一句话概括：</b>你的<b>谱面文件永远不会离开你的设备</b>；只有当你查询
@@ -82,8 +82,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   但请知悉它并非不可关联。</td></tr>
   </table>
 
-  <p data-i18n-html="pv.p.1.2.c"><b>不会收集</b>：密码、邮箱、Phira 账号的登录凭据或任何操作权限。查询只读 Phira 的公开数据接口
-  （<code>api.phira.cn</code>），<b>不要求也不接受你的 Phira 密码</b>。</p>
+  <p data-i18n-html="pv.p.1.2.c"><b>不会收集</b>：Phira 账号的密码或登录凭据，也不会请求任何 Phira 操作权限。查询只读 Phira 的公开数据接口
+  （<code>api.phira.cn</code>），<b>不要求也不接受你的 Phira 密码</b>。邮箱与密码只在<b>你主动注册 P.H.M. / huamei 账号</b>时处理（见 1.4）。</p>
 
   <h3 data-i18n="pv.h3.1.3">1.3 本地存储（仅存在你自己的浏览器里）</h3>
   <p data-i18n-html="pv.p.1.3.a">以下信息只存在你浏览器的 <code>localStorage</code> 里，不会自动上传：</p>
@@ -91,13 +91,14 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
     <li data-i18n="pv.li.1.3.1">你输入过的 Phira 用户名 / UID（用于下次自动填充）</li>
     <li data-i18n="pv.li.1.3.2">自动上传开关的状态、首次告知的确认状态</li>
     <li data-i18n-html="pv.li.1.3.3">一个随机生成的 <code>client_id</code>（8 位随机串，用于区分匿名打卡来源）</li>
-    <li data-i18n="pv.li.1.3.4">P.H.M. 账号的登录会话（若你注册了邮箱账号）</li>
+    <li data-i18n="pv.li.1.3.4">P.H.M. / huamei 账号的登录令牌（若你登录了账号；不含密码）</li>
   </ul>
 
   <h3 data-i18n="pv.h3.1.4">1.4 账号系统（可选）</h3>
-  <p data-i18n-html="pv.p.1.4.a">只有你主动注册时才涉及。使用邮箱 + 密码，用于：登录、绑定 Phira 账号、查看与修改你自己的资料。
-  账号相关的数据（邮箱、密码哈希）由 WorkBuddy 云服务的认证模块存储，
-  我们<b>无法读取你的明文密码</b>。</p>
+  <p data-i18n-html="pv.p.1.4.a">只有你主动注册时才涉及，用于登录、绑定 Phira 账号、查看与修改你自己的资料。目前有两种<b>可选</b>账号：<br>
+  ① <b>网页端账号</b>：注册 / 登录由 WorkBuddy 云服务的认证模块处理，平台保存邮箱与密码哈希，本站只拿到会话令牌；<br>
+  ② <b>Windows 客户端 huamei 账号</b>：注册 / 登录由本站服务端处理。明文密码只在 HTTPS 请求中进入服务端内存，随即用 <b>scrypt 哈希</b>后存入 WorkBuddy 云 PostgreSQL 的 <code>hm_accounts</code> 表（只存邮箱、盐与哈希），<b>不写日志</b>；注册需要邮箱验证码，<b>登录只要密码</b>。<br>
+  两种情况下本站都<b>无法读取你的明文密码</b>，也从不收集 Phira 密码。</p>
 
   <h2 data-i18n="pv.h2.2">2. 收集来做什么</h2>
   <ul>
@@ -135,7 +136,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <tr><td data-i18n="pv.t.5.a4">只查看、不贡献</td><td data-i18n="pv.t.5.b4">查询 Phira 账号时回答「不是我的账号」，即只查看、不上传</td></tr>
   <tr><td data-i18n="pv.t.5.a5">删除已上传的数据</td><td data-i18n="pv.t.5.b5">见下方「如何安全地联系我们」</td></tr>
   <tr><td data-i18n="pv.t.5.a6">导出你的数据</td><td data-i18n="pv.t.5.b6">同上，可申请导出</td></tr>
-  <tr><td data-i18n="pv.t.5.a7">注销账号</td><td data-i18n="pv.t.5.b7">同上（当前版本尚未提供自助注销入口，需人工处理）</td></tr>
+  <tr><td data-i18n="pv.t.5.a7">注销账号</td><td data-i18n-html="pv.t.5.b7"><a href="/settings#accounts">设置 · 账号管理</a> → 「注销账号」可<b>自助删除</b>网页端账号在本站的资料（Phira 绑定、显示名、访问计数）。<br>huamei 账号（Windows 客户端）可发邮件申请删除 <code>hm_accounts</code> 中对应行（邮箱、盐、密码哈希）；平台侧登录邮箱如需删除，需另行申请，我们核验身份后协助处理。<br>贡献过的成绩<b>不在注销范围</b>：它们本来就是匿名的，不挂在你的账号上。</td></tr>
   </table>
 
   <h3 data-i18n="pv.h3.sc">如何安全地联系我们（请不要在公开 Issue 里写隐私信息）</h3>
@@ -159,7 +160,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <h2 data-i18n="pv.h2.7">7. 个人信息对外提供清单</h2>
   <p data-i18n-html="pv.p.7.a">本站<b>不向任何第三方出售</b>个人信息。下面是把个人信息交给外部服务商的<b>全部</b>情形 —— 逐项写明接收方、联系方式、处理目的、处理方式与信息种类。</p>
   <ul>
-    <li data-i18n-html="pv.li.7.1"><b>WorkBuddy 云服务（腾讯）</b> —— 数据库托管、登录认证、静态分发。<br><span class="meta">联系方式</span>：平台客服；也可由本站转达（见第 10 节）。<br><span class="meta">处理方式</span>：传输与存储加密；启用行级安全，只有你本人能读写自己的资料行。<br><span class="meta">涉及信息</span>：登录邮箱、账号标识、绑定的 Phira UID 与显示名、贡献的成绩。</li>
+    <li data-i18n-html="pv.li.7.1"><b>WorkBuddy 云服务（腾讯）</b> —— 数据库托管、静态分发、网页端账号认证、邮箱验证码发送。<br><span class="meta">联系方式</span>：平台客服；也可由本站转达（见第 10 节）。<br><span class="meta">处理方式</span>：传输与存储加密；启用行级安全；huamei 账号的密码仅以 <b>scrypt 哈希</b>存储，明文不落库、不写日志。<br><span class="meta">涉及信息</span>：登录邮箱、密码哈希、账号标识、绑定的 Phira UID 与显示名、邮箱验证码状态、贡献的成绩。</li>
     <li data-i18n-html="pv.li.7.2"><b>Phira（api.phira.cn）</b> —— 读取公开的谱面元数据与谱面文件，供定数计算。<br><span class="meta">联系方式</span>：以 phira.cn 公示的渠道为准。<br><span class="meta">处理方式</span>：由本站<b>服务端</b>发起 HTTPS 只读请求，不随附你的账号身份或登录凭据。<br><span class="meta">涉及信息</span>：谱面 id、谱师 uid（均为公开数据）；你查询玩家时发出的用户名 / UID。</li>
     <li data-i18n-html="pv.li.7.3"><b>jsDelivr CDN（jsdelivr.com）</b> —— 分发云服务 SDK 脚本。<br><span class="meta">联系方式</span>：jsdelivr.com。<br><span class="meta">处理方式</span>：常规 CDN 静态分发；脚本版本已用 SRI 完整性校验钉死，本站不向其发送任何账号信息。<br><span class="meta">涉及信息</span>：IP、User-Agent（CDN 服务的固有行为）。</li>
   </ul>
@@ -178,6 +179,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   会在站内显著位置提示，并重置「首次告知」状态以重新征求你的同意。</p>
   <p data-i18n-html="pv.p.9.b">本页 v1.1 相对 v1.0 为<b>排版改版</b>：收集范围、用途与你的权利均无变化。</p>
   <p data-i18n-html="pv.p.9.c">v1.2（2026-10-11）：新增<b>个人信息对外提供清单</b>（第 7 节）、<b>自助注销入口</b>（第 5 节）、<b>投诉举报渠道与邮箱</b>（第 10 节）。收集范围没有扩大。</p>
+  <p data-i18n-html="pv.p.9.d">v1.3（2026-10-17）：明确<b>自建 huamei 账号</b>的数据处理（邮箱与 scrypt 密码哈希存入 <code>hm_accounts</code>，明文不落库）；修正「不会收集密码 / 邮箱」的表述，使其仅指 Phira 凭据；补充 huamei 账号的注销路径。收集范围没有扩大。</p>
 
   <h2 data-i18n="pv.h2.10">10. 投诉举报与联系方式</h2>
   <p data-i18n-html="pv.p.10.a">隐私相关问题、数据删除 / 导出请求、账号注销协助、以及任何投诉举报，
@@ -197,7 +199,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.12.1.0';
+import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.12.1.1';
 /* 法务页正文全是静态文案，没有 JS 渲染的数据 —— 语言一变只需重跑静态替换。 */
 applyStatic();
 onLangChange(() => applyStatic());

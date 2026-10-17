@@ -20,6 +20,18 @@
 
 export const RELEASES = [
   {
+    v: 'V0.12.1.1', date: '2026-10-17',
+    zh: [
+      '隐私政策更新到 <b>v1.3</b>：写清楚账号的邮箱与密码<b>只以 scrypt 哈希</b>保存、'
+        + '明文不落日志，以及 huamei 账号怎么申请注销。<b>没有新增数据收集</b>。',
+    ],
+    en: [
+      'Privacy policy updated to <b>v1.3</b>: it now states that account email and password are stored '
+        + '<b>only as a scrypt hash</b>, that plaintext is never logged, and how to request deletion of '
+        + 'a huamei account. <b>No new data is collected.</b>',
+    ],
+  },
+  {
     v: 'V0.12.1.0', date: '2026-10-17',
     zh: [
       '加固了「拖入谱面后贡献定数」这条链路：提交前先向服务端换一张短期凭证，'

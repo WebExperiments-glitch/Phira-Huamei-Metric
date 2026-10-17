@@ -26,7 +26,7 @@ export default {
      * 隐私政策（pv.）—— public/privacy.html
      * ══════════════════════════════════════════════════════════ */
     'pv.h1': '<b>P.H.M.</b> Standard 隐私政策',
-    'pv.meta': '版本 v1.1 · 生效日期 2026-10-07 · 适用站点 <code>phm.app.workbuddy.host</code>',
+    'pv.meta': '版本 v1.3 · 生效日期 2026-10-17 · 适用站点 <code>phm.app.workbuddy.host</code>',
     'pv.lead':
       '<b>一句话概括：</b>你的<b>谱面文件永远不会离开你的设备</b>；只有当你查询 '
       + '<b>你自己确认过的 Phira 账号</b>时，才会把成绩数据（Phira UID、用户名、谱面名、定数、ACC、单曲 RKS）'
@@ -71,21 +71,25 @@ export default {
       + '同一浏览器贡献的多条数据可以被关联起来。我们不会把它与你的真实身份绑定，'
       + '但请知悉它并非不可关联。',
     'pv.p.1.2.c':
-      '<b>不会收集</b>：密码、邮箱、Phira 账号的登录凭据或任何操作权限。查询只读 Phira 的公开数据接口'
-      + '（<code>api.phira.cn</code>），<b>不要求也不接受你的 Phira 密码</b>。',
+      '<b>不会收集</b>：Phira 账号的密码或登录凭据，也不会请求任何 Phira 操作权限。查询只读 Phira 的公开数据接口'
+      + '（<code>api.phira.cn</code>），<b>不要求也不接受你的 Phira 密码</b>。'
+      + '邮箱与密码只在<b>你主动注册 P.H.M. / huamei 账号</b>时处理（见 1.4）。',
 
     'pv.h3.1.3': '1.3 本地存储（仅存在你自己的浏览器里）',
     'pv.p.1.3.a': '以下信息只存在你浏览器的 <code>localStorage</code> 里，不会自动上传：',
     'pv.li.1.3.1': '你输入过的 Phira 用户名 / UID（用于下次自动填充）',
     'pv.li.1.3.2': '自动上传开关的状态、首次告知的确认状态',
     'pv.li.1.3.3': '一个随机生成的 <code>client_id</code>（8 位随机串，用于区分匿名打卡来源）',
-    'pv.li.1.3.4': 'P.H.M. 账号的登录会话（若你注册了邮箱账号）',
+    'pv.li.1.3.4': 'P.H.M. / huamei 账号的登录令牌（若你登录了账号；不含密码）',
 
     'pv.h3.1.4': '1.4 账号系统（可选）',
     'pv.p.1.4.a':
-      '只有你主动注册时才涉及。使用邮箱 + 密码，用于：登录、绑定 Phira 账号、查看与修改你自己的资料。'
-      + '账号相关的数据（邮箱、密码哈希）由 WorkBuddy 云服务的认证模块存储，'
-      + '我们<b>无法读取你的明文密码</b>。',
+      '只有你主动注册时才涉及，用于登录、绑定 Phira 账号、查看与修改你自己的资料。目前有两种<b>可选</b>账号：<br>'
+      + '① <b>网页端账号</b>：注册 / 登录由 WorkBuddy 云服务的认证模块处理，平台保存邮箱与密码哈希，本站只拿到会话令牌；<br>'
+      + '② <b>Windows 客户端 huamei 账号</b>：注册 / 登录由本站服务端处理。明文密码只在 HTTPS 请求中进入服务端内存，'
+      + '随即用 <b>scrypt 哈希</b>后存入 WorkBuddy 云 PostgreSQL 的 <code>hm_accounts</code> 表'
+      + '（只存邮箱、盐与哈希），<b>不写日志</b>；注册需要邮箱验证码，<b>登录只要密码</b>。<br>'
+      + '两种情况下本站都<b>无法读取你的明文密码</b>，也从不收集 Phira 密码。',
 
     'pv.h2.2': '2. 收集来做什么',
     'pv.li.2.1':
@@ -131,10 +135,10 @@ export default {
     'pv.t.5.b6': '同上，可申请导出',
     'pv.t.5.a7': '注销账号',
     'pv.t.5.b7':
-      '<a href="/settings#accounts">设置 · 账号管理</a> → 「注销账号」可<b>自助删除</b>本站在云端的资料'
+      '<a href="/settings#accounts">设置 · 账号管理</a> → 「注销账号」可<b>自助删除</b>网页端账号在本站的资料'
       + '（Phira 绑定、显示名、访问计数）。<br>'
-      + '⚠ <b>登录邮箱本身删不掉</b> —— 它在平台认证系统里，本站没有删除权限；'
-      + '需要删除请发邮件（第 10 节），我们核验身份后协助处理。<br>'
+      + 'huamei 账号（Windows 客户端）可发邮件申请删除 <code>hm_accounts</code> 中对应行（邮箱、盐、密码哈希）；'
+      + '平台侧登录邮箱如需删除，需另行申请，我们核验身份后协助处理。<br>'
       + '贡献过的成绩<b>不在注销范围</b>：它们本来就是匿名的，不挂在你的账号上。',
 
     'pv.h3.sc': '如何安全地联系我们（请不要在公开 Issue 里写隐私信息）',
@@ -165,10 +169,10 @@ export default {
     'pv.p.7.b':
       '此外没有任何其它对外提供：本站不接入广告或数据分析 SDK，不向第三方出售或交换个人信息。',
     'pv.li.7.1':
-      '<b>WorkBuddy 云服务（腾讯）</b> —— 数据库托管、登录认证、静态分发。<br>'
+      '<b>WorkBuddy 云服务（腾讯）</b> —— 数据库托管、静态分发、网页端账号认证、邮箱验证码发送。<br>'
       + '<span class="meta">联系方式</span>：平台客服；也可由本站转达（见第 10 节）。<br>'
-      + '<span class="meta">处理方式</span>：传输与存储加密；启用行级安全，只有你本人能读写自己的资料行。<br>'
-      + '<span class="meta">涉及信息</span>：登录邮箱、账号标识、绑定的 Phira UID 与显示名、贡献的成绩。',
+      + '<span class="meta">处理方式</span>：传输与存储加密；启用行级安全；huamei 账号的密码仅以 <b>scrypt 哈希</b>存储，明文不落库、不写日志。<br>'
+      + '<span class="meta">涉及信息</span>：登录邮箱、密码哈希、账号标识、绑定的 Phira UID 与显示名、邮箱验证码状态、贡献的成绩。',
     'pv.li.7.2':
       '<b>Phira（api.phira.cn）</b> —— 读取公开的谱面元数据与谱面文件，供定数计算。<br>'
       + '<span class="meta">联系方式</span>：以 phira.cn 公示的渠道为准。<br>'
@@ -194,6 +198,10 @@ export default {
     'pv.p.9.c':
       'v1.2（2026-10-11）：新增<b>个人信息对外提供清单</b>（第 7 节）、'
       + '<b>自助注销入口</b>（第 5 节）、<b>投诉举报渠道与邮箱</b>（第 10 节）。收集范围没有扩大。',
+    'pv.p.9.d':
+      'v1.3（2026-10-17）：明确<b>自建 huamei 账号</b>的数据处理（邮箱与 scrypt 密码哈希存入 '
+      + '<code>hm_accounts</code>，明文不落库）；修正「不会收集密码 / 邮箱」的表述，使其仅指 Phira 凭据；'
+      + '补充 huamei 账号的注销路径。收集范围没有扩大。',
 
     'pv.h2.10': '10. 投诉举报与联系方式',
     'pv.p.10.a':
@@ -370,7 +378,7 @@ export default {
      * Privacy Policy (pv.) — public/privacy.html
      * ══════════════════════════════════════════════════════════ */
     'pv.h1': '<b>P.H.M.</b> Standard Privacy Policy',
-    'pv.meta': 'Version v1.1 · Effective 2026-10-07 · Applies to <code>phm.app.workbuddy.host</code>',
+    'pv.meta': 'Version v1.3 · Effective 2026-10-17 · Applies to <code>phm.app.workbuddy.host</code>',
     'pv.lead':
       '<b>In one sentence:</b> your <b>chart files never leave your device</b>; only when you look up '
       + '<b>a Phira account you have confirmed as your own</b> is score data (Phira UID, username, chart '
@@ -421,23 +429,30 @@ export default {
       + 'anonymity</b> — several contributions from the same browser can be linked together. We do not '
       + 'bind it to your real identity, but be aware that it is not unlinkable.',
     'pv.p.1.2.c':
-      '<b>Not collected</b>: passwords, email addresses, Phira account credentials or any operating '
-      + 'rights. Lookups only read Phira\u2019s public data endpoint (<code>api.phira.cn</code>); '
-      + '<b>your Phira password is neither requested nor accepted</b>.',
+      '<b>Not collected</b>: Phira passwords or login credentials, and no Phira operating rights are requested. '
+      + 'Lookups only read Phira\u2019s public data endpoint (<code>api.phira.cn</code>); '
+      + '<b>your Phira password is neither requested nor accepted</b>. '
+      + 'Email and password are handled only when you voluntarily register a P.H.M. / huamei account (see 1.4).',
 
     'pv.h3.1.3': '1.3 Local storage (kept only in your own browser)',
     'pv.p.1.3.a': 'The following is kept only in your browser\u2019s <code>localStorage</code> and is never uploaded automatically:',
     'pv.li.1.3.1': 'Phira usernames / UIDs you have entered (to prefill them next time)',
     'pv.li.1.3.2': 'The state of the automatic-upload switch and of the first-run notice confirmation',
     'pv.li.1.3.3': 'A randomly generated <code>client_id</code> (an 8-character random string used to distinguish the source of an anonymous check-in)',
-    'pv.li.1.3.4': 'The sign-in session for a P.H.M. account (if you registered one with an email address)',
+    'pv.li.1.3.4': 'The sign-in token for a P.H.M. / huamei account (if you sign in; never the password)',
 
     'pv.h3.1.4': '1.4 Account system (optional)',
     'pv.p.1.4.a':
-      'This applies only if you register voluntarily. It uses an email address and a password, for signing '
-      + 'in, linking a Phira account, and viewing and editing your own profile. Account-related data '
-      + '(email address and password hash) is stored by the authentication module of the WorkBuddy cloud '
-      + 'service; we <b>cannot read your password in plaintext</b>.',
+      'This applies only if you register voluntarily, to sign in, link a Phira account, and view or edit your '
+      + 'own profile. There are two <b>optional</b> account types:<br>'
+      + '\u2460 <b>Web account</b>: registration and sign-in are handled by the WorkBuddy cloud authentication '
+      + 'module; the platform stores the email address and password hash, and this site only receives a session token;<br>'
+      + '\u2461 <b>Windows client huamei account</b>: registration and sign-in are handled by this site\u2019s server. '
+      + 'The plaintext password reaches server memory only inside the HTTPS request and is immediately '
+      + '<b>scrypt-hashed</b> into the <code>hm_accounts</code> table in the WorkBuddy cloud PostgreSQL '
+      + '(only email, salt and hash are stored); it is <b>never written to logs</b>. Registration requires an '
+      + 'email code; <b>signing in only asks for the password</b>.<br>'
+      + 'In both cases we <b>cannot read your plaintext password</b>, and we never collect your Phira password.',
 
     'pv.h2.2': '2. What we use it for',
     'pv.li.2.1':
@@ -488,11 +503,11 @@ export default {
     'pv.t.5.b6': 'As above; an export can be requested',
     'pv.t.5.a7': 'Delete your account',
     'pv.t.5.b7':
-      '<a href="/settings#accounts">Settings \u00b7 Account</a> \u2192 "Delete account" removes this site\u2019s '
-      + 'cloud data (Phira binding, display name, visit counter) <b>self-service</b>.<br>'
-      + '\u26a0 <b>The login e-mail itself cannot be deleted</b> \u2014 it lives in the platform\u2019s '
-      + 'authentication system and this site has no permission to remove it; e-mail us (section 10) and we '
-      + 'will help after verifying your identity.<br>'
+      '<a href="/settings#accounts">Settings \u00b7 Account</a> \u2192 "Delete account" removes the web '
+      + 'account\u2019s data on this site (Phira binding, display name, visit counter) <b>self-service</b>.<br>'
+      + 'For a huamei account (Windows client), e-mail us to delete the corresponding <code>hm_accounts</code> '
+      + 'row (email, salt, password hash); deleting the platform-side login e-mail requires a separate request '
+      + 'and we will help after verifying your identity.<br>'
       + 'Contributed scores are <b>out of scope</b>: they are anonymous and are not tied to your account.',
 
     'pv.h3.sc': 'How to contact us safely (please do not post private information in a public Issue)',
@@ -529,10 +544,13 @@ export default {
     'pv.p.7.b':
       'There is nothing else: no advertising or analytics SDKs, and no selling or trading of personal information.',
     'pv.li.7.1':
-      '<b>WorkBuddy cloud service (Tencent)</b> \u2014 database hosting, sign-in, static delivery.<br>'
+      '<b>WorkBuddy cloud service (Tencent)</b> \u2014 database hosting, static delivery, web-account authentication, '
+      + 'and verification-code e-mail delivery.<br>'
       + '<span class="meta">Contact</span>: platform support; we can also relay for you (see section 10).<br>'
-      + '<span class="meta">Method</span>: encrypted in transit and at rest; row-level security means only you can read or write your own row.<br>'
-      + '<span class="meta">Data</span>: login e-mail, account identifier, linked Phira UID and display name, contributed scores.',
+      + '<span class="meta">Method</span>: encrypted in transit and at rest; row-level security; a huamei account\u2019s '
+      + 'password is stored only as a <b>scrypt hash</b>, never in plaintext and never in logs.<br>'
+      + '<span class="meta">Data</span>: login e-mail, password hash, account identifier, linked Phira UID and '
+      + 'display name, verification-code state, contributed scores.',
     'pv.li.7.2':
       '<b>Phira (api.phira.cn)</b> \u2014 reading public chart metadata and chart files for the difficulty calculation.<br>'
       + '<span class="meta">Contact</span>: as published on phira.cn.<br>'
@@ -560,6 +578,11 @@ export default {
       'v1.2 (2026-10-11): added the <b>personal-information disclosure list</b> (section 7), the '
       + '<b>self-service deletion entry</b> (section 5) and the <b>complaint channel and e-mail</b> (section 10). '
       + 'Collection scope has not expanded.',
+    'pv.p.9.d':
+      'v1.3 (2026-10-17): clarified how a <b>self-built huamei account</b> is handled (email and scrypt password '
+      + 'hash are stored in <code>hm_accounts</code>; plaintext is never persisted); corrected the '
+      + '"no password / email collected" wording so it refers only to Phira credentials; and documented the '
+      + 'huamei-account deletion path. Collection scope has not expanded.',
 
     'pv.h2.10': '10. Complaints and contact',
     'pv.p.10.a':

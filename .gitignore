@@ -26,6 +26,8 @@ reports/
 
 # ── 工具本地状态（工作日志等，不入开源仓库）──
 .workbuddy/
+# AI 会话日志：每次对话结束追加，仅本地保留（README/logs 均在目录内）
+.deepseek/
 
 # ── Python ──
 __pycache__/
