@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.13.2.0">
+<meta name="app-version" content="V0.13.2.1">
 <title>API 开放平台 · P.H.M.</title>
 <meta name="description" content="P.H.M. API 开放平台：查看调用用量、管理 API Key、接入免费的谱面难度查询/分析接口。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.13.2.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.2.0">
-<link rel="stylesheet" href="/css/api.css?v=V0.13.2.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.13.2.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.2.1">
+<link rel="stylesheet" href="/css/api.css?v=V0.13.2.1">
 <style>
 .platwrap{max-width:1100px;grid-template-columns:190px minmax(0,1fr);gap:28px}
 .plat-side{position:sticky;top:74px;align-self:start;font-size:13px}
@@ -36,6 +36,23 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .landing .lead{color:var(--fg2);font-size:14.5px;line-height:1.85;max-width:640px}
 .landing .steps{color:var(--fg2);font-size:13.5px;line-height:1.9;padding-left:20px;margin:6px 0}
 .landing .steps b{color:var(--fg)}
+.modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal[hidden]{display:none}
+.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.modal-card{position:relative;width:100%;max-width:520px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 18px 60px rgba(0,0,0,.25)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.modal-head h2{font-size:17px;margin:0}
+.modal-x{border:0;background:transparent;color:var(--fg3);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.modal-x:hover{background:var(--card2);color:var(--fg)}
+.modal-text{color:var(--fg2);font-size:13px;line-height:1.75;margin:10px 0}
+.key-copy{display:flex;gap:8px;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin:10px 0}
+.key-copy code{flex:1;min-width:0;overflow:auto;font-family:var(--mono);font-size:12.5px;white-space:nowrap;color:var(--fg)}
+.modal-hint{font-size:11.5px;color:var(--fg3);margin:0 0 8px}
+.modal-warn{font-size:12px;color:var(--fg3);line-height:1.7;margin:10px 0 0}
+.modal-foot{display:flex;justify-content:flex-end;margin-top:16px}
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:90;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.toast[hidden]{display:none}
+@media(max-width:620px){.modal{padding:14px}.modal-card{padding:16px}}
 @media(max-width:860px){.platwrap{grid-template-columns:1fr}.plat-side{display:flex;gap:4px;flex-wrap:wrap;position:static;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:6px}.plat-side .grp{display:none}.plat-side a{padding:5px 9px}.bar-row{grid-template-columns:78px minmax(0,1fr) 44px}}
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
@@ -93,13 +110,12 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
       <section id="view-keys" style="display:none">
         <h1>API keys</h1>
         <p class="lead">列表内是你全部 API key，<b>仅在创建时可见可复制</b>，请妥善保存。
-          不要与他人共享，也不要把 Key 暴露在浏览器或客户端代码里。每个账号最多保留 <b>100</b> 个有效 Key。</p>
+          不要与他人共享，也不要把 Key 暴露在浏览器或客户端代码里。每个账号最多保留 <b>100</b> 个有效 Key；删除后立即从列表消失。</p>
         <div class="console-bar">
           <input id="keyName" maxlength="40" placeholder="给新 Key 起个名字（例如：笔记本 / CI）">
           <button class="api-btn primary" id="createKey" type="button">创建 API key</button>
         </div>
         <div class="status-line" id="keyStatus"></div>
-        <div id="oneKey"></div>
         <div style="overflow:auto;margin-top:6px">
           <table class="key-table">
             <thead><tr><th>名称</th><th>Tracking ID</th><th>Key</th><th>创建日期</th><th>最近使用</th><th></th></tr></thead>
@@ -120,8 +136,27 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   </div>
 </footer>
 
+<div id="keyModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
+    <div class="modal-head">
+      <h2 id="keyModalTitle">创建 API key</h2>
+      <button class="modal-x" id="keyModalClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <p class="modal-text">请将 API key 保存在安全且易于访问的地方。出于安全原因，你无法通过 API keys 管理界面再次查看它。如果你丢失了这个 key，将需要重新创建。</p>
+    <div class="key-copy">
+      <code id="newKeyVal">—</code>
+      <button class="api-btn sm" id="copyNewKey" type="button">复制</button>
+    </div>
+    <p class="modal-hint" id="newKeyHint"></p>
+    <p class="modal-warn">提示：不要与他人分享你的 API key，或将其暴露在浏览器或其他客户端代码中。</p>
+    <div class="modal-foot"><button class="api-btn primary" id="keyModalDone" type="button">完成</button></div>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.13.2.0';
+import { renderNav } from '/js/ui.js?v=V0.13.2.1';
 renderNav('platform');
 
 const CLOUD_CFG = { endpoint: 'https://phm.app.workbuddy.host', publishableKey: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b' };
@@ -131,6 +166,30 @@ let cloud = null, account = null, currentView = 'usage';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function fmtDate(v) { if (!v) return '—'; const d = new Date(v); return isNaN(d) ? '—' : d.toISOString().slice(0, 10); }
 function setStatus(msg, isErr) { const el = $('#keyStatus'); if (el) { el.textContent = msg || ''; el.className = 'status-line' + (isErr ? ' err' : ''); } }
+
+let toastTimer = 0;
+function showToast(msg) {
+  const el = $('#toast');
+  if (!el) return;
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.hidden = true; }, 2200);
+}
+function openKeyModal(key, hint) {
+  const modal = $('#keyModal');
+  if (!modal) return;
+  $('#newKeyVal').textContent = key;
+  $('#newKeyHint').textContent = hint || '';
+  $('#copyNewKey').textContent = '复制';
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeKeyModal() {
+  const modal = $('#keyModal');
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.style.overflow = '';
+}
 
 async function getIdToken() { try { return await cloud.auth.getAccessToken(); } catch (e) { return null; } }
 async function api(path, opts) {
@@ -197,35 +256,33 @@ async function loadUsage() {
 async function loadKeys() {
   try {
     const data = await api('/keys');
-    const keys = (data && data.keys) || [];
-    $('#uKeys').textContent = keys.filter(k => !k.revoked_at).length;
+    /* 只显示有效 Key：吊销后立即从列表消失（历史用量仍在库里）。 */
+    const keys = ((data && data.keys) || []).filter(k => !k.revoked_at);
+    $('#uKeys').textContent = keys.length;
     const tbody = $('#keyRows'); tbody.innerHTML = '';
     if (!keys.length) { tbody.innerHTML = '<tr><td colspan="6" class="console-empty">还没有 Key，创建一个吧。</td></tr>'; return; }
     for (const k of keys) {
       const tr = document.createElement('tr');
-      const revoked = !!k.revoked_at;
-      tr.innerHTML = '<td>' + esc(k.name) + (revoked ? ' <span class="k">(已吊销)</span>' : '') + '</td>'
+      tr.innerHTML = '<td>' + esc(k.name) + '</td>'
         + '<td class="mono">' + esc(k.id) + '</td><td class="mono">' + esc(k.hint) + '</td>'
         + '<td>' + fmtDate(k.created_at) + '</td><td>' + fmtDate(k.last_used_at) + '</td>'
         + '<td><div class="key-actions"></div></td>';
       const actions = tr.querySelector('.key-actions');
-      if (!revoked) {
-        const ren = document.createElement('button');
-        ren.className = 'api-btn sm'; ren.type = 'button'; ren.textContent = '改名';
-        ren.onclick = async function () {
-          const name = prompt('新的名称', k.name); if (!name) return;
-          try { await api('/keys/' + k.id, { method: 'PATCH', body: JSON.stringify({ name }) }); await loadKeys(); }
-          catch (e) { setStatus(String(e.message || e), true); }
-        };
-        const del = document.createElement('button');
-        del.className = 'api-btn sm danger'; del.type = 'button'; del.textContent = '删除';
-        del.onclick = async function () {
-          if (!confirm('删除后这个 Key 立即失效，确定？')) return;
-          try { await api('/keys/' + k.id, { method: 'DELETE' }); await loadKeys(); }
-          catch (e) { setStatus(String(e.message || e), true); }
-        };
-        actions.append(ren, del);
-      }
+      const ren = document.createElement('button');
+      ren.className = 'api-btn sm'; ren.type = 'button'; ren.textContent = '改名';
+      ren.onclick = async function () {
+        const name = prompt('新的名称', k.name); if (!name) return;
+        try { await api('/keys/' + k.id, { method: 'PATCH', body: JSON.stringify({ name }) }); await loadKeys(); }
+        catch (e) { setStatus(String(e.message || e), true); }
+      };
+      const del = document.createElement('button');
+      del.className = 'api-btn sm danger'; del.type = 'button'; del.textContent = '删除';
+      del.onclick = async function () {
+        if (!confirm('删除后这个 Key 立即失效，确定？')) return;
+        try { await api('/keys/' + k.id, { method: 'DELETE' }); await loadKeys(); showToast('API key 已删除'); }
+        catch (e) { setStatus(String(e.message || e), true); }
+      };
+      actions.append(ren, del);
       tbody.appendChild(tr);
     }
   } catch (e) {
@@ -264,17 +321,32 @@ $('#createKey').addEventListener('click', async function () {
   setStatus('创建中…');
   try {
     const j = await api('/keys', { method: 'POST', body: JSON.stringify({ name }) });
-    $('#oneKey').innerHTML = '<div class="onekey"><b>Key 已创建，只显示这一次：</b>'
-      + '<code id="oneKeyVal">' + esc(j.key) + '</code>'
-      + '<button class="api-btn sm" id="copyKey" type="button">复制</button>'
-      + '<div class="k" style="margin-top:6px">' + esc(j.hint) + ' · 请保存到安全的地方</div></div>';
-    $('#copyKey').onclick = async function () {
-      try { await navigator.clipboard.writeText(j.key); $('#copyKey').textContent = '已复制'; }
-      catch (e) { setStatus('复制失败，请手动选中', true); }
-    };
-    $('#keyName').value = ''; setStatus('创建成功'); await loadKeys();
+    openKeyModal(j.key, j.hint);
+    showToast('API key 已创建');
+    $('#keyName').value = ''; setStatus('');
+    await loadKeys();
   } catch (e) { setStatus(String(e.message || e), true); }
 });
+document.querySelectorAll('#keyModal [data-close], #keyModalClose, #keyModalDone').forEach(function (el) {
+  el.addEventListener('click', closeKeyModal);
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && !$('#keyModal').hidden) closeKeyModal();
+});
+$('#copyNewKey').addEventListener('click', async function () {
+  const key = $('#newKeyVal').textContent || '';
+  try {
+    await navigator.clipboard.writeText(key);
+    $('#copyNewKey').textContent = '已复制';
+  } catch (e) {
+    const range = document.createRange();
+    range.selectNodeContents($('#newKeyVal'));
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+    $('#copyNewKey').textContent = '请手动复制';
+  }
+});
+
 boot();
 </script>
 </body>
