@@ -243,8 +243,14 @@ const codeRoutes = makeCodeRoutes({
   send, gate, gateCode, gateAuth,
   sendCode: hmSendCode, resetPassword: hmResetPassword,
   verifyCode: hmVerifyCode, register: hmRegister, login: hmLogin,
-  /* 见 lib/hm-code-routes.mjs：默认关，客户端跟上验证码后再设 1 */
-  requireCode: process.env.REQUIRE_EMAIL_CODE === '1',
+  /* 注册**默认要邮箱验证码**（2026-10-17 起）。
+     之前默认关，是因为当时唯一的注册入口是 Windows 客户端、它还不带 code 字段 ——
+     关着等于「可以拿任意邮箱批量注册」，那是个真实的洞，只能当过渡。
+     客户端已跟上（设置页 → huamei 账号 → 注册，会先发码再问码），所以现在默认开。
+
+     ⚠ 逃生口：REQUIRE_EMAIL_CODE=0 才关。**反过来写**（!== '0'）是故意的 ——
+       没配环境变量时必须是**安全的那一侧**，不能因为忘了配就悄悄放开。 */
+  requireCode: process.env.REQUIRE_EMAIL_CODE !== '0',
 });
 
 

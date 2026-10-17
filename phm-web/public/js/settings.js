@@ -252,14 +252,19 @@ export function applyTheme(mode) {
   return isDark;
 }
 
-/** 标题字体：「serif」= 思源宋体标题（默认），「sans」= 全黑体。
+/** 标题字体三档：
+ *    「serif」= 思源宋体标题（默认）
+ *    「kai」  = 霞鹜文楷
+ *    「sans」 = 全黑体
  *  ⚠ 只切 --font-display，正文永远是系统黑体 —— 评审的原话是
  *    「正文用系统黑体栈」，所以不做「全站换字体」那种大动作。
- *  ⚠ 霞鹜文楷这一档要等字体子集做完再加（全量中文 10MB 级，会拖死首屏）。 */
+ *  ⚠ 「楷体」这一档曾因字体体积被推迟（全量中文 15MB，会拖死首屏）。
+ *    现在两套都是**子集**（serif 83KB / kai 63KB），按需加载，代价可以忽略。 */
+const FONT_OK = ['serif', 'kai', 'sans'];
 export const font = {
   get() { return get(KEYS.font, 'serif'); },
   set(v) {
-    const ok = v === 'sans' ? 'sans' : 'serif';
+    const ok = FONT_OK.indexOf(v) >= 0 ? v : 'serif';
     set(KEYS.font, ok);
     applyFont(ok);
     return true;
@@ -297,7 +302,7 @@ export const theme = {
 /** 把字体档位写到 <html data-font> 上 —— CSS 里靠它覆盖 --font-display。 */
 export function applyFont(v) {
   try {
-    document.documentElement.setAttribute('data-font', v === 'sans' ? 'sans' : 'serif');
+    document.documentElement.setAttribute('data-font', FONT_OK.indexOf(v) >= 0 ? v : 'serif');
   } catch (e) { /* 没有 document 的环境（单测）静默跳过 */ }
 }
 

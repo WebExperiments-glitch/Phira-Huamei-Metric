@@ -43,6 +43,18 @@
   font-display: swap;
 }
 
+/* 霞鹜文楷子集（14.9MB → 63KB）。只有 Regular 一个字重，见 ui-kit.css 里
+   关于「禁止合成加粗」的说明。
+   ⚠ 这里不写 font-weight:600 —— 声明成 600 会让浏览器认为"600 就是标准粗细"，
+     再叠加 font-synthesis-weight:none 时就不加粗了；写 400 才是它的真实字重。 */
+@font-face {
+  font-family: 'PHM Kai';
+  src: url('/fonts/display-kai.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ── 中性色：一条亮度阶梯（不是功能分类）── */
   --bg:    #0e0d0b;      /* 画布：最底（暖调，与琥珀同温层，见 DESIGN.md §8.1）*/
@@ -137,6 +149,9 @@
      ⚠ 动态内容（曲名、用户名、谱师名）永远走正文字体 —— 它们不在子集里，
         交给衬线只会掉回黑体，白搭一次匹配。 */
   --font-display: 'PHM Display', "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+  /* 楷体档位的字体栈：子集没覆盖到的字掉回系统楷体，再掉回宋体 */
+  --font-kai: 'PHM Kai', "LXGW WenKai", "Kaiti SC", "KaiTi", "STKaiti",
+              "Noto Serif SC", serif;
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
                "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC",
                "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;

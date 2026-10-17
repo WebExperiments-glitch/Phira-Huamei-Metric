@@ -152,6 +152,19 @@ button.primary:hover {
 :root[data-font="sans"] {
   --font-display: var(--font-body);
 }
+/* 霞鹜文楷：只给标题与数字用。
+   ⚠ 文楷只有 Regular 一个字重，而标题的 CSS 写着 font-weight:600 ——
+     不关掉合成加粗的话，浏览器会拿 Regular **算法伪造**一遍粗体，
+     笔画会糊成一片，楷书那点笔锋全没了。所以这一档显式禁止合成。
+   ⚠ 63KB 的子集，按需下载 —— font-display:swap，不选这一档就一辈子不请求。 */
+:root[data-font="kai"] {
+  --font-display: var(--font-kai);
+}
+:root[data-font="kai"] h1,
+:root[data-font="kai"] h2,
+:root[data-font="kai"] h3,
+:root[data-font="kai"] .brand,
+:root[data-font="kai"] .big { font-synthesis-weight: none; }
 :root[data-size="s"] { font-size: 93.75%; }   /* 15px 基准 */
 :root[data-size="m"] { font-size: 100%;  }    /* 16px 基准（默认） */
 :root[data-size="l"] { font-size: 109.4%; }   /* 17.5px */

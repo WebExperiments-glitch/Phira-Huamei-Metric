@@ -12,13 +12,18 @@
      读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.11.2.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.11.2.0">
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+/* 字体与字号同理：模块是异步的，等它跑完再设会先按默认画一帧。
+   ⚠ 以前这段只写在 settings.html 里 —— 于是「标题字体 / 字号」这两档
+   **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.12.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.12.0.0">
 <!-- ⚠ 必须**先** base.css 再 docs.css：前者给令牌与标题字体，
      后者只负责阅读排版。以前这里只链了 docs.css，
      所以法务页完全在另一套令牌里长大 —— 白底蓝链接，像换了个网站。 -->
-<link rel="stylesheet" href="/css/docs.css?v=V0.11.2.0">
+<link rel="stylesheet" href="/css/docs.css?v=V0.12.0.0">
 </head>
 <body>
 <div class="doc">
@@ -192,7 +197,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 </div>
 
 <script type="module">
-import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.11.2.0';
+import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.12.0.0';
 /* 法务页正文全是静态文案，没有 JS 渲染的数据 —— 语言一变只需重跑静态替换。 */
 applyStatic();
 onLangChange(() => applyStatic());

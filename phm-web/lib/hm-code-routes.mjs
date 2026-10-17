@@ -71,12 +71,13 @@ export function makeCodeRoutes(deps) {
     }
     let r;
     if (p === '/api/hm/register') {
-      /* ⚠⚠ 开关：REQUIRE_EMAIL_CODE=1 才强制验证码。
-         默认**关**，因为唯一的注册入口是 Windows 客户端（phira/src/login.rs），
-         它还没带 code 字段 —— 现在强制会让 exe 注册直接失败。
-         客户端跟上（加发码按钮 + 验证码输入框）之后再设成 1 打开。
-         ⚠ 关着 = **可以拿别人邮箱批量注册**，这个洞在开关打开前一直存在。
-           只应作为过渡，不该长期关。 */
+      /* ⚠⚠ 验证码**默认强制**（2026-10-17 起）。
+         历史：这条开关最初默认关，因为当时唯一的注册入口是 Windows 客户端
+         （`phira/src/page/settings.rs`），它还不带 code 字段。关着 =
+         **可以拿任意邮箱批量注册**（白帽报告第 4 条），只能当过渡。
+         客户端现在会「先发码、再问码」，所以把默认值翻到了安全的那一侧：
+         只有 `REQUIRE_EMAIL_CODE=0` 才关（见 server.mjs）。
+         ⚠ 想让老版本 exe 还能注册就先设 0 —— 但那是临时手段，别长期开。 */
       if (requireCode) {
         const code = String((body && body.code) || '').trim();
         if (!code) return send(res, 400, JSON.stringify({ ok: false, error: 'code_required' }));

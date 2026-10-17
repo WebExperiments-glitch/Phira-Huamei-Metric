@@ -14,7 +14,9 @@ write-secret.txt
 
 # 裁字体用的**中间产物**：11MB 的思源宋体原件。它是可复现的
 # （tools/subset-display-font.py 会按需重新下载），没必要进仓库。
-public/fonts/.cache-*.otf
+public/fonts/.cache-*
+# 字体源文件（思源宋体 .otf / 霞鹜文楷 .ttf）都是十几 MB 的中间产物：
+# 需要时由 tools/subset-display-font.py 自己下载，绝不要提交。
 
 # ── 客户端二进制（downloads/）──
 # 由 phira-huamei 构建出来，35MB 且**每次构建都变**。跟进仓库的话，

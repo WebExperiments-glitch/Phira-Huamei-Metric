@@ -20,6 +20,30 @@
 
 export const RELEASES = [
   {
+    v: 'V0.12.0.0', date: '2026-10-17',
+    zh: [
+      '注册现在要<b>邮箱验证码</b>了：填完邮箱和密码，系统会先发一封带数字的邮件，'
+        + '把数字填进去才算注册成功。目的是堵住「拿别人邮箱批量注册」。'
+        + '<b>登录仍然只输密码</b>，没有变麻烦。',
+      '设置页的标题字体多了<b>楷体</b>一档（霞鹜文楷）。子集只有 63KB，'
+        + '不选这一档就完全不会下载。',
+      '修：「标题字体 / 字号」这两个开关以前<b>只在设置页生效</b> —— '
+        + '切到别的页面刷新一下就变回默认了。现在全站都跟着你的选择。',
+      'Windows 客户端同步更新（0.8.2-huamei.13）：注册流程会先发码再让你填。',
+    ],
+    en: [
+      'Registration now needs an <b>email code</b>: after the email and password, a message with a '
+        + 'number arrives and the account is only created once you type it in. This closes the '
+        + '"register with someone else\u2019s mailbox in bulk" hole. <b>Signing in still only asks for '
+        + 'the password</b> — nothing got harder there.',
+      'The heading typeface setting has a third option: <b>Kai</b> (LXGW WenKai). The subset is 63KB '
+        + 'and downloads only if you pick it.',
+      'Fixed: "Heading typeface" and "Text size" used to <b>apply on the settings page only</b> — '
+        + 'any other page went back to the defaults after a reload. They now follow your choice site-wide.',
+      'Windows client updated too (0.8.2-huamei.13): registration sends the code first, then asks for it.',
+    ],
+  },
+  {
     v: 'V0.11.2.0', date: '2026-10-17',
     zh: [
       '首页现在能<b>直接把谱面拖进来</b>：拖到那块虚线上松手，会带着文件跳到算定数页自己开始算 —— '

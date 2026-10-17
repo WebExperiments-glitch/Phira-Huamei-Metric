@@ -227,6 +227,79 @@ for (const [p, label] of [['/charter', '谱师页'], ['/user', '玩家页']]) {
 }
 
 console.log('\n────────');
+/* ══════════════════════════════════════════════════════════
+ * 6) 字体 / 字号设置**跨页面**生效
+ * ══════════════════════════════════════════════════════════
+ * 2026-10-17 的真实 bug：那段引导脚本只写在 settings.html 的 <head> 里，
+ * 其余页面从不读 phm_font / phm_size —— 于是「切了字体，换个页面就变回去」。
+ * 这条测试就是那一刻的照妖镜：在设置页选楷体，再走到别的页面看还在不在。
+ */
+console.log('');
+console.log('[6] 字体设置跨页面生效');
+{
+  await goto('/settings', 2400);
+  const picked = await evalJS(`(function(){
+    const b = document.querySelector('#fontSeg button[data-font="kai"]');
+    if (!b) return 'no-button';
+    b.click();
+    return document.documentElement.getAttribute('data-font') + '|' + (localStorage.getItem('phm_font') || '');
+  })()`);
+  ok('设置页能选楷体（并写进 phm_font）', /^kai|kai$/.test(String(picked)), String(picked));
+
+  /* 换到另一个页面 —— 这里才是以前出错的地方 */
+  await goto('/charter', 2400);
+  const applied = await evalJS(`document.documentElement.getAttribute('data-font')`);
+  ok('★ 换到谱师页后仍是楷体（不是回退成 serif）', applied === 'kai', String(applied));
+
+  /* 首页也要跟（它没有 settings 那份专门的引导脚本，只有每页公共的那几行） */
+  await goto('/', 2200);
+  const applied2 = await evalJS(`document.documentElement.getAttribute('data-font')`);
+  ok('★ 首页也仍是楷体', applied2 === 'kai', String(applied2));
+
+  /* 标题**实际用的字体栈**里，第一个必须是 PHM Kai —— 这一条防的是
+     「data-font 设对了，但 CSS 那条 [data-font="kai"] 规则没写/写错」。 */
+  const stack = await evalJS(`(function(){
+    var h = document.querySelector('h1') || document.querySelector('.brand');
+    return h ? getComputedStyle(h).fontFamily : 'no-heading';
+  })()`);
+  ok('标题的字体栈第一个是 PHM Kai', /^"?PHM Kai"?/.test(String(stack)), String(stack).slice(0, 60));
+
+  /* 楷体文件确实在**声明里那个路径**上可取到（不是声明了却 404）。
+     ⚠ 别用 document.fonts.load() 判断：它在页面刚导航完、或字体正被页面
+       自己取用时，会抛一句含糊的 "A network error occurred"，甚至长时间不 resolve ——
+       实测同一时刻截图里楷体已经正常渲染了，那条断言还在报错。
+     ⚠ 也别查 performance 资源时序：字体已被前一个页面取过时，
+       新页面可能直接走内存缓存、根本不留条目，结果是假失败（踩过）。
+     直接打一次 HEAD 最稳：路径对不对、文件在不在，一问就知道。 */
+  const url = await evalJS(`(function(){
+    var out = '';
+    try {
+      Array.from(document.styleSheets).forEach(function(s){
+        try {
+          Array.from(s.cssRules).forEach(function(r){
+            if (r.type === 5 && /PHM Kai/.test(r.style.fontFamily)) out = r.style.src;
+          });
+        } catch (e) {}
+      });
+    } catch (e) {}
+    var m = /url\\("?([^")]+)"?\\)/.exec(out);
+    return m ? m[1] : 'not-declared';
+  })()`);
+  ok('CSS 里声明了楷体的 @font-face', String(url) !== 'not-declared', String(url));
+  const head = await evalJS(`fetch(${JSON.stringify(String(url))}, {method:'HEAD'})
+    .then(function(r){ return 'status=' + r.status + ' type=' + r.headers.get('content-type'); })
+    .catch(function(e){ return 'ERR ' + e.message; })`);
+  ok('楷体文件在该路径上可取到（200 + font/woff2）',
+    /^status=200 .*font\/woff2/.test(String(head)), String(head));
+
+  /* 复原，别把后面的检查污染了 */
+  await evalJS(`(function(){
+    const b = document.querySelector('#fontSeg button[data-font="serif"]');
+    if (b) b.click();
+    return 1;
+  })()`);
+}
+
 console.log('通过 ' + pass + ' · 失败 ' + fail);
 cleanup();
 process.exit(fail ? 1 : 0);
