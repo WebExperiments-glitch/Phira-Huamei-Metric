@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const run = (cmd, args, cwd) => {
   console.log('\n$ ' + [cmd, ...args].join(' '));
-  const r = spawnSync(cmd, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+  const r = spawnSync(cmd, args, { cwd, stdio: 'inherit' });
   if (r.status !== 0) {
     console.error('\n[preflight] FAIL: ' + [cmd, ...args].join(' '));
     process.exit(r.status || 1);
@@ -25,6 +25,11 @@ const run = (cmd, args, cwd) => {
 };
 
 run('node', ['tools/review-gate.mjs'], WEB);
-const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-run(npmCmd, ['run', 'check'], WEB);
+/* Windows 下 npm 是 .cmd，spawnSync 不能直接执行；用 cmd.exe /c 调，避免
+   shell:true 带来的参数拼接告警（DEP0190）。 */
+if (process.platform === 'win32') {
+  run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run check'], WEB);
+} else {
+  run('npm', ['run', 'check'], WEB);
+}
 console.log('\n[preflight] 全部通过 ✓ — 可以推送（CI 仍会再跑一遍全量审计）');

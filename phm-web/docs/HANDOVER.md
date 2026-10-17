@@ -74,14 +74,23 @@ node tools/test-contribute-ticket.mjs                  #  11 条 · 贡献凭证
 
 node tools/lint-slop.mjs                              # 必须 0
 node tools/lint-i18n.mjs                              # 必须 0（821 词条 / 803 引用）
-node tools/lint-docs.mjs                              # 88 条 · 死链 / 版本号 / 页面与模块清单
+node tools/lint-docs.mjs                              # 94 条 · 死链 / 版本号 / 页面与模块清单
+
+node tools/review-gate.mjs                            # ★ 静态审计（凭据/版本/白名单/SQL/禁用模式/workflow）
+node tools/preflight.mjs                              # ★ review-gate + npm run check（pre-push 自动跑）
 ```
 
 **期望数字**：222 / 123 / 24 / 22 / 80 / 45 / 79，加 `test-contribute-ticket` 11，全部 `0 失败`。
 `lint-slop` / `lint-i18n` 必须 0。
 
-> **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`（14 项）；
-> `.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑 **offline 版 smoke（218 条）+ ui-flows（24 条）**。
+> **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`（15 项）；
+> `.github/workflows/audit.yml` 在每次 push/PR 跑 **review-gate + check + Chrome smoke（218 条）+ ui-flows（24 条）**；
+> `.github/workflows/codeql.yml` 扫 JS/TS + Python；`.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑同款浏览器测试。
+>
+> **合并门（2026-10-17 起）**：`main` 必须走 PR，必需检查 `check` + `audit`，
+> 线性历史、对话必须解决、禁止 force-push/删除，**管理员同样不可绕过**。
+> 本地 `.githooks/pre-push` 自动跑 `review-gate + check`；仓库已开 secret scanning /
+> push protection / Dependabot alerts。规则见根目录 `CONTRIBUTING.md`。
 > CI 没有生产数据库读写权限，所以 smoke 用 `PHM_SMOKE_OFFLINE=1` 跳过数据页分页断言；
 > `verify-pages` / `api-routes` 依赖真实数据与 Phira 写入路径，留在本地发版前跑。
 > 出事时的操作顺序见 [`RUNBOOK.md`](RUNBOOK.md)。
