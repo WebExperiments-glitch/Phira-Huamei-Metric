@@ -20,6 +20,23 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.5', date: '2026-10-17',
+    zh: [
+      '<b>界面里不再出现开发笔记</b>。页脚原来写着「线上引擎：8 维 log1p 特征（NPS / 有效 NPS / '
+        + '物量 / 加权密度 p99 / 音符间隔 / …）+ 双参照 k-NN」，还挂着「源码 '
+        + 'phm-web/public/index.html」—— 这些是给自己看的，用户用不到。'
+        + '现在只留一句人话：「用 9,508 张社区谱和 1,037 张官谱做双参照，算出可复核的定数」。'
+        + '想看实现细节的点「PS 是什么？」，或去版本历史页。',
+    ],
+    en: [
+      '<b>Development notes no longer leak into the interface.</b> The footer used to list the '
+        + 'engine internals ("8-dim log1p features ... dual-reference k-NN") and a link to the '
+        + 'source file. Those were notes to self. It now reads: "Computed against 9,508 community '
+        + 'charts and 1,037 official charts as dual references." Implementation details live under '
+        + '"What is PS?" and on the version history page.',
+    ],
+  },
+  {
     v: 'V0.11.0.4', date: '2026-10-17',
     zh: [
       '<b>输入框和按钮终于有了统一样式</b>。此前谱师页、玩家页的输入框是浏览器默认外观'

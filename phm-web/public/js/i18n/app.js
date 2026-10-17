@@ -118,10 +118,11 @@ export default {
     'app.more.gh.title': 'GitHub 仓库 · Phira-Huamei-Metric',
 
     /* ── 页脚 ── */
+    /* ⚠ 2026-10-17 评审：这一行原来把实现细节（8 维 log1p 特征、双参照 k-NN）
+       直接摆给用户看，还叠了"源码 phm-web/public/index.html"——那是开发笔记。
+       界面只留一句人话，技术细节进「PS 是什么」折叠区与 /version 页。 */
     'app.foot.engine':
-      '线上引擎：<b>8 维 log1p 特征</b>（NPS / 有效 NPS / 物量 / 加权密度 p99 / '
-      + '音符间隔 / 高密度均值 / 密集度 / 交叉手） + 双参照 k-NN（<b>9,508 张社区谱</b> '
-      + '为主结果，1,037 张官谱为对照标度）',
+      '用 <b>9,508 张社区谱</b>和 <b>1,037 张官谱</b>做双参照，算出可复核的定数',
     'app.foot.ver': '版本 {v}（开发者测试版，正式版会重新计算）',
     'app.foot.source': '源码',
     'app.foot.details': 'PS 是什么？本工具的边界与隐私（点开看）',
@@ -509,9 +510,7 @@ export default {
 
     /* ── footer ── */
     'app.foot.engine':
-      'Live engine: <b>8-dim log1p features</b> (NPS / effective NPS / note count / weighted density p99 / '
-      + 'note interval / peak-density mean / density / cross-hand) + dual-reference k-NN '
-      + '(<b>9,508 community charts</b> as the main result, 1,037 official charts as the comparison scale)',
+      'Computed against <b>9,508 community charts</b> and <b>1,037 official charts</b> as dual references',
     'app.foot.ver': 'Version {v} (developer beta; the release build will recompute everything)',
     'app.foot.source': 'Source',
     'app.foot.details': 'What is PS? This tool\u2019s limits and privacy (expand)',
