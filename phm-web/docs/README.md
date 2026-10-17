@@ -88,7 +88,7 @@ phm-web/
 │       ├── versions.js        ← 用户向版本历史（与 CHANGELOG.md 分工不同）
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
-├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（25 个）
+├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（27 个）
 │   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件）
 │   ├── gen-release.mjs        ← 从实际 exe 算大小 / sha256 / 客户端版本
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
@@ -101,6 +101,8 @@ phm-web/
 │   ├── test-ratelimit.mjs     ← 限流（80 条，含禁读 XFF 的防回归断言）
 │   ├── golden-engine.mjs      ← 引擎数值金标（固定谱面 → 固定输出，防悄悄变数）
 │   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
+│   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL / workflow
+│   ├── preflight.mjs          ← ★★ pre-push 闸门：review-gate + check
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
 │   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
 │   ├── lint-i18n.mjs          ← 双语完整性（821 词条 / 803 引用）
