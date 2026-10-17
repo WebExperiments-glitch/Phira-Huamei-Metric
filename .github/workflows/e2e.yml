@@ -1,0 +1,69 @@
+name: E2E (browser)
+
+# 浏览器测试要起服务 + Chrome，跑得慢；放夜间和手动触发，不挡日常 PR。
+# 失败会发 GitHub 通知（默认），相当于"站点的自动体检"。
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 02:00 Asia/Shanghai
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-browser
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PHM_WRITE_SECRET: ci-test-write-secret-not-real
+      PHM_TOKEN_SECRET: ci-test-token-secret-not-real
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Start local server
+        working-directory: phm-web
+        run: |
+          PORT=5199 node server.mjs > /tmp/phm-server.log 2>&1 &
+          echo $! > /tmp/phm-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5199/api/health > /dev/null; then
+              echo "server up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "server failed to start"; cat /tmp/phm-server.log; exit 1
+
+      - name: Smoke (176)
+        working-directory: phm-web
+        run: node tools/smoke-page.mjs http://127.0.0.1:5199
+
+      - name: Verify pages (123)
+        working-directory: phm-web
+        run: node tools/verify-pages.mjs http://127.0.0.1:5199
+
+      - name: UI flows (24)
+        working-directory: phm-web
+        run: node tools/test-ui-flows.mjs http://127.0.0.1:5199
+
+      - name: API routes (22)
+        working-directory: phm-web
+        run: node tools/test-api-routes.mjs http://127.0.0.1:5199
+
+      - name: Stop server + show log
+        if: always()
+        run: |
+          if [ -f /tmp/phm-server.pid ]; then kill "$(cat /tmp/phm-server.pid)" 2>/dev/null || true; fi
+          echo '--- server log (tail) ---'
+          tail -n 80 /tmp/phm-server.log || true
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phm-server-log
+          path: /tmp/phm-server.log

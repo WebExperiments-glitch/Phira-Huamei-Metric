@@ -93,8 +93,10 @@ phm-web/
 │   ├── smoke-page.mjs         ← ★ 冒烟（176 条：页面 / 版本号 / 缓存策略）
 │   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
 │   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）
-│   ├── test-api-routes.mjs    ← 打完 14 条接口再验进程没死（17 条）
+│   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（22 条）
 │   ├── test-ratelimit.mjs     ← 限流（80 条，含禁读 XFF 的防回归断言）
+│   ├── golden-engine.mjs      ← 引擎数值金标（固定谱面 → 固定输出，防悄悄变数）
+│   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
 │   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
 │   ├── lint-i18n.mjs          ← 双语完整性（821 词条 / 803 引用）
@@ -112,6 +114,7 @@ phm-web/
     ├── SECURITY.md            ← 信任边界、风险清单、已知限制
     ├── ENGINE-EXPERIMENT.md   ← ★ 引擎选型实验：为什么是 8 维 / 社区参照，以及所有被否掉的方案
     ├── HANDOVER.md            ← ★ 部署前必做 / 红线清单（动代码前先读）
+    ├── RUNBOOK.md             ← ★ 出事时照着做：分诊 / 回滚 / 备份 / 密钥 / 巴士因子演练
     └── PROMOTION.md           ← 宣发手册（各平台差异、逐步操作、可复制文案）
 ```
 

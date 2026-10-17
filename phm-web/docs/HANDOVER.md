@@ -55,6 +55,12 @@ Get-NetTCPConnection -LocalPort 5199 -State Listen |
 ## 2. 部署前必跑（一条都不能省）
 
 ```bash
+cd phm-web && npm run check                           # ★ 全部非浏览器检查（CI 同款）
+```
+
+下面这些是上面那条命令的展开，方便单独排查：
+
+```bash
 node tools/gen-ref.mjs --check                        # 参照集与真源同步
 node tools/verify-engine.mjs                          # 45 条 · 引擎纯计算
 node tools/test-ratelimit.mjs                         # 80 条 · 限流
@@ -68,11 +74,15 @@ node tools/test-contribute-ticket.mjs                  #  11 条 · 贡献凭证
 
 node tools/lint-slop.mjs                              # 必须 0
 node tools/lint-i18n.mjs                              # 必须 0（821 词条 / 803 引用）
-node tools/lint-docs.mjs                              # 79 条 · 死链 / 版本号 / 页面与模块清单
+node tools/lint-docs.mjs                              # 88 条 · 死链 / 版本号 / 页面与模块清单
 ```
 
 **期望数字**：176 / 123 / 24 / 22 / 80 / 45 / 79，加 `test-contribute-ticket` 11，全部 `0 失败`。
 `lint-slop` / `lint-i18n` 必须 0。
+
+> **CI**：`.github/workflows/ci.yml` 在每次 push/PR 跑 `npm run check`；
+> `.github/workflows/e2e.yml` 每晚（北京时间 02:00）和手动触发跑四套浏览器测试。
+> 出事时的操作顺序见 [`RUNBOOK.md`](RUNBOOK.md)。
 
 > `verify-pages` 偶发 3 条字体断言失败时，先确认没有残留的无头 Chrome 进程，
 > 再重跑一次；**连续两次失败**才算真失败（2026-10-17 实测过一次假失败，重跑 123/0）。

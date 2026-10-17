@@ -1,0 +1,139 @@
+{
+  "engineVer": "com-trim15-v0.5.0",
+  "parse": {
+    "notes": 5,
+    "real": 5,
+    "bpm": 120,
+    "dur": 1.5,
+    "nlines": 1
+  },
+  "feats": {
+    "strain_peak": 2.6,
+    "strain_p50": 2.6,
+    "strain_p90": 2.6,
+    "strain_p99": 2.6,
+    "strain_raw_max": 2.6,
+    "iv_mean": 0.375,
+    "iv_median": 0.5,
+    "chord_ratio": 0,
+    "fast_ratio": 0,
+    "real_core_notes_per_second": 2,
+    "real_notes_per_second": 3.3333333333333335,
+    "eff_peak_tps_1s": 0,
+    "eff_avg_tps_1s": 3,
+    "above_avg_density_mean": 2,
+    "above_avg_duration_sec": 0,
+    "chord_size_entropy": 0,
+    "avg_chord_size": 1,
+    "weighted_mf_score_per_sec": 0,
+    "multi_finger_3plus_events": 0,
+    "stair_speed_avg": 0,
+    "stair_speed_max": 0,
+    "stair_density": 0,
+    "pattern_switch_rate": 2,
+    "type_switch_per_sec": 2,
+    "tempo_change_count": 0,
+    "hold_ratio": 0.2,
+    "note_clutter_ratio": 0,
+    "drag_per_sec": 0.6666666666666666,
+    "cross_hand_density": 0,
+    "position_entropy": 1.3709505944546687,
+    "jline_move_disp_per_sec": 0,
+    "jline_rotate_density": 0,
+    "jline_disappear_density": 0,
+    "duration_s": 1.5,
+    "bpm": 120,
+    "lines": 1,
+    "notes_real": 5,
+    "notes_all": 5
+  },
+  "ps": {
+    "total": 2.7689727506926562,
+    "g": {
+      "density": 0.16857231949795157,
+      "pattern": 0.07186927429362946,
+      "coord": 0.17406265436997,
+      "stamina": 0.15566352861245233
+    }
+  },
+  "knnOff": {
+    "ref": 3.1726241725126196,
+    "tier": "EZ",
+    "basis": "official",
+    "lo": 2,
+    "hi": 7,
+    "q1": 2.5,
+    "q3": 3.5,
+    "spread": 5,
+    "n20": 20,
+    "selfExcluded": false,
+    "near": [
+      {
+        "name": "dB doll",
+        "level": "HD",
+        "diff": 3.5
+      },
+      {
+        "name": "Colorful Days♪",
+        "level": "EZ",
+        "diff": 5
+      },
+      {
+        "name": "Xep+ion",
+        "level": "EZ",
+        "diff": 2.5
+      },
+      {
+        "name": "Dash",
+        "level": "EZ",
+        "diff": 2.5
+      },
+      {
+        "name": "Engine x Start!! (melody mix)",
+        "level": "EZ",
+        "diff": 2.5
+      }
+    ]
+  },
+  "knn": {
+    "ref": 3.1726241725126196,
+    "tier": "EZ",
+    "basis": "official",
+    "lo": 2,
+    "hi": 7,
+    "q1": 2.5,
+    "q3": 3.5,
+    "spread": 5,
+    "d1": 5.228538578519038,
+    "dMean": 5.645524871998986,
+    "n20": 20,
+    "selfExcluded": false,
+    "near": [
+      {
+        "name": "dB doll",
+        "level": "HD",
+        "diff": 3.5
+      },
+      {
+        "name": "Colorful Days♪",
+        "level": "EZ",
+        "diff": 5
+      },
+      {
+        "name": "Xep+ion",
+        "level": "EZ",
+        "diff": 2.5
+      },
+      {
+        "name": "Dash",
+        "level": "EZ",
+        "diff": 2.5
+      },
+      {
+        "name": "Engine x Start!! (melody mix)",
+        "level": "EZ",
+        "diff": 2.5
+      }
+    ]
+  }
+}

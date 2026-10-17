@@ -2,6 +2,11 @@
 """
 P.H.M. 命令行报告生成器
 
+⚠ **状态：研究工具，已冻结**（2026-10-17，ADR-0001）。
+   - 4 维 / 官谱参照，与网页版（8 维 / 社区参照）**数字不可比**；
+   - 不再新增功能；只在研究结论受影响时修 bug；
+   - 输出口径标记 cli-4d。产品行为以 phm-web 为准。
+
 用法：
   python phm/cli.py --model data/official.jsonl \
                     --chart data/community.jsonl --id 22681

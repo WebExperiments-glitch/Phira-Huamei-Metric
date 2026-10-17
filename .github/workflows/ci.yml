@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # CI 里没有 write-secret.txt。这两个值只用于让签/验凭证的单测能跑，
+      # 不是生产凭据，也不会写入任何远端服务。
+      PHM_WRITE_SECRET: ci-test-write-secret-not-real
+      PHM_TOKEN_SECRET: ci-test-token-secret-not-real
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run all non-browser checks
+        run: npm run check
+        working-directory: phm-web

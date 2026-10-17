@@ -217,6 +217,11 @@ python tools/pipeline.py all           # 全流程，按依赖顺序
 | [调研报告2-定数由谁定](docs/调研/调研报告2-定数由谁定.md) | 定数到底谁定（**结论：没人按标准写**） |
 | [定数公式v2](docs/结果/定数公式v2.md) | 现行公式与精度 |
 | [18维要素实验结果](docs/结果/18维要素实验结果.md) | **负面结果**：加维度反而变差 |
+| [ADR 索引](docs/adr/README.md) | 架构决策：两套引擎 / 免费不接支付 / API 未排期 |
+| [非目标](docs/NON-GOALS.md) | 明确不做什么（防项目膨胀） |
+| [RUNBOOK](phm-web/docs/RUNBOOK.md) | 出事时照着做：分诊 / 回滚 / 备份 / 密钥 |
+
+> **本地检查**：`cd phm-web && npm run check`（与 CI 同一条命令）。
 
 ---
 
