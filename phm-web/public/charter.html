@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.11.1.1">
+<meta name="app-version" content="V0.11.2.0">
 <title>谱师作品 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 谱师的全部作品：按档位分布、平均定数，以及对每张谱的 P.H.M. 结构定数参考。支持分页浏览。">
@@ -14,7 +14,8 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.11.1.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.11.2.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.11.2.0">
 <style>
 .sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:10px;margin:14px 0}
 .sum{background:var(--card2);border-radius:10px;padding:10px 13px}
@@ -58,14 +59,22 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 
 <nav id="nav"></nav>
 
-<div class="card">
+<div class="card narrow">
   <h2 data-i18n="ch.title">查谱师作品</h2>
-  <div class="sub" data-i18n-html="ch.sub">先按名字找到他的 Phira 账号，再用账号 <b>id</b> 精确列出他上传的全部谱面。<br>为什么要两步：Phira 的「谱师」字段是<b>自由文本</b> ——有人写自己的名字，有人写团队名，还有人写别人的名字；而搜索接口会同时匹配曲名、谱师和<b>谱面说明</b>，所以直接搜名字会混进一堆本来不相干的谱。用账号 id 取作品则是一条精确查询。</div>
+  <!-- 说明从"压在输入框上方的一大段"改成折叠：
+       原来那三段话把真正要填的东西推到了首屏之外，而读它的人恰恰是
+       已经会用的人。留一行标题，要懂的人自己点开。 -->
+  <div class="sub" data-i18n-html="ch.lead">先按名字找到他的 Phira 账号，再用账号 <b>id</b> 精确列出全部作品。</div>
   <div class="row">
-    <input class="inp" id="q" data-i18n-ph="ch.q.ph" style="flex:1;min-width:180px" autocomplete="off" placeholder="谱师名或 UID（例如 平方秒和立方吨 / 6thPecJam / 257272）">
+    <input class="inp" id="q" data-i18n-ph="ch.q.ph" style="flex:1;min-width:180px" autocomplete="off" placeholder="谱师名或 UID（例如 平方秒和立方吨 / Mivik / 257272）">
     <button class="btn primary" id="go" data-i18n="ch.lookup">查找</button>
   </div>
+  <div class="exrow" id="exrow"></div>
   <div class="status" id="msg"></div>
+  <details class="why">
+    <summary data-i18n="ch.why.sum">为什么要两步？</summary>
+    <div class="fd" data-i18n-html="ch.sub">Phira 的「谱师」字段是<b>自由文本</b> —— 有人写自己的名字，有人写团队名，还有人写别人的名字；而搜索接口会同时匹配曲名、谱师和<b>谱面说明</b>，所以直接搜名字会混进一堆本来不相干的谱。用账号 id 取作品则是一条精确查询。</div>
+  </details>
 </div>
 
 <div id="out"></div>
@@ -80,13 +89,34 @@ table.tbl td.nm{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager, tierBadge, glossaryHTML, loadChartCache, cachedRow, applyStatic, t, onLangChange, markJa } from '/js/ui.js?v=V0.11.1.1';
+import { renderNav, esc, f1, f2, lvTag, tierColor, pagerHTML, wirePager, tierBadge, glossaryHTML, loadChartCache, cachedRow, applyStatic, t, onLangChange, markJa, chipRow } from '/js/ui.js?v=V0.11.2.0';
 import { findUsers, getUser, rankUserCands, getAllChartsByUploader,
-         scanCharter } from '/js/phira.js?v=V0.11.1.1';
+         scanCharter } from '/js/phira.js?v=V0.11.2.0';
+import { recent as getRecent, pushRecent } from '/js/settings.js?v=V0.11.2.0';
 
 renderNav('charter');
 applyStatic();
 document.getElementById('glossbox').innerHTML = glossaryHTML('c');
+
+/* ═════════ 例子 / 最近查过 ═════════
+ * 这两个名字是**刚用线上接口核对过存在**的账号（2026-10-17：
+ * 平方秒和立方吨 → id 257272；Mivik → id 2，Phira 作者本人）。
+ * ⚠ 别凭印象填：早先的占位符里写过一个 `6thPecJam`，实测
+ *   `/user?search=6thPecJam` 返回 0 条 —— 那种例子点下去必然空手而归，
+ *   比没有例子更糟。改这两个之前请先打一次接口确认。
+ * ⚠ 历史记录一定排在例子前面：用户回来是为了接着看上次那个人。 */
+const EXAMPLES = ['平方秒和立方吨', 'Mivik'];
+const paintChips = chipRow(document.getElementById('exrow'), {
+  recent: getRecent('charter'),
+  examples: EXAMPLES,
+  labelRecent: t('ch.recent'),
+  labelEx: t('ch.ex'),
+  onPick: v => { $('#q').value = v; lookup(v); },
+});
+onLangChange(paintChips);
+/* chipRow 建好时已经画过一次；这里再画一次是为了让「最近查过」
+   在**首帧**就是最新的（它读的是 localStorage，不会自己变）。 */
+paintChips();
 
 const $ = s => document.querySelector(s);
 const msg = (t2, k) => { const e = $('#msg'); e.className = 'status' + (k ? ' ' + k : ''); e.innerHTML = t2 || ''; };
@@ -140,6 +170,9 @@ async function lookup(raw) {
       : rankUserCands(await findUsers(name), name);
     ST.users = users;
     render();
+    /* 只在**真找到了人**之后才记历史 —— 把打错的字也存进"最近查过"，
+       等于给用户留一串点了必然失败的入口。 */
+    if (users.length) { pushRecent('charter', name); paintChips(); }
     if (!users.length) { msg(''); return; }
     await showWorks(await pickDefault(users));
   } catch (e) {

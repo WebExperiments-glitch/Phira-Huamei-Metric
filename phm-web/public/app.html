@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.11.1.1">
+<meta name="app-version" content="V0.11.2.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -33,7 +33,8 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.11.1.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.11.2.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.11.2.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -561,10 +562,7 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <div class="morebar">
   <button class="gh" id="authBtn" type="button"
      data-i18n-title="app.more.auth.title" title="P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.4" r="2.7"/><path d="M2.9 13.6c0-2.6 2.3-4.2 5.1-4.2s5.1 1.6 5.1 4.2"/></svg> <span id="authBtnLabel" data-i18n="c.login">登录</span></button>
-  <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
-     target="_blank" rel="noopener" data-i18n-title="app.more.gh.title"
-     aria-label="GitHub" title="GitHub 仓库 · Phira-Huamei-Metric"><svg viewBox="0 0 16 16" width="15" height="15"
-     fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg> GitHub</a>
+  <!-- GitHub 已挪到顶栏（ui.js 的 NAV 右侧）—— 同一份链接不该在这页再挂一次 -->
 </div>
 
 <div class="card" id="glossbox"></div>
@@ -626,7 +624,10 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.11.1.1';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.11.2.0';
+/* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
+   文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.11.2.0';
 
 /* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
    页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。
@@ -1026,6 +1027,23 @@ drop.addEventListener("drop",function(e){
 $("#file").addEventListener("change",function(e){
   handleFiles([...e.target.files]); e.target.value="";
 });
+
+/* ═════ 从首页接力过来的文件 ═════
+   ⚠ 必须放在 handleFiles 与 #drop 都接好之后 —— 它最终调的就是 handleFiles。
+   ⚠ 延迟一帧再取：这一句和 handleFiles 同属一次同步执行，但引擎模块是
+     <script type="module" src> 并行加载的，立刻开算会撞上引擎还没就绪。
+     setTimeout(0) 把开算排到当前任务之后，代价可忽略、消除时序竞争。 */
+if (handedOver()) {
+  setTimeout(async function(){
+    var f = null;
+    try { f = await claimHandoff(); } catch(e) { f = null; }
+    /* 取不到（无痕模式 / 存储被禁 / 用户手改了 URL）就静默跳过：
+       页面上那块拖拽区本来就是可用的，不该因为一个可选优化弹错误。 */
+    if (!f) return;
+    $("#msg").textContent = "";
+    handleFiles([f]);
+  }, 0);
+}
 
 "use strict";
 /* ═════ 全局健壮性：统一事件委托（最先绑定，不依赖后续任何代码）═════

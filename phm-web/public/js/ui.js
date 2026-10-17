@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.11.1.1';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.11.1.1';
+import { PHIRA_API } from './phira.js?v=V0.11.2.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.11.2.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -76,6 +76,14 @@ export function renderNav(active) {
       '<a href="' + href + '"' + (act === _navActive ? ' class="on"' : '') + '>' + t(key) + '</a>'
     ).join('') + '</div>'
     + '<div class="spacer"></div>'
+    /* GitHub 放顶栏右侧（2026-10-17 评审：站内的仓库入口原来只挂在某些页面的
+       底部/中段，同一份链接散在好几处）。放在版本号前面 —— 版本号是**状态**，
+       永远在最右，别被链接挤走。 */
+    + '<a class="ghlink" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"'
+    + ' target="_blank" rel="noopener" aria-label="GitHub" title="GitHub · Phira-Huamei-Metric">'
+    + '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">'
+    + '<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>'
+    + '</svg></a>'
     /* 版本号带 beta 标记 —— 见 docs/ARCHITECTURE.md「版本策略」：
        beta 期间版本连续增长；等确认没有已知问题后**归零**成 V0.1 并去掉标记。 */
     + '<span class="ver">' + esc(APP_VER) + ' beta</span>';
@@ -409,3 +417,67 @@ export function accOf(r) {
 /** RKS 说明。以前是一个常量字符串 —— 那样切语言时它不会变，
  *  所以改成**函数**：每次调用现取，语言一变内容就跟着变。 */
 export function rksNote() { return t('rks.note'); }
+
+/* ══════════════════════════════════════════════════════════════
+ * 例子 / 最近查询的芯片行
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么要有】
+ *   空输入框 + 一句"请输入用户名"等于没给任何信息：用户还是不知道
+ *   该填什么格式。给几个**可点的真实值**，第一下点击就出结果。
+ *
+ * ⚠ 内容有一半来自用户自己的输入历史（最近查询），所以必须逐个 esc()。
+ *   这里返回的是 HTML 字符串、由页面 innerHTML 落地 —— 不转义就是 XSS。
+ * ⚠ 点击一律走事件委托读 `data-v`，不要拼进 onclick：
+ *   用户输入里出现单引号就能把属性打断。
+ */
+export function chipsHTML(items, label) {
+  const list = (items || []).filter(function (x) { return typeof x === 'string' && x; });
+  if (!list.length) return '';
+  return (label ? '<span class="lbl">' + esc(label) + '</span>' : '')
+    + list.map(function (v) {
+      return '<button type="button" class="chip" data-v="' + esc(v) + '">' + esc(v) + '</button>';
+    }).join('');
+}
+
+/** 给一个芯片容器接上委托。点击 → cb(value)。 */
+export function wireChips(box, cb) {
+  if (!box) return;
+  box.addEventListener('click', function (e) {
+    const el = e.target && e.target.closest ? e.target.closest('.chip') : null;
+    if (!el || !box.contains(el)) return;
+    const v = el.getAttribute('data-v');
+    if (v) cb(v);
+  });
+}
+
+/** 一行「最近查过 · 试试」芯片，含点击接线。
+ *
+ *  【为什么抽到 ui.js】
+ *    查谱师 / 查玩家两页本来各写了一份 paintChips —— 逻辑一模一样，
+ *    差异只有例子数组和点击后干什么。两份实现必然漂移
+ *    （屎山考核里「重复函数定义」那条规则就是为这个设的）。
+ *
+ *  @param {HTMLElement|null} box  容器
+ *  @param {object} o
+ *          recent      最近查过的值（新的在前）
+ *          examples    示例值
+ *          labelRecent 「最近查过」的**已翻译**文字
+ *          labelEx     「试试」的**已翻译**文字
+ *          onPick      (value) => void
+ *  @returns {() => void} 重画函数（改完记录 / 切语言时再调一次）
+ */
+export function chipRow(box, o) {
+  const paint = function () {
+    if (!box) return;
+    const ex = o.examples || [];
+    /* 例子和最近查过重复时只留一份 —— 同一句话出现两次会让人以为
+       是两个不同的东西。 */
+    const hist = (o.recent || []).filter(function (v) { return ex.indexOf(v) < 0; });
+    box.innerHTML = chipsHTML(hist, o.labelRecent)
+      + (hist.length ? '<span class="lbl" style="margin-left:2px">·</span>' : '')
+      + chipsHTML(ex, o.labelEx);
+  };
+  wireChips(box, function (v) { if (o.onPick) o.onPick(v); });
+  paint();
+  return paint;
+}

@@ -381,9 +381,13 @@ for (const R of ROUTES) {
     })()`);
     ok('ui.js 可加载', typeof mods['/js/ui.js'] === 'number' && mods['/js/ui.js'] > 3, JSON.stringify(mods['/js/ui.js']));
     ok('phira.js 可加载', typeof mods['/js/phira.js'] === 'number' && mods['/js/phira.js'] > 3, JSON.stringify(mods['/js/phira.js']));
-    /* 导航是真能点的：直接 fetch 一遍所有入口，确认没有 404 */
+    /* 导航是真能点的：直接 fetch 一遍所有入口，确认没有 404。
+       ⚠ 只探**站内**链接（以 / 开头）—— 2026-10-17 把 GitHub 挪进顶栏之后，
+         外部地址在这个 fetch 里必然是 ERR（CORS / 出网策略），
+         那不代表链接坏了，探活外链在这套测试里既做不到也没意义。 */
     const links = await evalJS(`(async function(){
-      const hrefs = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); });
+      const hrefs = Array.prototype.map.call(document.querySelectorAll('#nav a'), function(a){ return a.getAttribute('href'); })
+        .filter(function(h){ return h && h.charAt(0) === '/'; });
       const res = {};
       for (const h of hrefs) { try { res[h] = (await fetch(h, {method:'GET'})).status; } catch(e){ res[h] = 'ERR'; } }
       return res;

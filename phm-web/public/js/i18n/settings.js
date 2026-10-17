@@ -80,6 +80,7 @@ export default {
     'set.store.phiraName': 'Phira 用户名（自动填充）',
     'set.store.phiraUid': 'Phira UID（自动填充）',
     'set.store.lastUid': '上次查询的玩家',
+    'set.store.recent': '最近查询过的名字（本机）',
     'set.store.own': '本人账号声明 · UID {uid}',
 
     'set.about.ver': '页面版本',
@@ -170,6 +171,7 @@ export default {
     'set.store.phiraName': 'Phira username (autofill)',
     'set.store.phiraUid': 'Phira UID (autofill)',
     'set.store.lastUid': 'Last player looked up',
+    'set.store.recent': 'Recent lookups (this device)',
     'set.store.own': 'Own-account declaration · UID {uid}',
 
     'set.about.ver': 'Page version',

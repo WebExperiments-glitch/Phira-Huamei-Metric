@@ -108,14 +108,7 @@ export default {
       + '懒得下载？直接用上面的<b>搜索</b>框按曲名找，点「算」即可。',
 
     /* ── 第二层入口（morebar）── */
-    'app.more.user': '我的成绩',
-    'app.more.user.title': '读取 Phira 公开资料与成绩（只读，不需要也不接受密码）',
-    'app.more.user.hint': 'B19 / 单曲 RKS / 最近游玩 · 现在有独立页面了',
-    'app.more.charter': '找谱师',
-    'app.more.charter.title': '查某位谱师的全部作品',
-    'app.more.charter.hint': '按谱师看作品与定数',
     'app.more.auth.title': 'P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录',
-    'app.more.gh.title': 'GitHub 仓库 · Phira-Huamei-Metric',
 
     /* ── 页脚 ── */
     /* ⚠ 2026-10-17 评审：这一行原来把实现细节（8 维 log1p 特征、双参照 k-NN）
@@ -124,7 +117,6 @@ export default {
     'app.foot.engine':
       '用 <b>9,508 张社区谱</b>和 <b>1,037 张官谱</b>做双参照，算出可复核的定数',
     'app.foot.ver': '版本 {v}（开发者测试版，正式版会重新计算）',
-    'app.foot.source': '源码',
     'app.foot.details': 'PS 是什么？本工具的边界与隐私（点开看）',
     'app.foot.d1':
       '<b>三个数不是一回事，别混用</b>：<br>'
@@ -499,20 +491,12 @@ export default {
       + 'Too lazy to download? Just use the <b>search</b> box above by song name and hit "Analyze".',
 
     /* ── second-tier entry points (morebar) ── */
-    'app.more.user': 'My scores',
-    'app.more.user.title': 'Read Phira\u2019s public profile and scores (read-only; a password is neither needed nor accepted)',
-    'app.more.user.hint': 'B19 / per-chart RKS / recent plays · now its own page',
-    'app.more.charter': 'Find a charter',
-    'app.more.charter.title': 'See every chart by a charter',
-    'app.more.charter.hint': 'Browse a charter\u2019s charts and constants',
     'app.more.auth.title': 'P.H.M. account (optional): sign in to link Phira and keep your records',
-    'app.more.gh.title': 'GitHub repository · Phira-Huamei-Metric',
 
     /* ── footer ── */
     'app.foot.engine':
       'Computed against <b>9,508 community charts</b> and <b>1,037 official charts</b> as dual references',
     'app.foot.ver': 'Version {v} (developer beta; the release build will recompute everything)',
-    'app.foot.source': 'Source',
     'app.foot.details': 'What is PS? This tool\u2019s limits and privacy (expand)',
     'app.foot.d1':
       '<b>These three numbers are not the same — do not mix them up</b>:<br>'

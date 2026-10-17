@@ -293,6 +293,57 @@ for (const f of FILES) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+ * 6b) CSS 花括号必须平衡
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么必须有这条】
+ *   2026-10-17 在 base.css 里把 `.btn {` 写重了一行：
+ *
+ *       .btn {
+ *         min-height: 40px;
+ *       .btn {                     ← 多出来的这一行
+ *         display: inline-flex; …
+ *       }
+ *
+ *   于是**从那一行往下的整份样式表都成了 `.btn` 的嵌套规则**，全部失效 ——
+ *   控件高度、focus 环、字体/字号档位、窄卡、芯片……一条都没生效。
+ *   而浏览器**不报任何错**：它只是安静地把后面所有规则当垃圾丢掉。
+ *   排查时看到的是"样式没写对"，其实是"样式根本没被解析"。
+ *
+ *   CSS 的括号不平衡是**静默的全局故障**，代价（整份样式表）远大于
+ *   一条 lint 的成本。所以在这里守住。
+ */
+for (const f of FILES) {
+  if (!f.rel.endsWith('.css')) continue;
+  const src = readFileSync(f.abs, 'utf8');
+  /* 注释不算数（`/* { *\/` 这类）；字符串里的花括号在 CSS 里基本只出现在
+     content: "{"，一并跳过。 */
+  let depth = 0, line = 1, bad = 0, badLine = 0;
+  let inC = false, quote = null;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i], n = src[i + 1];
+    if (c === '\n') line++;
+    if (inC) { if (c === '*' && n === '/') { inC = false; i++; } continue; }
+    if (quote) { if (c === '\\') { i++; } else if (c === quote) { quote = null; } continue; }
+    if (c === '/' && n === '*') { inC = true; i++; continue; }
+    if (c === '"' || c === "'") { quote = c; continue; }
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth < 0) { bad++; badLine = badLine || line; depth = 0; }
+    }
+  }
+  if (depth > 0) {
+    add('CSS 花括号不平衡', f.rel, src.split('\n').length,
+      `文件结束时还有 ${depth} 个 { 没闭合 —— 从那一行往下的样式全部会被浏览器丢掉`,
+      'CSS 括号不平衡是静默的全局故障：浏览器不报错，只是把后面的规则当垃圾扔掉');
+  }
+  if (bad) {
+    add('CSS 花括号不平衡', f.rel, badLine, `多出 ${bad} 个 }`,
+      'CSS 括号不平衡是静默的全局故障：浏览器不报错，只是把后面的规则当垃圾扔掉');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
  * 7) 导出了但全站没人 import
  * ══════════════════════════════════════════════════════════════
  * 死接口比死代码更隐蔽：它看起来"是给外面用的"。

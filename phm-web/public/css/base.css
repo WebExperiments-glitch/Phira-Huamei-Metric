@@ -338,6 +338,14 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .nav .spacer { flex: 1; }
 .nav .ver { font-size: var(--t-xs); color: var(--fg3); }
+/* 顶栏的 GitHub 图标（2026-10-17 评审：仓库入口原来散在几个页面的中段/页脚） */
+.nav .ghlink {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; margin-left: 4px; border-radius: 7px;
+  color: var(--fg3); text-decoration: none;
+  transition: color .14s, background .14s;
+}
+.nav .ghlink:hover { color: var(--fg); background: var(--card2); }
 
 /* ── 卡片 / 面板 ──────────────────────────────────────── */
 .card {
@@ -357,9 +365,13 @@ a:hover { text-decoration-thickness: 2px; }
 .fd, .card > .sub, .tip, .sdesc, .note, .sub { max-width: var(--measure); }
 
 /* ── 按钮 ─────────────────────────────────────────────── */
+/* ⚠ 这里曾经被写成两行 `.btn {`（`min-height:40px;` 后面又开了一个同名块），
+   于是**第 368 行往下的整份样式表都被当成嵌套规则吞掉了** ——
+   控件高度、focus ring、字体/字号档位、窄卡、芯片……一条都没生效，
+   而浏览器不会报错，只看页面还以为是"样式没写对"。
+   教训：CSS 花括号不平衡是**静默全局故障**，加检查（见 lint-slop 的 CSS 括号规则）。 */
 .btn {
   min-height: 40px;
-.btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 9px; cursor: pointer;
   border: 1px solid var(--line2); background: var(--card2); color: var(--fg);
@@ -509,145 +521,5 @@ details summary:hover { color: var(--fg); }
   .nav .brand { font-size: 17px; }
 }
 
-/* ══════════════════════════════════════════════════════════════
- * 控件与排版规整（2026-10-17 外部评审驱动）
- * ══════════════════════════════════════════════════════════════
- * 【为什么整块追加在最后】
- *   评审给的十六进制是**浅色主题**实测值（#8F877B / #9A6208）。
- *   本文件是**双主题**的（暗色 --bg:#0e0d0b，浅色 #f6f3ee），
- *   直接写死会把暗色主题一起弄坏。所以这里全部映射到**主题令牌**，
- *   两套主题自动各自取到对应的色值。
- *
- * 【修的是什么】
- *   本文件此前**一条 input / button 规则都没有** —— 谱师/玩家页的输入框和按钮
- *   全是浏览器默认（边框 #767676、按钮 #EFEFEF），输入框约 20px、按钮约 39px，
- *   不等高、没间距，placeholder 还被截断。这是全站最扎眼的不一致。
- */
-
-:root {
-  /* 字阶收口：12–16px 之间原本有五六档，收成 5 级 */
-  --fs-1: 14px;   /* 正文 / 说明 */
-  --fs-2: 16px;   /* 小标题 */
-  --fs-3: 20px;   /* 节标题 */
-  --fs-4: 28px;   /* 页标题 */
-  --fs-5: 40px;   /* hero */
-}
-
-/* ── 表单控件：与按钮同高、同圆角、有明确聚焦态 ── */
-input[type="text"],
-input[type="search"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="url"],
-select,
-textarea {
-  box-sizing: border-box;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--line2);
-  border-radius: 10px;
-  background: var(--card3);
-  color: var(--fg);
-  font: inherit;
-  font-size: var(--fs-1);
-  line-height: 38px;         /* 40 - 2×1px 边框，让单行文字垂直居中 */
-  width: min(560px, 100%);
-  /* ⚠ 不要给 transition all —— 聚焦时整块重绘会有 1px 抖动 */
-  transition: border-color .15s, box-shadow .15s;
-}
-textarea { line-height: 1.7; padding: 10px 12px; min-height: 88px; }
-input::placeholder, textarea::placeholder { color: var(--fg4); }
-
-/* 聚焦：2px 描边（评审要求）。用 box-shadow 而不是 outline，
-   这样圆角能跟着走、又不会把布局挤动 1px。 */
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--brand);
-  box-shadow: 0 0 0 2px var(--brand-line);
-}
-
-/* ── 按钮：同一套尺寸，与输入框等高 ── */
-button,
-.btn {
-  box-sizing: border-box;
-  min-height: 40px;
-  padding: 0 18px;
-  border: 1px solid var(--line2);
-  border-radius: 10px;
-  background: var(--card2);
-  color: var(--fg);
-  font: inherit;
-  font-size: var(--fs-1);
-  line-height: 38px;
-  cursor: pointer;
-  transition: background .15s, border-color .15s;
-}
-button:hover, .btn:hover { background: var(--card3); border-color: var(--brand-line); }
-button:disabled { opacity: .5; cursor: not-allowed; }
-
-/* 主操作：实心琥珀 + 深色字（--brand-ink 是为对比度专门定的令牌）。
-   ⚠ 评审写的是「白字」，但本站 --brand 是暖亮琥珀，白字对比度不够；
-     用 --brand-ink（深暖褐）才是达标的写法。
-   ⚠⚠ 选择器必须包含 `.btn.primary` —— 站内两个主操作（首页「开始算定数」、
-     下载页「下载 Windows 版」）写的是 `class="btn primary"`（两个类、中间空格），
-     不是 `.btn-primary`。第一版只写了 `.btn-primary` 和 `button.primary`，
-     于是这两个**最关键的行动点**完全没吃到样式，还是文字链的样子。 */
-.btn-primary,
-.btn.primary,
-button.primary {
-  background: var(--brand);
-  border-color: var(--brand);
-  color: var(--brand-ink);
-  font-weight: 600;
-}
-.btn-primary:hover,
-.btn.primary:hover,
-button.primary:hover {
-  background: var(--brand-hover);
-  border-color: var(--brand-hover);
-  color: var(--brand-ink);
-}
-
-/* ── 说明段：统一口径 ──
-   评审指出：卡片外的说明是 15px 近黑，比卡片内的 13–14px 灰更大更黑，
-   还紧贴卡片、宽度只有卡片一半。统一成和卡片正文同一档。 */
-.note {
-  font-size: var(--fs-1);
-  color: var(--fg2);
-  line-height: 1.7;
-  max-width: 72ch;
-  margin: 10px 0 0;
-}
-.note.mono-inline { font-family: var(--font-mono); }
-
-/* ── 警告 callout ──
-   评审：最该被看到的「样本量还小，仅供参考」反而最不起眼。
-   改成带左侧竖线的块，视觉权重明确高于普通说明。 */
-.callout {
-  font-size: var(--fs-1);
-  line-height: 1.7;
-  color: var(--fg);
-  background: var(--brand-soft);
-  border-left: 3px solid var(--brand);
-  border-radius: 0 8px 8px 0;
-  padding: 10px 14px;
-  margin: 12px 0;
-}
-.callout b { color: var(--fg); }
-
-/* 等宽样式只给英文（.exe / 路径 / 字段名）——
-   中文套等宽会回退成小号宋体，和周围黑体不一致。 */
-.mono-en { font-family: var(--font-mono); font-size: .95em; }
-
-/* ── 字体 / 字号切换（评审 H）──
-   ⚠ 只覆盖变量、不改任何具体选择器 —— 全站所有用到 --font-display 的地方
-     自动跟着变，不用挨个改。这就是当初把字体抽成令牌的用处。
-   ⚠ 字号用 html 的 font-size 百分比来缩放，配合各处的 rem/em 生效；
-     写死 px 的地方（少数）不跟随 —— 那些是刻意固定的（比如表格数字）。 */
-:root[data-font="sans"] {
-  --font-display: var(--font-body);
-}
-:root[data-size="s"] { font-size: 93.75%; }   /* 15px 基准 */
-:root[data-size="m"] { font-size: 100%;  }    /* 16px 基准（默认） */
-:root[data-size="l"] { font-size: 109.4%; }   /* 17.5px */
+/* 控件与组件样式已拆到 /css/ui-kit.css（2026-10-17）——
+   那个文件必须在 base.css **之后**引用。 */

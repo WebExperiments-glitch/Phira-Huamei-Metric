@@ -20,6 +20,28 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.2.0', date: '2026-10-17',
+    zh: [
+      '首页现在能<b>直接把谱面拖进来</b>：拖到那块虚线上松手，会带着文件跳到算定数页自己开始算 —— '
+        + '不用「松手 → 点按钮 → 再拖一次」。文件照样不出浏览器。',
+      '查谱师 / 查玩家两页的输入框收窄居中（原来拉满一整行），底下一整段「为什么要两步」收进折叠，'
+        + '空出来的地方放了<b>可以点的例子</b>和<b>你最近查过的人</b>。',
+      '顶栏右侧加了 <b>GitHub</b> 入口。',
+      '修：全站按钮和输入框的高度、圆角、聚焦高亮<b>一直没生效</b>（样式表里有一处写重了，'
+        + '把它后面所有规则都吞掉了）。现在按钮、输入框、下拉框是齐的。',
+    ],
+    en: [
+      'The home page now accepts a <b>dropped chart pack</b>: let go on the dashed strip and it carries the '
+        + 'file to the analyser and starts on its own — no more "let go, click the button, drag it again". '
+        + 'The file still never leaves your browser.',
+      'The charter and player pages have a narrower, centred input card, the long "why two steps" paragraph '
+        + 'is folded away, and the freed space holds <b>clickable examples</b> plus <b>your recent lookups</b>.',
+      'A <b>GitHub</b> link now sits on the right of the top bar.',
+      'Fixed: button and input heights, radii and focus rings <b>were never applying</b> — a duplicated line '
+        + 'in the stylesheet swallowed every rule after it. Buttons, inputs and selects now line up.',
+    ],
+  },
+  {
     v: 'V0.11.1.1', date: '2026-10-17',
     zh: [
       '结果里的那把<b>刻度尺</b>现在真的像一把尺子：底下加了细刻度线（每格 1 个定数点），'

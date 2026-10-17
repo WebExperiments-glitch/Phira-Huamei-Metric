@@ -12,6 +12,8 @@ export default {
     /* ── 查询区（静态）── */
     'u.title': '查玩家成绩',
     'u.sub': '输入 Phira 用户名或纯数字 UID。只读公开数据，<b>不需要密码，也不会替你登录</b>。',
+    'u.ex': '试试',
+    'u.recent': '最近查过',
     'u.q.ph': '用户名 或 UID（例如 168142）',
     'u.search': '查询',
 
@@ -163,6 +165,8 @@ export default {
     /* ── lookup ── */
     'u.title': 'Look up a player',
     'u.sub': 'Enter a Phira username or a numeric UID. Read-only public data — <b>no password needed, and we never sign in for you</b>.',
+    'u.ex': 'Try',
+    'u.recent': 'Recent',
     'u.q.ph': 'Username or UID (e.g. 168142)',
     'u.search': 'Search',
 

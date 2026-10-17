@@ -40,12 +40,13 @@ export const KEYS = Object.freeze({
   lang:      'phm_lang',         /* 界面语言："zh" / "en" */
   font:      'phm_font',         /* 标题字体："serif"（默认，思源宋体标题）/ "sans"（全黑体） */
   size:      'phm_size',         /* 字号档位："s" / "m"（默认）/ "l" */
+  recent:    'phm_recent',       /* 最近查询：JSON {charter:[名…], user:[名…]} */
 });
 
 /** 固定键（不含 own 前缀键）—— 用于清空与导出。 */
 export const PLAIN_KEYS = Object.freeze([
   KEYS.optin, KEYS.notice, KEYS.cid, KEYS.phiraName, KEYS.phiraUid, KEYS.lastUid,
-  KEYS.theme, KEYS.lang, KEYS.font, KEYS.size,
+  KEYS.theme, KEYS.lang, KEYS.font, KEYS.size, KEYS.recent,
 ]);
 
 /** 本地存储表的行名 —— ⚠ 值是 **i18n 词条名**，不是给人看的字面量。
@@ -67,6 +68,9 @@ export const LABELS = Object.freeze({
   /* 这两项名字与设置页的分区标题一致，直接复用已有词条，不再造一份 */
   [KEYS.theme]:     'set.theme',
   [KEYS.lang]:      'set.lang',
+  [KEYS.font]:      'set.font',
+  [KEYS.size]:      'set.size',
+  [KEYS.recent]:    'set.store.recent',
 });
 
 /* ══════════════════════════════════════════════════════════════
@@ -376,6 +380,43 @@ export function clearAll() {
   for (const uid of own.list()) set(KEYS.ownPrefix + uid, null);
   emit('*');
   return true;
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 最近查询 —— 纯便利数据
+ * ══════════════════════════════════════════════════════════════
+ * 存的是**公开账号名**（谁查过谁的谱师页/成绩页），不含任何身份信息，
+ * 也不上传。作用只有一个：回来时不用重新敲一遍。
+ *
+ * 【为什么一个键存一个 JSON，而不是每个 kind 一个键】
+ *   clearAll 的白名单是 PLAIN_KEYS，键名要逐个登记。按 kind 拆键的话，
+ *   每加一个页面就得记得同步白名单 —— 漏一次就是「清空」清不掉，
+ *   而那种 bug 用户只会以为是"清空坏了"。
+ */
+const RECENT_KINDS = ['charter', 'user'];
+const RECENT_MAX = 6;
+
+/** 取某一类的最近查询（新的在前）。 */
+export function recent(kind) {
+  if (RECENT_KINDS.indexOf(kind) < 0) return [];
+  let o = {};
+  try { o = JSON.parse(get(KEYS.recent, '{}')) || {}; } catch (e) { o = {}; }
+  const arr = o[kind];
+  return Array.isArray(arr) ? arr.filter(x => typeof x === 'string').slice(0, RECENT_MAX) : [];
+}
+
+/** 记一条（去重、置顶、截断）。返回是否写成功。 */
+export function pushRecent(kind, value) {
+  if (RECENT_KINDS.indexOf(kind) < 0) return false;
+  const v = String(value == null ? '' : value).trim().slice(0, 64);
+  if (!v) return false;
+  let o = {};
+  try { o = JSON.parse(get(KEYS.recent, '{}')) || {}; } catch (e) { o = {}; }
+  const arr = (Array.isArray(o[kind]) ? o[kind] : [])
+    .filter(function (x) { return typeof x === 'string' && x !== v; });
+  arr.unshift(v);
+  o[kind] = arr.slice(0, RECENT_MAX);
+  return set(KEYS.recent, JSON.stringify(o));
 }
 
 /* ══════════════════════════════════════════════════════════════

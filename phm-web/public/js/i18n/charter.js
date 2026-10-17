@@ -6,12 +6,17 @@
 export default {
   zh: {
     'ch.title': '查谱师作品',
+    /* 一行导语 + 一个折叠标题。原来整段说明压在输入框上方，
+       真正要填的东西被挤出首屏。 */
+    'ch.lead': '先按名字找到他的 Phira 账号，再用账号 <b>id</b> 精确列出全部作品。',
+    'ch.why.sum': '为什么要两步？',
     'ch.sub':
-      '先按名字找到他的 Phira 账号，再用账号 <b>id</b> 精确列出他上传的全部谱面。'
-      + '<br>为什么要两步：Phira 的「谱师」字段是<b>自由文本</b> ——有人写自己的名字，'
+      'Phira 的「谱师」字段是<b>自由文本</b> ——有人写自己的名字，'
       + '有人写团队名，还有人写别人的名字；而搜索接口会同时匹配曲名、谱师和<b>谱面说明</b>，'
       + '所以直接搜名字会混进一堆本来不相干的谱。用账号 id 取作品则是一条精确查询。',
-    'ch.q.ph': '谱师名或 UID（例如 平方秒和立方吨 / 6thPecJam / 257272）',
+    'ch.ex': '试试',
+    'ch.recent': '最近查过',
+    'ch.q.ph': '谱师名或 UID（例如 平方秒和立方吨 / Mivik / 257272）',
     'ch.lookup': '查找',
 
     'ch.cands.title': '候选账号',
@@ -88,13 +93,16 @@ export default {
 
   en: {
     'ch.title': 'Find a charter\u2019s charts',
+    'ch.lead': 'First find their Phira <b>account</b> by name, then list every chart by account <b>id</b>.',
+    'ch.why.sum': 'Why two steps?',
     'ch.sub':
-      'First find their Phira <b>account</b> by name, then list every chart they uploaded '
-      + 'by account <b>id</b>.<br>Why two steps: the "charter" field on Phira is <b>free text</b> — '
+      'The "charter" field on Phira is <b>free text</b> — '
       + 'some write their own name, some a team name, some someone else\u2019s. And the search '
       + 'endpoint matches chart name, charter and <b>description</b> at once, so searching a name '
       + 'drags in charts that have nothing to do with them. Filtering by account id is exact.',
-    'ch.q.ph': 'Charter name or UID (e.g. SqrtSecond / 6thPecJam / 257272)',
+    'ch.ex': 'Try',
+    'ch.recent': 'Recent',
+    'ch.q.ph': 'Charter name or UID (e.g. SqrtSecond / Mivik / 257272)',
     'ch.lookup': 'Look up',
 
     'ch.cands.title': 'Matching accounts',
