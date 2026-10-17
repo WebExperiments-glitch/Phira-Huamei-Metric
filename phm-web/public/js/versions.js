@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.17.4.0', date: '2026-10-18',
+    zh: ['规则引擎退回你那张旧图的做法：<b>全 Tap、一次一个、x 全屏分散、单判定线</b>。去掉 Hold/Flick/Drag 混排、装饰线和段落动效；节奏用 onset/整拍补位。'],
+    en: ['Rule engine reverted to the old-reference style: <b>all Tap, one note at a time, x spread across the screen, one judge line</b>. Removed mixed Hold/Flick/Drag, decorative lines, and section animation.'],
+  },
+  {
     v: 'V0.17.3.0', date: '2026-10-18',
     zh: ['2K 改为<b>2 指可打、音符整屏分散</b>：x 在 ±540 范围内取 12 个分散位置，左右手交替，同一时刻最多 1 个 note；不再固定两条轨道。'],
     en: ['2K now means <b>two-finger playable with notes spread across the screen</b>: 12 x positions across ±540, alternating hands, at most one note at a time; no fixed two-lane layout.'],
