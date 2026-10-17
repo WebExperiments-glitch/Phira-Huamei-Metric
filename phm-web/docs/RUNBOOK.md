@@ -118,7 +118,12 @@ UNION ALL SELECT 'hm_plays', count(*), max(created_at) FROM hm_plays;
 
 **轮换 token 密钥**：会使所有 huamei token 失效（用户需重新登录），确认可接受再动。
 
-> 目标状态：生产凭据放 GitHub Environment secrets；本机只留开发假值。当前仍手动，迁移见 TODO。
+> **已做（2026-10-17）**：仓库的 `production` Environment 里已存 `PHM_WRITE_SECRET` 与
+> `PHM_TOKEN_SECRET`（值与本地一致，token 用的是从写入凭据派生的 64 位 hex，保证与线上现有 token 兼容）。
+> ⚠ 但 WorkBuddy 的部署目前是**手工**的，平台不会读取 GitHub secrets —— 本地 `write-secret.txt`
+> 暂时必须保留，否则下次部署后写入会挂。等部署流程接入 secrets（或平台支持环境变量）再删本地文件。
+>
+> **轮换时三处一起改**：数据库 `phm_secrets` + 本地运行环境 + GitHub Environment secret。
 
 ---
 

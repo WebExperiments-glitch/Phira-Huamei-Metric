@@ -6,10 +6,10 @@
 数据库：WorkBuddy 云服务托管的 PostgreSQL。
 **没有迁移文件** —— 结构变更通过 MCP 工具执行 SQL，因此这份文档就是唯一的结构记录。
 
-> **最后核对：2026-10-17**。本次补入 2026-10-12 ~ 10-17 新增的
-> `hm_accounts` / `hm_codes` / `hm_plays` / `hm_rate` 四张表与对应 RPC。
-> `hm_*` 的列清单来自服务端代码的实际读写（`lib/hm-accounts.mjs`、`lib/hm.mjs`、
-> `lib/ratelimit.mjs`）；若与库不一致，以库为准并回写本文。
+> **最后核对：2026-10-17**。`hm_*` / `phm_*` 的列清单已用 **PostgREST OpenAPI
+> 内省**（`GET <DB base>/` 的 `definitions`）核对过实际库，不再是"按代码猜"。
+> 实际表名是 `hm_email_codes`（不是 hm_codes）；`hm_plays` 主键是 `id`（不是 play_id）；
+> `hm_rate` 只有 `k` / `t` 两列。
 
 ---
 
@@ -126,17 +126,19 @@
 | `email` | text **UNIQUE** | 邮箱（小写归一；允许 `+` 别名） |
 | `salt` | text | scrypt 盐 |
 | `pass_hash` | text | scrypt 哈希（`N=16384,r=8,p=1` 量级） |
+| `created_at` | timestamptz | 注册时间，默认 `now()` |
 
-> 列清单来自 `lib/hm-accounts.mjs` 的实际读写（create / lookup / setpw）。
-> 以库为准；若两者不一致，先改这里再改库，别反过来。
+> 列清单来自实际库内省（2026-10-17），与 `lib/hm-accounts.mjs` 的读写一致。
+> 若两者不一致，先改这里再改库，别反过来。
 > 没有「改密码 / 找回密码」入口：重置密码必须**先验邮箱验证码**，再走 `hm_account_setpw`。
 > RLS 开、**不给任何角色直连权限**；token 不落库（服务端 HS256 自签）。
 
 ---
 
-### `hm_codes` — 邮箱验证码状态（2026-10-17 起）
+### `hm_email_codes` — 邮箱验证码状态（2026-10-17 起）
 
 一行 = 一次发码。**验证码本身由平台保管**，我们只存 `verification_id` 与过期时间。
+⚠ 实际表名是 **`hm_email_codes`**（代码里的 RPC 仍叫 `hm_code_put/get/consume`）。
 
 | 列 | 类型 | 说明 |
 |---|---|---|
@@ -144,7 +146,9 @@
 | `purpose` | text | `register` / `reset`（登录不需要码） |
 | `vid` | text | 平台返回的 `verification_id`，**只存服务端，绝不下发客户端** |
 | `exp` | bigint | 过期时间（epoch 秒，10 分钟 TTL） |
-| `attempts` / `used` | integer / boolean | 尝试次数（上限 5）与是否已消费 |
+| `tries` | integer | 已尝试次数（上限 5） |
+| `used` | boolean | 是否已消费（一个码只能用一次） |
+| `created_at` | timestamptz | 发码时间，默认 `now()` |
 
 > 错误码：`code_missing / code_expired / code_used / code_too_many / code_wrong / code_invalid`。
 > 发码、验码、消费分别对应 `hm_code_put / hm_code_get / hm_code_consume` 三个 RPC。
@@ -159,7 +163,7 @@
 
 | 列 | 类型 | 说明 |
 |---|---|---|
-| `play_id` | bigint **主键** | 自增，写入后回给客户端 |
+| `id` | bigint **主键** | 自增；写入后作为 `play_id` 回给客户端 |
 | `owner_id` | text | 账号 `sub`（**服务端从 token 取，不接受客户端传**） |
 | `chart_id` / `chart_level` | integer / text | Phira 谱面 ID 与难度标签 |
 | `chart_digest` | text | 谱面内容摘要（可选，≤80 字符） |
@@ -171,6 +175,7 @@
 | `client_ver` / `judge_ver` | text / integer | 客户端版本 / 判定版本 |
 | `played_at` | bigint | 客户端结算时间（epoch 毫秒/秒，允许 null） |
 | `judge_blob` | text | 逐音符判定，上限 400KB |
+| `ok` | boolean | 服务端一致性检查的综合结果（非硬伤才写入） |
 | `created_at` | timestamptz | 默认 `now()` |
 
 > 写路径只有 `hm_put_play(p_secret, p_row)`，RLS 开、anon 无直连。
@@ -181,7 +186,8 @@
 
 ### `hm_rate` — 限流计数（2026-10-16 起）
 
-不对外暴露的计数表。每次请求调 `hm_rate_hit(p_secret, p_key, p_max, p_window_ms)`：
+不对外暴露的计数表。实际只有 `k`（text，限流键）与 `t`（bigint，时间戳）两列，
+滑动窗口由 `hm_rate_hit` 内部按 `k` 计数/清理。每次请求调 `hm_rate_hit(p_secret, p_key, p_max, p_window_ms)`：
 
 - 返回 `{ok, remaining, reset_ms}`；`ok=false` 时 `reset_ms` 告诉客户端还要等多久。
 - **被拒的请求不消耗配额**（滑动窗口语义，恢复更快）。
@@ -230,7 +236,7 @@
 | `phm_stats` / `phm_plays` / `phm_mine` | EXECUTE ✅ | 聚合接口，只回数字 |
 | `phm_put_chart` / `phm_put_scores` | EXECUTE ✅（**但需凭据**）| 无凭据 = 42501 |
 | `phm_touch` | EXECUTE ✅（仅 authenticated）| 需要登录 |
-| `hm_accounts` / `hm_codes` / `hm_plays` / `hm_rate` | **全部 ❌（表不可达）** | RLS 开且不给任何角色直连；只经带凭据的 SECURITY DEFINER 函数 |
+| `hm_accounts` / `hm_email_codes` / `hm_plays` / `hm_rate` | **全部 ❌（表不可达）** | RLS 开且不给任何角色直连；只经带凭据的 SECURITY DEFINER 函数 |
 | `hm_*` RPC | EXECUTE ✅（**但需写入凭据**）| 无凭据 = 42501；`hm_code_*` / `hm_put_play` / `hm_rate_hit` 全部如此 |
 
 > 「DELETE ❌」也适用于 `service_role` 之外的常规角色；数据库侧另有 CHECK 约束兜住取值范围。

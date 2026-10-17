@@ -156,6 +156,9 @@ python tools/bump-version.py V0.x.y.z     # 一处改全站：9 个 meta + 所�
 ### 3.5 不许把凭据提交进仓库
 
 仓库是**公开的**。凭据只走：环境变量 → `.env` → `write-secret.txt`，后两者已 gitignore。
+另有一份**交接/灾备副本**放在 GitHub 的 `production` Environment secrets（`PHM_WRITE_SECRET` /
+`PHM_TOKEN_SECRET`，2026-10-17 建立）。它不是部署通道：WorkBuddy 仍是手工部署、读不到它；
+**不要因此删本地文件**，也不要把它写进代码或日志。
 推之前如果想提交任何密钥，先跑：
 
 ```bash
