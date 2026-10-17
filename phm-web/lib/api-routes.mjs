@@ -78,7 +78,7 @@ function formatReport(r) {
 export function makeApiRoutes(deps) {
   const {
     send, readBody, dbFetch, dbPutChart, recompute, hmWhoami,
-    writeSecret, engineVer,
+    writeSecret, engineVer, serviceVersion,
   } = deps;
 
   async function callApiRpc(name, args) {
@@ -282,7 +282,7 @@ export function makeApiRoutes(deps) {
   function openapi() {
     return {
       openapi: '3.1.0',
-      info: { title: 'P.H.M. API', version: 'v1', description: 'Phira / Phigros chart difficulty reference API' },
+      info: { title: 'P.H.M. API', version: 'v1', description: 'Phira / Phigros chart difficulty reference API', 'x-service-version': serviceVersion || null },
       servers: [{ url: 'https://phm.app.workbuddy.host/api/v1' }],
       components: {
         securitySchemes: {
@@ -306,6 +306,7 @@ export function makeApiRoutes(deps) {
         },
       },
       paths: {
+        '/meta': { get: { summary: 'Service build metadata', responses: { 200: { description: 'api/service/engine versions' } } } },
         '/charts/{chart_id}': { get: { summary: 'Read a cached chart', security: [{}, { bearer: [] }], parameters: [{ name: 'chart_id', in: 'path', required: true, schema: { type: 'integer' } }], responses: { 200: { description: 'Chart or { analyzed:false }' } } } },
         '/analyses': { post: { summary: 'Analyse a chart and cache the result', security: [{}, { bearer: [] }], requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['chart_id'], properties: { chart_id: { type: 'integer' } } } } } }, responses: { 200: { description: 'Chart' }, 429: { description: 'Rate limited' } } } },
         '/usage': { get: { summary: 'Usage for the current key', security: [{ bearer: [] }], responses: { 200: { description: 'Usage summary' } } } },
@@ -322,6 +323,16 @@ export function makeApiRoutes(deps) {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname.replace(/^\/api\/v1/, '') || '/';
     const t0 = Date.now();
+
+    /* 公开的版本/构建信息：客户端用它判断「页面与 API 是否同一版本」。 */
+    if (req.method === 'GET' && p === '/meta') {
+      return json(res, 200, {
+        api: 'v1',
+        service: serviceVersion || null,
+        engine: engineVer || null,
+        time: new Date().toISOString(),
+      });
+    }
 
     if (req.method === 'GET' && p === '/openapi.json') {
       return json(res, 200, openapi());

@@ -16,6 +16,7 @@ auth:     Authorization: Bearer sk-<32 hex>
 | `/analyses` | POST | 分析并写入缓存。v1 **只接受 chart_id**（不接收谱面文件） |
 | `/usage` | GET | 当前 key（或账号）的调用量：今日 / 7 日 / 30 日 |
 | `/keys` | GET/POST | 网页账号登录后管理 API Key（列表只返回有效 Key；创建 / 改名 / 删除） |
+| `/meta` | GET | 公开的构建信息：`{api, service, engine, time}`，用于部署对账 |
 | `/keys/{id}` | PATCH/DELETE | 改名 / 吊销；**每账号最多 100 个有效 key** |
 | `/openapi.json` | GET | OpenAPI 3.1 描述，方便生成 SDK |
 
