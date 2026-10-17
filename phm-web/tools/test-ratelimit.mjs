@@ -209,9 +209,10 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
      必须在**另一个进程**里验：那里内存是空的，只有 DB 还记得。 */
 {
   const SKIP_DB = process.env.PHM_RL_FORCE_DB_DOWN === '1';
+  let K;
   if (SKIP_DB) console.log('  - 跳过真实 DB 断言（CI 无写入凭据；本地发版前会跑真实 DB 路径）');
   else {
-  const K = 'test-db-' + Date.now();
+  K = 'test-db-' + Date.now();
   const seq = [];
   for (let i = 0; i < 4; i++) seq.push(await limit([K], 3, 120_000));
   T('前 3 次走 DB 且放行', seq.slice(0, 3).every(r => r.ok && r.via === 'db'),
