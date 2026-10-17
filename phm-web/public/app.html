@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.11.0.7">
+<meta name="app-version" content="V0.11.0.8">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -33,7 +33,7 @@
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.11.0.7">
+<link rel="stylesheet" href="/css/base.css?v=V0.11.0.8">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -541,11 +541,13 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <div class="note" id="msg"></div>
 
 <!-- 第二层：这些是「进阶功能」，不抢第一屏 -->
+<!-- ⚠ 2026-10-17 评审：原来这里还有「我的成绩」和「找谱师」两个入口 + 各自的说明，
+     而顶栏已经有「球员」「谱师」两项 —— 同一页两个地方进同一个页面，
+     说明文字还夹在按钮之间，读者分不清哪句属于谁。已删掉这两个重复入口。
+     剩下的「登录」和 GitHub 顶栏没有，保留。
+     ⚠ 评审还建议把这两个也挪到顶栏右侧 —— 那要改 ui.js 的 NAV 渲染，
+       影响所有页面，留到下一轮单独做。 -->
 <div class="morebar">
-  <a class="gh" href="/user" data-i18n-title="app.more.user.title" title="读取 Phira 公开资料与成绩（只读，不需要也不接受密码）"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13.5h12"/><path d="M4.6 13.5V9"/><path d="M8 13.5V4.6"/><path d="M11.4 13.5v-3.6"/></svg> <span data-i18n="app.more.user">我的成绩</span></a>
-  <span class="mhint" data-i18n="app.more.user.hint">B19 / 单曲 RKS / 最近游玩 · 现在有独立页面了</span>
-  <a class="gh" href="/charter" data-i18n-title="app.more.charter.title" title="查某位谱师的全部作品"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l.8-2.9 7.6-7.6a1.4 1.4 0 0 1 2 2l-7.6 7.6L3 13Z"/><path d="M10.4 3.5l2 2"/></svg> <span data-i18n="app.more.charter">找谱师</span></a>
-  <span class="mhint" data-i18n="app.more.charter.hint">按谱师看作品与定数</span>
   <button class="gh" id="authBtn" type="button"
      data-i18n-title="app.more.auth.title" title="P.H.M. 账号（可选）：登录后可绑定 Phira、留下自己的记录"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.4" r="2.7"/><path d="M2.9 13.6c0-2.6 2.3-4.2 5.1-4.2s5.1 1.6 5.1 4.2"/></svg> <span id="authBtnLabel" data-i18n="c.login">登录</span></button>
   <a class="gh" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
@@ -613,7 +615,7 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.11.0.7';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.11.0.8';
 
 /* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
    页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。

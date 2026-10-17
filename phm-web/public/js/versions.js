@@ -20,6 +20,22 @@
 
 export const RELEASES = [
   {
+    v: 'V0.11.0.8', date: '2026-10-17',
+    zh: [
+      '<b>去掉了一处重复入口</b>：算定数页在拖放区下面还有一行「我的成绩」「找谱师」，'
+        + '而顶栏本来就有「球员」「谱师」两项 —— 同一页两个地方进同一个页面，'
+        + '中间还夹着各自的说明，读者分不清哪句属于谁。这两个重复入口已删除。',
+      '「登录」和 GitHub 保留（顶栏没有这两项）。',
+    ],
+    en: [
+      '<b>Removed a duplicated set of entry points</b>: below the drop zone the analysis page also '
+        + 'offered "My scores" and "Find charters", while the top nav already has "Players" and '
+        + '"Charters" — two ways into the same pages on one screen, with their captions interleaved. '
+        + 'Those duplicates are gone.',
+      '"Sign in" and GitHub stay, since the top nav does not carry them.',
+    ],
+  },
+  {
     v: 'V0.11.0.7', date: '2026-10-17',
     zh: [
       '<b>修复「拖入谱面后算不出定数」</b>。结果卡的渲染函数里残留了一行对已删除变量的引用，'
