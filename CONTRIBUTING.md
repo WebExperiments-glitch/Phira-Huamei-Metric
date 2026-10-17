@@ -13,7 +13,7 @@ git config core.hooksPath .githooks   # 只需一次
 1. **review-gate**：凭据/私钥扫描、版本四处一致、页面白名单、SQL 的 RLS/REVOKE/
    SECURITY DEFINER、禁用 `eval`/`new Function`/客户端 `child_process`/XFF、
    workflow 权限、>2MB 大文件、空白错误。
-2. **npm run check**：16 项离线检查（单测、OpenAPI 契约、文档同步、i18n、对比度、版本等）。
+2. **npm run check**：17 项离线检查（单测、OpenAPI 契约、文档同步、i18n、对比度、版本等）。
 
 失败即拒绝推送。`--no-verify` 可以绕过本地钩子，但绕不过 CI 与分支保护。
 
@@ -21,7 +21,7 @@ git config core.hooksPath .githooks   # 只需一次
 
 | 检查 | 内容 |
 |---|---|
-| `check` | 16 项离线检查 |
+| `check` | 17 项离线检查 |
 | `audit` | review-gate + 离线检查 + Chrome 全页面冒烟 + UI 交互流 |
 | CodeQL | JS/TS + Python 静态安全扫描 |
 

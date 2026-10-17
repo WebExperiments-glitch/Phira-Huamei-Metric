@@ -208,6 +208,7 @@ function cmpVer(a, b) {
 const ROUTES = [
   { path: '/', name: '首页', sel: ['#stats', '#verfoot'], mod: 'ui' },
   { path: '/app', name: '工作台', sel: ['#drop', '#file', '#msg', '#out', '#csrch'], mod: 'engine' },
+  { path: '/rulechart', name: '规则写谱', sel: ['#rcGo', '#preview', '#rcPez'], mod: 'ui' },
   { path: '/user', name: '玩家页', sel: ['#q', '#go', '#out', '#cands'], mod: 'phira' },
   { path: '/charter', name: '谱师页', sel: ['#q', '#go', '#out'], mod: 'phira' },
   { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
@@ -279,7 +280,7 @@ for (const R of ROUTES) {
   ok('导航已渲染', info.hasNav === true);
   /* 导航入口数 = NAV 数组长度（首页/算定数/谱师/玩家/数据/设置/下载）。
      写死具体数字是有意的：**少一个入口是回归**，而"≥6"这种松断言拦不住它。 */
-  ok('导航含 8 个入口', (info.navLinks || []).length >= 8, JSON.stringify(info.navLinks));
+  ok('导航含 9 个入口', (info.navLinks || []).length >= 9, JSON.stringify(info.navLinks));
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
