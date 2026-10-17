@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.18.0.0', date: '2026-10-18',
+    zh: ['按你给的两个参考 ZIP 反推：Pont des souvenirs 的 charter 就是 <b>RuleEngine</b>。引擎改为 <b>1 条判定线、5 个 x、无和弦、1/4 拍网格</b>；类型 Tap 74% / Hold 11.5% / Drag 14.5% / Flick 0%；IN 密度对齐参考（约 893 notes / 4.87 NPS）。'],
+    en: ['Rebuilt from your two reference ZIPs. The Pont des souvenirs charter is literally <b>RuleEngine</b>. Engine now uses <b>1 judge line, 5 x positions, no chords, 1/4-beat grid</b>; type mix Tap 74% / Hold 11.5% / Drag 14.5% / Flick 0%; IN density matches the reference (~893 notes / 4.87 NPS).'],
+  },
+  {
     v: 'V0.17.4.0', date: '2026-10-18',
     zh: ['规则引擎退回你那张旧图的做法：<b>全 Tap、一次一个、x 全屏分散、单判定线</b>。去掉 Hold/Flick/Drag 混排、装饰线和段落动效；节奏用 onset/整拍补位。'],
     en: ['Rule engine reverted to the old-reference style: <b>all Tap, one note at a time, x spread across the screen, one judge line</b>. Removed mixed Hold/Flick/Drag, decorative lines, and section animation.'],

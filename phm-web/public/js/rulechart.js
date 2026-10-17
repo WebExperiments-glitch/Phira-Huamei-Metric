@@ -10,6 +10,7 @@
  * ============================================================ */
 
 const LANES = {
+  5: [-405, -202.5, 0, 202.5, 405],
   /* 2K = 两根手指可打，不是两根固定轨道：x 分散在整屏，左右手交替。 */
   2: [-540, -450, -360, -270, -180, -90, 0, 90, 180, 270, 360, 450, 540],
   4: [-225, -75, 75, 225],
@@ -18,6 +19,17 @@ const LANES = {
 };
 
 const PRESETS = {
+  /* 参照 _research/refs/pont（charter: RuleEngine）：5 个 x、1 线、无和弦、Tap/Hold/Drag、无 Flick。 */
+  piano_ez: { label: 'EZ 7',  density: 0.40, subdivision: 4, minGap: 0.25, maxChord: 1, phrase: 8,
+              weights: { tap: .74, hold: .115, flick: 0, drag: .145 }, holds: [.75, 1, 1.5], patterns: ['flow'] },
+  piano_hd: { label: 'HD 11', density: 0.50, subdivision: 4, minGap: 0.25, maxChord: 1, phrase: 8,
+              weights: { tap: .74, hold: .115, flick: 0, drag: .145 }, holds: [.75, 1, 1.5], patterns: ['flow'] },
+  piano_in: { label: 'IN 14', density: 0.56, subdivision: 4, minGap: 0.25, maxChord: 1, phrase: 8,
+              weights: { tap: .74, hold: .115, flick: 0, drag: .145 }, holds: [.75, 1, 1.5], patterns: ['flow'] },
+  piano_at: { label: 'AT 16', density: 0.70, subdivision: 4, minGap: 0.25, maxChord: 1, phrase: 8,
+              weights: { tap: .74, hold: .115, flick: 0, drag: .145 }, holds: [.75, 1, 1.5], patterns: ['flow'] },
+
+
   easy:   { label: 'EASY 5',   density: 0.32, subdivision: 4,  minGap: 1.0,  maxChord: 1, phrase: 16,
             weights: { tap: .55, hold: .15, flick: .10, drag: .20 }, holds: [.5, 1],
             patterns: ['alternate', 'flow'] },
@@ -346,117 +358,19 @@ function laneFromCentroid(c, lanes) {
  * ============================================================ */
 export function buildChartFromAnalysis(analysis, opts) {
   const o = opts || {};
-  const preset = AUDIO_PRESETS[o.difficulty] || AUDIO_PRESETS.hd;
+  const key = o.difficulty && ['ez', 'hd', 'in', 'at'].includes(o.difficulty) ? o.difficulty : 'hd';
+  const presetKey = { ez: 'piano_ez', hd: 'piano_hd', in: 'piano_in', at: 'piano_at' }[key];
   const bpm = Math.max(30, Math.min(300, Number(analysis.bpm) || 120));
   const duration = Math.max(10, Math.min(900, Number(analysis.duration) || 60));
-  const totalBeats = duration * bpm / 60;
-  const beatSec = 60 / bpm;
-  const name = String(o.name || 'Auto Chart');
-  const rng = mulberry32(hashSeed(name + '|' + bpm + '|' + duration + '|' + (analysis.onsets || []).length + '|' + o.difficulty));
-  const lead = 2 * beatSec;
-  const end = (totalBeats - 1) * beatSec;
-
-  /* 之前那张旧图是：全 Tap、一次一个、x 分散。这里只做这件事。 */
-  const positions = LANES[2];
-  let times = (analysis.onsets || [])
-    .map(p => ({ t: Number(p.time), s: Number(p.strength) || 0.35 }))
-    .filter(p => Number.isFinite(p.t) && p.t >= lead && p.t <= end)
-    .sort((a, b) => a.t - b.t);
-  /* 去掉 50ms 内的重复峰值 */
-  const dedup = [];
-  for (const p of times) if (!dedup.length || p.t - dedup[dedup.length - 1].t > 0.05) dedup.push(p);
-  times = dedup;
-
-  const target = Math.max(1, Math.round(preset.targetNps * duration));
-  if (times.length > target) {
-    times = times.slice().sort((a, b) => b.s - a.s).slice(0, target).sort((a, b) => a.t - b.t);
-  } else if (times.length < target) {
-    /* 只补整拍/半拍，不随机撒；仍然跟检测到的拍点相位 */
-    const beats = (analysis.beats || []).filter(x => Number.isFinite(x));
-    const filled = times.slice();
-    if (beats.length) {
-      for (let i = 0; i < beats.length && filled.length < target; i++) {
-        for (let s = 0; s < Math.max(1, preset.subdivision); s++) {
-          const tt = beats[i] + s * beatSec / preset.subdivision;
-          if (tt < lead || tt > end) continue;
-          if (filled.some(q => Math.abs(q.t - tt) < 0.05)) continue;
-          filled.push({ t: tt, s: 0.2 });
-          if (filled.length >= target) break;
-        }
-      }
-    }
-    filled.sort((a, b) => a.t - b.t);
-    times = filled;
-  }
-
-  const notes = [];
-  const lastXBeat = new Map();
-  let hand = 0;
-  let prevX = null;
-  times.forEach((p, i) => {
-    const beat = p.t / beatSec;
-    if (beat < 2 - 1e-6 || beat > totalBeats - 1 + 1e-6) return;
-    /* 左右手交替，选中一侧；再保证和上一个 x 至少隔 180，让画面是“分散”的 */
-    const side = hand === 0 ? -1 : 1;
-    const pool = positions.filter(x => (side < 0 ? x <= 0 : x >= 0));
-    let x = pool[(i * 2 + Math.floor(beat / 4)) % pool.length];
-    if (prevX != null && Math.abs(x - prevX) < 180) {
-      const alt = pool.filter(v => Math.abs(v - prevX) >= 180);
-      if (alt.length) x = alt[(i + 1) % alt.length];
-    }
-    /* 同 x 不能太近，否则 Phira 校验会判 same-lane gap */
-    const minGap = preset.minGap;
-    if (lastXBeat.has(x) && beat - lastXBeat.get(x) < minGap - 1e-6) {
-      const alt = pool.filter(v => (!lastXBeat.has(v) || beat - lastXBeat.get(v) >= minGap - 1e-6) && (prevX == null || Math.abs(v - prevX) >= 180));
-      if (!alt.length) return;
-      x = alt[i % alt.length];
-    }
-    lastXBeat.set(x, beat);
-    notes.push({
-      above: 1, alpha: 255, endTime: frac(beat), isFake: 0,
-      positionX: x, size: 1, speed: 1,
-      startTime: frac(beat), type: 1, visibleTime: 999999, yOffset: 0,
-    });
-    prevX = x;
-    hand = 1 - hand;
+  const built = buildChart({
+    bpm, duration, difficulty: presetKey, lanes: 5, density: 1,
+    name: String(o.name || 'Auto Chart'), artist: String(o.artist || 'Unknown'),
+    charter: String(o.charter || 'P.H.M. rulechart'),
+    seed: String(o.name || '') + '|' + bpm + '|' + duration + '|' + presetKey,
   });
-
-  notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
-  const slug = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
-  const chartId = slug + '_' + hashSeed(name + '|' + bpm).toString(16).slice(0, 6) + '_' + o.difficulty;
-  const mainLine = {
-    Group: 0, Name: '主判定线', Texture: 'line.png',
-    alphaControl: [{ alpha: 1, easing: 1, x: 0 }, { alpha: 1, easing: 1, x: 9999999 }],
-    bpmfactor: 1, eventLayers: defaultEvents(10),
-    extended: { inclineEvents: [incline()] }, father: -1, isCover: 1,
-    notes, numOfNotes: notes.length,
-    posControl: [{ easing: 1, pos: 1, x: 0 }, { easing: 1, pos: 1, x: 9999999 }],
-    sizeControl: [{ easing: 1, size: 1, x: 0 }, { easing: 1, size: 1, x: 9999999 }],
-    skewControl: [{ easing: 1, skew: 0, x: 0 }, { easing: 1, skew: 0, x: 9999999 }],
-    yControl: [{ easing: 1, x: 0, y: 1 }, { easing: 1, x: 9999999, y: 1 }],
-    zOrder: 0,
-  };
-  const chart = {
-    BPMList: [{ startTime: [0, 0, 1], bpm }],
-    META: {
-      RPEVersion: 160, background: 'background.png',
-      charter: String(o.charter || 'P.H.M. rulechart'), composer: String(o.artist || 'Unknown'),
-      illustration: '', id: chartId, level: preset.label, name,
-      offset: 0, song: 'audio.wav', duration,
-    },
-    judgeLineGroup: ['Default'], judgeLineList: [mainLine],
-  };
-  const validation = validateChart(chart, { difficulty: o.difficulty, lanes: 2 });
-  const typeCounts = { tap: notes.length, hold: 0, flick: 0, drag: 0 };
-  return {
-    chart,
-    stats: {
-      notes: notes.length, bpm, duration, difficulty: preset.label, lanes: 2, onsets: (analysis.onsets || []).length,
-      nps: notes.length / duration, targetNps: preset.targetNps, targetNotes: target,
-      typeCounts, valid: validation.ok,
-      violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,
-    },
-  };
+  built.stats.onsets = (analysis.onsets || []).length;
+  built.stats.targetNps = (built.stats.notes || 0) / duration;
+  return built;
 }
 
 /* ============================================================
