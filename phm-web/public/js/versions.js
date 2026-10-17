@@ -20,25 +20,39 @@
 
 export const RELEASES = [
   {
+    v: 'V0.13.2.0', date: '2026-10-17',
+    zh: [
+      '导航新增 <b>API 开放平台</b>。点进去先看到<b>用量信息</b>（今日 / 7 天 / 30 天 / 有效 Key），'
+        + '左侧可切到 <b>API keys</b> 创建和管理 Key；接口文档与单文件客户端也在同一处。',
+      '未登录也能看平台介绍和免费额度；登录站点账号后才会显示真实用量。旧链接 <code>/developer</code> 仍可打开。',
+    ],
+    en: [
+      'New <b>API Platform</b> in the nav. It opens on <b>usage</b> (today / 7 days / 30 days / active keys); '
+        + 'the sidebar switches to <b>API keys</b>, with docs and the single-file client in one place.',
+      'Logged-out visitors see the platform intro and free quotas; sign in with the site account to see real usage. '
+        + 'The old <code>/developer</code> link still works.',
+    ],
+  },
+  {
     v: 'V0.13.1.0', date: '2026-10-17',
     zh: [
       '新增<b>单文件 API 客户端</b>：下载一个 HTML，双击打开、填 API Key 就能查询 / 分析谱面。'
         + '零依赖，页面里也自带「下载本文件」和 Windows 客户端入口。',
       '下载页新增了单文件客户端的入口；API 文档在 <a href="/developers">/developers</a>，'
-        + 'Key 在 <a href="/developer">控制台</a> 免费创建。',
+        + 'Key 在 <a href="/platform">开放平台</a> 免费创建。',
     ],
     en: [
       'New <b>single-file API client</b>: download one HTML file, open it, paste an API key, and query or '
         + 'analyse charts. Zero dependencies; it also contains its own download and the Windows client link.',
       'The download page now links it; docs live at <a href="/developers">/developers</a> and keys are free '
-        + 'in the <a href="/developer">console</a>.',
+        + 'in the <a href="/platform">console</a>.',
     ],
   },
   {
     v: 'V0.13.0.0', date: '2026-10-17',
     zh: [
       '<b>开发者 API v1 上线</b>：可以按 chart_id 查询定数、提交分析（结果自动进共享缓存），'
-        + '并在控制台管理 API Key、查看调用量。文档在 <a href="/developers">/developers</a>。',
+        + '并在开放平台管理 API Key、查看调用量。文档在 <a href="/developers">/developers</a>。',
       '免费：不登录 <b>100 次/小时</b>；API Key <b>1000 次/小时</b>，分析 <b>200 次/天</b>。'
         + '每个账号最多 100 个 Key，可随时删除（吊销）。',
       'v1 只接受 chart_id，<b>不上传谱面文件</b>——隐私承诺不变。',

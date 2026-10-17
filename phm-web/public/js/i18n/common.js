@@ -18,6 +18,7 @@ export default {
     'nav.user': '玩家',
     'nav.data': '数据',
     'nav.settings': '设置',
+    'nav.platform': 'API 开放平台',
     'nav.download': '下载',
 
     /* ── 通用动作 ── */
@@ -113,6 +114,7 @@ export default {
     'nav.user': 'Players',
     'nav.data': 'Data',
     'nav.settings': 'Settings',
+    'nav.platform': 'API Platform',
     'nav.download': 'Download',
 
     /* ── common ── */
