@@ -60,6 +60,8 @@ phm-web/
 │   ├── settings.html          ← 设置 /settings（上传偏好 / 账号 / Phira / 本机存储 / 主题字体）
 │   ├── version.html           ← 版本历史 /version（面向用户；数据源 js/versions.js）
 │   ├── download.html          ← 下载页 /download（Windows 客户端）
+│   ├── developers.html        ← 开发者文档 /developers（API v1）
+│   ├── developer.html         ← API 控制台 /developer（Key 管理 + 用量）
 │   ├── privacy.html / terms.html ← 法务页（不带版本 meta，也不是 ES module 页面）
 │   ├── 404.html               ← 错误页（服务端对未命中路径下发它，状态码仍是 404）
 │   ├── robots.txt / sitemap.xml
@@ -72,7 +74,8 @@ phm-web/
 │   ├── css/
 │   │   ├── base.css           ← 底座：令牌 / reset / 排版 / 布局骨架 / 导航 / 卡片 / 表格
 │   │   ├── ui-kit.css         ← 组件：控件 / 按钮 / callout / 芯片 / 字体与字号档位
-│   │   └── docs.css           ← 法务长文版式（privacy / terms）
+│   │   ├── docs.css           ← 法务长文版式（privacy / terms）
+│   │   └── api.css            ← 开发者文档 / API 控制台版式
 │   └── js/
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源（纯计算）
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
@@ -91,7 +94,7 @@ phm-web/
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
 │   ├── reconcile-cache.mjs    ← ★ 缓存对账（--recompute-stale / --fix，退出码可挂 CI）
 │   ├── verify-engine.mjs      ← ★ 引擎回归测试（45 条；--net 比对真实基线）
-│   ├── smoke-page.mjs         ← ★ 冒烟（176 条：页面 / 版本号 / 缓存策略）
+│   ├── smoke-page.mjs         ← ★ 冒烟（208 条：页面 / 版本号 / 缓存策略）
 │   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
 │   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）
 │   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（22 条）

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.13.0.0">
+<title>P.H.M. 开发者文档 · API v1</title>
+<meta name="description" content="P.H.M. API v1：查询与分析 Phira / Phigros 谱面难度。免费，支持匿名与 API Key。">
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.13.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.13.0.0">
+<link rel="stylesheet" href="/css/api.css?v=V0.13.0.0">
+</head>
+<body>
+<div class="wrap"><nav id="nav"></nav></div>
+<div class="apiwrap">
+  <aside class="api-side">
+    <div class="grp">开始</div>
+    <a href="#quickstart" class="on">快速开始</a>
+    <a href="#auth">认证</a>
+    <a href="#limits">限流</a>
+    <div class="grp">接口</div>
+    <a href="#charts">查询定数</a>
+    <a href="#analyses">分析谱面</a>
+    <a href="#usage">用量</a>
+    <a href="#keys">Key 管理</a>
+    <div class="grp">参考</div>
+    <a href="#errors">错误码</a>
+    <a href="#changelog">更新日志</a>
+    <a href="/developer">控制台 →</a>
+  </aside>
+
+  <main class="api-main">
+    <h1>P.H.M. API</h1>
+    <p class="lead">
+      Phira / Phigros 谱面难度参考接口。查询已缓存的定数，或分析一张谱并写入共享缓存。
+      <b>免费</b>；匿名可用，API Key 获得更高额度。
+    </p>
+    <div class="api-note">
+      返回的是「点估计 + 不确定带」：<code class="inline">ref_const</code> 是社区共识标度，
+      <code class="inline">ref_official</code> 是官谱标度。两者不可混比，细节见首页说明。
+    </div>
+
+    <h2 id="quickstart">快速开始</h2>
+    <p>API 是普通的 HTTPS + JSON，不需要 SDK。先拿到一个 API Key（<a href="/developer">控制台</a>），或者直接用匿名额度试：</p>
+    <div class="api-code"><span class="cmt"># base_url</span>
+https://phm.app.workbuddy.host/api/v1
+
+<span class="cmt"># 匿名也可以，只是额度低</span>
+curl https://phm.app.workbuddy.host/api/v1/charts/22681</div>
+    <p>带 Key 的请求：</p>
+    <div class="api-code">curl https://phm.app.workbuddy.host/api/v1/charts/22681 \
+  -H <span class="str">"Authorization: Bearer sk-你的key"</span></div>
+    <p>JavaScript：</p>
+    <div class="api-code"><span class="key">const</span> res = <span class="key">await</span> fetch(
+  <span class="str">"https://phm.app.workbuddy.host/api/v1/charts/22681"</span>,
+  { headers: { Authorization: <span class="str">"Bearer sk-你的key"</span> } }
+);
+<span class="key">const</span> chart = <span class="key">await</span> res.json();</div>
+    <p>Python：</p>
+    <div class="api-code"><span class="key">import</span> requests
+
+r = requests.get(
+    <span class="str">"https://phm.app.workbuddy.host/api/v1/charts/22681"</span>,
+    headers={<span class="str">"Authorization"</span>: <span class="str">"Bearer sk-你的key"</span>},
+    timeout=<span class="key">30</span>,
+)
+print(r.json())</div>
+
+    <h2 id="auth">认证</h2>
+    <p>两种身份：</p>
+    <ul>
+      <li><b>匿名</b>：不带 <code class="inline">Authorization</code>，按真实对端 IP 限流；</li>
+      <li><b>API Key</b>：<code class="inline">Authorization: Bearer sk-&lt;32 位十六进制&gt;</code>。</li>
+    </ul>
+    <p>Key 的明文只会在创建时返回一次；服务端只存 sha256 哈希与掩码。每个账号最多 100 个有效 Key，可随时吊销。</p>
+    <div class="api-note">
+      控制台登录使用站点账号；API Key 与账号密码相互独立，不要把 Key 写进前端代码或公开仓库。
+    </div>
+
+    <h2 id="limits">限流</h2>
+    <table class="api-table">
+      <tr><th>身份</th><th>额度</th><th>说明</th></tr>
+      <tr><td>匿名</td><td><b>100 次/小时</b></td><td>真实对端 IP + 全局桶</td></tr>
+      <tr><td>API Key</td><td><b>1000 次/小时</b></td><td>分析另有 <b>200 次/天</b></td></tr>
+    </table>
+    <p>超限返回 <code class="inline">429</code>，并带 <code class="inline">retry-after</code>；服务端限流器不可用时返回 <code class="inline">503</code>。</p>
+
+    <h2 id="charts">查询定数</h2>
+    <h3>GET /charts/{chart_id}</h3>
+    <p>读共享缓存。未分析过的谱返回 <code class="inline">analyzed:false</code>（不是 404）。</p>
+    <div class="api-code">{
+  <span class="key">"chart_id"</span>: 22681,
+  <span class="key">"name"</span>: <span class="str">"Pandemic"</span>,
+  <span class="key">"level"</span>: <span class="str">"IN.16"</span>,
+  <span class="key">"difficulty"</span>: 16.6,
+  <span class="key">"ref_const"</span>: 15.6,
+  <span class="key">"ref_official"</span>: 16.1,
+  <span class="key">"ps_score"</span>: 13.4,
+  <span class="key">"engine_ver"</span>: <span class="str">"server-verified"</span>,
+  <span class="key">"engine_build"</span>: <span class="str">"com-trim15-v0.5.0"</span>,
+  <span class="key">"analyzed"</span>: true,
+  <span class="key">"cached"</span>: true
+}</div>
+
+    <h2 id="analyses">分析谱面</h2>
+    <h3>POST /analyses</h3>
+    <p>服务端从 Phira 下载谱面、复算并写入共享缓存。v1 只接受 <code class="inline">chart_id</code>；分析结果对之后所有查询直接可用。</p>
+    <div class="api-code">curl -X POST https://phm.app.workbuddy.host/api/v1/analyses \
+  -H <span class="str">"Authorization: Bearer sk-你的key"</span> \
+  -H <span class="str">"content-type: application/json"</span> \
+  -d <span class="str">'{"chart_id": 22681}'</span></div>
+    <p>已缓存时直接返回（<code class="inline">cached:true</code>）；未缓存时会下载 ≤60MB 谱面并运行引擎，可能需要几秒。并发上限 2，忙时返回 <code class="inline">503 analysis_busy</code>。</p>
+
+    <h2 id="usage">用量</h2>
+    <h3>GET /usage</h3>
+    <p>用 API Key 调用时返回该 Key 所属账号的用量；控制台用账号 token 调用也可以。</p>
+    <div class="api-code">{
+  <span class="key">"today"</span>: 12,
+  <span class="key">"week"</span>: 87,
+  <span class="key">"month"</span>: 312,
+  <span class="key">"by_endpoint"</span>: { <span class="key">"/charts"</span>: 280, <span class="key">"/analyses"</span>: 32 },
+  <span class="key">"quota"</span>: { <span class="key">"hourly"</span>: 1000, <span class="key">"analysisDaily"</span>: 200 }
+}</div>
+
+    <h2 id="keys">Key 管理</h2>
+    <p>在 <a href="/developer">API 控制台</a> 登录后创建、改名、吊销。接口：</p>
+    <table class="api-table">
+      <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+      <tr><td><code>GET</code></td><td><code>/keys</code></td><td>列出当前账号的 Key（不含明文）</td></tr>
+      <tr><td><code>POST</code></td><td><code>/keys</code></td><td>创建，返回一次明文</td></tr>
+      <tr><td><code>PATCH</code></td><td><code>/keys/{id}</code></td><td>改名</td></tr>
+      <tr><td><code>DELETE</code></td><td><code>/keys/{id}</code></td><td>吊销</td></tr>
+    </table>
+    <p>这些接口要求网页账号 token（<code class="inline">x-hm-token</code>），不是 <code class="inline">sk-</code> key。</p>
+
+    <h2 id="errors">错误码</h2>
+    <p>错误统一为：</p>
+    <div class="api-code">{ <span class="key">"error"</span>: { <span class="key">"type"</span>: <span class="str">"invalid_request_error"</span>, <span class="key">"code"</span>: <span class="str">"invalid_chart_id"</span>, <span class="key">"message"</span>: <span class="str">"..."</span> } }</div>
+    <table class="api-table">
+      <tr><th>HTTP</th><th>code</th><th>含义</th></tr>
+      <tr><td>400</td><td><code>invalid_chart_id</code></td><td>chart_id 不是正整数</td></tr>
+      <tr><td>401</td><td><code>invalid_api_key</code></td><td>Key 不存在、格式错或已吊销</td></tr>
+      <tr><td>401</td><td><code>account_token_required</code></td><td>Key 管理需要登录</td></tr>
+      <tr><td>409</td><td><code>key_limit_reached</code></td><td>账号已有 100 个有效 Key</td></tr>
+      <tr><td>429</td><td><code>rate_limit_exceeded</code></td><td>超出小时额度</td></tr>
+      <tr><td>502</td><td><code>analysis_failed</code> / <code>cache_unavailable</code></td><td>上游或数据库暂时不可用</td></tr>
+      <tr><td>503</td><td><code>analysis_busy</code> / <code>rate_limit_unavailable</code></td><td>分析并发已满 / 限流器故障</td></tr>
+    </table>
+
+    <h2 id="changelog">更新日志</h2>
+    <ul>
+      <li><b>2026-10-17 · v1</b>：首个公开版本。查询 / 分析 / 用量 / Key 管理；匿名 100 次/小时，Key 1000 次/小时、分析 200 次/天。</li>
+    </ul>
+  </main>
+
+  <aside class="api-toc">
+    <div class="t">本页目录</div>
+    <a href="#quickstart">快速开始</a>
+    <a href="#auth">认证</a>
+    <a href="#limits">限流</a>
+    <a href="#charts">查询定数</a>
+    <a href="#analyses">分析谱面</a>
+    <a href="#usage">用量</a>
+    <a href="#keys">Key 管理</a>
+    <a href="#errors">错误码</a>
+    <a href="#changelog">更新日志</a>
+  </aside>
+</div>
+
+<footer>
+  <div class="row" style="justify-content:space-between">
+    <span>P.H.M. Standard · API v1 · 免费</span>
+    <span><a href="/">返回站点</a> · <a href="/developer">控制台</a> · <a href="/privacy">隐私政策</a></span>
+  </div>
+</footer>
+
+<script type="module">
+import { renderNav } from '/js/ui.js?v=V0.13.0.0';
+renderNav();
+</script>
+</body>
+</html>

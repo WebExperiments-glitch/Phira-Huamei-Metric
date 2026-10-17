@@ -1,0 +1,89 @@
+/* ============================================================
+ * css/api.css —— 开发者文档（/developers）与 API 控制台（/developer）
+ * ============================================================
+ * 版式参考 DeepSeek / OpenAI 文档：左侧章节、中间正文、右侧页内目录。
+ * 只使用 base.css 的令牌，不重复定义颜色。
+ * ============================================================ */
+
+.apiwrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 10px 22px 70px;
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 170px;
+  gap: 34px;
+}
+.api-side, .api-toc { position: sticky; top: 74px; align-self: start; font-size: 13px; line-height: 1.9; }
+.api-side .grp { color: var(--fg3); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; margin: 18px 0 4px; }
+.api-side a, .api-toc a { display: block; color: var(--fg2); text-decoration: none; padding: 2px 0; }
+.api-side a:hover, .api-toc a:hover { color: var(--brand); text-decoration: none; }
+.api-side a.on { color: var(--brand); font-weight: 600; }
+.api-toc { border-left: 1px solid var(--line); padding-left: 14px; }
+.api-toc .t { color: var(--fg3); font-size: 11px; letter-spacing: .05em; margin-bottom: 6px; }
+
+.api-main { min-width: 0; }
+.api-main h1 { font-size: 30px; font-weight: 400; margin: 10px 0 6px; letter-spacing: .3px; }
+.api-main .lead { color: var(--fg2); font-size: 14.5px; line-height: 1.8; margin-bottom: 24px; }
+.api-main h2 { font-size: 21px; font-weight: 600; margin: 38px 0 12px; padding-top: 18px; border-top: 1px solid var(--line); }
+.api-main h3 { font-size: 15.5px; font-weight: 600; margin: 24px 0 8px; }
+.api-main p { color: var(--fg2); font-size: 14px; line-height: 1.8; margin: 9px 0; }
+.api-main ul { color: var(--fg2); font-size: 14px; line-height: 1.8; padding-left: 20px; }
+.api-main li { margin: 4px 0; }
+
+.api-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 13px; }
+.api-table th, .api-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.api-table th { color: var(--fg3); font-weight: 500; font-size: 12px; }
+.api-table td code { white-space: nowrap; }
+
+.api-code { position: relative; background: #0d1117; color: #e6edf3; border: 1px solid #222b36;
+  border-radius: 10px; padding: 13px 15px; margin: 10px 0 18px; overflow: auto;
+  font: 12.5px/1.65 ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace; }
+.api-code .cmt { color: #8b949e; }
+.api-code .str { color: #a5d6ff; }
+.api-code .key { color: #ffa657; }
+.api-main code.inline { background: var(--card2); border: 1px solid var(--line); border-radius: 5px;
+  padding: 1px 5px; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; color: var(--fg); }
+
+.api-note { border-left: 3px solid var(--brand); background: var(--brand-soft); border-radius: 0 8px 8px 0;
+  padding: 10px 14px; font-size: 13px; color: var(--fg2); line-height: 1.7; margin: 12px 0; }
+
+.api-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--line2); background: var(--card); color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; }
+.api-btn:hover { border-color: var(--brand); color: var(--brand); }
+.api-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.api-btn.primary:hover { color: #fff; filter: brightness(1.05); }
+.api-btn.danger { color: var(--red); border-color: var(--red); background: transparent; }
+.api-btn.sm { padding: 3px 9px; font-size: 12px; }
+
+/* 控制台 */
+.console-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0 22px; }
+.console-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.console-card .k { color: var(--fg3); font-size: 12px; }
+.console-card .v { font-size: 26px; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.console-card .n { color: var(--fg3); font-size: 11.5px; margin-top: 3px; }
+.key-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.key-table th, .key-table td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: left; }
+.key-table th { color: var(--fg3); font-weight: 500; font-size: 12px; }
+.key-table td.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.key-table tr:hover td { background: var(--card2); }
+.key-actions { display: flex; gap: 6px; }
+.onekey { margin: 14px 0; padding: 14px; border: 1px solid var(--brand-line); background: var(--brand-soft); border-radius: 10px; }
+.onekey code { display: block; margin: 8px 0; padding: 9px 11px; background: #0d1117; color: #e6edf3;
+  border-radius: 7px; font-size: 12.5px; overflow: auto; word-break: break-all; }
+.console-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.console-bar input { flex: 1 1 220px; padding: 8px 11px; border: 1px solid var(--line2); border-radius: 8px;
+  background: var(--card); color: var(--fg); font: inherit; font-size: 13px; }
+.console-empty { color: var(--fg3); font-size: 13px; padding: 18px 0; }
+.status-line { font-size: 12.5px; color: var(--fg3); margin: 8px 0; min-height: 18px; }
+.status-line.err { color: var(--red); }
+
+@media (max-width: 1020px) {
+  .apiwrap { grid-template-columns: 170px minmax(0, 1fr); }
+  .api-toc { display: none; }
+}
+@media (max-width: 760px) {
+  .apiwrap { grid-template-columns: 1fr; padding: 6px 16px 50px; }
+  .api-side { display: none; }
+  .api-main h1 { font-size: 25px; }
+  .key-table th:nth-child(3), .key-table td:nth-child(3) { display: none; }
+}

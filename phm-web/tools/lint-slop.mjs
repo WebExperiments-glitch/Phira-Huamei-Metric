@@ -110,7 +110,7 @@ for (const f of FILES) {
  * 别处一律 var(--x)。否则深/浅两套主题一定会漏掉某个角落。
  */
 const COLOR_OK = [
-  /^public\/css\/(base|docs)\.css$/,     // 令牌的定义处
+  /^public\/css\/(base|docs|api)\.css$/, // 令牌定义处；api.css 的代码块是固定暗色语法区
   /* 404 错误页**必须自包含**：它连不上任何东西时也得能正常显示，
      所以宁愿自带一套最小令牌。改 base.css 的令牌时要同步这里。 */
   /^public\/404\.html$/,

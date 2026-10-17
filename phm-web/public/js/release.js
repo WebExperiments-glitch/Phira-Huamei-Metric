@@ -8,7 +8,7 @@
  * ============================================================ */
 
 export const RELEASE = {
-  "siteVer": "V0.12.1.1",
+  "siteVer": "V0.13.0.0",
   "clientVer": "0.8.2-huamei.13",
   "built": "2026-10-17",
   "file": "phira-huamei.exe",

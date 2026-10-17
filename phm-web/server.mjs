@@ -41,6 +41,8 @@ import {
   TICKET_TTL_MS, TICKET_MAX_CHARTS,
 } from './lib/contribute-ticket.mjs';
 import { makeContributeRoutes } from './lib/contribute-routes.mjs';
+/* API v1 路由（/api/v1/*）—— 独立模块，避免 server.mjs 破 900 行。 */
+import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -184,7 +186,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
-  '404.html', 'sitemap.xml', 'og.png', 'version.html', 'download.html']);
+  '404.html', 'sitemap.xml', 'og.png', 'version.html', 'download.html',
+  'developers.html', 'developer.html']);
 /* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
    只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
 
@@ -378,6 +381,12 @@ const contributeRoutes = makeContributeRoutes({
   tryEnter, rlLeave, contributeInflight: CONTRIBUTE_INFLIGHT,
 });
 
+/* API v1 装配：认证 / 配额 / 用量 / Key 管理都在 lib/api-routes.mjs。 */
+const apiRoutes = makeApiRoutes({
+  send, readBody, dbFetch, dbPutChart, recompute, hmWhoami,
+  writeSecret: WRITE_SECRET, engineVer: ENGINE_VER,
+});
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
@@ -390,6 +399,9 @@ const server = http.createServer(async (req, res) => {
      顺带修掉白帽报告里那条「XFF 可伪造」：客户端可以随便写这个头，
         拿它当限流键等于把钥匙交给攻击方。 */
   const ip = req.socket.remoteAddress || 'unknown';
+
+  /* API v1：独立模块处理（认证 / 配额 / 用量 / Key 管理）。 */
+  if (p === '/api/v1' || p.startsWith('/api/v1/')) return apiRoutes.handle(req, res, ip);
 
   /* 健康检查：只回 ok。
      此前返回 Node 版本 / 启动时间 / uptime / 存储状态 —— 那是给攻击者的情报，已删。 */
@@ -814,7 +826,8 @@ const server = http.createServer(async (req, res) => {
   const CLEAN = { '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
                   '/data': 'data.html', '/settings': 'settings.html',
                   '/privacy': 'privacy.html', '/terms': 'terms.html',
-                  '/version': 'version.html', '/download': 'download.html' };
+                  '/version': 'version.html', '/download': 'download.html',
+                  '/developers': 'developers.html', '/developer': 'developer.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

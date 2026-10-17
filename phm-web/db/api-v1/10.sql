@@ -3,9 +3,13 @@ create or replace function public.hm_api_key_create(
   p_secret text, p_owner text, p_name text, p_hint text, p_hash text
 ) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare k public.hm_api_keys; cnt int;
+declare s text; rec public.hm_api_keys; cnt int;
 begin
-  if p_secret is null or p_secret <> (select v from phm_secrets where k='writer') then
+  select v into s from phm_secrets where k = 'writer';
+  -- ⚠ 记录变量**不能叫 k**：plpgsql 里它会和 phm_secrets.k 列名撞出
+  -- 42702 column reference "k" is ambiguous（延迟解析 → 建函数不报错，
+  -- 第一次调用才炸）。所以下面用 rec，且凭据用 SELECT INTO 取，别内联子查询。
+  if s is null or p_secret is null or p_secret <> s then
     raise exception 'unauthorized writer' using errcode = '42501';
   end if;
   if nullif(p_owner,'') is not null then
@@ -17,6 +21,6 @@ begin
   end if;
   insert into hm_api_keys (owner_id, name, hint, key_hash)
   values (nullif(p_owner,''), coalesce(nullif(p_name,''),'default'), p_hint, p_hash)
-  returning * into k;
-  return jsonb_build_object('ok', true, 'id', k.id, 'hint', k.hint, 'name', k.name);
+  returning * into rec;
+  return jsonb_build_object('ok', true, 'id', rec.id, 'hint', rec.hint, 'name', rec.name);
 end $$;

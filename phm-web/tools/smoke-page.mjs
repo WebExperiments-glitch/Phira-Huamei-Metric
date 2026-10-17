@@ -216,6 +216,8 @@ const ROUTES = [
   /* 下载页要额外守两件事（见下面 /download 的专用断言）：
      ① 主按钮的 href 真的指向可下载的地址；② 哈希与 release.js 一致。 */
   { path: '/download', name: '下载客户端', sel: ['#dlbtn', '#hash', '#mf', '#verfoot'], mod: 'release' },
+  { path: '/developers', name: '开发者文档', sel: ['.api-side', '.api-main'], mod: 'ui' },
+  { path: '/developer', name: 'API 控制台', sel: ['#authGate', '#consoleBody'], mod: 'ui' },
 ];
 
 for (const R of ROUTES) {

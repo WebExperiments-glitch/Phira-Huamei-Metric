@@ -344,6 +344,9 @@ export const RL = {
   codeIp: 3, codeEmail: 1, codeGlobal: 30,
   analyzeIp: 10, analyzeId: 60, analyzeGlobal: 60,
   proxyIp: 60, proxyId: 120, proxyGlobal: 300,
+  /* API v1（/api/v1/*）：匿名按小时，key 按小时；分析另有每日上限。 */
+  apiAnonHour: 100, apiAnonGlobal: 2000,
+  apiKeyHour: 1000, apiAnalyzeDay: 200,
 };
 export const RL_WINDOW = 60_000;
 

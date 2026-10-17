@@ -45,11 +45,13 @@
 | `/settings` | `settings.html` | **设置**：上传偏好 / Phira 连接信息 / 本机存储清单与清除 / 关于 |
 | `/version` | `version.html` | **版本历史**（面向用户，只列能感知的变化）。数据源 `public/js/versions.js` —— 与 `CHANGELOG.md`（开发者向）是**两份**，但 smoke 有断言守着「RELEASES[0].v = app-version」 |
 | `/download` | `download.html` | **下载页**：Windows 客户端。exe 本体在 `downloads/`，只走 `/download/phira-huamei.exe` 这一条流式路由（`lib/download.mjs`） |
+| `/developers` | `developers.html` | **开发者文档**：快速开始 / 认证 / 接口 / 错误码 / 限流 / 更新日志（API v1） |
+| `/developer` | `developer.html` | **API 控制台**：登录后管理 Key（创建/改名/吊销）与查看用量 |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
 | `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |
 
-> 共 **11 个 HTML**（10 个页面 + 404）。`privacy` / `terms` 是自包含文档页，所以
-> **9 个页面**才带 `<meta name="app-version">`。英文不再是单独页面，而是站内双语切换，
+> 共 **13 个 HTML**（12 个页面 + 404）。`privacy` / `terms` 是自包含文档页，所以
+> **11 个页面**才带 `<meta name="app-version">`。英文不再是单独页面，而是站内双语切换，
 > 原 `en.html` 已删除。
 
 **为什么拆**：①面板方案下链接没法指向"某人的成绩 / 某谱师的作品"，
@@ -266,6 +268,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | 限流 | `lib/ratelimit.mjs` | 进程内预筛 + DB `hm_rate_hit` 权威计数；身份优先、IP 兜底、全局兜底 | **不读 X-Forwarded-For**（源码级禁用，测试守着） |
 | 贡献准入 | `lib/contribute-ticket.mjs` + `lib/contribute-routes.mjs` | 给 /api/contribute 签/验 5 分钟 HMAC 凭证；换票只查 Phira 元数据、不下载谱面；未持票请求在解析 body 前拒绝 | 不把「匿名可写」当默认；无写凭据时 fail-closed |
 | API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、控制台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
+| API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理；匿名与 Key 配额 | 不写引擎逻辑；认证与用量全走 RPC |
 | 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |
 | 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |
 | 界面 | `public/*.html`（见上面站点结构表） | 渲染、交互、调 API | 不做可信判定 |

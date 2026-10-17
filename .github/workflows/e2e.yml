@@ -45,7 +45,7 @@ jobs:
           done
           echo "server failed to start"; cat /tmp/phm-server.log; exit 1
 
-      - name: Smoke (172 · offline mode)
+      - name: Smoke (204 · offline mode)
         working-directory: phm-web
         run: node tools/smoke-page.mjs http://127.0.0.1:5199
 

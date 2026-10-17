@@ -45,9 +45,10 @@ create or replace function public.hm_api_key_create(
   p_secret text, p_owner text, p_name text, p_hint text, p_hash text
 ) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare k public.hm_api_keys; cnt int;
+declare s text; rec public.hm_api_keys; cnt int;
 begin
-  if p_secret is null or p_secret <> (select v from phm_secrets where k='writer') then
+  select v into s from phm_secrets where k = 'writer';
+  if s is null or p_secret is null or p_secret <> s then
     raise exception 'unauthorized writer' using errcode = '42501';
   end if;
   if nullif(p_owner,'') is not null then
@@ -59,24 +60,25 @@ begin
   end if;
   insert into hm_api_keys (owner_id, name, hint, key_hash)
   values (nullif(p_owner,''), coalesce(nullif(p_name,''),'default'), p_hint, p_hash)
-  returning * into k;
-  return jsonb_build_object('ok', true, 'id', k.id, 'hint', k.hint, 'name', k.name);
+  returning * into rec;
+  return jsonb_build_object('ok', true, 'id', rec.id, 'hint', rec.hint, 'name', rec.name);
 end $$;
 
 -- ── 校验 key（每请求调用；只回最小字段）──
 create or replace function public.hm_api_key_lookup(p_secret text, p_hash text)
 returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare k public.hm_api_keys;
+declare s text; rec public.hm_api_keys;
 begin
-  if p_secret is null or p_secret <> (select v from phm_secrets where k='writer') then
+  select v into s from phm_secrets where k = 'writer';
+  if s is null or p_secret is null or p_secret <> s then
     raise exception 'unauthorized writer' using errcode = '42501';
   end if;
-  select * into k from hm_api_keys where key_hash = p_hash;
+  select * into rec from hm_api_keys where key_hash = p_hash;
   if not found then return jsonb_build_object('ok', false); end if;
   return jsonb_build_object(
-    'ok', true, 'id', k.id, 'owner_id', k.owner_id,
-    'plan', k.plan, 'revoked', k.revoked_at is not null
+    'ok', true, 'id', rec.id, 'owner_id', rec.owner_id,
+    'plan', rec.plan, 'revoked', rec.revoked_at is not null
   );
 end $$;
 

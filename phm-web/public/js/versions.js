@@ -20,6 +20,23 @@
 
 export const RELEASES = [
   {
+    v: 'V0.13.0.0', date: '2026-10-17',
+    zh: [
+      '<b>开发者 API v1 上线</b>：可以按 chart_id 查询定数、提交分析（结果自动进共享缓存），'
+        + '并在控制台管理 API Key、查看调用量。文档在 <a href="/developers">/developers</a>。',
+      '免费：不登录 <b>100 次/小时</b>；API Key <b>1000 次/小时</b>，分析 <b>200 次/天</b>。'
+        + '每个账号最多 100 个 Key，可随时删除（吊销）。',
+      'v1 只接受 chart_id，<b>不上传谱面文件</b>——隐私承诺不变。',
+    ],
+    en: [
+      '<b>Developer API v1 is live</b>: look up a chart by chart_id, submit an analysis (the result is '
+        + 'cached for everyone), and manage API keys plus usage in the console. Docs at <a href="/developers">/developers</a>.',
+      'Free: <b>100 requests/hour</b> anonymously; <b>1000/hour</b> with an API key, and <b>200 analyses/day</b>. '
+        + 'Up to 100 keys per account, revocable at any time.',
+      'v1 accepts chart_id only and <b>never uploads chart files</b> — the privacy promise is unchanged.',
+    ],
+  },
+  {
     v: 'V0.12.1.1', date: '2026-10-17',
     zh: [
       '隐私政策更新到 <b>v1.3</b>：写清楚账号的邮箱与密码<b>只以 scrypt 哈希</b>保存、'
