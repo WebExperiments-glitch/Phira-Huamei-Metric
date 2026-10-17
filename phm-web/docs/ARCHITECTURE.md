@@ -44,7 +44,13 @@
 | `/data` | `data.html` | **数据管理**：全库分页浏览、排序、过滤；每行的双标度与引擎版本 |
 | `/settings` | `settings.html` | **设置**：上传偏好 / Phira 连接信息 / 本机存储清单与清除 / 关于 |
 | `/version` | `version.html` | **版本历史**（面向用户，只列能感知的变化）。数据源 `public/js/versions.js` —— 与 `CHANGELOG.md`（开发者向）是**两份**，但 smoke 有断言守着「RELEASES[0].v = app-version」 |
-| `/en.html` | `en.html` | 英文落地页（给 X 上的国际用户） |
+| `/download` | `download.html` | **下载页**：Windows 客户端。exe 本体在 `downloads/`，只走 `/download/phira-huamei.exe` 这一条流式路由（`lib/download.mjs`） |
+| `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
+| `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |
+
+> 共 **11 个 HTML**（10 个页面 + 404）。`privacy` / `terms` 是自包含文档页，所以
+> **9 个页面**才带 `<meta name="app-version">`。英文不再是单独页面，而是站内双语切换，
+> 原 `en.html` 已删除。
 
 **为什么拆**：①面板方案下链接没法指向"某人的成绩 / 某谱师的作品"，
 而分享链接恰恰是这个工具最主要的传播方式；②一个 124 KB 的单文件里塞
@@ -79,9 +85,9 @@
 
 ### 落地位置
 
-- 版本号写在**每个页面的 `<meta name="app-version">`** 里
-  （`index / app / charter / user / data / settings / privacy / terms / 404`，
-  改的时候**一起改**）。
+- 版本号写在**9 个页面的 `<meta name="app-version">`** 里
+  （`index / app / charter / user / data / settings / version / download / 404`，
+  改的时候**一起改**）。`privacy / terms` 是法务静态页，不带版本 meta。
 - 各页 `<link href="/css/*.css?v=…">` 的 `?v=` 用**同一个**串 ——
   它是长缓存的版本键（`server.mjs` 只对带 `?v=` 的请求长缓存）。
   ⚠ 只改 meta 不改 `?v=`，样式变更会命中旧缓存 —— "改了看不到"就是这么来的。
@@ -247,7 +253,7 @@ js/i18n/settings.js ← 设置页（set.*）
 - 过滤后总数**变小**
 - 非法排序字段被**服务端**拒绝（400），而不是前端崩
 
-## 四个层次，各自只干一件事## 四个层次，各自只干一件事
+## 四个层次，各自只干一件事
 
 | 层 | 位置 | 职责 | **不做什么** |
 |---|---|---|---|
@@ -255,7 +261,12 @@ js/i18n/settings.js ← 设置页（set.*）
 | 参照集 | `public/js/ref-official.js` + `public/data/ref-com.json` | **唯一真源是 `tools/gen-ref.mjs`**；输出物不要手改 | 不放算法，只放数据 |
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
-| 网关 | `server.mjs` | 路由、字段校验、限流、静态托管 | 不写业务算法，不直接碰数据库配置 |
+| 身份 / 账号 | `lib/hm.mjs` + `lib/hm-accounts.mjs` + `lib/hm-code-routes.mjs` | huamei 身份校验；自建账号（scrypt + 自签 HS256）；验证码路由（发码 / 验码 / 重置） | 不把平台 token 当可信身份；不用登录密码碰 Phira |
+| 成绩校验 | `lib/hm.mjs` 的 `validatePlay()` | 用 `phiraScore()` 重算 acc/score，只告警不拒收 | 不信客户端报的 score/accuracy |
+| 限流 | `lib/ratelimit.mjs` | 进程内预筛 + DB `hm_rate_hit` 权威计数；身份优先、IP 兜底、全局兜底 | **不读 X-Forwarded-For**（源码级禁用，测试守着） |
+| 贡献准入 | `lib/contribute-ticket.mjs` + `lib/contribute-routes.mjs` | 给 /api/contribute 签/验 5 分钟 HMAC 凭证；换票只查 Phira 元数据、不下载谱面；未持票请求在解析 body 前拒绝 | 不把「匿名可写」当默认；无写凭据时 fail-closed |
+| 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |
+| 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |
 | 界面 | `public/*.html`（见上面站点结构表） | 渲染、交互、调 API | 不做可信判定 |
 | 出图 | `public/js/sharecard.js` | 把结果画成 PNG（横 1200×630 / 竖 1080×1920） | 不加载任何外部图片（会污染 canvas） |
 

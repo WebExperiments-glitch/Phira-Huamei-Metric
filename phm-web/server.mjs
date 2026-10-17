@@ -23,7 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { reviewContribution, grosslyMismatched, recompute } from './lib/review.mjs';
+import { reviewContribution, grosslyMismatched, recompute, chartInfo } from './lib/review.mjs';
 /* 云数据库访问层（配置 + 写入凭据 + 两个写 RPC）都在 lib/cloud.mjs，
    与 tools/ 下的批量脚本共用同一份 —— 别再复制一份到这里。 */
 import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE, DB, WRITE_SECRET } from './lib/cloud.mjs';
@@ -35,6 +35,12 @@ import {
   sendCode as hmSendCode, verifyCode as hmVerifyCode, resetPassword as hmResetPassword,
 } from './lib/hm-accounts.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
+/* 贡献凭证：/api/contribute 的准入能力票（见 lib/contribute-ticket.mjs 顶部）。 */
+import {
+  ticketAvailable, issueTicket, verifyTicket, ticketCovers,
+  TICKET_TTL_MS, TICKET_MAX_CHARTS,
+} from './lib/contribute-ticket.mjs';
+import { makeContributeRoutes } from './lib/contribute-routes.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -361,6 +367,17 @@ function readBody(req, max = 512 * 1024) {
   });
 }
 
+/* 贡献凭证路由：实现见 lib/contribute-routes.mjs。
+   server.mjs 有 900 行上限（lint-slop 守着），所以路由逻辑不进这个文件。 */
+const contributeRoutes = makeContributeRoutes({
+  send, gate, gateAnalyze, readBody, chartInfo,
+  issueTicket, verifyTicket, ticketAvailable, ticketCovers,
+  ticketTtlMs: TICKET_TTL_MS, ticketMaxCharts: TICKET_MAX_CHARTS,
+  /* 写路径：复核 + 落库依赖由装配层注入（模块不认识数据库/闸门） */
+  dbFetch, dbPutChart, reviewContribution, grosslyMismatched,
+  tryEnter, rlLeave, contributeInflight: CONTRIBUTE_INFLIGHT,
+});
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
@@ -556,9 +573,28 @@ const server = http.createServer(async (req, res) => {
     }));
   }
 
+  /* ── /api/contribute/ticket ── 贡献凭证（见 lib/contribute-routes.mjs）──
+     /api/contribute 不再接受匿名直接写入：客户端必须先用真实存在的 chart_id
+     换一张 5 分钟有效的 HMAC 凭证。换证只查 Phira 元数据，**不下载谱面**。 */
+  if (p === '/api/contribute/ticket') return contributeRoutes.ticketRoute(req, res, ip);
+
   /* 写入网关：校验 + 限流 + 落库 */
   if (p === '/api/contribute' || p === '/api/scores') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
+
+    /* ── 贡献凭证：**先验票，再读 body** ──
+       2026-10-17 白帽实测：/api/contribute 完全无认证，任意 chart_id 都能
+       让服务端下载 ≤60MB 谱面并跑引擎（复算保证了数据正确，但成本面敞开）。
+       现在必须持有服务端签发的 HMAC 凭证；凭证只覆盖「刚刚确认过存在」的 chart_id。
+       ⚠ 顺序很重要：验票在建 body 之前 —— 未认证请求连 body 解析都到不了，
+         错误信息也不会回显请求结构（白帽就是从 `rows:[]` 的报错推断出批量格式的）。 */
+    let ticketCids = null;
+    if (p === '/api/contribute') {
+      const tv = contributeRoutes.readTicket(req, ip);
+      if (!tv.ok) return send(res, tv.status, JSON.stringify(tv.body));
+      ticketCids = tv.cids;
+    }
+
     /* ⚠ 必须 await。限流函数返回 Promise，而 Promise 永远是真值 ——
        `if (!rateOk(ip))` 恒为 false，429 从来没出现过。
        这个 bug 2026-10-11 就审计出来过（写路径漏 await），
@@ -567,7 +603,8 @@ const server = http.createServer(async (req, res) => {
     if (!(await gate(res, gateWrite({ ip }), 'rate limit: 每分钟最多 ' + RL.writeIp + ' 次写入'))) return;
     const body = await readBody(req);
     const rows = Array.isArray(body) ? body : (body && Array.isArray(body.rows) ? body.rows : null);
-    if (!rows) return send(res, 400, JSON.stringify({ error: 'body must be an array or {rows:[]}' }));
+    /* 错误信息不描述期望结构 —— 白帽就是靠报错里的 `{rows:[]}` 认出批量上报的。 */
+    if (!rows) return send(res, 400, JSON.stringify({ error: 'invalid request body' }));
     /* ⚠ 单次行数从 500 降到 20。
        500 行/请求是把"灌水"放大了 25 倍 —— 审计实测一次请求就能塞进
        500 行垃圾。正常用法一次最多几十行（一个玩家的 recent 成绩），
@@ -597,83 +634,8 @@ const server = http.createServer(async (req, res) => {
       }));
     }
 
-    /* ── 定数缓存：**服务端复核后才落库**（防投毒）──
-       客户端报上来的特征值一律不直接采信：先查该 chart_id 是否已有权威值，
-       没有就用服务端自己的引擎复算一遍（下载谱面 → 与提交值比对），
-       一致才写，且**写入的是服务端算出来的值**。 */
     if (p === '/api/contribute') {
-      /* ⚠⚠ 在途并发上限。审计实测（2026-10-13）：`/api/analyze` 有
-         `analyzeInflight <= 3` 的保护，而 `/api/contribute` **没有**。
-         每一行通过校验的 chart_id 都会让服务端向 Phira 下载 ≤60MB 谱面
-         并**同步**跑引擎 —— 同步跑会卡住整个 Node 事件循环，
-         多来几个并发全站一起变慢。20 行 × 并发 = 可观的带宽与 CPU。
-         所以：拿不到名额就直接 503，**不要**占着事件循环排队。 */
-      if (!tryEnter('contribute', CONTRIBUTE_INFLIGHT)) {
-        return send(res, 503, JSON.stringify({
-          error: '服务端正在复算其他贡献，请稍后再试',
-        }));
-      }
-      let verified = 0, skipped = 0, failed = 0, mismatched = 0;
-      const notes = [];
-      try {
-      for (const row of clean) {
-        try {
-          const existing = await dbFetch(
-            '/phm_charts?chart_id=eq.' + encodeURIComponent(row.chart_id) + '&select=chart_id');
-          if (existing.ok && existing.body && existing.body !== '[]') { skipped++; continue; }
-
-          const { trusted, diffs } = await reviewContribution(row);
-          /* 差异**过大** → 有两种可能，必须分开处理：
-               ① 根本不是同一张谱（把某曲 IN 的特征提交到同曲 HD 的谱号上）
-               ② 客户端**没有排除自己**：浏览器拖入谱面时不知道 chart_id，
-                  自然不会从参照集里剔掉这张谱，于是它的 ref_const 会系统性偏一点。
-                  两个口径差 1 级以上并不罕见（约两成），而这跟"是不是同一张谱"无关。
-             所以先按「不排除自己」的口径再算一次，对得上就说明是 ② ——
-             **接受，但仍然落库排除口径的服务端值**（那个才是权威值）。
-             只有两个口径都对不上，才判定为 ① 并拒绝。 */
-          const huge = grosslyMismatched(diffs);
-          if (huge.length) {
-            let rescued = null;
-            try {
-              const alt = await reviewContribution(row, { noExclude: true });
-              if (!grosslyMismatched(alt.diffs).length) rescued = alt;
-            } catch (e) { /* 兜底口径失败不影响主判定 */ }
-            if (!rescued) {
-              failed++;
-              notes.push('提交特征与该谱号严重不符（疑似同名不同难度）→ 拒绝写入: '
-                + huge.map(d => d.field).join(','));
-              continue;
-            }
-            mismatched++;
-            notes.push('客户端未排除自身参照（已按服务端排除口径落库）');
-          }
-          /* 差异在容差内 = 客户端引擎过期 → 仍用服务端值写入 */
-          const wr = await dbPutChart(trusted);
-          if (wr.ok > 0) {
-            verified++;
-            if (diffs.length) {
-              mismatched++;
-              notes.push('客户端值不一致（已改用服务端值）: ' + diffs.map(d => d.field).join(','));
-            }
-          } else { failed++; notes.push('写入失败: ' + String(wr.fail[0] || '').slice(0, 80)); }
-        } catch (e) {
-          failed++;
-          notes.push(String(e.message || e).slice(0, 100));
-        }
-      }
-      } finally {
-        /* ⚠ 必须 finally —— 漏了 leave，一次抛错就把名额永久吃掉，
-           之后所有 contribute 全部 503。 */
-        rlLeave('contribute');
-      }
-      return send(res, 200, JSON.stringify({
-        received: rows.length, accepted: clean.length, rejected: rows.length - clean.length,
-        written: verified, skipped, failed,
-        mismatched: mismatched || undefined,
-        note: notes.length ? notes.slice(0, 3) : undefined,
-        verified: true, source: 'server-verified',
-        policy: '定数由服务端独立复算；落库值永远是服务端计算结果，客户端提交值仅用于一致性检查',
-      }));
+      return contributeRoutes.write(res, rows, clean, ticketCids);
     }
 
     const wr = await dbPutScores(clean);

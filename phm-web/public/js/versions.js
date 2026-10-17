@@ -20,6 +20,20 @@
 
 export const RELEASES = [
   {
+    v: 'V0.12.1.0', date: '2026-10-17',
+    zh: [
+      '加固了「拖入谱面后贡献定数」这条链路：提交前先向服务端换一张短期凭证，'
+        + '防止伪造请求消耗服务器。正常使用无感知；若页面提示刷新，刷新一次即可。',
+      '相关接口的报错不再暴露请求格式（安全加固，无感）。',
+    ],
+    en: [
+      'Hardened the "contribute a chart after dropping it" path: the page now gets a short-lived '
+        + 'server ticket before submitting, so forged requests cannot burn server resources. '
+        + 'Nothing changes in normal use; if a page asks you to refresh, refresh once.',
+      'API error messages no longer reveal the request format (security hardening, no visible change).',
+    ],
+  },
+  {
     v: 'V0.12.0.0', date: '2026-10-17',
     zh: [
       '注册现在要<b>邮箱验证码</b>了：填完邮箱和密码，系统会先发一封带数字的邮件，'

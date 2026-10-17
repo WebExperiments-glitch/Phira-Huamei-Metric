@@ -32,51 +32,77 @@
 
 ```
 phm-web/
-├── server.mjs                 ← 后端入口：HTTP 服务、路由、静态托管
+├── server.mjs                 ← 后端入口：路由 / 静态托管 / 限流装配
 ├── write-secret.txt           ← ★ 写入凭据（唯一能写缓存的东西；**已 gitignore，绝不入库**）
 ├── package.json               ← 只声明 start 脚本，无第三方依赖
+├── .env.example               ← 环境变量模板（真值放 .env；说明见 SECURITY.md）
+├── downloads/                 ← 客户端 exe 本体；**不在 PUBLIC_DIRS**，只走 /download/phira-huamei.exe
 │
-├── .env.example               ← 写入凭据的模板（真值放 .env；两者说明见 SECURITY.md）
-│
-├── lib/
+├── lib/                       ← 后端横切件（server.mjs 只做装配）
+│   ├── cloud.mjs              ← 云数据库访问层：地址 / publishableKey / 写入凭据 / dbFetch
 │   ├── review.mjs             ← ★ 服务端复核：下载谱面 + 复算 + 与提交值比对
 │   ├── refstore.mjs           ← ★ 服务端读社区参照集（引擎保持纯计算，不认识 fs）
-│   └── cloud.mjs              ← ★ 云数据库访问层：地址 / publishableKey / 写入凭据 / dbFetch
-│                                 （server.mjs 与 tools/ 共用同一份，别在别处再配一遍）
+│   ├── hm.mjs                 ← huamei 身份 + 成绩校验（计分真源 phiraScore）
+│   ├── hm-accounts.mjs        ← 自建账号：scrypt 哈希 + 服务端自签 HS256 JWT + 验证码
+│   ├── hm-code-routes.mjs     ← 邮箱验证码路由（注册 / 重置密码；**登录不需要码**）
+│   ├── ratelimit.mjs          ← 限流：进程内预筛 + DB hm_rate_hit 权威计数
+│   ├── contribute-ticket.mjs  ← /api/contribute 的 HMAC 贡献凭证（签 / 验）
+│   ├── contribute-routes.mjs  ← 换票路由 + 验票 + 服务端复核后落库
+│   └── download.mjs           ← 下载端点：流式 + Range + ETag
 │
 ├── public/                    ← 静态资源根目录（只有这里的内容会被送出）
-│   ├── index.html             ← 落地页 /（这是什么、双标度怎么读、入口）
+│   ├── index.html             ← 落地页 /（定位、双标度、入口）
 │   ├── app.html               ← 工作台 /app（拖入 + 搜索 + 定数 + 分享卡）
 │   ├── charter.html           ← 谱师页 /charter（某谱师的全部作品）
 │   ├── user.html              ← 玩家页 /user（成绩 / RKS / 逐谱成绩）
 │   ├── data.html              ← 数据管理 /data（全库分页浏览、排序、过滤）
-│   ├── settings.html          ← 设置 /settings（上传偏好 / Phira 连接 / 本机存储 / 关于）
-│   ├── en.html                ← 英文版（给 X / 国际社区，只做「拖入 + 搜索 + 分享」三件事）
-│   ├── privacy.html           ← 隐私政策
+│   ├── settings.html          ← 设置 /settings（上传偏好 / 账号 / Phira / 本机存储 / 主题字体）
+│   ├── version.html           ← 版本历史 /version（面向用户；数据源 js/versions.js）
+│   ├── download.html          ← 下载页 /download（Windows 客户端）
+│   ├── privacy.html / terms.html ← 法务页（不带版本 meta，也不是 ES module 页面）
 │   ├── 404.html               ← 错误页（服务端对未命中路径下发它，状态码仍是 404）
-│   ├── robots.txt             ← 禁爬 /api/（/api/analyze 是全站最贵的路径）
-│   ├── sitemap.xml
-│   ├── og.png / og-en.png     ← 分享卡片 1200×630（由 tools/make-og.mjs 生成）
+│   ├── robots.txt / sitemap.xml
+│   ├── og.png                 ← 分享卡片 1200×630（由 tools/make-og.mjs 生成）
 │   ├── data/
 │   │   └── ref-com.json       ← 社区参照集 9,508 张（生成物，由 gen-ref.mjs 产出，懒加载）
+│   ├── fonts/
+│   │   ├── display-serif.woff2 ← 思源宋体子集（默认标题）
+│   │   └── display-kai.woff2   ← 霞鹜文楷子集（设置里的「楷体标题」）
 │   ├── css/
-│   │   └── base.css           ← 主题令牌 + 导航 + 通用组件（令牌的唯一来源）
+│   │   ├── base.css           ← 底座：令牌 / reset / 排版 / 布局骨架 / 导航 / 卡片 / 表格
+│   │   ├── ui-kit.css         ← 组件：控件 / 按钮 / callout / 芯片 / 字体与字号档位
+│   │   └── docs.css           ← 法务长文版式（privacy / terms）
 │   └── js/
+│       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源（纯计算）
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
 │       ├── ui.js              ← 导航 / 格式化 / 缓存读取 / P.H.M. RKS
 │       ├── settings.js        ← ★★ 用户设置的**唯一真源**：键名 / 默认值 / 读写 / 清理
-│       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源
+│       ├── handoff.js         ← 首页 → /app 的 IndexedDB 文件接力
+│       ├── i18n.js + i18n/    ← 双语：10 个页面分片，中英写在同一个文件
 │       ├── ref-official.js    ← 官谱参照 1,037 张（生成物，由 gen-ref.mjs 产出）
+│       ├── release.js         ← 下载页元数据（生成物，由 gen-release.mjs 从 exe 实算）
+│       ├── versions.js        ← 用户向版本历史（与 CHANGELOG.md 分工不同）
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
-├── tools/
-│   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件，别手改产物）
-│   ├── make-og.mjs            ← 重新生成分享卡片（改文案后跑一次，--en 出英文版）
-│   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集 Ranked + Special）
-│   ├── reconcile-cache.mjs    ← ★ 缓存对账（抽样复算 / --recompute-stale / --fix，退出码可挂 CI）
-│   ├── verify-engine.mjs      ← ★ 引擎回归测试（改引擎后必跑；--net 比对真实基线）
-│   ├── smoke-page.mjs         ← ★ 4 条路由的页面对拍（本机 Chrome + CDP）
-│   └── verify-pages.mjs       ← ★★ 功能级页面测试（真浏览器**驱动 UI**，专拦"页面没报错但功能是坏的"）
+├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（25 个）
+│   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件）
+│   ├── gen-release.mjs        ← 从实际 exe 算大小 / sha256 / 客户端版本
+│   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
+│   ├── reconcile-cache.mjs    ← ★ 缓存对账（--recompute-stale / --fix，退出码可挂 CI）
+│   ├── verify-engine.mjs      ← ★ 引擎回归测试（45 条；--net 比对真实基线）
+│   ├── smoke-page.mjs         ← ★ 冒烟（176 条：页面 / 版本号 / 缓存策略）
+│   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
+│   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）
+│   ├── test-api-routes.mjs    ← 打完 14 条接口再验进程没死（17 条）
+│   ├── test-ratelimit.mjs     ← 限流（80 条，含禁读 XFF 的防回归断言）
+│   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
+│   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
+│   ├── lint-i18n.mjs          ← 双语完整性（820 词条 / 802 引用）
+│   ├── check-contrast.mjs     ← 配色对比度校验
+│   ├── bump-version.py        ← 一次改全站版本号
+│   ├── version-module-imports.py ← 给模块 import 补/换 ?v=
+│   ├── subset-display-font.py ← 生成标题字体子集（serif / kai）
+│   └── collect-display-chars.mjs ← 从渲染后 DOM 采标题用字
 │
 └── docs/
     ├── README.md              ← 你正在看的
@@ -85,6 +111,7 @@ phm-web/
     ├── DATA-MODEL.md          ← 表结构、RPC、权限（改数据库先看这个）
     ├── SECURITY.md            ← 信任边界、风险清单、已知限制
     ├── ENGINE-EXPERIMENT.md   ← ★ 引擎选型实验：为什么是 8 维 / 社区参照，以及所有被否掉的方案
+    ├── HANDOVER.md            ← ★ 部署前必做 / 红线清单（动代码前先读）
     └── PROMOTION.md           ← 宣发手册（各平台差异、逐步操作、可复制文案）
 ```
 
@@ -92,10 +119,11 @@ phm-web/
 > 后者记的是实测出来的接口边界（例如"成绩只能拿最近 20 条"），
 > 不知道这些会写出必然不对劲的代码。
 
-> **页面版本号在 7 个 HTML 里各写一份**（`index.html` / `app.html` / `user.html` /
-> `charter.html` / `data.html` / `en.html` / `404.html` 的 `<meta name="app-version">`）。
-> 站点点拆时从两处变成了七处，**必须一起改** —— `smoke-page.mjs` 有一条
-> 「各页版本号一致」的断言守着它，漏改会被测试拦住。
+> **页面版本号在 9 个 HTML 里各写一份**（`index.html` / `app.html` / `charter.html` /
+> `user.html` / `data.html` / `settings.html` / `version.html` / `download.html` / `404.html`
+> 的 `<meta name="app-version">`）。`privacy.html` / `terms.html` 是法务静态页，
+> 不带版本 meta，也不是 ES module 页面，所以不在清单里。
+> **必须一起改** —— `smoke-page.mjs` 有一条「各页版本号一致」的断言守着它，漏改会被测试拦住。
 > 页头标签、页脚、引擎与分享模块的缓存版本串都从它取。
 >
 > ⚠ `ENGINE_VER`（引擎模块里导出，当前 `com-trim15-v0.5.0`）是**另一根轴**：

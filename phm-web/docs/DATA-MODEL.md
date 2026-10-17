@@ -6,6 +6,11 @@
 数据库：WorkBuddy 云服务托管的 PostgreSQL。
 **没有迁移文件** —— 结构变更通过 MCP 工具执行 SQL，因此这份文档就是唯一的结构记录。
 
+> **最后核对：2026-10-17**。本次补入 2026-10-12 ~ 10-17 新增的
+> `hm_accounts` / `hm_codes` / `hm_plays` / `hm_rate` 四张表与对应 RPC。
+> `hm_*` 的列清单来自服务端代码的实际读写（`lib/hm-accounts.mjs`、`lib/hm.mjs`、
+> `lib/ratelimit.mjs`）；若与库不一致，以库为准并回写本文。
+
 ---
 
 ## 表
@@ -111,6 +116,82 @@
 
 ---
 
+### `hm_accounts` — 自建账号（2026-10-12 起）
+
+一行 = 一个正式账号。注册只存邮箱 + scrypt 哈希，**不存明文密码**。
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `sub` | text **主键** | 服务端生成的身份 id，写进自签 JWT 的 `sub` |
+| `email` | text **UNIQUE** | 邮箱（小写归一；允许 `+` 别名） |
+| `salt` | text | scrypt 盐 |
+| `pass_hash` | text | scrypt 哈希（`N=16384,r=8,p=1` 量级） |
+
+> 列清单来自 `lib/hm-accounts.mjs` 的实际读写（create / lookup / setpw）。
+> 以库为准；若两者不一致，先改这里再改库，别反过来。
+> 没有「改密码 / 找回密码」入口：重置密码必须**先验邮箱验证码**，再走 `hm_account_setpw`。
+> RLS 开、**不给任何角色直连权限**；token 不落库（服务端 HS256 自签）。
+
+---
+
+### `hm_codes` — 邮箱验证码状态（2026-10-17 起）
+
+一行 = 一次发码。**验证码本身由平台保管**，我们只存 `verification_id` 与过期时间。
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `email` | text | 目标邮箱 |
+| `purpose` | text | `register` / `reset`（登录不需要码） |
+| `vid` | text | 平台返回的 `verification_id`，**只存服务端，绝不下发客户端** |
+| `exp` | bigint | 过期时间（epoch 秒，10 分钟 TTL） |
+| `attempts` / `used` | integer / boolean | 尝试次数（上限 5）与是否已消费 |
+
+> 错误码：`code_missing / code_expired / code_used / code_too_many / code_wrong / code_invalid`。
+> 发码、验码、消费分别对应 `hm_code_put / hm_code_get / hm_code_consume` 三个 RPC。
+> ⚠ `verification_id` 若由客户端传入，等于允许「给自己邮箱领码、拿去注册别人邮箱」——
+> 这是白帽报告里的攻击面，代码注释里钉死了这条边界。
+
+---
+
+### `hm_plays` — 逐音符成绩（2026-10-11 起）
+
+一行 = 一局结算。`judge_blob` 是客户端采集的逐音符判定（base64 二进制）。
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `play_id` | bigint **主键** | 自增，写入后回给客户端 |
+| `owner_id` | text | 账号 `sub`（**服务端从 token 取，不接受客户端传**） |
+| `chart_id` / `chart_level` | integer / text | Phira 谱面 ID 与难度标签 |
+| `chart_digest` | text | 谱面内容摘要（可选，≤80 字符） |
+| `chart_notes` | integer | 物量（1–100000） |
+| `score` / `accuracy` | integer / numeric | 服务端按 `phiraScore()` 重算的值 |
+| `max_combo` | integer | **用客户端上报值**（中途断连时不能用 p+g 反推） |
+| `perfect/good/bad/miss` | integer | 判定计数，四项之和必须等于物量 |
+| `speed` / `mods` / `keyboard` | numeric / integer / boolean | 游戏设置 |
+| `client_ver` / `judge_ver` | text / integer | 客户端版本 / 判定版本 |
+| `played_at` | bigint | 客户端结算时间（epoch 毫秒/秒，允许 null） |
+| `judge_blob` | text | 逐音符判定，上限 400KB |
+| `created_at` | timestamptz | 默认 `now()` |
+
+> 写路径只有 `hm_put_play(p_secret, p_row)`，RLS 开、anon 无直连。
+> `score` / `accuracy` 与客户端报值不一致时**只告警不拒收**（拒收真实成绩比收一条可疑数据更糟），
+> 但 `counts 之和 ≠ 物量`、`max_combo > p+g` 这类硬约束会直接 409。
+
+---
+
+### `hm_rate` — 限流计数（2026-10-16 起）
+
+不对外暴露的计数表。每次请求调 `hm_rate_hit(p_secret, p_key, p_max, p_window_ms)`：
+
+- 返回 `{ok, remaining, reset_ms}`；`ok=false` 时 `reset_ms` 告诉客户端还要等多久。
+- **被拒的请求不消耗配额**（滑动窗口语义，恢复更快）。
+- 调用方在 `lib/ratelimit.mjs` 里串行化（`hm_rate_hit` 的「数 → 插」是两步，并发会少算）。
+
+> RLS 开、anon 无直连；只有带写入凭据的 RPC 能读写。
+> 进程内计数只做**预筛**：无状态托管下每个请求可能落在新进程，权威计数必须在库里。
+
+---
+
 ## RPC（对外只暴露这些）
 
 | 函数 | 返回 | 用途 |
@@ -121,6 +202,12 @@
 | `phm_plays(name_in text)` | `json` | 某谱的玩家表现：`{n, avg, min, max, med, oc}` |
 | `phm_mine(uid_in bigint, ids_in bigint[])` | `integer` | 某玩家在给定谱号里已有几条 |
 | `phm_touch()` | `void` | 原子更新本人档案的 `last_seen` 与 `visits` |
+| `hm_account_lookup(p_email text)` | `jsonb` | 按邮箱查账号（登录 / 发码前查重） |
+| `hm_account_create(p_sub, p_email, p_pass_hash, p_salt)` | `jsonb` | 创建账号（重复邮箱 → 23505） |
+| `hm_account_setpw(p_sub, p_hash, p_salt)` | `jsonb` | 重置密码（调用前必须已验码） |
+| `hm_code_put / hm_code_get / hm_code_consume` | `jsonb` | 验证码状态：写入 / 取出 / 作废 |
+| `hm_put_play(p_secret text, p_row jsonb)` | `jsonb` | ★ 写一局成绩（唯一写路径，需凭据） |
+| `hm_rate_hit(p_secret, p_key, p_max, p_window_ms)` | `jsonb` | ★ 原子限流计数（返回 ok/remaining/reset_ms） |
 
 两个写函数内部**自己填 `engine_ver` / `engine_build` / `verified_at` / `computed_at`**，
 调用方传什么都不算数 —— 伪造权威标记这条路根本不存在（实测过）。
@@ -143,6 +230,8 @@
 | `phm_stats` / `phm_plays` / `phm_mine` | EXECUTE ✅ | 聚合接口，只回数字 |
 | `phm_put_chart` / `phm_put_scores` | EXECUTE ✅（**但需凭据**）| 无凭据 = 42501 |
 | `phm_touch` | EXECUTE ✅（仅 authenticated）| 需要登录 |
+| `hm_accounts` / `hm_codes` / `hm_plays` / `hm_rate` | **全部 ❌（表不可达）** | RLS 开且不给任何角色直连；只经带凭据的 SECURITY DEFINER 函数 |
+| `hm_*` RPC | EXECUTE ✅（**但需写入凭据**）| 无凭据 = 42501；`hm_code_*` / `hm_put_play` / `hm_rate_hit` 全部如此 |
 
 > 「DELETE ❌」也适用于 `service_role` 之外的常规角色；数据库侧另有 CHECK 约束兜住取值范围。
 

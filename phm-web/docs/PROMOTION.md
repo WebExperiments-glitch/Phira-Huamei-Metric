@@ -12,7 +12,7 @@
 | **QQ 频道 / 群** | 能，但陌生域名**容易被折叠** | 有（og 卡片） | 用**图**说话，链接放简介 |
 | **抖音** | **基本点不了** | 无 | 画面里带域名，引导搜索 |
 | **B站** | 简介能点（有风控） | 动态能点 | 视频 / 专栏打长尾 |
-| **X** | **能点，还有大图卡片** | 有（og-en.png） | 唯一能直接发链接的，但要用英文 |
+| **X** | **能点，还有大图卡片** | 有（og.png） | 唯一能直接发链接的；浏览器语言是英文时站内自动切英文 |
 
 ⚠️ **一个必须先说的现实**：Phira 的玩家绝大多数在中国。
 X 上的触达会很小 —— 它的作用是「有个国际门面 + 英文入口」，**不是主战场**。
@@ -25,7 +25,8 @@ X 上的触达会很小 —— 它的作用是「有个国际门面 + 英文入�
 
 ### 1.1 发之前
 - [ ] 账号能正常发帖（新号带外链容易被限流 → 先随便发 1~2 条不带链接的）
-- [ ] 打开 https://phm.app.workbuddy.host/en.html 确认能打开、卡片图正常
+- [ ] 打开 https://phm.app.workbuddy.host/ 确认能打开、卡片图正常；
+      再把浏览器语言切成英文看一眼（英文用户应自动看到英文，不再有 /en.html）
 
 ### 1.2 帖子内容（直接复制）
 
@@ -40,7 +41,7 @@ uncertainty range of that number.
 
 Runs entirely in your browser. Charts are never uploaded.
 
-https://phm.app.workbuddy.host/en.html
+https://phm.app.workbuddy.host/
 
 #Phigros #Phira #rhythmgame
 ```
@@ -53,15 +54,15 @@ Chart difficulty ratings are black boxes. So I made one that shows its work.
 Drop a Phira chart pack → 1,037 official charts, k-nearest-neighbour,
 one number + how uncertain it is. Nothing is uploaded.
 
-https://phm.app.workbuddy.host/en.html
+https://phm.app.workbuddy.host/
 
 #Phigros #Phira #rhythmgame
 ```
 
 ### 1.3 发的动作
 1. 把上面的文案粘进发帖框
-2. **文字发出去前先看一眼链接下面有没有出现大图卡片**（X 会自动抓 `og-en.png`）。
-   如果没出现 → 手动把 `og-en.png` 作为图片附上（自动卡片偶尔不渲染）
+2. **文字发出去前先看一眼链接下面有没有出现大图卡片**（X 会自动抓 `og.png`）。
+   如果没出现 → 手动把 `og.png` 作为图片附上（自动卡片偶尔不渲染）
 3. 发完后**把这条推置顶**（个人主页 → 该推 → Pin to profile）
 4. 时间选**北京时间 21:00–24:00**（对应欧洲下午、美东上午，覆盖面最好）
 

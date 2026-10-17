@@ -98,6 +98,17 @@ export async function matchChartId(name, local) {
   return pick.hit || null;
 }
 
+/** 只取 Phira 的谱面元数据（**不下载谱面**）。
+ *  给 /api/contribute/ticket 用来确认 chart_id 真实存在且带 file 字段；
+ *  与 recompute() 共用同一个上游和超时，避免两套判断漂移。 */
+export async function chartInfo(chartId) {
+  const r = await fetchTO(PHIRA_API + '/chart/' + encodeURIComponent(chartId), FETCH_TIMEOUT);
+  if (!r.ok) throw new Error('Phira 谱面信息 HTTP ' + r.status);
+  const info = await r.json();
+  if (!info || typeof info !== 'object') throw new Error('谱面信息为空');
+  return info;
+}
+
 /* 服务端复算：下载谱面 → 跑引擎 → 返回权威值 */
 export async function recompute(chartId, opts) {
   const o = opts || {};

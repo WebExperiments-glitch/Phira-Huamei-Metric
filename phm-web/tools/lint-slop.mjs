@@ -74,6 +74,8 @@ const LS_OK = new Set([
   'tools/check-i18n-page.mjs',
   'tools/shot.mjs',
   'tools/collect-display-chars.mjs',   /* 同上：CDP 里塞 phm_lang，采集标题用字 */
+  'tools/test-ui-flows.mjs',           /* 交互测试：读 phm_font 断言"设置跨页面持久化"。
+                                          它是**验证**存储，不是**定义**键名——真源仍是 settings.js。 */
 ]);
 for (const f of FILES) {
   if (LS_OK.has(f.rel)) continue;

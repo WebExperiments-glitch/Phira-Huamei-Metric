@@ -165,9 +165,9 @@
 
 ---
 
-## 4. 字体系统（现状 + 待决）
+## 4. 字体系统（2026-10-17 起有三档标题 + 三档字号）
 
-### 4.1 现状（实测）
+### 4.1 正文（没变）
 
 ```css
 /* 正文 —— 纯系统栈，没有任何 webfont */
@@ -181,8 +181,35 @@ font: 14px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
 - **行高 1.65** 是刻意留给 CJK 的（DeepSeek 的设计体系写了
   「1.6 body line-height，deliberate CJK accommodation」）。
 - 数字用 `font-variant-numeric: tabular-nums` —— 表格里数字要对齐。
-- ⚠ **只有一套字体。** 没有 display/body 的层级对比，中英也没有分别指定。
 - ⚠ 服务器 CSP 是 `font-src 'self' data:` —— **只能用自托管字体**，不能挂 CDN。
+
+### 4.2 标题字体（设置 → 外观与语言）
+
+三个档位，写在 `<html data-font="...">`，由 `public/css/ui-kit.css` 覆盖 `--font-display`：
+
+| data-font | 字体 | 文件 | 体积 |
+|---|---|---|---|
+| `serif`（默认） | 思源宋体 SemiBold 子集 | `fonts/display-serif.woff2` | 83 KB |
+| `kai` | 霞鹜文楷 Regular 子集 | `fonts/display-kai.woff2` | 63 KB |
+| `sans` | 系统黑体栈 | 无 webfont | 0 |
+
+- **只加载用到的那一个**：两个 `@font-face` 都声明了，浏览器按实际使用取；
+  两套子集共用一个字符表 `tools/display-chars.txt`。
+- ⚠ 文楷只有 Regular，而标题 CSS 是 600 → `[data-font="kai"]` 必须
+  `font-synthesis-weight: none`，否则浏览器算法伪粗体会把笔锋糊掉。
+- 子集流水线：`collect-display-chars.mjs` 从**渲染后的 DOM** 采标题用字 →
+  `subset-display-font.py`（改文案/加页面后重跑）。采字不能 grep 源码，
+  因为很多标题是 JS 用 `t()` 填的。
+
+### 4.3 字号（设置 → 外观与语言）
+
+三档写在 `<html data-size="...">`：`s` = 93.75%（15px 基准）、
+`m` = 100%（16px，默认）、`l` = 109.4%（17.5px）。只改根字号，不改任何具体选择器。
+
+> ⚠ 字体/字号必须在每个页面的 `<head>` 里**同步**应用（内联引导脚本），
+> 不能等 ES module 加载完再设 —— 否则每次切页都会闪一下默认字体。
+> 2026-10-17 修过一个真实 bug：那段脚本原先只写在 `settings.html`，
+> 其余页面从不读 `phm_font` / `phm_size`，切个页面就回默认。
 
 ### 4.2 问题
 
@@ -358,8 +385,10 @@ C. 中性阶梯目前是"等色相、只变明度"。要不要引入极轻微的
 
 | 文件 | 作用 |
 |---|---|
-| `public/css/base.css` | **令牌唯一真源**（本文件所有数值都出自这里） |
+| `public/css/base.css` | **令牌唯一真源**（`:root` 与 `:root[data-theme="light"]`）；reset / 排版 / 布局骨架 / 导航 / 卡片 |
+| `public/css/ui-kit.css` | 组件层：输入框 / 按钮 / callout / 芯片 / 窄卡 / 字体与字号档位。**必须在 base.css 之后引入**（顺序反了令牌覆盖会错） |
 | `public/css/docs.css` | 法务页专用样式（沿用同一套令牌） |
+| `public/fonts/display-serif.woff2` / `display-kai.woff2` | 标题字体子集（生成物，由 `tools/subset-display-font.py` 产出） |
 | `docs/ARCHITECTURE.md` | 「主题与语言」一节讲了双主题与 i18n 的实现 |
 | `tools/lint-slop.mjs` | 管着「不许硬编码颜色 / 不许写死尺寸」 |
 | `tools/check-contrast.mjs` | **配色对比度校验**。不传参数 = 校验当前 `base.css`；传 JSON = 先校验待落地方案 |
@@ -367,3 +396,6 @@ C. 中性阶梯目前是"等色相、只变明度"。要不要引入极轻微的
 > ⚠ **改配色的正确姿势**：只改 `base.css` 的 `:root` 与
 > `:root[data-theme="light"]` 两个块。**不要**在页面里写死颜色 ——
 > lint 会拦，而且深浅主题会立刻失衡。
+> ⚠ **改组件样式**去 `ui-kit.css`；改完先跑 `lint-slop`（花括号平衡）再跑
+> `smoke-page`。2026-10-17 有一次 `base.css` 多写一个 `.btn {`，
+> 导致整份样式表从那一行起全部失效，浏览器不报任何错。

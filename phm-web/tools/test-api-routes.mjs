@@ -24,6 +24,23 @@ const T = (name, cond, extra = '') => {
   else { fail++; console.log(`  ❌ ${name} ${extra}`); }
 };
 
+async function hitFull(method, path, body, headers) {
+  try {
+    const r = await fetch(BASE + path, {
+      method,
+      headers: Object.assign(body ? { 'content-type': 'application/json' } : {}, headers || {}),
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(20000),
+    });
+    const text = await r.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch { /* 非 JSON 就留 null */ }
+    return { status: r.status, json, text };
+  } catch (e) {
+    return { status: 0, err: String(e.message || e) };
+  }
+}
+
 async function hit(method, path, body) {
   try {
     const r = await fetch(BASE + path, {
@@ -67,7 +84,30 @@ for (const [method, path, body, label] of CASES) {
   T(`${method} ${path} — ${label}`, !bad, bad || '');
 }
 
-console.log('\n【2】★ 打完这些，服务必须还活着');
+console.log('\n【2】写面认证：/api/contribute 必须持服务端签发的贡献凭证');
+
+/* 2026-10-17 白帽实测：/api/contribute 原先完全无认证，任意 chart_id 都能让
+   服务端下载 ≤60MB 谱面并跑引擎。这一组专门守「无票 / 假票进不来」，
+   以及「未认证请求不能从报错里推断出请求结构」。 */
+const noTicket = await hitFull('POST', '/api/contribute', { rows: [] });
+T('无凭证 → 401', noTicket.status === 401, 'HTTP ' + noTicket.status);
+T('错误信息不含请求结构（不泄露 rows 批量格式）',
+  !!(noTicket.json && noTicket.json.error === 'contribution_ticket_required')
+  && !/rows/i.test(noTicket.text || ''),
+  noTicket.text);
+
+const forged = await hitFull('POST', '/api/contribute', { rows: [] }, { 'x-phm-ticket': 'v1.abc.def' });
+T('伪造凭证 → 401', forged.status === 401, 'HTTP ' + forged.status);
+
+const badBody = await hitFull('POST', '/api/contribute/ticket', { chart_id: 0 });
+T('换票参数非法 → 400', badBody.status === 400, 'HTTP ' + badBody.status);
+
+const badShape = await hitFull('POST', '/api/contribute/ticket', { foo: 1 });
+T('换票请求体不合法 → 400（不泄露期望结构）',
+  badShape.status === 400 && !/chart_ids|chart_id/i.test(JSON.stringify(badShape.json || {})),
+  badShape.text);
+
+console.log('\n【3】★ 打完这些，服务必须还活着');
 /* 这一条是整测试的核心：上面任何一条让进程崩掉，这里都会连不上。
    `node --check` 查不出「运行时缺标识符」，页面冒烟又不走这些 POST —— 
    只有「打完再看一眼」能抓。 */

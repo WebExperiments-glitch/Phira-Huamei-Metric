@@ -63,13 +63,19 @@ PORT=5199 node server.mjs &                           # 先起服务
 node tools/smoke-page.mjs      http://127.0.0.1:5199  # 176 条 · 页面加载/版本号/缓存策略
 node tools/verify-pages.mjs    http://127.0.0.1:5199  # 123 条 · 真浏览器驱动 UI + 双语
 node tools/test-ui-flows.mjs   http://127.0.0.1:5199  #  24 条 · 真浏览器**交互**（拖文件/结果卡/字体）
-node tools/test-api-routes.mjs http://127.0.0.1:5199  #  17 条 · 打完 14 条接口再验进程没死
+node tools/test-api-routes.mjs http://127.0.0.1:5199  #  22 条 · 打完接口 + 贡献凭证认证再验进程没死
+node tools/test-contribute-ticket.mjs                  #  11 条 · 贡献凭证签/验（不联网）
 
 node tools/lint-slop.mjs                              # 必须 0
 node tools/lint-i18n.mjs                              # 必须 0（820 词条 / 802 引用）
+node tools/lint-docs.mjs                              # 79 条 · 死链 / 版本号 / 页面与模块清单
 ```
 
-**期望数字**：176 / 123 / 24 / 17 / 80 / 45，全部 `0 失败`。
+**期望数字**：176 / 123 / 24 / 22 / 80 / 45 / 79，加 `test-contribute-ticket` 11，全部 `0 失败`。
+`lint-slop` / `lint-i18n` 必须 0。
+
+> `verify-pages` 偶发 3 条字体断言失败时，先确认没有残留的无头 Chrome 进程，
+> 再重跑一次；**连续两次失败**才算真失败（2026-10-17 实测过一次假失败，重跑 123/0）。
 
 ### ⚠ 别只跑 smoke 就发版
 

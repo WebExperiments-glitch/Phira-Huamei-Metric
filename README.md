@@ -107,7 +107,7 @@ python tools/calibrate_engine.py     # 或 python tools/pipeline.py calibrate
 
 ---
 
-## 网页版引擎（V0.4.0 · 与上面那套是**两套引擎**）
+## 网页版引擎（现行 v0.5.0 · 与上面那套是**两套引擎**）
 
 网页版跑的是 `phm-web/public/js/engine.js`（浏览器与 Node 服务端共用同一份），
 与 `phm/core.py` **已经是不同的引擎**，数字不可互比：
