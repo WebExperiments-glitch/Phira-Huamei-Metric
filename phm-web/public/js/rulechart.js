@@ -12,7 +12,7 @@
 const LANES = {
   5: [-405, -202.5, 0, 202.5, 405],
   /* 2K = 两根手指可打，不是两根固定轨道：x 分散在整屏，左右手交替。 */
-  2: [-540, -450, -360, -270, -180, -90, 0, 90, 180, 270, 360, 450, 540],
+  2: [-405, 405],
   4: [-225, -75, 75, 225],
   6: [-450, -300, -150, 150, 300, 450],
   7: [-450, -300, -150, 0, 150, 300, 450],
@@ -405,7 +405,7 @@ export function buildChartFromAnalysis(analysis, opts) {
   }
 
   /* 参照 RuleEngine：5 个 x、无和弦、Tap/Hold/Drag、无 Flick、1 条线。 */
-  const positions = [-405, -202.5, 0, 202.5, 405];
+  const positions = [-405, 405];
   const weights = { tap: 0.74, hold: 0.115, drag: 0.145 };
   const holds = [0.75, 1, 1.5];
   const notes = [];
@@ -461,13 +461,13 @@ export function buildChartFromAnalysis(analysis, opts) {
     },
     judgeLineGroup: ['Default'], judgeLineList: [mainLine],
   };
-  const validation = validateChart(chart, { difficulty: o.difficulty, lanes: 5 });
+  const validation = validateChart(chart, { difficulty: o.difficulty, lanes: 2 });
   const typeCounts = { tap: 0, hold: 0, flick: 0, drag: 0 };
   for (const n of notes) for (const [k, v] of Object.entries(TYPE)) if (v === n.type) typeCounts[k]++;
   return {
     chart,
     stats: {
-      notes: notes.length, bpm, duration, difficulty: preset.label, lanes: 5,
+      notes: notes.length, bpm, duration, difficulty: preset.label, lanes: 2,
       onsets: (analysis.onsets || []).length, drumOnsets: drum.length, pianoOnsets: piano.length,
       onsetSource: source, nps: notes.length / duration,
       targetNps: preset.targetNps, targetNotes: target,

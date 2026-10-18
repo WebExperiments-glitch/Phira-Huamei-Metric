@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.19.1.0', date: '2026-10-18',
+    zh: ['严格锁死 <b>2K</b>：只保留 ±405 两条轨道，不再出现 5 个 x / 4K+ 观感。新增 MIT 节拍/鼓钢琴分离调研文档（web-audio-beat-detector、Demucs、Spleeter、Open-Unmix、Omnizart）。'],
+    en: ['Strictly <b>2K</b>: only the ±405 two lanes, no more 5-x / 4K+ look. Added MIT audio research doc (web-audio-beat-detector, Demucs, Spleeter, Open-Unmix, Omnizart).'],
+  },
+  {
     v: 'V0.19.0.0', date: '2026-10-18',
     zh: ['补上真正的音频特征：<b>鼓点 / 钢琴点分离</b>（低频 kick、高频噪声+谱平坦度→鼓；中频谐波→钢琴），页面显示两组点数；排谱优先用钢琴点。BPM 改为 60–200 网格搜索 + 半拍/IOI 修正，参考曲从错误的 152 修正到 190。'],
     en: ['Real audio features: <b>drum / piano onset separation</b> (low-frequency kick + high-frequency noise/flatness for drums; mid harmonics for piano), both counts shown; charting prefers piano onsets. BPM now uses 60–200 grid search + half-beat/IOI correction; the reference track is 190 instead of the previous wrong 152.'],
