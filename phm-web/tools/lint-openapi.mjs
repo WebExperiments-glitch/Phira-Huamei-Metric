@@ -14,7 +14,12 @@ import { fileURLToPath } from 'node:url';
 
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SPEC_PATH = path.join(WEB, 'api', 'openapi.json');
-const KNOWN_PATHS = ['/meta', '/charts/{chart_id}', '/analyses', '/usage', '/keys', '/keys/{id}', '/keys/{id}/rotate'];
+/* ⚠ 加端点必须**两边都改**：这里 + api/openapi.json。
+   这条清单的意义是「契约里写的必须真的实现了」，反过来也成立 ——
+   所以它两边都查。漏登记的表现是 spec 里有个谁都没实现的路径。 */
+const KNOWN_PATHS = ['/meta', '/charts', '/charts/{chart_id}', '/analyses', '/usage',
+  '/keys', '/keys/{id}', '/keys/{id}/rotate',
+  '/stats', '/charters/{uid}', '/players/{uid}'];
 const KNOWN_SCOPES = new Set(['charts:read', 'analyses:write', 'usage:read']);
 const METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 let pass = 0, fail = 0;
