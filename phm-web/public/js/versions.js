@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.3.0', date: '2026-10-18',
+    zh: ['改为<b>单条判定线</b>，位置固定在 <b>X=-300、Y=200</b>；所有音符 positionX=0 挂在这条线上，仍是一次一个、Tap/Drag、无 Hold。'],
+    en: ['Now a <b>single judge line</b> fixed at <b>X=-300, Y=200</b>; every note has positionX=0 on that line, still one note at a time, Tap/Drag, no Holds.'],
+  },
+  {
     v: 'V0.20.2.0', date: '2026-10-18',
     zh: ['可玩性修复：左右手各占半屏交替落点，不再全屏随机；去掉 Hold 长条，只留 Tap/Drag，避免长条与蓝键重叠。'],
     en: ['Playability fix: left/right hands alternate within their own half-screen zones instead of random full-screen jumps; Holds removed, only Tap/Drag, so long bars no longer overlap taps.'],

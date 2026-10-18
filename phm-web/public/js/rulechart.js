@@ -427,10 +427,17 @@ export function buildChartFromAnalysis(analysis, opts) {
   notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
   const slug = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
   const chartId = slug + '_' + hashSeed(name + '|' + bpm).toString(16).slice(0, 6) + '_' + o.difficulty;
+  /* 单条判定线：X = -300，Y = 200；所有音符都挂在这条线上。 */
+  notes.forEach((n) => { n.positionX = 0; n.above = 1; });
+  const baseLayer = defaultEvents(10)[0] || {};
   const mainLine = {
     Group: 0, Name: '主判定线', Texture: 'line.png',
     alphaControl: [{ alpha: 1, easing: 1, x: 0 }, { alpha: 1, easing: 1, x: 9999999 }],
-    bpmfactor: 1, eventLayers: defaultEvents(10),
+    bpmfactor: 1,
+    eventLayers: [Object.assign({}, baseLayer, {
+      moveXEvents: [ev(0, 999999, -300, -300, 1)],
+      moveYEvents: [ev(0, 999999, 200, 200, 1)],
+    })],
     extended: { inclineEvents: [incline()] }, father: -1, isCover: 1,
     notes, numOfNotes: notes.length,
     posControl: [{ easing: 1, pos: 1, x: 0 }, { easing: 1, pos: 1, x: 9999999 }],
@@ -478,11 +485,12 @@ export function validateChart(chart, opts) {
   const laneVals = LANES[o.lanes] || LANES[4];
   const free = !!o.free;
   const violations = [];
-  const line = chart && chart.judgeLineList && chart.judgeLineList[0];
-  if (!line || !Array.isArray(line.notes)) {
+  const lines = chart && chart.judgeLineList;
+  if (!lines || !Array.isArray(lines) || !lines.length) {
     return { ok: false, violations: ['chart has no judge line notes'], metrics: null };
   }
-  const notes = line.notes;
+  const notes = lines.flatMap(l => Array.isArray(l.notes) ? l.notes : [])
+    .sort((a, b) => (a.startTime[0] + a.startTime[1] / a.startTime[2]) - (b.startTime[0] + b.startTime[1] / b.startTime[2]));
   const duration = Number(chart.META && chart.META.duration) || 0;
   const bpm = Number(chart.BPMList && chart.BPMList[0] && chart.BPMList[0].bpm) || 120;
   const totalBeats = duration * bpm / 60;
