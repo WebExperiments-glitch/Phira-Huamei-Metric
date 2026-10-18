@@ -26,6 +26,7 @@
 
 | 版本 | 日期 | commit | 内容 |
 |---|---|---|---|
+| `V0.20.2.0` | 2026-10-18 | 本次 | **双指可玩性修复**：x 改为左右手各半屏（-405/-202.5 与 202.5/405）交替，不再全屏随机跳；去掉 Hold 长条，只生成 Tap/Drag，消除长条与蓝键重叠。参考曲实测 927 notes/4.90 NPS、0 违规、x 分布 232/232/232/231。 |
 | `V0.20.1.2` | 2026-10-18 | 本次 | **系统难度生效**：`loadFile` 增加 `detectDifficulty(analysis)`，页面显示判定与依据，生成使用该难度（不再 fallback HD）。192s 参考音频实测分析 2.6s。 |
 | `V0.20.1.1` | 2026-10-18 | 本次 | **修复分析卡死**：`analyzeFile` 不再 `await` web-audio-beat-detector worker（长音频会卡几分钟），本地 FFT 分析 189s 参考曲约 0.5s。vendor 库保留，后续做后台/离线校验。 |
 | `V0.20.1.0` | 2026-10-18 | 本次 | **AI 分轨管线跑通**。① 项目 `.venv-audio` 安装 Demucs 4.1.0（MIT），`htdemucs` 权重约 80MB。② 新增 `tools/ai-chart.mjs`：MP3 → Demucs 拆 drums/no_drums → ffmpeg f32 → 鼓/钢琴 onset → 规则谱 → `.pez`。③ 新增 `tools/install-demucs.ps1`。④ 30 秒参考音频实测 CPU 21–25s 出分轨，生成 183 notes / 6.10 NPS 的 .pez。⑤ 模型不打包进网页，浏览器仍用内置频段启发式。 |

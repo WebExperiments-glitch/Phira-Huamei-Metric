@@ -404,36 +404,24 @@ export function buildChartFromAnalysis(analysis, opts) {
     times = filled;
   }
 
-  /* 2 指自由分散：x 在整屏连续取，不固定 2 条/5 条轨道；一次一个 note。 */
-  const weights = { tap: 0.74, hold: 0.115, drag: 0.145 };
-  const holds = [0.75, 1, 1.5];
+  /* 2 指自由分散：左右手分区交替，每只手只在半屏内移动；一次一个。
+   * 去掉 Hold（长条），只留 Tap/Drag，避免长条和蓝键重叠。 */
+  const left = [-405, -202.5];
+  const right = [202.5, 405];
+  const weights = { tap: 0.85, drag: 0.15 };
   const notes = [];
-  const holdUntil = new Map();
-  let prevX = null;
   times.forEach((p, i) => {
     const beat = p.t / beatSec;
     if (beat < 2 - 1e-6 || beat > totalBeats - 1 + 1e-6) return;
-    let x = Math.round((rng() * 1080 - 540) * 2) / 2;
-    if (prevX != null && Math.abs(x - prevX) < 140) {
-      x = Math.round((prevX + (prevX > 0 ? -1 : 1) * (180 + rng() * 240)) * 2) / 2;
-      x = Math.max(-540, Math.min(540, x));
-    }
-    if (beat < (holdUntil.get(x) || -1) - 1e-6) return;
-    let type = pickWeighted(rng, weights);
-    let endBeat = beat;
-    if (type === 'hold') {
-      const hb = holds[Math.floor(rng() * holds.length)];
-      endBeat = Math.min(totalBeats - 0.5, beat + hb);
-      if (endBeat - beat < 0.5) type = 'tap';
-    }
-    const typeNum = type === 'hold' ? 2 : type === 'drag' ? 4 : 1;
+    const pool = i % 2 === 0 ? left : right;
+    const x = pool[(Math.floor(i / 2) + (i % 2)) % pool.length];
+    const type = pickWeighted(rng, weights);
     notes.push({
-      above: 1, alpha: 255, endTime: frac(typeNum === 2 ? endBeat : beat), isFake: 0,
+      above: 1, alpha: 255, endTime: frac(beat), isFake: 0,
       positionX: x, size: 1, speed: 1,
-      startTime: frac(beat), type: typeNum, visibleTime: 999999, yOffset: 0,
+      startTime: frac(beat), type: type === 'drag' ? 4 : 1,
+      visibleTime: 999999, yOffset: 0,
     });
-    prevX = x;
-    if (typeNum === 2) holdUntil.set(x, endBeat);
   });
 
   notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);

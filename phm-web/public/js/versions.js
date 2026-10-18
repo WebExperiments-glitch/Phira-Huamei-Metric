@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.2.0', date: '2026-10-18',
+    zh: ['可玩性修复：左右手各占半屏交替落点，不再全屏随机；去掉 Hold 长条，只留 Tap/Drag，避免长条与蓝键重叠。'],
+    en: ['Playability fix: left/right hands alternate within their own half-screen zones instead of random full-screen jumps; Holds removed, only Tap/Drag, so long bars no longer overlap taps.'],
+  },
+  {
     v: 'V0.20.1.2', date: '2026-10-18',
     zh: ['修复系统难度未生效：页面分析完成后重新调用 detectDifficulty 并显示判定；生成不再 fallback HD。长音频分析实测约 2.6 秒。'],
     en: ['Fixed system difficulty not taking effect: after analysis the page calls detectDifficulty and shows the result; generation no longer falls back to HD. Long-track analysis is ~2.6s.'],
