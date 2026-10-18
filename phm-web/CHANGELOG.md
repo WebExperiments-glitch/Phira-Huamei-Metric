@@ -26,6 +26,7 @@
 
 | 版本 | 日期 | commit | 内容 |
 |---|---|---|---|
+| `V0.20.3.3` | 2026-10-18 | 本次 | **修 API 鉴权被网关注入的 Authorization 污染**。① 症状：线上匿名请求与带正确 Key 的请求**全部**返回 `401 invalid_api_key`，API 实际不可用；本地同代码同库同 Key 却 200。② 根因：部署环境前面的 CloudStudio 网关转发时**写入自己的 Authorization 头**（值不是 `sk-` 开头）。旧 `bearer()` 只要看到该头有值就当成 API Key，格式不匹配 → `invalid_api_key`；带真 Key 时网关的值盖掉用户的 → 同样 401。用本地代理注入该头可**稳定复现**。③ 修法：`bearer()` 先读 `x-api-key`（自定义头，网关不改写），再读 `Authorization` 且**只认 `sk-` 前缀**，非 `sk-` 一律当没带 → 退回匿名。`accountToken()` **不再回退** `Authorization`（早先的回退会把注入值当账号 token 去验，匿名看用量得到 `account_token_invalid`）。④ CORS 放行 `x-api-key`；`developers.html` 全部示例改用 `x-api-key` 并说明「走 Authorization 会静默降级成匿名，额度 1000/h → 100/h」及自检方法；`openapi.json` 增加 `apiKey` securityScheme 并在 9 个 operation 上并列。⑤ `test-api-routes` 22 → **27**，新增 5 条专门钉这个语义（匿名 200 / 网关式头退化为匿名 / x-api-key 生效 / Authorization 兼容 / 账号 token 不回退）。｜**用户须知**：已有客户端若用 `Authorization: Bearer sk-…`，在网关下会退化为匿名（不报错但额度低），建议改 `x-api-key`。 |
 | `V0.20.3.2` | 2026-10-18 | 本次 | **写谱页免责声明**：顶部 `role=alert` 醒目提示「这是随便写的，可能有非常严重的 Bug」，不保证节奏/可玩性/格式，请先在 Phira 验证，不要用于正式谱面或比赛。 |
 | `V0.20.3.1` | 2026-10-18 | 本次 | **判定线定位 + 保留分散音符**：单线 `moveX=-300` / `moveY=200`；音符 x 仍为左右手 ±405/±202.5，避免全挤在一条线的一个点上。实测 927 notes、x 分布 232/232/232/231、0 违规。 |
 | `V0.20.3.0` | 2026-10-18 | 本次 | **单判定线定位**：`moveXEvents` 固定 X=-300、`moveYEvents` 固定 Y=200；所有音符 `positionX=0` 挂在这条线上，仍为双指交替、Tap/Drag、无 Hold。参考曲实测 927 notes/4.90 NPS、0 违规。 |

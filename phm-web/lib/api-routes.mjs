@@ -42,7 +42,7 @@ function expiryFromDays(v) {
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-  'access-control-allow-headers': 'authorization, content-type, x-hm-token',
+  'access-control-allow-headers': 'authorization, content-type, x-hm-token, x-api-key',
   'access-control-max-age': '86400',
 };
 
@@ -60,16 +60,38 @@ function apiErr(res, status, type, code, message, extra) {
   return json(res, status, { error: { type, code, message } }, extra);
 }
 
+/* ⚠ 部署环境有 CloudStudio 网关，它会在转发时**注入自己的 Authorization 头**
+   （值不是 sk- 开头）。这会把两种请求一起毒掉，2026-10-18 线上实测：
+     · 匿名请求（根本没带 Key）→ 读到网关注入的值 → 格式不匹配 → 401 invalid_api_key
+     · 带真 Key 的请求 → 网关的值盖掉用户的 → 同样 401
+   所以取 Key 的顺序是：**先 x-api-key（自定义头，网关不碰），再 Authorization
+   且只认 `sk-` 前缀**。不匹配就当没带 —— 绝不能因为某个来路不明的 token 判 401，
+   否则「匿名可用」这条基本契约在线上直接失效。 */
 function bearer(req) {
-  const h = String(req.headers.authorization || '');
-  return /^Bearer\s+/i.test(h) ? h.replace(/^Bearer\s+/i, '').trim() : '';
+  const custom = String(req.headers['x-api-key'] || '').trim();
+  if (custom) return custom;
+  const raw = String(req.headers.authorization || '').trim();
+  /* ⚠ 这里刻意**不用正则**解析 "Bearer <value>"：
+     `/^Bearer\s+(.+)$/i` 这种写法在 "bearer\t\t\t\t…" 上是多项式回溯
+     （CodeQL js/polynomial-redos 实报过），而 Authorization 是攻击者完全可控的。
+     切第一个空格就够了 —— 方案名与凭据之间规范上就是一个空格。 */
+  const sp = raw.indexOf(' ');
+  if (sp <= 0) return '';
+  if (raw.slice(0, sp).toLowerCase() !== 'bearer') return '';
+  const v = raw.slice(sp + 1).trim();
+  /* 只认 sk- 前缀：长度/字符是否合规交给 identify 判，那里才报 invalid_api_key。
+     网关注入的任意 token 在这里被丢弃 → 退回匿名。 */
+  return /^sk-/i.test(v) ? v : '';
 }
 
 function accountToken(req) {
   const custom = String(req.headers['x-hm-token'] || '').trim();
   if (custom) return custom;
-  const b = bearer(req);
-  return b && !b.startsWith('sk-') ? b : '';
+  /* ⚠ 绝不回退到 Authorization：那里现在只认 sk- API Key。
+     早先回退过一次，结果网关注入的 token 被当成「账号 token」去验，
+     匿名看用量的人拿到 account_token_invalid —— 错得很有迷惑性。
+     账号 token 的契约就只有 x-hm-token 一个。 */
+  return '';
 }
 
 function safeJson(s) {

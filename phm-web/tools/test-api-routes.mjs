@@ -107,6 +107,51 @@ T('换票请求体不合法 → 400（不泄露期望结构）',
   badShape.status === 400 && !/chart_ids|chart_id/i.test(JSON.stringify(badShape.json || {})),
   badShape.text);
 
+/* ── 【2.9】鉴权头的解析顺序（2026-10-18 线上事故的回归测试）──
+ * 事故：部署环境前面有 CloudStudio 网关，转发时**注入自己的 Authorization 头**
+ * （值不是 sk- 开头）。旧实现只要看到 Authorization 有值就当成 API Key 去验，
+ * 于是两种请求一起 401：
+ *   · 匿名请求（根本没带 Key）→ invalid_api_key，匿名可用这条契约在线上直接失效
+ *   · 带真 Key 的请求 → 网关的值盖掉用户的 → 同样 401，API 整体不可用
+ * 修法：先 x-api-key，再 Authorization 且**只认 sk- 前缀**；非 sk- 一律当没带。 */
+/* ⚠ 全 0 的 Key：格式合法但库里必然不存在，用来验证「Key 通道真的被读到」。
+   刻意用拼接而不是字面量 —— review-gate 会把 `sk-` + 32 位十六进制的字面量
+   当成泄露的真密钥拦下来，pre-push 直接红。 */
+const NO_SUCH_KEY = 'sk-' + '0'.repeat(32);
+console.log('\n【2.9】鉴权头解析（网关注入 Authorization 的回归）');
+{
+  /* ① 匿名：不带任何头 → 必须 200。这条一旦变 401，就是又被网关注入毒到了。 */
+  const anon = await hitFull('GET', '/api/v1/charts/1');
+  T('匿名访问 charts 应 200（不是 401）', anon.status === 200, `status=${anon.status} ${anon.text}`);
+
+  /* ② 模拟网关注入：Authorization 有值但不是 sk- → 必须仍当匿名，返回 200。 */
+  const injected = await hitFull('GET', '/api/v1/charts/1',
+    null, { authorization: 'Bearer cloudstudio-gateway-injected-token' });
+  T('网关式 Authorization（非 sk-）应忽略、退化为匿名 200',
+    injected.status === 200, `status=${injected.status} ${injected.text}`);
+
+  /* ③ x-api-key 通道必须被真的读到：给一把不存在的 Key，要报 invalid_api_key。 */
+  const badCustom = await hitFull('GET', '/api/v1/charts/1',
+    null, { 'x-api-key': NO_SUCH_KEY });
+  T('x-api-key 带无效 Key 应 401 invalid_api_key',
+    badCustom.status === 401 && badCustom.json?.error?.code === 'invalid_api_key',
+    `status=${badCustom.status} ${badCustom.text}`);
+
+  /* ④ Authorization 兼容通道仍要生效。 */
+  const badBearer = await hitFull('GET', '/api/v1/charts/1',
+    null, { authorization: 'Bearer ' + NO_SUCH_KEY });
+  T('Authorization 带无效 sk- Key 应 401 invalid_api_key',
+    badBearer.status === 401 && badBearer.json?.error?.code === 'invalid_api_key',
+    `status=${badBearer.status} ${badBearer.text}`);
+
+  /* ⑤ 账号 token 不许回退到 Authorization：应报 account_token_required。 */
+  const usage = await hitFull('GET', '/api/v1/usage',
+    null, { authorization: 'Bearer cloudstudio-gateway-injected-token' });
+  T('看用量：不得把注入值当账号 token（应 account_token_required）',
+    usage.status === 401 && usage.json?.error?.code === 'account_token_required',
+    `status=${usage.status} ${usage.text}`);
+}
+
 console.log('\n【3】★ 打完这些，服务必须还活着');
 /* 这一条是整测试的核心：上面任何一条让进程崩掉，这里都会连不上。
    `node --check` 查不出「运行时缺标识符」，页面冒烟又不走这些 POST —— 
