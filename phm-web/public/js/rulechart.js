@@ -427,8 +427,8 @@ export function buildChartFromAnalysis(analysis, opts) {
   notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
   const slug = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
   const chartId = slug + '_' + hashSeed(name + '|' + bpm).toString(16).slice(0, 6) + '_' + o.difficulty;
-  /* 单条判定线：X = -300，Y = 200；所有音符都挂在这条线上。 */
-  notes.forEach((n) => { n.positionX = 0; n.above = 1; });
+  /* 单条判定线：X = -300，Y = 200；音符保留左右手分散 x。 */
+  notes.forEach((n) => { n.above = 1; });
   const baseLayer = defaultEvents(10)[0] || {};
   const mainLine = {
     Group: 0, Name: '主判定线', Texture: 'line.png',

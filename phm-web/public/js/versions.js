@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.3.1', date: '2026-10-18',
+    zh: ['单判定线 X=-300、Y=200 保持不变；音符仍保留左右手分散 x（±405/±202.5），不会全挤在线上。'],
+    en: ['Single judge line stays at X=-300, Y=200; notes keep left/right spread x values (±405/±202.5) instead of collapsing onto one point.'],
+  },
+  {
     v: 'V0.20.3.0', date: '2026-10-18',
     zh: ['改为<b>单条判定线</b>，位置固定在 <b>X=-300、Y=200</b>；所有音符 positionX=0 挂在这条线上，仍是一次一个、Tap/Drag、无 Hold。'],
     en: ['Now a <b>single judge line</b> fixed at <b>X=-300, Y=200</b>; every note has positionX=0 on that line, still one note at a time, Tap/Drag, no Holds.'],
