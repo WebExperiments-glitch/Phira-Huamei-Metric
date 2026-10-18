@@ -87,3 +87,64 @@
   .api-main h1 { font-size: 25px; }
   .key-table th:nth-child(3), .key-table td:nth-child(3) { display: none; }
 }
+
+/* ── 在线 Playground（V0.21.0.0）──
+ * 只用令牌，不写字面色：暗/亮两套主题下都要能读。
+ * 这块存在的意义是「让文档可验证」—— 用户不必先配好环境才知道接口通不通。 */
+.api-play {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 14px 16px;
+  margin: 14px 0 8px;
+}
+.api-play-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.api-play-row > label {
+  flex: 0 0 72px;
+  font-size: 13px;
+  color: var(--fg3);
+}
+.api-play-row > input,
+.api-play-row > select {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: var(--mono);
+  color: var(--fg);
+  background: var(--card2);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+}
+.api-play-row > input:focus,
+.api-play-row > select:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+.api-play-go { gap: 12px; }
+.api-play-meta {
+  font-size: 12.5px;
+  font-family: var(--mono);
+  color: var(--fg3);
+}
+/* 成功/失败用语义色，且**只在状态行**用 —— 输出区保持中性，
+   否则一屏 JSON 被染色反而更难读。 */
+.api-play-meta.is-ok { color: var(--ok); }
+.api-play-meta.is-bad { color: var(--err); }
+.api-play-out {
+  margin: 0;
+  max-height: 340px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+@media (max-width: 760px) {
+  .api-play-row { flex-wrap: wrap; }
+  .api-play-row > label { flex: 0 0 100%; }
+}

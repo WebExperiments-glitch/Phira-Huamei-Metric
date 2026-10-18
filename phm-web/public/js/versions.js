@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.4.0', date: '2026-10-18',
+    zh: ['<b>API 文档大幅升级</b>，端点从 9 个扩到 13 个：新增 <b>列出谱面</b>（分页/搜索/排序）、<b>全库统计</b>、<b>谱师作品</b>、<b>玩家资料</b>。文档页新增<b>在线 Playground</b> —— 填 Key 直接打真实请求，不用配环境就知道接口通不通。'],
+    en: ['<b>API docs, upgraded</b> — endpoints go from 9 to 13: chart listing (paged/searchable/sortable), database statistics, charts by charter, and player profiles. The docs page gains a live <b>Playground</b>: paste a key, hit a real endpoint, no setup.'],
+  },
+  {
     v: 'V0.20.3.4', date: '2026-10-18',
     zh: ['<b>API 鉴权第二轮</b>：上一版修好 <code>Authorization</code> 被网关改写后，实测发现 <code>x-api-key</code> 也被网关当成<b>它自己的</b>鉴权头消费掉，Key 根本送不到服务端（假 Key 也返回 200）。新增私有头 <b><code>x-phm-key</code></b> 作为首选通道；并新增 <a href="/api/v1/meta?diag=1">诊断口</a>，只回各头的长度，用来判断是「头没穿透」还是「Key 不对」。'],
     en: ['<b>API auth, round two</b>: after fixing the gateway-injected <code>Authorization</code>, testing showed <code>x-api-key</code> is also swallowed by the gateway as its <b>own</b> auth header, so the key never reached the server (a fake key still returned 200). Added a private <b><code>x-phm-key</code></b> header as the preferred channel, plus a <a href="/api/v1/meta?diag=1">diagnostic endpoint</a> that reports only header lengths, to tell "header did not pass through" from "wrong key".'],

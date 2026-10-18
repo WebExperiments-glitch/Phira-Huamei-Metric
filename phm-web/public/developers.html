@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.20.3.4">
+<meta name="app-version" content="V0.20.4.0">
 <title>P.H.M. 开发者文档 · API v1</title>
 <meta name="description" content="P.H.M. API v1：查询与分析 Phira / Phigros 谱面难度。免费，支持匿名与 API Key。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.3.4">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.3.4">
-<link rel="stylesheet" href="/css/api.css?v=V0.20.3.4">
+<link rel="stylesheet" href="/css/base.css?v=V0.20.4.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.0">
+<link rel="stylesheet" href="/css/api.css?v=V0.20.4.0">
 </head>
 <body>
 <div class="wrap"><nav id="nav"></nav></div>
@@ -21,10 +21,15 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <aside class="api-side">
     <div class="grp">开始</div>
     <a href="#quickstart" class="on">快速开始</a>
+    <a href="#try">在线试一下</a>
     <a href="#auth">认证</a>
     <a href="#limits">限流</a>
     <div class="grp">接口</div>
     <a href="#charts">查询定数</a>
+    <a href="#list">列出谱面</a>
+    <a href="#stats">全库统计</a>
+    <a href="#charters">谱师作品</a>
+    <a href="#players">玩家资料</a>
     <a href="#analyses">分析谱面</a>
     <a href="#usage">用量</a>
     <a href="#keys">Key 管理</a>
@@ -70,6 +75,40 @@ r = requests.get(
     timeout=<span class="key">30</span>,
 )
 print(r.json())</div>
+
+    <h2 id="try">在线试一下</h2>
+    <p>不用装任何东西，在这里直接打一次真实的请求。Key 可以留空 —— 留空就走匿名额度。</p>
+    <div class="api-play">
+      <div class="api-play-row">
+        <label for="pgKey">API Key</label>
+        <input id="pgKey" type="password" autocomplete="off" spellcheck="false"
+               placeholder="sk-…（留空 = 匿名，100 次/小时）">
+      </div>
+      <div class="api-play-row">
+        <label for="pgEp">端点</label>
+        <select id="pgEp">
+          <option value="/charts?pageSize=3&amp;sort=ref_const&amp;order=desc">GET /charts — 定数最高的 3 张</option>
+          <option value="/charts?q=Pandemic">GET /charts — 按名字搜索</option>
+          <option value="/charts/22681">GET /charts/{id} — 单张定数</option>
+          <option value="/stats">GET /stats — 全库统计</option>
+          <option value="/charters/257272?maxPages=1">GET /charters/{uid} — 谱师作品</option>
+          <option value="/players/257272">GET /players/{uid} — 玩家资料</option>
+        </select>
+      </div>
+      <div class="api-play-row">
+        <label for="pgPath">路径</label>
+        <input id="pgPath" type="text" spellcheck="false" value="/charts?pageSize=3&amp;sort=ref_const&amp;order=desc">
+      </div>
+      <div class="api-play-row api-play-go">
+        <button id="pgGo" class="api-btn" type="button">发送请求</button>
+        <span id="pgMeta" class="api-play-meta"></span>
+      </div>
+      <pre id="pgOut" class="api-code api-play-out">点「发送请求」看结果。</pre>
+    </div>
+    <div class="api-note">
+      Key 只存在这个输入框里，<b>不写入 localStorage、不进 URL</b>。
+      请求头用的是 <code class="inline">x-phm-key</code> —— 这也是你该用的那个头。
+    </div>
 
     <h2 id="auth">认证</h2>
     <p>两种身份：</p>
@@ -121,6 +160,80 @@ print(r.json())</div>
   <span class="key">"cached"</span>: true
 }</div>
 
+    <h2 id="list">列出谱面</h2>
+    <h3>GET /charts</h3>
+    <p>分页浏览共享缓存。这是唯一能"不知道 id 也能用"的接口 ——
+       <code class="inline">/charts/{id}</code> 需要你先知道是哪张谱，而这里可以搜索、排序、翻页。</p>
+    <table class="api-table">
+      <tr><th>参数</th><th>默认</th><th>说明</th></tr>
+      <tr><td><code>page</code></td><td>1</td><td>页码，从 1 开始</td></tr>
+      <tr><td><code>pageSize</code></td><td>50</td><td>每页条数，上限 <b>200</b></td></tr>
+      <tr><td><code>sort</code></td><td><code>chart_id</code></td><td>排序字段，白名单：<code>chart_id</code> / <code>name</code> / <code>level</code> / <code>difficulty</code> / <code>ref_const</code> / <code>ref_official</code> / <code>ps_score</code> / <code>nps</code> / <code>notes</code>。传别的值返回 400</td></tr>
+      <tr><td><code>order</code></td><td><code>asc</code></td><td><code>asc</code> 或 <code>desc</code></td></tr>
+      <tr><td><code>q</code></td><td>—</td><td>按谱面名做子串匹配（最多 60 字符）</td></tr>
+      <tr><td><code>level</code></td><td>—</td><td>难度前缀过滤，如 <code>IN</code> / <code>AT</code> / <code>SP</code></td></tr>
+      <tr><td><code>only</code></td><td>—</td><td><code>official</code> = 只要算得出官谱标度的；<code>stale</code> = 引擎版本与基准不一致的</td></tr>
+      <tr><td><code>build</code></td><td>—</td><td>判过期用的基准引擎版本，仅在 <code>only=stale</code> 时有意义</td></tr>
+    </table>
+    <div class="api-code">curl <span class="str">"https://phm.app.workbuddy.host/api/v1/charts?sort=ref_const&amp;order=desc&amp;pageSize=3"</span> \
+  -H <span class="str">"x-phm-key: sk-你的key"</span></div>
+    <p>响应（<code>total</code> 是<b>真实总数</b>，不是本页条数，可以直接算页数）：</p>
+    <div class="api-code">{
+  <span class="key">"rows"</span>: [
+    { <span class="key">"chart_id"</span>: 80464, <span class="key">"name"</span>: <span class="str">"QuomodocunquizE"</span>, <span class="key">"level"</span>: <span class="str">"AT Lv.19"</span>,
+      <span class="key">"ref_const"</span>: 17.834, <span class="key">"ref_official"</span>: 16.9645,
+      <span class="key">"ps_score"</span>: 16.623, <span class="key">"nps"</span>: 19.3434, <span class="key">"notes"</span>: 4000,
+      <span class="key">"engine_build"</span>: <span class="str">"com-trim15-v0.5.0"</span>, <span class="key">"analyzed"</span>: true, <span class="key">"cached"</span>: true }
+  ],
+  <span class="key">"total"</span>: 661, <span class="key">"page"</span>: 1, <span class="key">"pageSize"</span>: 3, <span class="key">"pages"</span>: 221,
+  <span class="key">"sort"</span>: <span class="str">"ref_const"</span>, <span class="key">"order"</span>: <span class="str">"desc"</span>
+}</div>
+    <p>搜索：</p>
+    <div class="api-code">curl <span class="str">"https://phm.app.workbuddy.host/api/v1/charts?q=Pandemic"</span> \
+  -H <span class="str">"x-phm-key: sk-你的key"</span></div>
+
+    <h2 id="stats">全库统计</h2>
+    <h3>GET /stats</h3>
+    <p>共收录多少谱、覆盖多少、活跃用户多少。与首页展示的数字同源。</p>
+    <div class="api-code">curl https://phm.app.workbuddy.host/api/v1/stats \
+  -H <span class="str">"x-phm-key: sk-你的key"</span>
+
+<span class="cmt"># → {"charts":661,"scores":81,"profiles":1,"active_1d":1,…}</span></div>
+
+    <h2 id="charters">谱师作品</h2>
+    <h3>GET /charters/{uid}</h3>
+    <p>某个谱师（Phira 用户 id）上传过的谱面，<b>并自动贴上本站已算好的定数</b>。</p>
+    <table class="api-table">
+      <tr><th>参数</th><th>默认</th><th>说明</th></tr>
+      <tr><td><code>uid</code>（路径）</td><td>必填</td><td>Phira 用户 id，纯数字</td></tr>
+      <tr><td><code>maxPages</code></td><td>3</td><td>向上游读几页（每页 30 张），上限 <b>5</b> —— 硬上限，避免这个接口变成爬虫入口</td></tr>
+    </table>
+    <div class="api-code">curl <span class="str">"https://phm.app.workbuddy.host/api/v1/charters/257272?maxPages=2"</span> \
+  -H <span class="str">"x-phm-key: sk-你的key"</span>
+
+<span class="cmt"># → { "uid":257272, "count":2, "returned":2, "maxPages":2,
+#     "charts":[ { "chart_id":48099, "name":"Future Downloader",
+#                  "analyzed":false, … } ] }</span></div>
+    <div class="api-note">
+      <b>两个必须知道的行为：</b><br>
+      ① <code class="inline">analyzed:false</code> 表示<b>本站还没算过这张谱</b> —— 此时
+      <code class="inline">ref_const</code> 等字段<b>不存在</b>。缺字段和"算出来是 0"是两件事，别用 <code class="inline">0</code> 兜底。<br>
+      ② 上游挂了返回 <b>502</b>，<b>不会</b>返回空数组。空数组会被读成"这位谱师没有作品"，
+      那是最坏的错误答案 —— 宁可报错让你重试。
+    </div>
+
+    <h2 id="players">玩家资料</h2>
+    <h3>GET /players/{uid}</h3>
+    <p>公开资料 + 统计。<b>不含成绩明细</b>：把几百条记录塞进一个响应，既慢又容易被批量抓。</p>
+    <div class="api-code">curl https://phm.app.workbuddy.host/api/v1/players/257272 \
+  -H <span class="str">"x-phm-key: sk-你的key"</span>
+
+<span class="cmt"># → { "id":257272, "name":"平方秒和立方吨", "rks":3.5926006,
+#     "bio":"…", "avatar":"https://…", "joined":"2023-07-25T…",
+#     "stats":{ "numRecords":850, "avgAccuracy":0.9449… } }</span></div>
+    <p>uid 不存在返回 <code class="inline">404 player_not_found</code>。
+       <code class="inline">stats</code> 是可选增强：拿不到时为 <code class="inline">null</code>，请求本身仍然成功。</p>
+
     <h2 id="analyses">分析谱面</h2>
     <h3>POST /analyses</h3>
     <p>服务端从 Phira 下载谱面、复算并写入共享缓存。v1 只接受 <code class="inline">chart_id</code>；分析结果对之后所有查询直接可用。</p>
@@ -164,18 +277,25 @@ print(r.json())</div>
     <table class="api-table">
       <tr><th>HTTP</th><th>code</th><th>含义</th></tr>
       <tr><td>400</td><td><code>invalid_chart_id</code></td><td>chart_id 不是正整数</td></tr>
+      <tr><td>400</td><td><code>invalid_uid</code></td><td>谱师 / 玩家的 uid 不是正整数</td></tr>
+      <tr><td>400</td><td><code>invalid_sort_field</code></td><td><code>sort</code> 不在白名单里（响应头 <code>x-allowed-sort</code> 给出全部可选值）</td></tr>
+      <tr><td>404</td><td><code>player_not_found</code></td><td>该 Phira 用户不存在</td></tr>
+      <tr><td>404</td><td><code>not_found</code></td><td>端点不存在</td></tr>
       <tr><td>401</td><td><code>invalid_api_key</code></td><td>Key 不存在、格式错或已吊销</td></tr>
       <tr><td>401</td><td><code>account_token_required</code></td><td>Key 管理需要登录</td></tr>
       <tr><td>401</td><td><code>expired_api_key</code></td><td>Key 已过期</td></tr>
       <tr><td>403</td><td><code>insufficient_scope</code></td><td>Key 缺少该接口所需 scope</td></tr>
       <tr><td>409</td><td><code>key_limit_reached</code></td><td>账号已有 100 个有效 Key</td></tr>
       <tr><td>429</td><td><code>rate_limit_exceeded</code></td><td>超出小时额度</td></tr>
-      <tr><td>502</td><td><code>analysis_failed</code> / <code>cache_unavailable</code></td><td>上游或数据库暂时不可用</td></tr>
+      <tr><td>502</td><td><code>analysis_failed</code> / <code>cache_unavailable</code></td><td>数据库暂时不可用</td></tr>
+      <tr><td>502</td><td><code>upstream_unavailable</code></td><td>Phira 上游暂时不可用（谱师 / 玩家接口）。<b>不是</b>「没有数据」，请重试而不是当作空结果</td></tr>
+      <tr><td>502</td><td><code>stats_unavailable</code></td><td>统计服务暂时不可用</td></tr>
       <tr><td>503</td><td><code>analysis_busy</code> / <code>rate_limit_unavailable</code></td><td>分析并发已满 / 限流器故障</td></tr>
     </table>
 
     <h2 id="changelog">更新日志</h2>
     <ul>
+      <li><b>2026-10-18 · v1.2</b>：新增 <code>/charts</code> 列表（分页 / 搜索 / 排序 / 过滤）、<code>/stats</code> 全库统计、<code>/charters/{uid}</code> 谱师作品、<code>/players/{uid}</code> 玩家资料；端点从 9 个扩到 13 个。鉴权头改为推荐 <code>x-phm-key</code>（原因见「认证」一节）。</li>
       <li><b>2026-10-17 · v1.1</b>：Key scopes / 过期 / 轮换；按 Key 用量；<code>/meta</code> 构建信息；OpenAPI 单一契约 <code>/api/v1/openapi.json</code>。</li>
       <li><b>2026-10-17 · v1</b>：首个公开版本。查询 / 分析 / 用量 / Key 管理；匿名 100 次/小时，Key 1000 次/小时、分析 200 次/天。</li>
     </ul>
@@ -203,8 +323,62 @@ print(r.json())</div>
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.20.3.4';
+import { renderNav } from '/js/ui.js?v=V0.20.4.0';
 renderNav();
+
+/* ── 在线 Playground ──
+ * ⚠ Key 只在这个输入框里，不落 localStorage、不拼进 URL：
+ *   文档页是最容易被截图分享的页面，任何"帮你记住 Key"的便利
+ *   都是在替用户泄露凭据。
+ * ⚠ 头用 x-phm-key：`Authorization` 会被网关改写、`x-api-key` 会被网关消费
+ *   （见上方「认证」一节的实测），这里必须用能穿透的那个，否则演示必然失败。 */
+const $ = (id) => document.getElementById(id);
+const pgKey = $('pgKey'), pgEp = $('pgEp'), pgPath = $('pgPath'), pgGo = $('pgGo');
+const pgOut = $('pgOut'), pgMeta = $('pgMeta');
+
+if (pgEp) {
+  pgEp.addEventListener('change', () => { pgPath.value = pgEp.value; });
+}
+
+async function pgSend() {
+  const raw = String(pgPath.value || '').trim();
+  if (!raw.startsWith('/')) {
+    pgOut.textContent = '路径要以 / 开头，例如 /charts?pageSize=3';
+    return;
+  }
+  const key = String(pgKey.value || '').trim();
+  const headers = { accept: 'application/json' };
+  if (key) headers['x-phm-key'] = key;
+
+  pgGo.disabled = true;
+  pgMeta.textContent = '请求中…';
+  pgOut.textContent = '';
+  const t0 = performance.now();
+  try {
+    const r = await fetch('/api/v1' + raw, { headers });
+    const ms = Math.round(performance.now() - t0);
+    const text = await r.text();
+    let pretty = text;
+    try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch { /* 原样显示 */ }
+    pgMeta.textContent = r.status + ' · ' + ms + ' ms'
+      + (key ? ' · 带 Key' : ' · 匿名');
+    pgMeta.className = 'api-play-meta ' + (r.ok ? 'is-ok' : 'is-bad');
+    pgOut.textContent = pretty.length > 8000 ? pretty.slice(0, 8000) + '\n… （已截断）' : pretty;
+  } catch (e) {
+    pgMeta.textContent = '请求失败';
+    pgMeta.className = 'api-play-meta is-bad';
+    pgOut.textContent = String(e && e.message ? e.message : e);
+  } finally {
+    pgGo.disabled = false;
+  }
+}
+
+if (pgGo) pgGo.addEventListener('click', pgSend);
+if (pgPath) {
+  pgPath.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); pgSend(); }
+  });
+}
 </script>
 </body>
 </html>

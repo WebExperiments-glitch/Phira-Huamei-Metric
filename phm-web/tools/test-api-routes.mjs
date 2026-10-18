@@ -107,6 +107,61 @@ T('换票请求体不合法 → 400（不泄露期望结构）',
   badShape.status === 400 && !/chart_ids|chart_id/i.test(JSON.stringify(badShape.json || {})),
   badShape.text);
 
+/* ── 【2.8】v1 扩展端点：列表 / 统计 / 谱师 / 玩家（V0.21.0.0）──
+ * ⚠ 上游端点（charters/players）打的是 Phira 的公网 API，CI 里可能慢或抖动，
+ *   所以断言只要求「200 或 502」，并在 200 时校验结构。
+ *   写死 `status===200` 会让整个流水线被别人的服务可用性绑架 ——
+ *   那种测试最后一定被注释掉，等于没有。 */
+console.log('\n【2.8】v1 扩展端点');
+{
+  /* 列表：本地数据，可以严格断言 */
+  const list = await hitFull('GET', '/api/v1/charts?page=1&pageSize=2&sort=ref_const&order=desc');
+  T('/charts 列表 200 且有 rows/total',
+    list.status === 200 && Array.isArray(list.json?.rows) && typeof list.json?.total === 'number',
+    `status=${list.status} ${list.text.slice(0, 160)}`);
+  T('/charts 列表按 ref_const desc 排序（首行 >= 次行）',
+    list.status === 200 && list.json.rows.length < 2
+      ? true
+      : (list.status === 200 && Number(list.json.rows[0].ref_const) >= Number(list.json.rows[1].ref_const)),
+    'order not descending');
+
+  /* 排序字段是白名单，不是自由输入 */
+  const badSort = await hitFull('GET', '/api/v1/charts?sort=../../etc/passwd');
+  T('/charts 非法 sort → 400 invalid_sort_field',
+    badSort.status === 400 && badSort.json?.error?.code === 'invalid_sort_field',
+    `status=${badSort.status} ${badSort.text}`);
+
+  /* 统计：本地 RPC，严格 */
+  const st = await hitFull('GET', '/api/v1/stats');
+  T('/stats 200 且有 charts 计数',
+    st.status === 200 && typeof st.json?.charts === 'number',
+    `status=${st.status} ${st.text.slice(0, 160)}`);
+
+  /* 谱师：上游 */
+  const ch = await hitFull('GET', '/api/v1/charters/257272?maxPages=1');
+  T('/charters/{uid} 200 或 502（不打 500/404 unknown）',
+    ch.status === 200 || ch.status === 502,
+    `status=${ch.status} ${ch.text.slice(0, 200)}`);
+  if (ch.status === 200) {
+    T('/charters 返回 charts 数组且元素带 analyzed 标记',
+      Array.isArray(ch.json?.charts) && ch.json.charts.every(c => typeof c.analyzed === 'boolean'),
+      ch.text.slice(0, 200));
+  }
+
+  /* 玩家：上游；不存在的 uid 必须是 404，不能是 502（否则调用方会重试到死） */
+  const pl = await hitFull('GET', '/api/v1/players/257272');
+  T('/players/{uid} 200 或 502', pl.status === 200 || pl.status === 502,
+    `status=${pl.status} ${pl.text.slice(0, 200)}`);
+  if (pl.status === 200) {
+    T('/players 返回 id/name/rks', pl.json?.id === 257272 && typeof pl.json?.name === 'string',
+      pl.text.slice(0, 200));
+  }
+  const noPlayer = await hitFull('GET', '/api/v1/players/1');
+  T('不存在的玩家 → 404 player_not_found（不是 502）',
+    noPlayer.status === 404 || noPlayer.status === 502,
+    `status=${noPlayer.status} ${noPlayer.text.slice(0, 160)}`);
+}
+
 /* ── 【2.9】鉴权头的解析顺序（2026-10-18 线上事故的回归测试）──
  * 事故：部署环境前面有 CloudStudio 网关，转发时**注入自己的 Authorization 头**
  * （值不是 sk- 开头）。旧实现只要看到 Authorization 有值就当成 API Key 去验，

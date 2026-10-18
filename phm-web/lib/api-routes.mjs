@@ -18,6 +18,23 @@ const HOUR = 3_600_000;
 const DAY = 86_400_000;
 const ALL_SCOPES = ['charts:read', 'analyses:write', 'usage:read'];
 
+/* Phira 上游。谱师/玩家这两个端点要打它，是本模块**唯一的外部依赖**，
+   所以超时给得比内部查询短：内部 15s，上游 8s。
+   ⚠ 超时值可以用环境变量调，但不要调大到接近网关的读超时 ——
+   网关先断，客户端会收到 502 HTML 而不是我们的 JSON 错误体，很难排查。 */
+const PHM_UPSTREAM_TIMEOUT = Math.min(20000, Math.max(2000,
+  parseInt(process.env.PHM_UPSTREAM_TIMEOUT, 10) || 8000));
+
+/* 带超时的 fetch。上游卡住时不能把整个请求无限挂住 ——
+   Node 的 fetch 默认没有超时，一个慢上游能拖垮并发名额。 */
+async function fetchTO(url) {
+  return fetch(url, {
+    headers: { accept: 'application/json', 'user-agent': 'phm-api/1.0 (+https://phm.app.workbuddy.host)' },
+    redirect: 'follow',
+    signal: AbortSignal.timeout(PHM_UPSTREAM_TIMEOUT),
+  });
+}
+
 function hasScope(who, scope) {
   return who.kind !== 'key' || (Array.isArray(who.scopes) && who.scopes.includes(scope));
 }
@@ -135,8 +152,9 @@ function formatReport(r) {
 
 export function makeApiRoutes(deps) {
   const {
-    send, readBody, dbFetch, dbPutChart, recompute, hmWhoami,
+    send, readBody, dbFetch, dbPutChart, dbPageCharts, recompute, hmWhoami,
     writeSecret, engineVer, serviceVersion, openapiSpec,
+    SORTABLE, phiraBase,
   } = deps;
 
   async function callApiRpc(name, args) {
@@ -217,6 +235,172 @@ export function makeApiRoutes(deps) {
     }
     logUsage(who, '/charts', 200, id, t0);
     return json(res, 200, formatRow(rows[0]));
+  }
+
+  /* ── GET /charts ── 列表：分页 / 搜索 / 排序 / 过滤（V0.21.0.0）
+   *
+   * 为什么必须补这个：`/charts/{id}` 只能一张一张查。想"看看库里有哪些谱"
+   * 就得知道 id，或者一张张试 —— 这不是 API，是猜谜。
+   *
+   * 实现直接复用 `dbPageCharts`（网页端 /data 页用的同一份），
+   * 不另写一套查询：两套分页必然漂移，而漂移的表现是"网页看到的和 API 看到的不是同一批数据"。
+   * 排序字段走 `SORTABLE` 白名单 —— 它直接进 PostgREST 查询串，不挡就是把查询表达式交给调用方。
+   */
+  async function handleChartList(req, res, who, ip, url) {
+    if (!requireScope(res, who, 'charts:read')) return;
+    if (!(await gateApi(res, who, ip))) return;
+    const qp = url.searchParams;
+    const sort = qp.get('sort') || 'chart_id';
+    if (!SORTABLE.has(sort)) {
+      return apiErr(res, 400, 'invalid_request_error', 'invalid_sort_field',
+        'unsupported sort field; see GET /meta for the allowed list',
+        { 'x-allowed-sort': [...SORTABLE].join(',') });
+    }
+    const t0 = Date.now();
+    const r = await dbPageCharts({
+      page: qp.get('page'), pageSize: qp.get('pageSize'),
+      sort, order: qp.get('order') === 'desc' ? 'desc' : 'asc',
+      q: qp.get('q') || '', level: qp.get('level') || '',
+      only: qp.get('only') || '', build: qp.get('build') || '',
+    });
+    /* ⚠ `dbPageCharts` 的失败信号是**返回 null**，不是 `{ok:false}` ——
+       它内部已经把"上游挂了/JSON 坏/不是数组"三种情况都折叠成 null。
+       写成 `if (!r.ok)` 会恒真（null.ok 是 undefined），整个端点永远 502。 */
+    if (!r) {
+      logUsage(who, '/charts:list', 502, null, t0);
+      return apiErr(res, 502, 'server_error', 'cache_unavailable', 'cache temporarily unavailable');
+    }
+    logUsage(who, '/charts:list', 200, null, t0);
+    return json(res, 200, {
+      rows: r.rows.map(formatRow),
+      total: r.total, page: r.page, pageSize: r.pageSize, pages: r.pages,
+      sort, order: qp.get('order') === 'desc' ? 'desc' : 'asc',
+    });
+  }
+
+  /* ── GET /stats ── 全库统计（共多少谱、覆盖多少、引擎版本分布）
+   * 复用网页端同一份 `phm_stats` RPC；**失败时不透传上游报错正文**
+   * （那里面可能有表名/字段名，属于内部结构）。 */
+  async function handleStats(req, res, who, ip) {
+    if (!requireScope(res, who, 'charts:read')) return;
+    if (!(await gateApi(res, who, ip))) return;
+    const t0 = Date.now();
+    const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
+    logUsage(who, '/stats', r.ok ? 200 : 502, null, t0);
+    if (!r.ok) return apiErr(res, 502, 'server_error', 'stats_unavailable', 'statistics temporarily unavailable');
+    let j;
+    try { j = JSON.parse(r.body); } catch {
+      return apiErr(res, 502, 'server_error', 'stats_unparseable', 'statistics could not be parsed');
+    }
+    return json(res, 200, j);
+  }
+
+  /* ── GET /charters/{uid} ── 某谱师上传的谱面（附本站已算出的定数）
+   *
+   * ⚠ 这条要打 Phira 上游，属于**最慢也最容易失败**的路径，所以：
+   *   · 独立超时（`PHM_UPSTREAM_TIMEOUT`，默认 8s），比对内查询短；
+   *   · 上游失败返回 502 `upstream_unavailable`，**绝不返回空数组** ——
+   *     空数组会让调用方以为"这人没有作品"，那是最坏的错误答案。
+   *   · 只读前 N 页（默认 maxPages=3），不做全量拉取：公开 API 不该变成爬虫入口。 */
+  async function handleCharter(req, res, who, ip, uidStr, url) {
+    if (!requireScope(res, who, 'charts:read')) return;
+    if (!(await gateApi(res, who, ip))) return;
+    const uid = Number(uidStr);
+    if (!Number.isInteger(uid) || uid < 1) {
+      return apiErr(res, 400, 'invalid_request_error', 'invalid_uid', 'uid must be a positive integer');
+    }
+    const maxPages = Math.min(5, Math.max(1, parseInt(url.searchParams.get('maxPages'), 10) || 3));
+    const t0 = Date.now();
+    const out = [];
+    let count = null;
+    try {
+      for (let page = 1; page <= maxPages; page++) {
+        const r = await fetchTO(phiraBase + '/chart?uploader=' + uid + '&page=' + page + '&pageNum=30');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const j = await r.json();
+        if (count == null && j && Number.isFinite(Number(j.count))) count = Number(j.count);
+        const list = Array.isArray(j) ? j : (Array.isArray(j && j.results) ? j.results : []);
+        if (!list.length) break;
+        out.push(...list);
+        if (list.length < 30) break;
+      }
+    } catch (e) {
+      logUsage(who, '/charters', 502, null, t0);
+      return apiErr(res, 502, 'server_error', 'upstream_unavailable',
+        'Phira upstream is unavailable; try again later');
+    }
+    /* 把本地缓存里的定数贴上去（一次 IN 查询，≤60 个 id 是同一份约束）。 */
+    const ids = out.map(x => Number(x.id)).filter(x => Number.isInteger(x) && x > 0).slice(0, 60);
+    const cache = new Map();
+    if (ids.length) {
+      const cr = await dbFetch('/phm_charts?chart_id=in.(' + ids.join(',') + ')&select=*', undefined, 15000, 4 * 1024 * 1024);
+      if (cr.ok && cr.body) {
+        try {
+          for (const row of JSON.parse(cr.body)) cache.set(Number(row.chart_id), row);
+        } catch { /* 缓存坏了不影响主结果 */ }
+      }
+    }
+    const charts = out.map(c => {
+      const hit = cache.get(Number(c.id));
+      const base = {
+        chart_id: c.id, name: c.name, level: c.level, difficulty: c.difficulty,
+        charter: c.charter, uploader: c.uploader, rated: c.rated == null ? null : c.rated,
+      };
+      /* analyzed=false 明确告诉调用方"本站还没算过这张"，
+         而不是让它去猜 ref_const 为什么缺 —— 缺字段和"算出来是 0"是两回事。 */
+      return hit ? Object.assign(base, { analyzed: true, ref_const: hit.ref_const, ref_official: hit.ref_official, ps_score: hit.ps_score, nps: hit.nps, notes: hit.notes, engine_ver: hit.engine_ver })
+        : Object.assign(base, { analyzed: false });
+    });
+    logUsage(who, '/charters', 200, null, t0);
+    return json(res, 200, { uid, count, returned: charts.length, maxPages, charts });
+  }
+
+  /* ── GET /players/{uid} ── 玩家公开资料 + 统计（不含成绩明细）
+   * 成绩明细要另外的接口和额度，先不给：把"资料"和"几百条成绩"混在一个响应里，
+   * 既慢又容易被拿来批量抓。 */
+  async function handlePlayer(req, res, who, ip, uidStr) {
+    if (!requireScope(res, who, 'charts:read')) return;
+    if (!(await gateApi(res, who, ip))) return;
+    const uid = Number(uidStr);
+    if (!Number.isInteger(uid) || uid < 1) {
+      return apiErr(res, 400, 'invalid_request_error', 'invalid_uid', 'uid must be a positive integer');
+    }
+    const t0 = Date.now();
+    let user;
+    try {
+      const r = await fetchTO(phiraBase + '/user/' + uid);
+      /* ⚠ Phira 对**不存在的 uid** 回的是 400，不是 404（实测 /user/1 → 400）。
+         只判 404 的话，调用方会收到 502「上游不可用」，从而去重试一个
+         永远不会成功的请求 —— 错误码要表达真实原因。 */
+      if (r.status === 404 || r.status === 400) {
+        logUsage(who, '/players', 404, null, t0);
+        return apiErr(res, 404, 'invalid_request_error', 'player_not_found', 'no such player');
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      user = await r.json();
+    } catch (e) {
+      logUsage(who, '/players', 502, null, t0);
+      return apiErr(res, 502, 'server_error', 'upstream_unavailable',
+        'Phira upstream is unavailable; try again later');
+    }
+    if (!user || user.id == null) {
+      logUsage(who, '/players', 404, null, t0);
+      return apiErr(res, 404, 'invalid_request_error', 'player_not_found', 'no such player');
+    }
+    /* stats 是可选增强：拿不到就把 stats 置 null，**不要因此让整个请求失败**。 */
+    let stats = null;
+    try {
+      const sr = await fetchTO(phiraBase + '/user/' + uid + '/stats');
+      if (sr.ok) stats = await sr.json();
+    } catch { /* 保持 null */ }
+    logUsage(who, '/players', 200, null, t0);
+    return json(res, 200, {
+      id: user.id, name: user.name, bio: user.bio == null ? null : user.bio,
+      avatar: user.avatar == null ? null : user.avatar,
+      joined: user.joined == null ? null : user.joined,
+      rks: user.rks == null ? null : user.rks,
+      stats,
+    });
   }
 
   async function handleAnalyses(req, res, who, ip) {
@@ -519,8 +703,23 @@ export function makeApiRoutes(deps) {
       return apiErr(res, status, 'authentication_error', who.error, msg);
     }
 
+    /* ⚠ 顺序有意义：`/charts/{id}` 要排在 `/charts` 之前，
+       否则 `/charts` 会把 `/charts/123` 也吃掉（`^\/charts\/[^/]+$` 是精确的，不会，
+       但先列长的更不容易在以后加子路径时踩坑）。 */
     if (req.method === 'GET' && /^\/charts\/[^/]+$/.test(p)) {
       return handleCharts(req, res, who, ip, p.slice('/charts/'.length));
+    }
+    if (req.method === 'GET' && p === '/charts') {
+      return handleChartList(req, res, who, ip, url);
+    }
+    if (req.method === 'GET' && p === '/stats') {
+      return handleStats(req, res, who, ip);
+    }
+    if (req.method === 'GET' && /^\/charters\/[^/]+$/.test(p)) {
+      return handleCharter(req, res, who, ip, p.slice('/charters/'.length), url);
+    }
+    if (req.method === 'GET' && /^\/players\/[^/]+$/.test(p)) {
+      return handlePlayer(req, res, who, ip, p.slice('/players/'.length));
     }
     if (req.method === 'POST' && p === '/analyses') {
       return handleAnalyses(req, res, who, ip);
