@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.20.4.0">
+<meta name="app-version" content="V0.20.4.1">
 <title>API 开放平台 · P.H.M.</title>
 <meta name="description" content="P.H.M. API 开放平台：查看调用用量、管理 API Key、接入免费的谱面难度查询/分析接口。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.0">
-<link rel="stylesheet" href="/css/api.css?v=V0.20.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.20.4.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.1">
+<link rel="stylesheet" href="/css/api.css?v=V0.20.4.1">
 <style>
 .platwrap{max-width:1100px;grid-template-columns:190px minmax(0,1fr);gap:28px}
 .plat-side{position:sticky;top:74px;align-self:start;font-size:13px}
@@ -175,7 +175,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <div id="toast" class="toast" hidden></div>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.20.4.0';
+import { renderNav } from '/js/ui.js?v=V0.20.4.1';
+import { initCloud, currentUser } from '/js/cloud.js?v=V0.20.4.1';
 renderNav('platform');
 
 const CLOUD_CFG = { endpoint: 'https://phm.app.workbuddy.host', publishableKey: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b' };
@@ -334,9 +335,25 @@ async function loadKeys() {
 }
 
 async function boot() {
-  if (!window.WorkBuddyCloud || !window.WorkBuddyCloud.createWorkBuddyCloud) { $('#authGate').textContent = '云 SDK 加载失败，请刷新页面。'; return; }
-  cloud = window.WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG);
-  try { const r = await cloud.auth.getUser(); account = (r && (r.data ? (r.data.user || r.data) : r.user)) || null; } catch (e) { account = null; }
+  /* ⚠ 旧版开头直接判 `window.WorkBuddyCloud` 是否存在，不存在就报"加载失败"。
+     云 SDK 是 `<script defer src="cdn">`，本页主逻辑也是 defer ——
+     CDN 慢一点，本页就先跑完了，于是**每次打开都报"云 SDK 加载失败"**，
+     用户被迫反复刷新。现在统一走 js/cloud.js：等它就绪（带上限）。
+     ⚠ 仍失败时要说清是"系统没连上"，而不是让用户以为是自己没登录。 */
+  const r = await initCloud(CLOUD_CFG);
+  cloud = r.cloud;
+  if (!cloud) {
+    $('#authGate').textContent = r.error === 'timeout'
+      ? '登录服务响应慢，暂时连不上。请刷新重试——这不是你账号的问题。'
+      : '云 SDK 加载失败，请刷新页面。';
+    return;
+  }
+  const cu = await currentUser(cloud);
+  account = cu.user;
+  if (cu.reason === 'unavailable') {
+    $('#authGate').textContent = '暂时读不到你的登录状态（可能是网络问题）。请刷新重试——这不是你账号的问题。';
+    return;
+  }
   if (!account) { renderLanding(); return; }
   $('#authGate').style.display = 'none'; $('#app').style.display = '';
   $('#acctEmail').textContent = account.email || account.username || account.id || '已登录';
