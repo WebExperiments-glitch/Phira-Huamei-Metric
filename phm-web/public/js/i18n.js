@@ -24,17 +24,17 @@
  *   社区通用写法，别自己造词 —— 音游玩家看的是社区术语，不是教科书英语。
  * ============================================================ */
 
-import { lang as langStore } from './settings.js?v=V0.20.3.3';
-import common from './i18n/common.js?v=V0.20.3.3';
-import home from './i18n/home.js?v=V0.20.3.3';
-import app from './i18n/app.js?v=V0.20.3.3';
-import charter from './i18n/charter.js?v=V0.20.3.3';
-import user from './i18n/user.js?v=V0.20.3.3';
-import data from './i18n/data.js?v=V0.20.3.3';
-import legal from './i18n/legal.js?v=V0.20.3.3';
-import settings from './i18n/settings.js?v=V0.20.3.3';
-import version from './i18n/version.js?v=V0.20.3.3';
-import download from './i18n/download.js?v=V0.20.3.3';
+import { lang as langStore } from './settings.js?v=V0.20.3.4';
+import common from './i18n/common.js?v=V0.20.3.4';
+import home from './i18n/home.js?v=V0.20.3.4';
+import app from './i18n/app.js?v=V0.20.3.4';
+import charter from './i18n/charter.js?v=V0.20.3.4';
+import user from './i18n/user.js?v=V0.20.3.4';
+import data from './i18n/data.js?v=V0.20.3.4';
+import legal from './i18n/legal.js?v=V0.20.3.4';
+import settings from './i18n/settings.js?v=V0.20.3.4';
+import version from './i18n/version.js?v=V0.20.3.4';
+import download from './i18n/download.js?v=V0.20.3.4';
 
 /* ══════════════════════════════════════════════════════════════
  * 字典：按页面分片，在这里合并

@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.3.4', date: '2026-10-18',
+    zh: ['<b>API 鉴权第二轮</b>：上一版修好 <code>Authorization</code> 被网关改写后，实测发现 <code>x-api-key</code> 也被网关当成<b>它自己的</b>鉴权头消费掉，Key 根本送不到服务端（假 Key 也返回 200）。新增私有头 <b><code>x-phm-key</code></b> 作为首选通道；并新增 <a href="/api/v1/meta?diag=1">诊断口</a>，只回各头的长度，用来判断是「头没穿透」还是「Key 不对」。'],
+    en: ['<b>API auth, round two</b>: after fixing the gateway-injected <code>Authorization</code>, testing showed <code>x-api-key</code> is also swallowed by the gateway as its <b>own</b> auth header, so the key never reached the server (a fake key still returned 200). Added a private <b><code>x-phm-key</code></b> header as the preferred channel, plus a <a href="/api/v1/meta?diag=1">diagnostic endpoint</a> that reports only header lengths, to tell "header did not pass through" from "wrong key".'],
+  },
+  {
     v: 'V0.20.3.3', date: '2026-10-18',
     zh: ['<b>修 API 鉴权被网关污染</b>：本站前面的网关会在转发时写入它自己的 <code>Authorization</code> 头，导致匿名请求与带 Key 的请求<b>一起被误判成 invalid_api_key</b>（线上 API 实际不可用）。现在优先读 <code>x-api-key</code>，<code>Authorization</code> 只认 <code>sk-</code> 前缀。开发者文档同步改为推荐 <code>x-api-key</code>。'],
     en: ['<b>Fixed API auth being poisoned by the gateway</b>: the gateway in front of this site injects its own <code>Authorization</code> header, so both anonymous requests and requests with a valid key were <b>rejected with invalid_api_key</b> (the live API was effectively down). We now read <code>x-api-key</code> first, and only accept an <code>sk-</code> prefixed value from <code>Authorization</code>. Developer docs now recommend <code>x-api-key</code>.'],

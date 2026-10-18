@@ -42,7 +42,7 @@ function expiryFromDays(v) {
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-  'access-control-allow-headers': 'authorization, content-type, x-hm-token, x-api-key',
+  'access-control-allow-headers': 'authorization, content-type, x-hm-token, x-api-key, x-phm-key',
   'access-control-max-age': '86400',
 };
 
@@ -60,16 +60,29 @@ function apiErr(res, status, type, code, message, extra) {
   return json(res, status, { error: { type, code, message } }, extra);
 }
 
-/* ⚠ 部署环境有 CloudStudio 网关，它会在转发时**注入自己的 Authorization 头**
-   （值不是 sk- 开头）。这会把两种请求一起毒掉，2026-10-18 线上实测：
-     · 匿名请求（根本没带 Key）→ 读到网关注入的值 → 格式不匹配 → 401 invalid_api_key
-     · 带真 Key 的请求 → 网关的值盖掉用户的 → 同样 401
-   所以取 Key 的顺序是：**先 x-api-key（自定义头，网关不碰），再 Authorization
-   且只认 `sk-` 前缀**。不匹配就当没带 —— 绝不能因为某个来路不明的 token 判 401，
-   否则「匿名可用」这条基本契约在线上直接失效。 */
+/* ⚠ 部署环境有 CloudStudio 网关，它会动鉴权头。2026-10-18 线上实测两轮：
+ *   第一轮（只读 Authorization）：网关**注入**自己的 Authorization 头，值不是 sk-。
+ *     · 匿名请求 → 读到网关的值 → 格式不匹配 → 401 invalid_api_key
+ *     · 带真 Key → 网关的值盖掉用户的 → 同样 401
+ *   第二轮（改读 x-api-key）：网关把 **x-api-key 当成自己的鉴权头消费掉**了 ——
+ *     发一把格式合法但不存在的 Key 过去，仍然返回 200（= 走匿名），
+ *     而同一时刻 `x-hm-token` 能正常穿透（假值得到 account_token_invalid）。
+ *     所以 `x-api-key` 在本环境**不可用**，它不在我们的控制之下。
+ *
+ * 结论：**只有私有前缀的自定义头能穿透**。取 Key 的顺序：
+ *   x-phm-key → x-api-key → Authorization（且只认 sk- 前缀）。
+ * 三路都拿不到就退回匿名 —— 「匿名可用」是 v1 的基本契约，
+ * 绝不能因为某个来路不明的 token 判 401。
+ *
+ * 自查：`GET /api/v1/meta?diag=1` 会回各鉴权头的**长度**（0 = 没收到），
+ * 用来判断到底是"头没穿透"还是"Key 不对"，不必靠猜。 */
+const KEY_HEADERS = ['x-phm-key', 'x-api-key'];
+
 function bearer(req) {
-  const custom = String(req.headers['x-api-key'] || '').trim();
-  if (custom) return custom;
+  for (const h of KEY_HEADERS) {
+    const v = String(req.headers[h] || '').trim();
+    if (v) return v;
+  }
   const raw = String(req.headers.authorization || '').trim();
   /* ⚠ 这里刻意**不用正则**解析 "Bearer <value>"：
      `/^Bearer\s+(.+)$/i` 这种写法在 "bearer\t\t\t\t…" 上是多项式回溯
@@ -451,12 +464,29 @@ export function makeApiRoutes(deps) {
 
     /* 公开的版本/构建信息：客户端用它判断「页面与 API 是否同一版本」。 */
     if (req.method === 'GET' && p === '/meta') {
-      return json(res, 200, {
+      const body = {
         api: 'v1',
         service: serviceVersion || null,
         engine: engineVer || null,
         time: new Date().toISOString(),
-      });
+      };
+      /* ?diag=1 —— 鉴权头自检。**只回长度，不回内容**：
+         0 表示这个头没穿透到服务端（网关吞了/没发），>0 表示收到了。
+         用途：区分「头被网关吃掉」和「Key 本身不对」，别再靠猜。
+         2026-10-18 就是靠这个思路发现 x-api-key 被网关消费掉的。 */
+      if (url.searchParams.get('diag') === '1') {
+        const h = req.headers;
+        body.diag = {
+          /* 每个头回长度；值为 0 或缺失都记 0 */
+          'x-phm-key': String(h['x-phm-key'] || '').length,
+          'x-api-key': String(h['x-api-key'] || '').length,
+          'authorization': String(h.authorization || '').length,
+          'x-hm-token': String(h['x-hm-token'] || '').length,
+          /* 解析结果：这次请求最终被当成什么身份（只看 kind，不暴露 key 内容） */
+          key_seen: bearer(req) ? 'yes' : 'no',
+        };
+      }
+      return json(res, 200, body);
     }
 
     if (req.method === 'GET' && p === '/openapi.json') {

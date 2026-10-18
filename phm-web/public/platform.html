@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.20.3.3">
+<meta name="app-version" content="V0.20.3.4">
 <title>API 开放平台 · P.H.M.</title>
 <meta name="description" content="P.H.M. API 开放平台：查看调用用量、管理 API Key、接入免费的谱面难度查询/分析接口。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.3.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.3.3">
-<link rel="stylesheet" href="/css/api.css?v=V0.20.3.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.20.3.4">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.3.4">
+<link rel="stylesheet" href="/css/api.css?v=V0.20.3.4">
 <style>
 .platwrap{max-width:1100px;grid-template-columns:190px minmax(0,1fr);gap:28px}
 .plat-side{position:sticky;top:74px;align-self:start;font-size:13px}
@@ -175,7 +175,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <div id="toast" class="toast" hidden></div>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.20.3.3';
+import { renderNav } from '/js/ui.js?v=V0.20.3.4';
 renderNav('platform');
 
 const CLOUD_CFG = { endpoint: 'https://phm.app.workbuddy.host', publishableKey: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b' };
