@@ -267,5 +267,14 @@ export async function analyzeFile(file) {
   const rendered = await off.startRendering();
   const data = rendered.getChannelData(0);
   try { await ctx.close(); } catch (e) {}
-  return analyzeSamples(data, rate, duration);
+  const result = analyzeSamples(data, rate, duration);
+  /* MIT: web-audio-beat-detector 交叉校验；worker/浏览器不支持时静默回退。 */
+  try {
+    const { analyze } = await import('/vendor/web-audio-beat-detector/beat-detector.mjs');
+    const libBpm = await analyze(audio, { minTempo: 60, maxTempo: 200 });
+    if (Number.isFinite(libBpm)) result.libraryBpm = Math.round(libBpm * 10) / 10;
+  } catch (e) {
+    result.libraryBpm = null;
+  }
+  return result;
 }

@@ -404,21 +404,21 @@ export function buildChartFromAnalysis(analysis, opts) {
     times = filled;
   }
 
-  /* 参照 RuleEngine：5 个 x、无和弦、Tap/Hold/Drag、无 Flick、1 条线。 */
-  const positions = [-405, 405];
+  /* 2 指自由分散：x 在整屏连续取，不固定 2 条/5 条轨道；一次一个 note。 */
   const weights = { tap: 0.74, hold: 0.115, drag: 0.145 };
   const holds = [0.75, 1, 1.5];
   const notes = [];
-  const lastXBeat = new Map();
   const holdUntil = new Map();
+  let prevX = null;
   times.forEach((p, i) => {
     const beat = p.t / beatSec;
     if (beat < 2 - 1e-6 || beat > totalBeats - 1 + 1e-6) return;
-    /* 选 x：避开仍在 Hold 的轨/刚用过的轨 */
-    const cand = positions.filter(x => beat >= (holdUntil.get(x) || -1) - 1e-6 &&
-      (!lastXBeat.has(x) || beat - lastXBeat.get(x) >= preset.minGap - 1e-6));
-    if (!cand.length) return;
-    const x = cand[Math.floor(rng() * cand.length)];
+    let x = Math.round((rng() * 1080 - 540) * 2) / 2;
+    if (prevX != null && Math.abs(x - prevX) < 140) {
+      x = Math.round((prevX + (prevX > 0 ? -1 : 1) * (180 + rng() * 240)) * 2) / 2;
+      x = Math.max(-540, Math.min(540, x));
+    }
+    if (beat < (holdUntil.get(x) || -1) - 1e-6) return;
     let type = pickWeighted(rng, weights);
     let endBeat = beat;
     if (type === 'hold') {
@@ -432,7 +432,7 @@ export function buildChartFromAnalysis(analysis, opts) {
       positionX: x, size: 1, speed: 1,
       startTime: frac(beat), type: typeNum, visibleTime: 999999, yOffset: 0,
     });
-    lastXBeat.set(x, typeNum === 2 ? endBeat : beat);
+    prevX = x;
     if (typeNum === 2) holdUntil.set(x, endBeat);
   });
 
@@ -461,7 +461,7 @@ export function buildChartFromAnalysis(analysis, opts) {
     },
     judgeLineGroup: ['Default'], judgeLineList: [mainLine],
   };
-  const validation = validateChart(chart, { difficulty: o.difficulty, lanes: 2 });
+  const validation = validateChart(chart, { difficulty: o.difficulty, lanes: 2, free: true });
   const typeCounts = { tap: 0, hold: 0, flick: 0, drag: 0 };
   for (const n of notes) for (const [k, v] of Object.entries(TYPE)) if (v === n.type) typeCounts[k]++;
   return {
@@ -488,6 +488,7 @@ export function validateChart(chart, opts) {
   const o = opts || {};
   const preset = AUDIO_PRESETS[o.difficulty] || PRESETS[o.difficulty] || PRESETS.hard;
   const laneVals = LANES[o.lanes] || LANES[4];
+  const free = !!o.free;
   const violations = [];
   const line = chart && chart.judgeLineList && chart.judgeLineList[0];
   if (!line || !Array.isArray(line.notes)) {
@@ -514,7 +515,7 @@ export function validateChart(chart, opts) {
     if (start > totalBeats - 1 + 1e-6) violations.push(where + ' starts after end margin');
     if (end < start - 1e-6) violations.push(where + ' end < start');
     if (![1, 2, 3, 4].includes(n.type)) violations.push(where + ' invalid type');
-    if (!laneVals.includes(n.positionX)) violations.push(where + ' invalid lane ' + n.positionX);
+    if (free ? (n.positionX < -540 || n.positionX > 540) : !laneVals.includes(n.positionX)) violations.push(where + ' invalid lane ' + n.positionX);
     if (n.type === 2 && end - start < 0.25 - 1e-6) violations.push(where + ' hold too short');
     if (start < prevStart - 1e-6) violations.push(where + ' notes not sorted');
     prevStart = Math.max(prevStart, start);
@@ -523,7 +524,7 @@ export function validateChart(chart, opts) {
     const rec = byLane.get(lane);
     if (rec) {
       const gap = start - rec.start;
-      if (gap < preset.minGap - 1e-6) violations.push(where + ' same-lane gap ' + gap.toFixed(3) + ' < ' + preset.minGap);
+      if (!free && gap < preset.minGap - 1e-6) violations.push(where + ' same-lane gap ' + gap.toFixed(3) + ' < ' + preset.minGap);
       if (rec.type === 2 && start < rec.end - 1e-6) violations.push(where + ' overlaps previous hold on lane ' + lane);
       minGap = Math.min(minGap, gap);
     }

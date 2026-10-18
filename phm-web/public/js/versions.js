@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.0.0', date: '2026-10-18',
+    zh: ['改为 <b>2 指自由分散</b>：x 在 ±540 内连续分布，不再固定 2/5 条轨道；一次一个 note。项目内安装 MIT <b>web-audio-beat-detector 8.2.39</b>（vendor 内已 bundle），浏览器 BPM 交叉校验；鼓/钢琴点仍分开显示。'],
+    en: ['Now <b>two-finger free spread</b>: x is continuous within ±540, no fixed 2/5 lanes; one note at a time. Bundled MIT <b>web-audio-beat-detector 8.2.39</b> in vendor for browser BPM cross-check; drum/piano counts remain separate.'],
+  },
+  {
     v: 'V0.19.1.0', date: '2026-10-18',
     zh: ['严格锁死 <b>2K</b>：只保留 ±405 两条轨道，不再出现 5 个 x / 4K+ 观感。新增 MIT 节拍/鼓钢琴分离调研文档（web-audio-beat-detector、Demucs、Spleeter、Open-Unmix、Omnizart）。'],
     en: ['Strictly <b>2K</b>: only the ±405 two lanes, no more 5-x / 4K+ look. Added MIT audio research doc (web-audio-beat-detector, Demucs, Spleeter, Open-Unmix, Omnizart).'],

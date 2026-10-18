@@ -175,7 +175,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
      部分浏览器会**拒绝**加载（@font-face 直接静默失败，页面掉回系统字体，
      控制台只有一条不显眼的警告）—— 这种"改了没生效"最难查。 */
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf', '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
+  '.css': 'text/css; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
   '.xml': 'application/xml; charset=utf-8',
   '.ico': 'image/x-icon', '.webp': 'image/webp' };
 
@@ -200,8 +200,8 @@ const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.ht
 /* ⚠ 每加一个目录都是往互联网上多开一扇门。fonts/ 是 2026-10-11 加的 ——
    标题用的思源宋体子集（83KB woff2）要自托管：CSP 里 font-src 只允许 'self'，
    而且中文站依赖 CDN 字体既慢又不可靠。这个目录里只应有裁好的 woff2。 */
-const PUBLIC_DIRS = ['js/', 'css/', 'data/', 'fonts/'];
-const SAFE_EXT = new Set(['.js', '.css', '.png', '.svg', '.ico', '.webp', '.woff2', '.json']);
+const PUBLIC_DIRS = ['js/', 'css/', 'data/', 'fonts/', 'vendor/'];
+const SAFE_EXT = new Set(['.js', '.mjs', '.css', '.png', '.svg', '.ico', '.webp', '.woff2', '.json']);
 function isPublicPath(rel) {
   if (PUBLIC_FILES.has(rel)) return true;
   if (!PUBLIC_DIRS.some(d => rel.startsWith(d))) return false;

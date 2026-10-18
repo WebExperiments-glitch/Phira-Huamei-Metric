@@ -26,6 +26,7 @@
 
 | 版本 | 日期 | commit | 内容 |
 |---|---|---|---|
+| `V0.20.0.0` | 2026-10-18 | 本次 | **2 指自由分散 + MIT 节拍库安装**。① 移除固定 2/5 条轨道，x 在 ±540 内连续取，一次一个 note，最多 2 指。② `vendor/web-audio-beat-detector` 安装 web-audio-beat-detector 8.2.39（MIT），esbuild 打包为 `beat-detector.mjs`，`analyzeFile` 里交叉校验 BPM；失败静默回退。③ 鼓点/钢琴点仍分开显示，排谱优先钢琴点。④ 旧 .pez 必须重新生成。 |
 | `V0.19.1.0` | 2026-10-18 | 本次 | **严格 2K**：`LANES[2]` 只保留 ±405；规则引擎只生成两条轨道，移除 5 x 参考布局，避免 4K+ 观感。新增 `docs/调研/音频节拍与鼓钢琴分离.md`：MIT 项目 web-audio-beat-detector / Demucs / Spleeter / Open-Unmix / Omnizart；非 MIT 的 librosa/madmom/aubio/basic-pitch 也标注。 |
 | `V0.19.0.0` | 2026-10-18 | 本次 | **鼓/钢琴分离 + BPM 修正**。① `onsetEnvelope` 增加 200Hz 以下低频、2kHz 以上高频、谱平坦度，分别形成鼓点包络；中频谐波形成钢琴包络；返回 `drumOnsets` / `pianoOnsets`，页面显示两组数量。② 排谱优先钢琴点，鼓点不足时用鼓点，再回退总 onset。③ BPM 从自相关改为 60–200 网格搜索 + 半拍/IOI 中位数修正：Pont 参考曲 190（之前 152）。④ 以参考音频实测生成 IN：927 notes / 4.90 NPS，对照 RuleEngine 原谱 893 / 4.87。⑤ 旧 .pez 必须重新生成。 |
 | `V0.18.0.0` | 2026-10-18 | 本次 | **按参考 ZIP 反推 RuleEngine**。① 解包 Pont des souvenirs.zip，确认 charter: RuleEngine：1 线、5 个 x（±405/±202.5/0）、893 notes/183.55s=4.87 NPS、无和弦、Tap 74%/Hold 11.5%/Drag 14.5%/Flick 0%、Hold 0.75/1/1.5 拍、1/4 拍网格。② 规则引擎按这套参数生成（EZ/HD/IN/AT 只改密度）。③ 参考 诀别书（节选）确认纯钢琴风格。④ 旧 .pez 需重新生成。 |
