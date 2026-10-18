@@ -56,13 +56,13 @@ const TYPE = { tap: 1, hold: 2, flick: 3, drag: 4 };
  * Tap ~55–62% / Drag ~22–35% / Hold ~9–13% / Flick ~5–8%；
  * 难度越高 NPS 越高，但类型比例不会反过来变成 Flick 为主。 */
 const AUDIO_PRESETS = {
-  ez: { label: 'EZ 7',  keep: 0.55, targetNps: 2.0,  subdivision: 4,  minGap: 1.0,  maxChord: 1, lanes: 2,
+  ez: { label: 'EZ 7',  keep: 0.55, targetNps: 3.6,  subdivision: 4,  minGap: 1.0,  maxChord: 1, lanes: 2,
         weights: { tap: .58, hold: .12, flick: .06, drag: .24 }, holds: [.5, 1],       phrase: 12 },
-  hd: { label: 'HD 11', keep: 0.68, targetNps: 2.6,  subdivision: 8,  minGap: 0.5,  maxChord: 1, lanes: 2,
+  hd: { label: 'HD 11', keep: 0.68, targetNps: 4.4,  subdivision: 8,  minGap: 0.5,  maxChord: 1, lanes: 2,
         weights: { tap: .58, hold: .10, flick: .07, drag: .25 }, holds: [.5, .75, 1],  phrase: 10 },
-  in: { label: 'IN 14', keep: 0.82, targetNps: 3.6,  subdivision: 8,  minGap: 0.25, maxChord: 1, lanes: 2,
+  in: { label: 'IN 14', keep: 0.82, targetNps: 4.9,  subdivision: 8,  minGap: 0.25, maxChord: 1, lanes: 2,
         weights: { tap: .56, hold: .10, flick: .07, drag: .27 }, holds: [.25, .5, .75], phrase: 8 },
-  at: { label: 'AT 16', keep: 0.94, targetNps: 4.0,  subdivision: 16, minGap: 0.2,  maxChord: 1, lanes: 2,
+  at: { label: 'AT 16', keep: 0.94, targetNps: 6.1,  subdivision: 16, minGap: 0.2,  maxChord: 1, lanes: 2,
         weights: { tap: .57, hold: .08, flick: .08, drag: .27 }, holds: [.25, .5], phrase: 8 },
 };
 
@@ -327,10 +327,11 @@ export function detectDifficulty(analysis) {
   const energy = secs.length ? secs.reduce((s, x) => s + (x.energy || 0.5), 0) / secs.length : 0.5;
   const centroid = Number.isFinite(analysis.avgCentroid) ? analysis.avgCentroid : 0.5;
   const bpm = Number(analysis.bpm) || 120;
-  const potential = Math.max(2.5, Math.min(12.5,
-    rate * 1.55 + energy * 1.8 + centroid * 0.8 + strength * 0.9 + Math.min(0.8, Math.abs(bpm - 120) / 120) + 0.6));
-  /* 难度阈值与 2K 目标 NPS 解耦：先判档，再按该档 2K 密度生成。 */
-  const key = potential < 4.2 ? 'ez' : potential < 5.6 ? 'hd' : potential < 7.0 ? 'in' : 'at';
+  /* 按两根参考谱（Pont IN13 / 诀别书 IN11.8）校准：两首 onsetRate 都在 3.7–3.9，
+   * 都应该判 IN；所以以 onsetRate 为主，BPM/能量只做小幅修正。 */
+  const potential = Math.max(2.5, Math.min(10,
+    rate * 1.2 + Math.min(1, bpm / 190) * 0.6 + energy * 0.5));
+  const key = potential < 4.0 ? 'ez' : potential < 4.75 ? 'hd' : potential < 5.8 ? 'in' : 'at';
   const preset = AUDIO_PRESETS[key];
   return {
     key, label: preset.label, targetNps: preset.targetNps, potential,
@@ -358,19 +359,122 @@ function laneFromCentroid(c, lanes) {
  * ============================================================ */
 export function buildChartFromAnalysis(analysis, opts) {
   const o = opts || {};
-  const key = o.difficulty && ['ez', 'hd', 'in', 'at'].includes(o.difficulty) ? o.difficulty : 'hd';
-  const presetKey = { ez: 'piano_ez', hd: 'piano_hd', in: 'piano_in', at: 'piano_at' }[key];
+  const preset = AUDIO_PRESETS[o.difficulty] || AUDIO_PRESETS.hd;
   const bpm = Math.max(30, Math.min(300, Number(analysis.bpm) || 120));
   const duration = Math.max(10, Math.min(900, Number(analysis.duration) || 60));
-  const built = buildChart({
-    bpm, duration, difficulty: presetKey, lanes: 5, density: 1,
-    name: String(o.name || 'Auto Chart'), artist: String(o.artist || 'Unknown'),
-    charter: String(o.charter || 'P.H.M. rulechart'),
-    seed: String(o.name || '') + '|' + bpm + '|' + duration + '|' + presetKey,
+  const totalBeats = duration * bpm / 60;
+  const beatSec = 60 / bpm;
+  const name = String(o.name || 'Auto Chart');
+  const rng = mulberry32(hashSeed(name + '|' + bpm + '|' + duration + '|' + (analysis.onsets || []).length + '|' + o.difficulty));
+  const lead = 2 * beatSec;
+  const end = (totalBeats - 1) * beatSec;
+
+  /* 先用音频分离结果：钢琴曲走 pianoOnsets，鼓重的曲子走 drumOnsets，二者都没有才回退总 onset。 */
+  const piano = (analysis.pianoOnsets || []).filter(p => Number.isFinite(p.time));
+  const drum = (analysis.drumOnsets || []).filter(p => Number.isFinite(p.time));
+  const source = piano.length >= drum.length * 0.8 ? 'piano' : (drum.length ? 'drum' : 'onset');
+  let picked = source === 'piano' ? piano : source === 'drum' ? drum : (analysis.onsets || []);
+
+  let times = picked
+    .map(p => ({ t: Number(p.time), s: Number(p.strength) || 0.35 }))
+    .filter(p => Number.isFinite(p.t) && p.t >= lead && p.t <= end)
+    .sort((a, b) => a.t - b.t);
+  const dedup = [];
+  for (const p of times) if (!dedup.length || p.t - dedup[dedup.length - 1].t > 0.05) dedup.push(p);
+  times = dedup;
+
+  const target = Math.max(1, Math.round(preset.targetNps * duration));
+  if (times.length > target) {
+    times = times.slice().sort((a, b) => b.s - a.s).slice(0, target).sort((a, b) => a.t - b.t);
+  } else if (times.length < target) {
+    const beats = (analysis.beats || []).filter(x => Number.isFinite(x));
+    const filled = times.slice();
+    if (beats.length) {
+      for (let i = 0; i < beats.length && filled.length < target; i++) {
+        for (let s = 0; s < 4; s++) {
+          const tt = beats[i] + s * beatSec / 4;
+          if (tt < lead || tt > end) continue;
+          if (filled.some(q => Math.abs(q.t - tt) < 0.05)) continue;
+          filled.push({ t: tt, s: 0.2 });
+          if (filled.length >= target) break;
+        }
+      }
+    }
+    filled.sort((a, b) => a.t - b.t);
+    times = filled;
+  }
+
+  /* 参照 RuleEngine：5 个 x、无和弦、Tap/Hold/Drag、无 Flick、1 条线。 */
+  const positions = [-405, -202.5, 0, 202.5, 405];
+  const weights = { tap: 0.74, hold: 0.115, drag: 0.145 };
+  const holds = [0.75, 1, 1.5];
+  const notes = [];
+  const lastXBeat = new Map();
+  const holdUntil = new Map();
+  times.forEach((p, i) => {
+    const beat = p.t / beatSec;
+    if (beat < 2 - 1e-6 || beat > totalBeats - 1 + 1e-6) return;
+    /* 选 x：避开仍在 Hold 的轨/刚用过的轨 */
+    const cand = positions.filter(x => beat >= (holdUntil.get(x) || -1) - 1e-6 &&
+      (!lastXBeat.has(x) || beat - lastXBeat.get(x) >= preset.minGap - 1e-6));
+    if (!cand.length) return;
+    const x = cand[Math.floor(rng() * cand.length)];
+    let type = pickWeighted(rng, weights);
+    let endBeat = beat;
+    if (type === 'hold') {
+      const hb = holds[Math.floor(rng() * holds.length)];
+      endBeat = Math.min(totalBeats - 0.5, beat + hb);
+      if (endBeat - beat < 0.5) type = 'tap';
+    }
+    const typeNum = type === 'hold' ? 2 : type === 'drag' ? 4 : 1;
+    notes.push({
+      above: 1, alpha: 255, endTime: frac(typeNum === 2 ? endBeat : beat), isFake: 0,
+      positionX: x, size: 1, speed: 1,
+      startTime: frac(beat), type: typeNum, visibleTime: 999999, yOffset: 0,
+    });
+    lastXBeat.set(x, typeNum === 2 ? endBeat : beat);
+    if (typeNum === 2) holdUntil.set(x, endBeat);
   });
-  built.stats.onsets = (analysis.onsets || []).length;
-  built.stats.targetNps = (built.stats.notes || 0) / duration;
-  return built;
+
+  notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
+  const slug = name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24) || 'chart';
+  const chartId = slug + '_' + hashSeed(name + '|' + bpm).toString(16).slice(0, 6) + '_' + o.difficulty;
+  const mainLine = {
+    Group: 0, Name: '主判定线', Texture: 'line.png',
+    alphaControl: [{ alpha: 1, easing: 1, x: 0 }, { alpha: 1, easing: 1, x: 9999999 }],
+    bpmfactor: 1, eventLayers: defaultEvents(10),
+    extended: { inclineEvents: [incline()] }, father: -1, isCover: 1,
+    notes, numOfNotes: notes.length,
+    posControl: [{ easing: 1, pos: 1, x: 0 }, { easing: 1, pos: 1, x: 9999999 }],
+    sizeControl: [{ easing: 1, size: 1, x: 0 }, { easing: 1, size: 1, x: 9999999 }],
+    skewControl: [{ easing: 1, skew: 0, x: 0 }, { easing: 1, skew: 0, x: 9999999 }],
+    yControl: [{ easing: 1, x: 0, y: 1 }, { easing: 1, x: 9999999, y: 1 }],
+    zOrder: 0,
+  };
+  const chart = {
+    BPMList: [{ startTime: [0, 0, 1], bpm }],
+    META: {
+      RPEVersion: 160, background: 'background.png',
+      charter: String(o.charter || 'P.H.M. rulechart'), composer: String(o.artist || 'Unknown'),
+      illustration: '', id: chartId, level: preset.label, name,
+      offset: 0, song: 'audio.wav', duration,
+    },
+    judgeLineGroup: ['Default'], judgeLineList: [mainLine],
+  };
+  const validation = validateChart(chart, { difficulty: o.difficulty, lanes: 5 });
+  const typeCounts = { tap: 0, hold: 0, flick: 0, drag: 0 };
+  for (const n of notes) for (const [k, v] of Object.entries(TYPE)) if (v === n.type) typeCounts[k]++;
+  return {
+    chart,
+    stats: {
+      notes: notes.length, bpm, duration, difficulty: preset.label, lanes: 5,
+      onsets: (analysis.onsets || []).length, drumOnsets: drum.length, pianoOnsets: piano.length,
+      onsetSource: source, nps: notes.length / duration,
+      targetNps: preset.targetNps, targetNotes: target,
+      typeCounts, valid: validation.ok,
+      violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,
+    },
+  };
 }
 
 /* ============================================================

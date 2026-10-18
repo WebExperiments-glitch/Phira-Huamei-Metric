@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.19.0.0', date: '2026-10-18',
+    zh: ['补上真正的音频特征：<b>鼓点 / 钢琴点分离</b>（低频 kick、高频噪声+谱平坦度→鼓；中频谐波→钢琴），页面显示两组点数；排谱优先用钢琴点。BPM 改为 60–200 网格搜索 + 半拍/IOI 修正，参考曲从错误的 152 修正到 190。'],
+    en: ['Real audio features: <b>drum / piano onset separation</b> (low-frequency kick + high-frequency noise/flatness for drums; mid harmonics for piano), both counts shown; charting prefers piano onsets. BPM now uses 60–200 grid search + half-beat/IOI correction; the reference track is 190 instead of the previous wrong 152.'],
+  },
+  {
     v: 'V0.18.0.0', date: '2026-10-18',
     zh: ['按你给的两个参考 ZIP 反推：Pont des souvenirs 的 charter 就是 <b>RuleEngine</b>。引擎改为 <b>1 条判定线、5 个 x、无和弦、1/4 拍网格</b>；类型 Tap 74% / Hold 11.5% / Drag 14.5% / Flick 0%；IN 密度对齐参考（约 893 notes / 4.87 NPS）。'],
     en: ['Rebuilt from your two reference ZIPs. The Pont des souvenirs charter is literally <b>RuleEngine</b>. Engine now uses <b>1 judge line, 5 x positions, no chords, 1/4-beat grid</b>; type mix Tap 74% / Hold 11.5% / Drag 14.5% / Flick 0%; IN density matches the reference (~893 notes / 4.87 NPS).'],
