@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.20.4.1">
+<meta name="app-version" content="V0.20.4.2">
 <title>P.H.M. API 客户端 · 单文件</title>
 <meta name="description" content="P.H.M. 单文件 API 客户端：填 API Key 即可查询/分析 Phira 谱面难度。零依赖，一个 HTML 文件。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -180,6 +180,40 @@ footer a{color:var(--fg3)}
   </footer>
 </div>
 
+<style>
+.phm-guard{position:fixed;top:12px;right:12px;z-index:9999;display:flex;flex-direction:column;gap:8px;
+  max-width:min(380px,calc(100vw - 24px));pointer-events:none}
+.phm-guard-item{font-size:13px;line-height:1.55;padding:9px 13px;border-radius:10px;color:#1d1a16;
+  background:#fffdf9;border:1px solid #b3261e;box-shadow:0 6px 24px rgba(0,0,0,.18);pointer-events:auto}
+:root[data-theme="dark"] .phm-guard-item{color:#f2efe9;background:#26221d;border-color:#f08c84}
+@media (max-width:760px){.phm-guard{top:auto;bottom:12px;left:12px;right:12px;max-width:none}}
+</style>
+<script>
+/* 全局兜底（本页自包含，故内联一份而非引 /js/guard.js）。
+   未捕获的 Promise 拒绝原本静默无痕，用户看到的是「点了没反应」。 */
+(function () {
+  var seen = {};
+  function _gcut(x){ x=String(x==null?'':x).replace(/\s+/g,' ').trim(); return x.length>160?x.slice(0,160)+'…':x; }
+  function once(key, text) {
+    if (seen[key]) return; seen[key] = 1;
+    setTimeout(function(){ delete seen[key]; }, 10000);
+    try {
+      var host = document.querySelector('.phm-guard');
+      if (!host) { host = document.createElement('div'); host.className = 'phm-guard';
+        host.setAttribute('role','status'); host.setAttribute('aria-live','polite');
+        document.body.appendChild(host); }
+      var it = document.createElement('div'); it.className = 'phm-guard-item'; it.textContent = cut(text);
+      host.appendChild(it);
+      while (host.children.length > 3) host.removeChild(host.firstChild);
+      setTimeout(function(){ try { host.innerHTML = ''; } catch(e){} }, 9000);
+    } catch (e) {}
+  }
+  window.addEventListener('error', function (ev) { once('e:' + _gcut(ev.message), '页面出了点问题：' + _gcut(ev.message)); }, true);
+  window.addEventListener('unhandledrejection', function (ev) {
+    var r = ev && ev.reason; once('r:' + _gcut(r && r.message), '请求没完成，可能是网络问题：' + _gcut(r && r.message)); });
+  window.addEventListener('offline', function(){ once('off', '你已经离线，联网后自动恢复'); });
+})();
+</script>
 <script>
 (function () {
   var LS_KEY = 'phm_api_key', LS_BASE = 'phm_api_base', LS_RECENT = 'phm_api_recent', LS_THEME = 'phm_theme';
