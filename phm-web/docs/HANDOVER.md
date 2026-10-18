@@ -77,7 +77,7 @@ node tools/lint-i18n.mjs                              # 必须 0（823 词条 / 
 node tools/lint-docs.mjs                              # 94 条 · 死链 / 版本号 / 页面与模块清单
 
 node tools/lint-openapi.mjs                          # ★ OpenAPI 契约（81 条）
-node tools/test-rulechart.mjs                        # ★ 规则写谱单测（20 条）
+node tools/test-rulechart.mjs                        # ★ 规则写谱单测（28 条）
 node tools/review-gate.mjs                            # ★ 静态审计（凭据/版本/白名单/SQL/禁用模式/workflow）
 node tools/preflight.mjs                              # ★ review-gate + npm run check（pre-push 自动跑）
 ```

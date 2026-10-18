@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* 规则写谱单测：只验证结构/约束，不依赖 Phira 客户端。 */
-import { buildChart, buildPez, clickTrackWav, zipStore, validateChart, RULES } from '../public/js/rulechart.js';
+import { buildChart, buildChartFromAnalysis, buildPez, clickTrackWav, zipStore, validateChart, RULES, AUDIO_PRESETS } from '../public/js/rulechart.js';
+import { analyzeSamples } from '../public/js/audio-analysis.js';
 
 let pass = 0, fail = 0;
 const T = (name, cond, extra = '') => { if (cond) { pass++; console.log('  ✓ ' + name); } else { fail++; console.log('  ✗ ' + name + ' ' + extra); } };
@@ -39,6 +40,24 @@ T('规则版本', RULES.version === '1.0' && stats.ruleVersion === '1.0');
 T('实际 NPS 与统计一致', Math.abs(stats.nps - notes.length / 30) < 1e-9);
 T('同种子可复现', JSON.stringify(buildChart({ bpm: 128, duration: 30, difficulty: 'hard', lanes: 4, seed: 'test' }).chart) === JSON.stringify(chart));
 T('换种子会变化', JSON.stringify(buildChart({ bpm: 128, duration: 30, difficulty: 'hard', lanes: 4, seed: 'other' }).chart) !== JSON.stringify(chart));
+
+// ── 音频自动排谱 ──
+const sr = 22050, dur = 20, bpmA = 120;
+const sig = new Float32Array(sr * dur);
+for (let b = 0; b * 60 / bpmA < dur; b++) {
+  const s = Math.floor(b * 60 / bpmA * sr);
+  for (let i = 0; i < sr * 0.03; i++) sig[s + i] += Math.sin(2 * Math.PI * 1000 * i / sr) * Math.exp(-i / (sr * 0.006));
+}
+const analysis = analyzeSamples(sig, sr, dur);
+T('自动提取 BPM 120±2', Math.abs(analysis.bpm - 120) <= 2, String(analysis.bpm));
+T('自动提取 duration', Math.abs(analysis.duration - dur) < 0.01);
+T('自动提取踩音点', analysis.onsets.length >= 30, String(analysis.onsets.length));
+const auto = buildChartFromAnalysis(analysis, { difficulty: 'hd', name: 'Auto Test' });
+T('自动排谱有音符', auto.stats.notes > 0, String(auto.stats.notes));
+T('自动排谱规则校验 0 违规', auto.stats.valid === true, JSON.stringify(auto.stats.violations).slice(0, 200));
+T('AT 难度标签', AUDIO_PRESETS.at.label === 'AT 16' && buildChartFromAnalysis(analysis, { difficulty: 'at', name: 'X' }).chart.META.level === 'AT 16');
+T('META.offset 是整数（Phira 要求 i32）', Number.isInteger(auto.chart.META.offset), String(auto.chart.META.offset));
+T('自动排谱可复现', JSON.stringify(buildChartFromAnalysis(analysis, { difficulty: 'hd', name: 'Auto Test' }).chart) === JSON.stringify(auto.chart));
 
 console.log('\n规则写谱：' + pass + ' 通过 / ' + fail + ' 失败');
 if (fail) process.exit(1);
