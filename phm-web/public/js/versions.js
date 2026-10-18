@@ -20,6 +20,136 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.3.2', date: '2026-10-18',
+    zh: ['在写谱页顶部加醒目免责声明：<b>这是随便写的，可能有非常严重的 Bug</b>；生成结果不保证节奏/可玩性/格式正确，请先在 Phira 验证，不要用于正式谱面或比赛。'],
+    en: ['Added a prominent warning at the top of the charting page: <b>this is written casually and may contain very serious bugs</b>; results are not guaranteed, verify in Phira first, and do not use for formal charts or contests.'],
+  },
+  {
+    v: 'V0.20.3.1', date: '2026-10-18',
+    zh: ['单判定线 X=-300、Y=200 保持不变；音符仍保留左右手分散 x（±405/±202.5），不会全挤在线上。'],
+    en: ['Single judge line stays at X=-300, Y=200; notes keep left/right spread x values (±405/±202.5) instead of collapsing onto one point.'],
+  },
+  {
+    v: 'V0.20.3.0', date: '2026-10-18',
+    zh: ['改为<b>单条判定线</b>，位置固定在 <b>X=-300、Y=200</b>；所有音符 positionX=0 挂在这条线上，仍是一次一个、Tap/Drag、无 Hold。'],
+    en: ['Now a <b>single judge line</b> fixed at <b>X=-300, Y=200</b>; every note has positionX=0 on that line, still one note at a time, Tap/Drag, no Holds.'],
+  },
+  {
+    v: 'V0.20.2.0', date: '2026-10-18',
+    zh: ['可玩性修复：左右手各占半屏交替落点，不再全屏随机；去掉 Hold 长条，只留 Tap/Drag，避免长条与蓝键重叠。'],
+    en: ['Playability fix: left/right hands alternate within their own half-screen zones instead of random full-screen jumps; Holds removed, only Tap/Drag, so long bars no longer overlap taps.'],
+  },
+  {
+    v: 'V0.20.1.2', date: '2026-10-18',
+    zh: ['修复系统难度未生效：页面分析完成后重新调用 detectDifficulty 并显示判定；生成不再 fallback HD。长音频分析实测约 2.6 秒。'],
+    en: ['Fixed system difficulty not taking effect: after analysis the page calls detectDifficulty and shows the result; generation no longer falls back to HD. Long-track analysis is ~2.6s.'],
+  },
+  {
+    v: 'V0.20.1.1', date: '2026-10-18',
+    zh: ['修页面卡在“解码并分析中”：MIT 节拍库的 worker 不能阻塞分析主链路，已移出；页面只用本地 FFT 分析（参考曲 189s 实测约 0.5s）。库仍保留在 vendor。'],
+    en: ['Fixed the page hanging at “decoding/analysing”: the MIT beat-detector worker was blocking the main analysis path; it is now off the critical path. Local FFT analysis is ~0.5s for a 189s reference track; the library remains vendored.'],
+  },
+  {
+    v: 'V0.20.1.0', date: '2026-10-18',
+    zh: ['离线 AI 分轨管线跑通：<b>Demucs 4.1.0 (MIT)</b> 拆 drums/no_drums，再接鼓/钢琴 onset 与规则谱，输出 .pez。新增 <code>tools/ai-chart.mjs</code> 与 <code>tools/install-demucs.ps1</code>；模型不进网页包，只在本地跑。'],
+    en: ['Offline AI stem pipeline works: <b>Demucs 4.1.0 (MIT)</b> splits drums/no_drums, then drum/piano onsets feed the rule engine and produce .pez. Added <code>tools/ai-chart.mjs</code> and <code>tools/install-demucs.ps1</code>; models are local-only.'],
+  },
+  {
+    v: 'V0.20.0.0', date: '2026-10-18',
+    zh: ['改为 <b>2 指自由分散</b>：x 在 ±540 内连续分布，不再固定 2/5 条轨道；一次一个 note。项目内安装 MIT <b>web-audio-beat-detector 8.2.39</b>（vendor 内已 bundle），浏览器 BPM 交叉校验；鼓/钢琴点仍分开显示。'],
+    en: ['Now <b>two-finger free spread</b>: x is continuous within ±540, no fixed 2/5 lanes; one note at a time. Bundled MIT <b>web-audio-beat-detector 8.2.39</b> in vendor for browser BPM cross-check; drum/piano counts remain separate.'],
+  },
+  {
+    v: 'V0.19.1.0', date: '2026-10-18',
+    zh: ['严格锁死 <b>2K</b>：只保留 ±405 两条轨道，不再出现 5 个 x / 4K+ 观感。新增 MIT 节拍/鼓钢琴分离调研文档（web-audio-beat-detector、Demucs、Spleeter、Open-Unmix、Omnizart）。'],
+    en: ['Strictly <b>2K</b>: only the ±405 two lanes, no more 5-x / 4K+ look. Added MIT audio research doc (web-audio-beat-detector, Demucs, Spleeter, Open-Unmix, Omnizart).'],
+  },
+  {
+    v: 'V0.19.0.0', date: '2026-10-18',
+    zh: ['补上真正的音频特征：<b>鼓点 / 钢琴点分离</b>（低频 kick、高频噪声+谱平坦度→鼓；中频谐波→钢琴），页面显示两组点数；排谱优先用钢琴点。BPM 改为 60–200 网格搜索 + 半拍/IOI 修正，参考曲从错误的 152 修正到 190。'],
+    en: ['Real audio features: <b>drum / piano onset separation</b> (low-frequency kick + high-frequency noise/flatness for drums; mid harmonics for piano), both counts shown; charting prefers piano onsets. BPM now uses 60–200 grid search + half-beat/IOI correction; the reference track is 190 instead of the previous wrong 152.'],
+  },
+  {
+    v: 'V0.18.0.0', date: '2026-10-18',
+    zh: ['按你给的两个参考 ZIP 反推：Pont des souvenirs 的 charter 就是 <b>RuleEngine</b>。引擎改为 <b>1 条判定线、5 个 x、无和弦、1/4 拍网格</b>；类型 Tap 74% / Hold 11.5% / Drag 14.5% / Flick 0%；IN 密度对齐参考（约 893 notes / 4.87 NPS）。'],
+    en: ['Rebuilt from your two reference ZIPs. The Pont des souvenirs charter is literally <b>RuleEngine</b>. Engine now uses <b>1 judge line, 5 x positions, no chords, 1/4-beat grid</b>; type mix Tap 74% / Hold 11.5% / Drag 14.5% / Flick 0%; IN density matches the reference (~893 notes / 4.87 NPS).'],
+  },
+  {
+    v: 'V0.17.4.0', date: '2026-10-18',
+    zh: ['规则引擎退回你那张旧图的做法：<b>全 Tap、一次一个、x 全屏分散、单判定线</b>。去掉 Hold/Flick/Drag 混排、装饰线和段落动效；节奏用 onset/整拍补位。'],
+    en: ['Rule engine reverted to the old-reference style: <b>all Tap, one note at a time, x spread across the screen, one judge line</b>. Removed mixed Hold/Flick/Drag, decorative lines, and section animation.'],
+  },
+  {
+    v: 'V0.17.3.0', date: '2026-10-18',
+    zh: ['2K 改为<b>2 指可打、音符整屏分散</b>：x 在 ±540 范围内取 12 个分散位置，左右手交替，同一时刻最多 1 个 note；不再固定两条轨道。'],
+    en: ['2K now means <b>two-finger playable with notes spread across the screen</b>: 12 x positions across ±540, alternating hands, at most one note at a time; no fixed two-lane layout.'],
+  },
+  {
+    v: 'V0.17.2.1', date: '2026-10-17',
+    zh: ['2K 两条轨道从 ±225 拉开到 <b>±450</b>，避免视觉上挤成“单键位”。'],
+    en: ['2K lanes moved from ±225 to <b>±450</b> so they no longer look like a single key.'],
+  },
+  {
+    v: 'V0.17.2.0', date: '2026-10-17',
+    zh: ['修节奏：onset 先吸附到检测拍网格（EZ 1/4、HD/IN 1/8、AT 1/16 拍）再排谱，不再直接拿原始频谱峰值落 note。2K 左右轨保持交替，避免看起来只有单键。'],
+    en: ['Rhythm fix: onsets are snapped to the detected beat grid (EZ 1/4, HD/IN 1/8, AT 1/16 beat) before charting instead of using raw spectral peaks. 2K left/right lanes stay alternated.'],
+  },
+  {
+    v: 'V0.17.1.0', date: '2026-10-17',
+    zh: ['自动写谱固定为 <b>2K</b>（左右两条轨道），不再出现 4K/6K/7K。2K 目标 NPS 调整为 EZ 2.0 / HD 2.6 / IN 3.6 / AT 4.0；系统判档阈值与密度解耦。'],
+    en: ['Auto charting is now fixed to <b>2K</b> (two lanes); no 4K/6K/7K. 2K target NPS is EZ 2.0 / HD 2.6 / IN 3.6 / AT 4.0; difficulty thresholds are decoupled from density.'],
+  },
+  {
+    v: 'V0.17.0.0', date: '2026-10-17',
+    zh: [
+      '自动写谱现在<b>由系统判定难度</b>，用户不能再手选 EZ/HD/IN/AT。系统按踩音密度、能量、频谱重心、BPM 与力度估算潜力 NPS，再映射到最接近的难度。',
+      '页面会显示判定结果和依据；生成后仍可下载 <b>.pez</b> / <b>.zip</b>。',
+      '参考 BMS-Generator 的规则写谱方法，加入<b>频谱重心选轨</b>：亮的声音偏右、暗的偏左。',
+    ],
+    en: [
+      'Auto charting now <b>decides the difficulty itself</b>; users can no longer pick EZ/HD/IN/AT. Onset density, energy, spectral centroid, BPM, and strength estimate a potential NPS, then map to the closest tier.',
+      'The page shows the decision and its evidence; .pez / .zip downloads are unchanged.',
+      'Borrowed from BMS-Generator: <b>centroid-based lane assignment</b> (brighter sounds move right, darker left).',
+    ],
+  },
+  {
+    v: 'V0.16.0.3', date: '2026-10-17',
+    zh: [
+      '自动写谱按 <b>9,684 张真实 Phira 谱面</b>重做规则：Tap / Drag / Hold / Flick 比例、目标 NPS、'
+        + '7K 轨道、主判定线动效 + 3 条装饰线。',
+      'EZ/HD/IN/AT 目标 NPS 分别约 3.6 / 5.2 / 7.8 / 11；补位按拍网格与真实间隔，不再随机撒点。',
+    ],
+    en: [
+      'Rule charting rebuilt from <b>9,684 real Phira charts</b>: note-type ratios, target NPS, 7K lanes, '
+        + 'main judge-line movement + 3 decorative lines.',
+      'EZ/HD/IN/AT target roughly 3.6 / 5.2 / 7.8 / 11 NPS; fill follows the beat grid and real spacing instead of random notes.',
+    ],
+  },
+  {
+    v: 'V0.16.0.2', date: '2026-10-17',
+    zh: ['修复 Phira 导入报错：chart 的 <code>META.offset</code> 改为整数 0（之前是浮点秒，RPE 要求 i32 毫秒）。'],
+    en: ['Fixed the Phira import error: chart <code>META.offset</code> is now integer 0 (it was a float; RPE expects i32 milliseconds).'],
+  },
+  {
+    v: 'V0.16.0.1', date: '2026-10-17',
+    zh: ['修复自动写谱的规则校验：IN/AT 按各自最小间隔校验（不再误用 HD 的 0.5 拍）；生成文件 ID 带短哈希，避免中文名被清空。'],
+    en: ['Fixed rule validation for auto charting: IN/AT use their own minimum gap (no longer HD\'s 0.5 beat); generated file IDs include a short hash.'],
+  },
+  {
+    v: 'V0.16.0.0', date: '2026-10-17',
+    zh: [
+      '写谱页改为<b>导入 MP3，自动提取</b>：BPM、时长、拍点、踩音点、段落能量全部自动分析，不再手填 BPM/时长/密度。',
+      '难度改为 Phigros 式 <b>EZ / HD / IN / AT</b>；生成后提供 <b>.pez</b>（本身就是 ZIP）和 <b>.zip</b> 下载，另可单独下载 chart JSON。',
+      '音频在浏览器本地解码分析，<b>不上传</b>；规则校验不通过会禁止下载。',
+    ],
+    en: [
+      'The charting page now takes an <b>MP3 and extracts everything automatically</b>: BPM, duration, beats, onsets, '
+        + 'and section energy. No manual BPM/duration/density fields.',
+      'Difficulties are now <b>EZ / HD / IN / AT</b>; download <b>.pez</b> (itself a ZIP) or <b>.zip</b>, plus the chart JSON.',
+      'Audio is decoded and analysed locally in the browser and <b>never uploaded</b>; downloads are blocked if rule validation fails.',
+    ],
+  },
+  {
     v: 'V0.15.0.0', date: '2026-10-17',
     zh: [
       '新增 <b>规则写谱</b>页：按 BPM / 时长 / 难度 / 轨道 / 密度生成 RPE v160 谱面，直接下载 <code>.pez</code>，'

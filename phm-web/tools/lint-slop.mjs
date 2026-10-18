@@ -43,6 +43,8 @@ function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name === '.git') continue;
     const p = path.join(dir, name);
+    /* 第三方 vendored 代码（已构建的单文件库）不参与本站屎山规则。 */
+    if (p.includes(path.join('public', 'vendor'))) continue;
     const st = statSync(p);
     if (st.isDirectory()) walk(p, out);
     else if (/\.(html|js|mjs|css)$/.test(name)) out.push(p);
