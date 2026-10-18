@@ -144,6 +144,22 @@ console.log('\n【2.9】鉴权头解析（网关注入 Authorization 的回归�
     badBearer.status === 401 && badBearer.json?.error?.code === 'invalid_api_key',
     `status=${badBearer.status} ${badBearer.text}`);
 
+  /* ④b x-phm-key 是主推通道：假 Key 必须 401。
+         网关会消费 x-api-key（把它当自己的鉴权头），所以私有名才是可靠的那条。 */
+  const badPhm = await hitFull('GET', '/api/v1/charts/1',
+    null, { 'x-phm-key': NO_SUCH_KEY });
+  T('x-phm-key 带无效 Key 应 401 invalid_api_key',
+    badPhm.status === 401 && badPhm.json?.error?.code === 'invalid_api_key',
+    `status=${badPhm.status} ${badPhm.text}`);
+
+  /* ④c 诊断口只回长度，不回内容。 */
+  const diag = await hitFull('GET', '/api/v1/meta?diag=1',
+    null, { 'x-phm-key': NO_SUCH_KEY });
+  T('meta?diag=1 回各鉴权头长度且不回内容',
+    diag.status === 200 && diag.json?.diag?.['x-phm-key'] === NO_SUCH_KEY.length
+      && diag.json.diag.key_seen === 'yes' && !JSON.stringify(diag.json).includes(NO_SUCH_KEY),
+    `status=${diag.status} ${diag.text}`);
+
   /* ⑤ 账号 token 不许回退到 Authorization：应报 account_token_required。 */
   const usage = await hitFull('GET', '/api/v1/usage',
     null, { authorization: 'Bearer cloudstudio-gateway-injected-token' });

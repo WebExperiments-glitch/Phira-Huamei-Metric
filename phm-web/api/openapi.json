@@ -34,7 +34,13 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-api-key",
-        "description": "API key（推荐）。sk- 加 32 位十六进制。自定义头不会被网关改写，能稳定以 Key 身份计限额。"
+        "description": "API key。sk- 加 32 位十六进制。⚠ 本环境的网关会把它当自己的鉴权头消费掉，服务端可能收不到 —— 请优先用 x-phm-key。"
+      },
+      "phmKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-phm-key",
+        "description": "API key（推荐，也是本环境唯一稳定的通道）。sk- 加 32 位十六进制。部署网关会改写 Authorization、并消费 x-api-key，只有这个私有头能可靠穿透。"
       }
     },
     "schemas": {
@@ -252,6 +258,9 @@
         "security": [
           {},
           {
+            "phmKey": []
+          },
+          {
             "bearer": []
           },
           {
@@ -314,6 +323,9 @@
         "summary": "Analyse a chart and cache the result",
         "security": [
           {},
+          {
+            "phmKey": []
+          },
           {
             "bearer": []
           },
@@ -394,6 +406,9 @@
         "operationId": "getUsage",
         "summary": "Usage for the current key or account",
         "security": [
+          {
+            "phmKey": []
+          },
           {
             "bearer": []
           },

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.20.3.3">
+<meta name="app-version" content="V0.20.3.4">
 <title>P.H.M. 开发者文档 · API v1</title>
 <meta name="description" content="P.H.M. API v1：查询与分析 Phira / Phigros 谱面难度。免费，支持匿名与 API Key。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.3.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.3.3">
-<link rel="stylesheet" href="/css/api.css?v=V0.20.3.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.20.3.4">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.3.4">
+<link rel="stylesheet" href="/css/api.css?v=V0.20.3.4">
 </head>
 <body>
 <div class="wrap"><nav id="nav"></nav></div>
@@ -52,13 +52,13 @@ https://phm.app.workbuddy.host/api/v1
 
 <span class="cmt"># 匿名也可以，只是额度低</span>
 curl https://phm.app.workbuddy.host/api/v1/charts/22681</div>
-    <p>带 Key 的请求（推荐 <code class="inline">x-api-key</code>）：</p>
+    <p>带 Key 的请求（推荐 <code class="inline">x-phm-key</code>）：</p>
     <div class="api-code">curl https://phm.app.workbuddy.host/api/v1/charts/22681 \
-  -H <span class="str">"x-api-key: sk-你的key"</span></div>
+  -H <span class="str">"x-phm-key: sk-你的key"</span></div>
     <p>JavaScript：</p>
     <div class="api-code"><span class="key">const</span> res = <span class="key">await</span> fetch(
   <span class="str">"https://phm.app.workbuddy.host/api/v1/charts/22681"</span>,
-  { headers: { <span class="str">"x-api-key"</span>: <span class="str">"sk-你的key"</span> } }
+  { headers: { <span class="str">"x-phm-key"</span>: <span class="str">"sk-你的key"</span> } }
 );
 <span class="key">const</span> chart = <span class="key">await</span> res.json();</div>
     <p>Python：</p>
@@ -66,7 +66,7 @@ curl https://phm.app.workbuddy.host/api/v1/charts/22681</div>
 
 r = requests.get(
     <span class="str">"https://phm.app.workbuddy.host/api/v1/charts/22681"</span>,
-    headers={<span class="str">"x-api-key"</span>: <span class="str">"sk-你的key"</span>},
+    headers={<span class="str">"x-phm-key"</span>: <span class="str">"sk-你的key"</span>},
     timeout=<span class="key">30</span>,
 )
 print(r.json())</div>
@@ -75,18 +75,21 @@ print(r.json())</div>
     <p>两种身份：</p>
     <ul>
       <li><b>匿名</b>：不带任何鉴权头，按真实对端 IP 限流（100 次/小时）；</li>
-      <li><b>API Key</b>：<code class="inline">x-api-key: sk-&lt;32 位十六进制&gt;</code>（推荐），
-          或 <code class="inline">Authorization: Bearer sk-…</code>（兼容）。</li>
+      <li><b>API Key</b>：<code class="inline">x-phm-key: sk-&lt;32 位十六进制&gt;</code>（推荐），
+          也可用 <code class="inline">Authorization: Bearer sk-…</code>（兼容，但可能失效，见下）。</li>
     </ul>
     <div class="api-note">
-      <b>为什么推荐 <code class="inline">x-api-key</code>：</b>本站前面有一层网关会在转发时
-      写入它自己的 <code class="inline">Authorization</code> 头。用 <code class="inline">x-api-key</code>
-      可以稳定走到你真正的 Key；而走 <code class="inline">Authorization</code> 时，
-      部分网络环境下它会被网关改写 —— 请求不会报错，但会<b>静默降级成匿名</b>
-      （额度从 1000 次/小时掉到 100 次/小时）。<br>
-      自检方法：把 <code class="inline">x-api-key</code> 换成一把<b>不存在的</b>
-      <code class="inline">sk-</code> Key，正常应返回 <code class="inline">401 invalid_api_key</code>；
-      如果仍返回 200，说明你的请求没带上 Key，正在以匿名身份被限流。
+      <b>为什么必须用 <code class="inline">x-phm-key</code>：</b>本站部署在一个会改写鉴权头的网关后面，
+      实测两种常见写法都不可靠 ——<br>
+      ① <code class="inline">Authorization</code>：网关会<b>写入它自己的值</b>，把你的盖掉；<br>
+      ② <code class="inline">x-api-key</code>：网关把它当成<b>自己的</b>鉴权头消费掉，服务端收不到；<br>
+      ③ <code class="inline">x-phm-key</code>：私有名字，网关不碰，<b>稳定生效</b>。<br>
+      失效时的表现很隐蔽：<b>不报错</b>，只是静默降级成匿名（1000 次/小时 → 100 次/小时）。<br>
+      <b>自检方法</b>：把 Key 换成一把<b>不存在的</b> <code class="inline">sk-</code>（格式仍要对），
+      正常应返回 <code class="inline">401 invalid_api_key</code>；如果仍返回 200，
+      说明 Key 没送达，你正在以匿名身份被限流。<br>
+      <b>更直接</b>：打开 <a href="/api/v1/meta?diag=1" target="_blank" rel="noopener">/api/v1/meta?diag=1</a>，
+      看 <code class="inline">diag</code> 里各头的<b>长度</b> —— 0 表示这个头没穿透到服务端。
     </div>
     <p>Key 的明文只会在创建时返回一次；服务端只存 sha256 哈希与掩码。每个账号最多 100 个有效 Key，可随时吊销。</p>
     <div class="api-note">
@@ -122,7 +125,7 @@ print(r.json())</div>
     <h3>POST /analyses</h3>
     <p>服务端从 Phira 下载谱面、复算并写入共享缓存。v1 只接受 <code class="inline">chart_id</code>；分析结果对之后所有查询直接可用。</p>
     <div class="api-code">curl -X POST https://phm.app.workbuddy.host/api/v1/analyses \
-  -H <span class="str">"x-api-key: sk-你的key"</span> \
+  -H <span class="str">"x-phm-key: sk-你的key"</span> \
   -H <span class="str">"content-type: application/json"</span> \
   -d <span class="str">'{"chart_id": 22681}'</span></div>
     <p>已缓存时直接返回（<code class="inline">cached:true</code>）；未缓存时会下载 ≤60MB 谱面并运行引擎，可能需要几秒。并发上限 2，忙时返回 <code class="inline">503 analysis_busy</code>。</p>
@@ -200,7 +203,7 @@ print(r.json())</div>
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.20.3.3';
+import { renderNav } from '/js/ui.js?v=V0.20.3.4';
 renderNav();
 </script>
 </body>
