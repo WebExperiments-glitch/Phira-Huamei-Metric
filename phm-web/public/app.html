@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.20.4.2">
+<meta name="app-version" content="V0.21.0.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -38,8 +38,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.4.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.0.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -265,6 +265,22 @@ padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 .kv dt{color:var(--fg2)}
 .kv dd{margin:0;font-weight:500;font-variant-numeric:tabular-nums;text-align:right}
 .bars{display:grid;gap:7px}
+/* ── 技能分：难在哪（V0.20.4.3）──
+   视觉语言沿用上面的 .bars（同一种迷你条），
+   但用 --info 而不是 --brand，避免和 PS 四维条混为一谈。
+   ⚠ 只用令牌，双主题都能读。 */
+.skillbox{margin-top:12px;padding:11px 13px 9px;border:1px solid var(--line);
+  border-radius:10px;background:var(--card2)}
+.skillbox-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:9px}
+.skillbox-h .t{font-size:12.5px;font-weight:600;color:var(--fg2)}
+.skillbox-h .p{font-size:12px;color:var(--info);font-weight:600}
+.sk{display:grid;grid-template-columns:4.5em 1fr 3.2em;align-items:center;gap:10px;font-size:12.5px}
+.sk+.sk{margin-top:6px}
+.sk-l{color:var(--fg2)}
+.sk-t{height:6px;border-radius:999px;background:var(--card3);overflow:hidden}
+.sk-t i{display:block;height:100%;border-radius:inherit;background:var(--info)}
+.sk-v{color:var(--fg);text-align:right;font-variant-numeric:tabular-nums}
+.skillbox-n{margin:9px 0 0;font-size:11.5px;line-height:1.55;color:var(--fg3)}
 .g{display:grid;grid-template-columns:4.5em 1fr 3.2em;align-items:center;gap:10px;font-size:12.5px}
 .g .lbl{color:var(--fg2)}
 .g .track{height:6px;border-radius:999px;background:var(--card3);overflow:hidden}
@@ -629,13 +645,13 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.20.4.2';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.21.0.0';
 
 /* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
    文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
-import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.20.4.2';
-import { initCloud, currentUser } from '/js/cloud.js?v=V0.20.4.2';
-import { installGuard } from '/js/guard.js?v=V0.20.4.2';
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.21.0.0';
+import { initCloud, currentUser } from '/js/cloud.js?v=V0.21.0.0';
+import { installGuard } from '/js/guard.js?v=V0.21.0.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -786,6 +802,26 @@ const TIER_COLOR={"EZ":"var(--ok)","HD":"var(--info)","IN":"var(--brand)",
                   "AT":"var(--err)","SP":"var(--purple)"};
 let STATE={reports:[],sel:0};
 
+/* 技能分区块：四根条 + 「难在哪」的一句话结论。
+   ⚠ 没有 skills 时返回空串（省略整块），不返回全 0 的假数据。 */
+function skillBar(r){
+  var sk=r.skills;
+  if(!sk) return '';
+  var ids=["stamina","dexterity","reading","precision"];
+  var rows=ids.map(function(id){
+    var v=+sk[id]||0;
+    return '<div class="sk"><span class="sk-l">'+esc(t('skill.'+id))
+      +'</span><span class="sk-t"><i style="width:'+v.toFixed(1)+'%"></i></span>'
+      +'<b class="sk-v">'+v.toFixed(1)+'</b></div>';
+  }).join('');
+  return '<div class="skillbox">'
+    +'<div class="skillbox-h"><span class="t">'+esc(t('skill.title'))+'</span>'
+    +'<span class="p">'+esc(t('skill.profile.'+(sk.profile||'balanced')))+'</span></div>'
+    +rows
+    +'<p class="skillbox-n">'+esc(t('skill.note'))+'</p>'
+    +'</div>';
+}
+
 function card(r,idx){
   if(r.error) return '<div class="card err"><h2>✕ '+esc(r.label)
     +'</h2><div style="color:var(--red)">'+esc(r.error)+'</div></div>';
@@ -903,6 +939,14 @@ function card(r,idx){
     +'<div class="pshead"><span class="lbl">PS '+f1(ps.total)+'</span>'
       +'<span class="pshead__note">'+t("app.res.ps.head")+'</span></div>'
     +'<div class="bars">'+bars+'</div>'
+
+    /* ── 技能分：难在哪（V0.20.4.3，方案 C）──
+       ⚠ r.skills 由 reportFromChart 从 feats 重组而来（js/skills.js），
+          **不改任何数值**，所以这里显示它不会影响上面那些定数。
+       ⚠ 只在**本机解析**的结果里有：走「服务端复算」路径时
+          recompute() 不返回 skills（它不复存 feats），此时整块省略，
+          而不是显示四项全 0 —— 那会被读成「这谱没有难度」，是最坏的误读。 */
+    + skillBar(r)
 
     /* ── 明细：13 行长表 → 分组的两列定义列表，页面高度省一半 ── */
     +'<div class="kv-groups">'+rowGroups.map(function(sec){

@@ -241,6 +241,58 @@
             }
           }
         ]
+      },
+      "Skills": {
+        "type": "object",
+        "description": "Skill breakdown (0-100 each). Re-grouped from the structural features already computed; it does NOT change the difficulty number. Only present on freshly analysed charts - the cache table does not store feats.",
+        "required": [
+          "stamina",
+          "dexterity",
+          "reading",
+          "precision",
+          "top",
+          "profile"
+        ],
+        "properties": {
+          "stamina": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Sustained high-density output (note density, long hard sections)."
+          },
+          "dexterity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Complex fingering (chords, multi-key, frequent type switches)."
+          },
+          "reading": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Visual processing load (clutter, positional spread, cross-hand)."
+          },
+          "precision": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Timing and stability (interval evenness, stair speed, holds/drags)."
+          },
+          "top": {
+            "type": "string",
+            "enum": [
+              "stamina",
+              "dexterity",
+              "reading",
+              "precision"
+            ],
+            "description": "The dominant skill - the direct answer to \"where is this hard\"."
+          },
+          "profile": {
+            "type": "string",
+            "description": "One skill id + \"-led\" when that skill leads, otherwise \"balanced\"."
+          }
+        }
       }
     }
   },

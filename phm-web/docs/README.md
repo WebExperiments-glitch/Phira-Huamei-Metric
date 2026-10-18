@@ -158,6 +158,7 @@ phm-web/
 | 自动写谱（MP3 → 提取 → RPE v160 .pez/.zip） | `public/js/audio-analysis.js` + `public/js/rulechart.js` —— 浏览器本地提取/排谱，页面 `/rulechart` |
 | 登录态 / 云 SDK 初始化 | `public/js/cloud.js` —— **app / platform / settings 三处页面的唯一入口**。⚠ 云 SDK 是 `<script defer src=cdn>`，页面主逻辑也是 defer，但**内联 module 没有依赖图可以等**；不同步等待的话 SDK 慢一点就会先跑完 module，初始化拿到的 `cloud` 是 null，会话恢复被整段跳过 —— 症状是「用户每次刷新都要重新登录」且界面上没有任何错误 |
 | 全局错误兜底 | `public/js/guard.js` —— `error` / `unhandledrejection` / 断网三类提示，右上角 toast。**原本全站只有 app.html 接了 rejection，其余 9 页静默无痕**。自包含页 `phm-api.html` 内联一份（改名 `_gcut` 避开重名） |
+| 技能分（难在哪） | public/js/skills.js —— 把 feats 的 39 个特征重组为 stamina/dexterity/reading/precision 四技能。纯展示层：不改数值、不动 ENGINE_VER、不进 k-NN 的 REF_DIMS，所以不需要重算缓存。⚠ 只在「刚分析完」的响应里给 —— phm_charts 表没有 feats 字段，缓存行算不出来 |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |

@@ -28,6 +28,24 @@ export default {
     'c.login': '登录',
     'c.logout': '退出登录',
     'c.loading': '读取中…',
+    /* ── 技能分项（js/skills.js，方案 C）──
+       技能名与说明分开：名称要短（要放进进度条），
+       说明要长（要放进 tooltip）。所以 .d 后缀是故意的。 */
+    'skill.stamina': '耐力',
+    'skill.stamina.d': '高密度持续输出的能力：音节多密、震口段长。这项高说明手指会累。',
+    'skill.dexterity': '灵活度',
+    'skill.dexterity.d': '复杂按法与多指配合：和弦、同时多键、类型频繁切换。',
+    'skill.reading': '读谱',
+    'skill.reading.d': '视觉信息处理压力：落点雛乱、位置分散、判定线动作、交叉手。',
+    'skill.precision': '精度',
+    'skill.precision.d': '落点时机与稳定度：音间隔均匀度、楼梯速度峰值、长按与拖勘。',
+    'skill.title': '难在哪',
+    'skill.profile.stamina-led': '以耐力为主',
+    'skill.profile.dexterity-led': '以灵活度为主',
+    'skill.profile.reading-led': '以读谱为主',
+    'skill.profile.precision-led': '以精度为主',
+    'skill.profile.balanced': '四项均衡',
+    'skill.note': '这四项由已算出的结构特征重组而成，不改变定数本身。只在分析完成时给出（缓存行不存这些特征）。',
     /* ── 全局兑底（js/guard.js）──
      ⚠ 这几条是全站唯一不在 data-i18n 里、而是由 JS 直掠 t() 的词条组：
         兑底的本职就是「脚本已经出错了」，不能指望 HTML 静态文案还在。 */
@@ -132,6 +150,22 @@ export default {
     'c.login': 'Sign in',
     'c.logout': 'Sign out',
     'c.loading': 'Loading…',
+    /* ── Skill breakdown (js/skills.js, plan C) ── */
+    'skill.stamina': 'Stamina',
+    'skill.stamina.d': 'Sustained high-density output: note density and how long the hard part lasts. High means your fingers will tire.',
+    'skill.dexterity': 'Dexterity',
+    'skill.dexterity.d': 'Complex fingering: chords, simultaneous keys, frequent note-type switches.',
+    'skill.reading': 'Reading',
+    'skill.reading.d': 'Visual processing load: clutter, positional spread, judge-line motion, cross-hand.',
+    'skill.precision': 'Precision',
+    'skill.precision.d': 'Timing and stability: interval evenness, stair speed peaks, holds and drags.',
+    'skill.title': 'Where it is hard',
+    'skill.profile.stamina-led': 'stamina-led',
+    'skill.profile.dexterity-led': 'dexterity-led',
+    'skill.profile.reading-led': 'reading-led',
+    'skill.profile.precision-led': 'precision-led',
+    'skill.profile.balanced': 'balanced',
+    'skill.note': 'Re-grouped from the structural features already computed; the difficulty number itself is unchanged. Only present on fresh analyses (cached rows do not store these features).',
     'guard.err': 'Something went wrong; some features may be unavailable: {e}',
     'guard.rej': 'The request did not complete, possibly a network issue: {e}',
     'guard.offline': 'You are offline; it will resume once reconnected',

@@ -147,6 +147,12 @@ function formatReport(r) {
     stair_avg: r.stair_avg, speed_peak: r.speed_peak,
     engine_ver: r.engine_ver, engine_build: r.engine_build,
     analyzed: true, cached: false,
+    /* 技能分（stamina/dexterity/reading/precision + top + profile）。
+       ⚠ 只在"刚分析完"的响应里出现：列表接口读的是 phm_charts 缓存行，
+          那 16 个字段里没有 feats，算不出技能分 —— 不是遗漏，是数据模型限制。
+       ⚠ skills 为 null 时（老客户端没传 / 引擎异常）**省略该字段**，
+          不要塞一个全 0 的对象 —— 那会被读成"四项都零难度"，是最坏的误读。 */
+    ...(r.skills ? { skills: r.skills } : {}),
   };
 }
 
