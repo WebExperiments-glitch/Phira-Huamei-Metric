@@ -214,6 +214,11 @@ const ROUTES = [
   { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
   { path: '/settings', name: '设置', sel: ['#optin', '#inv', '#ownList', '#stMsg', '#abVer'], mod: 'settings' },
   { path: '/version', name: '版本历史', sel: ['#list', '#cnt', '#verfoot'], mod: 'ui' },
+  /* 状态页：⚠ 必须验「横幅文案非空」而不是只验节点存在。
+     这个页面的全部意义就在那一行结论上（正常/降级/中断/采集中），
+     而它恰好是最容易渲染成空白的地方 ——
+     overall 是 unknown 时文案走的是另一条分支，那条没被走到就等于没测。 */
+  { path: '/status', name: '运行状态', sel: ['#banner', '#bTitle', '#bMeta', '#groups', '#range'], mod: 'ui' },
   /* 下载页要额外守两件事（见下面 /download 的专用断言）：
      ① 主按钮的 href 真的指向可下载的地址；② 哈希与 release.js 一致。 */
   { path: '/download', name: '下载客户端', sel: ['#dlbtn', '#hash', '#mf', '#verfoot'], mod: 'release' },
@@ -324,6 +329,63 @@ for (const R of ROUTES) {
     })()`);
     const desc = sorted.length > 1 && sorted.every((v, i) => i === 0 || sorted[i - 1] >= v);
     ok('点表头能按该列排序（降序）', desc, JSON.stringify(sorted.slice(0, 6)));
+  }
+
+  if (R.path === '/status') {
+    /* ⚠ 状态页最危险的失败不是报错，是**渲染出空白**：
+       节点都在（sel 通过），但横幅标题是空的、分组是空的，
+       用户看到一片框还以为服务挂了。所以必须断言**内容**。 */
+    const st = await evalJS(`(function(){
+      const t = document.getElementById('bTitle');
+      const meta = document.getElementById('bMeta');
+      const banner = document.getElementById('banner');
+      const groups = document.getElementById('groups');
+      const mons = document.querySelectorAll('#groups .mon');
+      return {
+        title: t ? t.textContent.trim() : '',
+        meta: meta ? meta.textContent.trim() : '',
+        cls: banner ? banner.className : '',
+        groups: groups ? groups.children.length : 0,
+        mons: mons.length,
+        /* 探测路径必须真的渲染出来 —— 那是这页最有用的信息 */
+        paths: [...document.querySelectorAll('#groups .mon .path')].map(x => x.textContent),
+        /* 有没有 i18n 键漏翻。
+           ⚠ 两个坑：
+             ① 只能扫**文本节点**，不能扫 innerHTML ——
+                属性名里本来就写着 data-i18n="st.title"，
+                扫全文必然把正当属性当成"漏翻"，一条都过不了。
+             ② 只能匹配**整个词**等于键名，不能只要出现st. 就报——
+                否则代码注释里的 "…/js/i18n/status.js…" 这类路径会误报。 */
+        raw: (function(){
+          const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          const hits = [];
+          for (let n = w.nextNode(); n; n = w.nextNode()) {
+            const s = (n.nodeValue || '').trim();
+            if (/^st\\.[a-z0-9]+$/i.test(s)) hits.push(s);
+          }
+          return hits;
+        })(),
+      };
+    })()`);
+    ok('横幅标题非空', !!st.title, JSON.stringify(st.title));
+    ok('横幅标题不是未翻译的词条键', !/^st\./.test(st.title), st.title);
+    ok('横幅有状态类名', /is-(operational|degraded|outage|unknown)/.test(st.cls), st.cls);
+    ok('更新时间是填过的（不是空串）', !!st.meta, JSON.stringify(st.meta));
+    ok('渲染出了分组', st.groups > 0, 'groups=' + st.groups);
+    ok('渲染出了监视项', st.mons > 0, 'mons=' + st.mons);
+    ok('探测路径已显示', st.paths.length > 0 && st.paths.every(p => p.startsWith('/')),
+       JSON.stringify(st.paths.slice(0, 3)));
+    ok('没有漏翻的 st.* 键', st.raw.length === 0, JSON.stringify([...new Set(st.raw)].slice(0, 5)));
+    /* 范围切换按钮的两个状态属性必须真的存在，且只有一个 pressed */
+    const seg = await evalJS(`(function(){
+      const bs = [...document.querySelectorAll('#range button[data-range]')];
+      return { n: bs.length, on: bs.filter(b => b.getAttribute('aria-pressed') === 'true').length,
+               ranges: bs.map(b => b.dataset.range) };
+    })()`);
+    ok('范围切换有 2 个按钮', seg.n === 2, JSON.stringify(seg));
+    ok('恰好一个处于选中态', seg.on === 1, JSON.stringify(seg));
+    ok('两个范围值是 24h 与 30d',
+      seg.ranges.includes('24h') && seg.ranges.includes('30d'), JSON.stringify(seg.ranges));
   }
 
   if (R.mod === 'release') {

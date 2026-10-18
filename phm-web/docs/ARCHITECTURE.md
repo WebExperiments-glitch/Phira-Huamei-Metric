@@ -49,6 +49,7 @@
 | `/developers` | `developers.html` | **开发者文档**：快速开始 / 认证 / 接口 / 错误码 / 限流 / 更新日志（API v1） |
 | `/platform` | `platform.html` | **API 开放平台**：默认用量信息 + API Key 管理 + 资源入口；`/developer` 为旧链接别名 |
 | `/phm-api` | `phm-api.html` | **单文件 API 客户端**：下载后双击即用，填 API Key 查询/分析；零依赖 |
+| `/status` | `status.html` | **运行状态**：9 个目标每 60s 自检一次，报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
 | `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |
 
@@ -272,6 +273,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、开放平台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
 | API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理 / 轮换；匿名与 Key 配额；scope 校验 | 不写引擎逻辑；认证与用量全走 RPC；契约在 `api/openapi.json` |
 | 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |
+| 自监控 | `lib/status.mjs` | 每 60s 探测 9 个目标（页面 / 接口 / 数据），环形缓冲存近 24h、DB 存 30 天；`/api/status` 返回聚合 | 打回环地址而非外部域名；探测失败绝不抛；**无样本时整体结论为 unknown 而不是「全部正常」** |
 | 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |
 | 界面 | `public/*.html`（见上面站点结构表） | 渲染、交互、调 API | 不做可信判定 |
 | 出图 | `public/js/sharecard.js` | 把结果画成 PNG（横 1200×630 / 竖 1080×1920） | 不加载任何外部图片（会污染 canvas） |

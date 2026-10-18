@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.21.0.0">
+<title>运行状态 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="P.H.M. 服务运行状态：每分钟自检一次，报可用率与真实处理耗时。">
+<!-- 主题：必须同步内联在样式表之前 —— 模块是异步的，等它跑完页面
+     已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.21.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.0.0">
+<style>
+/* ── 总状态横幅 ──
+   整页唯一的巨型色块。颜色**只由状态决定**，不随分组变化 ——
+   否则一屏三块不同颜色，"到底是好还是坏" 反而说不清了。 */
+.banner{display:flex;align-items:flex-start;gap:13px;padding:15px 17px;border-radius:12px;
+  border:1px solid var(--line);background:var(--card)}
+.banner .dot{width:11px;height:11px;border-radius:50%;flex:none;margin-top:5px;
+  background:var(--fg4);box-shadow:0 0 0 4px var(--card2)}
+.banner h2{margin:0 0 3px;font-size:17px;line-height:1.4}
+.banner .meta{font-size:12px;color:var(--fg3);font-variant-numeric:tabular-nums}
+.banner .hint{margin:8px 0 0;font-size:12.5px;color:var(--fg2);line-height:1.65}
+/* ⚠ base.css 只有 --ok/--warn/--err 三个**纯色**令牌，没有柔和底色版。
+   所以底色用 color-mix 从主色掺卡片底色派生（10%）——
+   比硬编一个 rgba 更要紧的是：明暗主题下它会跟着 --card 一起变，
+   而硬编 rgba 在深色主题下会变成一块脏斑。
+   ⚠ 必须留 var(--card) 兜底：color-mix 在极老浏览器上整条声明作废，
+   没有兜底的话横幅会变成**透明**，底下卡片直接透出来。 */
+.banner.is-operational{background:color-mix(in srgb,var(--ok) 10%,var(--card));border-color:color-mix(in srgb,var(--ok) 34%,var(--line))}
+.banner.is-operational .dot{background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 18%,transparent)}
+.banner.is-degraded{background:color-mix(in srgb,var(--warn) 10%,var(--card));border-color:color-mix(in srgb,var(--warn) 34%,var(--line))}
+.banner.is-degraded .dot{background:var(--warn);box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 18%,transparent)}
+.banner.is-outage{background:color-mix(in srgb,var(--err) 10%,var(--card));border-color:color-mix(in srgb,var(--err) 34%,var(--line))}
+.banner.is-outage .dot{background:var(--err);box-shadow:0 0 0 4px color-mix(in srgb,var(--err) 18%,transparent)}
+
+/* ── 范围切换 ──
+   做成两段式分段控件（像 Uptime Kuma 那样），而不是 <select>：
+   两个选项并排摆出来，用户一眼看到"还有另一个视图"，不必点开菜单。 */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;
+  background:var(--card2)}
+.seg button{font:inherit;font-size:12.5px;padding:6px 15px;border:0;background:transparent;
+  color:var(--fg2);cursor:pointer;transition:background .14s,color .14s}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+
+/* ── 分组 ── */
+.grp{margin-top:20px}
+.grp>h3{margin:0 0 9px;font-size:13px;font-weight:600;color:var(--fg2);
+  letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+.grp>h3::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ── 单个监视项 ──
+   ⚠ 布局刻意做成"标签 / 可用率条 / 数字"的横向三段：
+     数字用 tabular-nums 等宽对齐，扫一眼就能比大小 ——
+     这是状态页唯一有意义的比较方式。 */
+.mon{background:var(--card);border:1px solid var(--line);border-radius:11px;
+  padding:13px 15px;margin-bottom:8px}
+.mon .top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+.mon .nm{font-size:13.5px;font-weight:600;color:var(--fg)}
+.mon .path{font-family:var(--mono);font-size:11.5px;color:var(--fg4);
+  background:var(--card2);padding:1px 6px;border-radius:5px}
+.mon .badge{margin-left:auto;font-size:11px;padding:2px 8px;border-radius:20px;
+  border:1px solid var(--line);color:var(--fg3);background:var(--card2);white-space:nowrap}
+.mon .badge.s-ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--line));background:color-mix(in srgb,var(--ok) 12%,var(--card2))}
+.mon .badge.s-warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--line));background:color-mix(in srgb,var(--warn) 12%,var(--card2))}
+.mon .badge.s-err{color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,var(--line));background:color-mix(in srgb,var(--err) 12%,var(--card2))}
+
+/* 可用率条：一条细横条 + 百分比 */
+.mon .upbar{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.mon .track{flex:1;height:5px;border-radius:3px;background:var(--card3);overflow:hidden}
+.mon .fill{height:100%;border-radius:3px;background:var(--ok);transition:width .3s}
+.mon .fill.w{background:var(--warn)} .mon .fill.e{background:var(--err)}
+.mon .pct{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--fg);
+  font-variant-numeric:tabular-nums;min-width:62px;text-align:right}
+
+/* 延迟折线 */
+.mon .chart{height:42px;margin-bottom:9px;display:flex;align-items:center}
+.mon .noch{font-size:11.5px;color:var(--fg4)}
+.mon .chart svg{display:block;width:100%;height:100%;overflow:visible}
+.mon .lat{display:flex;gap:20px;font-size:12px;color:var(--fg2);flex-wrap:wrap}
+.mon .lat b{font-family:var(--mono);font-weight:600;color:var(--fg);
+  font-variant-numeric:tabular-nums}
+
+/* ── 说明 ── */
+.notes{font-size:13px;line-height:1.8;color:var(--fg2)}
+.notes ol{margin:0;padding-left:19px}
+.notes li{margin:5px 0}
+.notes li::marker{color:var(--fg4);font-family:var(--mono);font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px">
+    <h2 style="margin:0" data-i18n="st.title">运行状态</h2>
+    <div class="seg" role="group" id="range" aria-label="range">
+      <button type="button" data-range="24h" aria-pressed="true" data-i18n="st.range24">24 小时</button>
+      <button type="button" data-range="30d" aria-pressed="false" data-i18n="st.range30">30 天</button>
+    </div>
+  </div>
+  <div class="sub" data-i18n-html="st.sub">
+    服务每分钟自检一次，测的是<b>真实处理耗时</b>——从请求进来到响应出去，不含网络往返，所以数字比外部测速小得多。
+  </div>
+</div>
+
+<div class="banner is-unknown" id="banner" role="status" aria-live="polite">
+  <span class="dot" aria-hidden="true"></span>
+  <div style="flex:1;min-width:0">
+    <h2 id="bTitle" data-i18n="st.unknown">正在采集首次数据</h2>
+    <div class="meta" id="bMeta"></div>
+    <p class="hint" id="bHint" data-i18n="st.unknownHint">刚启动，还没有攒够样本。第一轮探测完成后这里会亮起来。</p>
+  </div>
+</div>
+
+<div id="groups"></div>
+
+<div class="card" style="margin-top:22px">
+  <h3 style="margin:0 0 8px;font-size:14px" data-i18n="st.noteTitle">关于这些数字</h3>
+  <!--⚠ 每个 li 都必须有**中文原文**，不能只留 data-i18n-html 空壳。
+       项目硬约定：静态 HTML 里的中文就是**天然的无 JS 兜底** ——
+       清空后只要模块链有一环失败，整块就没文字（"空白页"就是这么来的）。 -->
+  <div class="notes"><ol>
+    <li data-i18n-html="st.note1">探测从<b>服务器内部</b>发起，走和你的请求完全相同的路径。所以它反映的是处理耗时，不含网络往返——比外部测速站看到的数字小是正常的。</li>
+    <li data-i18n-html="st.note2">延迟只统计<b>成功</b>的请求。失败不是「0毫秒」，把它算进平均会伪装成「很快」。</li>
+    <li data-i18n-html="st.note3">近 24 小时的数据存在运行内存里，<b>重启后会清零</b>；30 天视图存在数据库里，跨重启留存。</li>
+    <li data-i18n-html="st.note4">这是<b>我们自己的监控</b>。如果连状态页都打不开，那说明问题比这里显示的更严重——直接刷新试试。</li>
+  </ol></div>
+</div>
+
+<div class="row" style="margin:18px 0 30px;gap:10px;flex-wrap:wrap">
+  <a class="btn" href="/" data-i18n="nav.home">首页</a>
+  <button class="btn" type="button" id="reload" data-i18n="st.retry">刷新</button>
+</div>
+
+<div id="foot"></div>
+</div>
+
+<script type="module">
+/* ⚠ t / applyStatic / onLangChange / APP_VER 都从 ui.js 出来 ——
+   再单独 import 一份 i18n.js 会得到**两个模块实例**，
+   语言状态就分裂了（settings页栽过一次同类的坑）。 */
+import {
+  renderNav, esc as escUi, applyStatic, t, onLangChange, currentLang, APP_VER,
+} from '/js/ui.js?v=V0.21.0.0';
+import { installGuard } from '/js/guard.js?v=V0.21.0.0';
+
+installGuard(t);
+renderNav();
+
+const $ = id => document.getElementById(id);
+
+/* ── 当前范围 ── */
+let RANGE = '24h';
+let DATA = null;
+
+/* ══════════════════════════════════════════════════════════════
+ * 延迟折线（内联SVG，不用图表库）
+ * ══════════════════════════════════════════════════════════════
+ * 为什么手写而不引Chart.js：
+ *   这一页要画的只有「一条延迟曲线」，而引一个图表库要70~120KB。
+ *   状态页是**故障时才会被打开**的页面 —— 那正是带宽最该省、
+ *   加载最该快的时候。引库等于在最需要它轻的时刻把它变重。
+ *
+ * ⚠ Y轴自适应但**不从0 起**：延迟范围往往很窄（比如 90~140ms），
+ *   从 0 起会把曲线压成一条直线，看不出波动。代价是视觉上夸大差异，
+ *   所以图上标注了「纵轴起点 Nms」，不骗人。
+ * ⚠ 至少要**3 个点**才画。
+     2 个点连成一条线在数学上成立，但视觉上就是一条斜线——
+     用户会以为"延迟一直在变"，而事实是只有一个对比，趋势无从谈起。
+     刚启动时（1~2 个采样）留空比画一条假趋势诚实。
+   ⚠ 没有数据时返回空串而不是画一条空坐标系：空图看起来像"挂了"。 */
+function sparkline(series) {
+  const pts = series.filter(p => p[2] != null);
+  if (pts.length < 3) return '';
+  const W = 600, H = 42, PAD = 3;
+
+  const ys = pts.map(p => p[2]);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  /* 全部一样时给个 ±1 的窗口，否则除零 */
+  if (hi - lo < 1) { lo -= 1; hi += 1; }
+  const span = hi - lo;
+  const x = i => PAD + (i / (pts.length - 1)) * (W - PAD * 2);
+  const y = v => PAD + (1 - (v - lo) / span) * (H - PAD * 2);
+
+  /* 失败点单独标：曲线在那里断开，不做插值连过去 ——
+     把失败画成"0 毫秒的下坠"是误导（那个数根本不存在）。 */
+  let d = '', open = false;
+  pts.forEach((p, i) => {
+    if (!p[1]) { open = false; return; }
+    d += (open ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p[2]).toFixed(1) + ' ';
+    open = true;
+  });
+  if (!d) return '';
+
+  const area = d + 'L' + x(pts.length - 1).toFixed(1) + ' ' + (H - PAD) +
+              ' L' + x(0).toFixed(1) + ' ' + (H - PAD) + ' Z';
+
+  const bad = pts.map((p, i) => p[1] ? '' :
+    '<circle cx="' + x(i).toFixed(1) + '" cy="' + (H /2) + '" r="2" fill="var(--err)"/>').join('');
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="latency">'
+    + '<path d="' + area + '" fill="var(--brand)" opacity=".10"/>'
+    + '<path d="' + d + '" fill="none" stroke="var(--brand)" stroke-width="1.5"'
+    + ' stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+    + bad + '</svg>';
+}
+
+/* ── 单个监视项 ──
+ * ⚠ avgMs 为 null（全失败）时显示「—」而不是空白：
+ *   空白格看着像没加载完，而「—」明确表示"没有可用数值"。 */
+function ms(v) { return v == null ? t('st.dash') : v + ' ms'; }
+
+function monHtml(m) {
+  const has = m.up != null;
+  /* 分级：可用率决定颜色，**不看**延迟绝对值——
+     不同路由的耗时天差地别（参照集 750KB 和 health 差一个量级），
+     用统一毫秒阈值判「慢」必然误报。 */
+  const lvl = !has ? '' : m.up === 100 ? 's-ok' : m.up >= 99 ? 's-warn' : 's-err';
+  const word = !has ? t('st.nodata') : m.up === 100 ? t('st.normal')
+              : m.up >= 99 ? t('st.slow') : t('st.down');
+  const fill = !has ? '' : m.up === 100 ? '' : m.up >= 99 ? ' w' : ' e';
+  const pctTxt = !has ? t('st.dash') : (m.up >= 99.995 ? '100' : m.up.toFixed(2)) + '%';
+
+  return '<div class="mon">'
+    + '<div class="top"><span class="nm">' + escUi(m.label) + '</span>'
+    + '<span class="path">' + escUi(m.path) + '</span>'
+    + '<span class="badge ' + lvl + '">' + escUi(word) + '</span></div>'
+    + '<div class="upbar"><div class="track"><div class="fill' + fill + '" style="width:'
+    + (has ? m.up.toFixed(2) : 0) + '%"></div></div>'
+    + '<span class="pct">' + escUi(pctTxt) + '</span></div>'
+    + '<div class="chart">' + (sparkline(m.series) ||
+        /* 数据不足时不留空 —— 一块 42px 的空白既像加载中，
+           又像"这里本该有图但坏了"。写明原因更省事。 */
+        '<span class="noch">' + escUi(t('st.few')) + '</span>') + '</div>'
+    + '<div class="lat">'
+    + '<span>' + escUi(t('st.current')) + ' <b>' + escUi(ms(m.lastMs)) + '</b></span>'
+    + '<span>' + escUi(t('st.avg')) + ' <b>' + escUi(ms(m.avgMs)) + '</b></span>'
+    + '<span>' + escUi(t('st.up')) + ' <b>' + m.n + '</b></span>'
+    + '</div></div>';
+}
+
+const GROUPS = [
+  ['page', 'st.gpage'],
+  ['api', 'st.gapi'],
+  ['data', 'st.gdata'],
+];
+
+function render() {
+  const d = DATA;
+  /* ⚠ 横幅文案**不能**由 overall 直接查表就完事 ——
+     unknown 时那行「正在采集首次数据」后面要跟一句解释，
+     不解释的话用户会以为是页面坏了。 */
+  const titleKey = { operational: 'st.operational', degraded: 'st.degraded',
+                     outage: 'st.outage', unknown: 'st.unknown' }[d.overall] || 'st.unknown';
+  const banner = $('banner');
+  banner.className = 'banner is-' + (d.overall || 'unknown');
+  $('bTitle').textContent = t(titleKey);
+
+  const when = new Date(d.updatedAt);
+  const stamp = when.toLocaleString(currentLang() === 'zh' ? 'zh-CN' : 'en-US',
+    { hour12: false });
+  $('bMeta').textContent = t('st.updated', { t: stamp }) + ' · ' +
+    t('st.interval', { n: Math.round(d.intervalMs / 1000) });
+
+  /* hint 只在 unknown 时显示 —— 有数据了还挂着"正在采集"就是噪声 */
+  const hint = $('bHint');
+  if (d.overall === 'unknown') {
+    hint.style.display = '';
+    hint.textContent = t('st.unknownHint');
+  } else {
+    hint.style.display = 'none';
+  }
+
+  $('groups').innerHTML = GROUPS.map(function (g) {
+    const list = (d.monitors || []).filter(m => m.group === g[0]);
+    if (!list.length) return '';
+    return '<div class="grp"><h3>' + escUi(t(g[1])) + '</h3>'
+      + list.map(monHtml).join('') + '</div>';
+  }).join('');
+
+  $('foot').innerHTML = '<p class="dim2" style="font-size:12px">'
+    + escUi(t('foot.version', { v: APP_VER })) + '</p>';
+}
+
+/* ── 取数据 ──
+ * ⚠ 30 天视图可能因为迁移没跑而没数据。这时给一句说明，
+ *   而不是让用户对着空的图表猜是不是坏了。 */
+async function loadStatus() {
+  $('groups').innerHTML = '<div class="card"><p class="dim2" style="margin:0;font-size:13px">'
+    + escUi(t('st.loading')) + '</p></div>';
+  try {
+    const r = await fetch('/api/status?range=' + RANGE, { cache: 'no-cache' });
+    DATA = await r.json();
+  } catch (e) {
+    DATA = { overall: 'unknown', monitors: [], updatedAt: Date.now(),
+             intervalMs: 60000, targets: 0, range: RANGE };
+  }
+  render();
+  if (RANGE === '30d' && DATA.overall === 'unknown' && DATA.targets > 0) {
+    $('groups').insertAdjacentHTML('afterbegin',
+      '<div class="card" style="margin-top:14px"><p class="dim2" style="margin:0;font-size:12.5px">'
+      + escUi(t('st.nohist')) + '</p></div>');
+  }
+}
+
+/* 切换范围：aria-pressed 跟着走，读屏才念得出当前选中项 */
+$('range').addEventListener('click', function (e) {
+  const b = e.target.closest('button[data-range]');
+  if (!b || b.dataset.range === RANGE) return;
+  RANGE = b.dataset.range;
+  for (const x of this.querySelectorAll('button')) {
+    x.setAttribute('aria-pressed', String(x.dataset.range === RANGE));
+  }
+  load();
+});
+$('reload').addEventListener('click', loadStatus);
+
+/* ⚠ 语言一变要整个重画：延迟折线是 SVG，
+ * applyStatic 只处理 DOM 上的静态文案，管不到它。 */
+onLangChange(function () { applyStatic(); render(); });
+
+loadStatus();
+</script>
+</body>
+</html>

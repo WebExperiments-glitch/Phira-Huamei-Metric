@@ -34,6 +34,7 @@ import data from './i18n/data.js?v=V0.21.0.0';
 import legal from './i18n/legal.js?v=V0.21.0.0';
 import settings from './i18n/settings.js?v=V0.21.0.0';
 import version from './i18n/version.js?v=V0.21.0.0';
+import status from './i18n/status.js?v=V0.21.0.0';
 import download from './i18n/download.js?v=V0.21.0.0';
 
 /* ══════════════════════════════════════════════════════════════
@@ -56,7 +57,7 @@ import download from './i18n/download.js?v=V0.21.0.0';
 const FRAGMENTS = [
   ['common', common], ['home', home], ['app', app], ['charter', charter],
   ['user', user], ['data', data], ['legal', legal], ['settings', settings],
-  ['version', version], ['download', download],
+  ['version', version], ['download', download], ['status', status],
 ];
 
 const DICT = { zh: {}, en: {} };
