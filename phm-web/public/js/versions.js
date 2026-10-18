@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.3.3', date: '2026-10-18',
+    zh: ['<b>修 API 鉴权被网关污染</b>：本站前面的网关会在转发时写入它自己的 <code>Authorization</code> 头，导致匿名请求与带 Key 的请求<b>一起被误判成 invalid_api_key</b>（线上 API 实际不可用）。现在优先读 <code>x-api-key</code>，<code>Authorization</code> 只认 <code>sk-</code> 前缀。开发者文档同步改为推荐 <code>x-api-key</code>。'],
+    en: ['<b>Fixed API auth being poisoned by the gateway</b>: the gateway in front of this site injects its own <code>Authorization</code> header, so both anonymous requests and requests with a valid key were <b>rejected with invalid_api_key</b> (the live API was effectively down). We now read <code>x-api-key</code> first, and only accept an <code>sk-</code> prefixed value from <code>Authorization</code>. Developer docs now recommend <code>x-api-key</code>.'],
+  },
+  {
     v: 'V0.20.3.2', date: '2026-10-18',
     zh: ['在写谱页顶部加醒目免责声明：<b>这是随便写的，可能有非常严重的 Bug</b>；生成结果不保证节奏/可玩性/格式正确，请先在 Phira 验证，不要用于正式谱面或比赛。'],
     en: ['Added a prominent warning at the top of the charting page: <b>this is written casually and may contain very serious bugs</b>; results are not guaranteed, verify in Phira first, and do not use for formal charts or contests.'],
