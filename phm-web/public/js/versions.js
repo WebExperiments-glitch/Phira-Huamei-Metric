@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.4.2', date: '2026-10-18',
+    zh: ['首页<b>对普通玩家友好</b>了：第一屏放一个搜索框，歌名 / 谱师 / UID 直接搜，不用先搞懂谱面文件。另外全站加了<b>错误提示</b>：页面出问题时会说出来，不再是静默无反应。'],
+    en: ['The homepage is now <b>friendlier to regular players</b>: a search box up front for songs / charters / UIDs, no need to understand chart files first. Also added <b>error reporting across the site</b> — when something breaks, it says so instead of failing silently.'],
+  },
+  {
     v: 'V0.20.4.1', date: '2026-10-18',
     zh: ['<b>修「每次都要重新登录」</b>：云 SDK 与页面主逻辑都是 defer 加载，CDN 一慢就会先跑完页面脚本，导致登录态恢复被静默跳过。现在统一等 SDK 就绪，并把「系统没连上」与「你没登录」分开提示。<b>另：记住登录邮箱</b>，下次打开自动填好（只存邮箱，密码与 token 均不落盘）。'],
     en: ['<b>Fixed "I have to sign in every time"</b>: the cloud SDK and the page both load deferred, so a slow CDN let the page script finish first and session recovery was silently skipped. Now it waits for the SDK, and "the service is unreachable" is reported separately from "you are signed out". <b>Also remembers your sign-in email</b> and pre-fills it next time (email only — no password or token is ever stored here).'],

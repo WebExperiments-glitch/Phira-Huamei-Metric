@@ -28,6 +28,13 @@ export default {
     'c.login': '登录',
     'c.logout': '退出登录',
     'c.loading': '读取中…',
+    /* ── 全局兑底（js/guard.js）──
+     ⚠ 这几条是全站唯一不在 data-i18n 里、而是由 JS 直掠 t() 的词条组：
+        兑底的本职就是「脚本已经出错了」，不能指望 HTML 静态文案还在。 */
+    'guard.err': '页面出了点问题，部分功能可能不可用：{e}',
+    'guard.rej': '请求没完成，可能是网络问题：{e}',
+    'guard.offline': '你已经离线，连网后自动恢复',
+    'guard.online': '网络已恢复',
     'c.none': '（没有）',
     'c.chart': '曲名',
     'c.charter': '谱师',
@@ -125,6 +132,10 @@ export default {
     'c.login': 'Sign in',
     'c.logout': 'Sign out',
     'c.loading': 'Loading…',
+    'guard.err': 'Something went wrong; some features may be unavailable: {e}',
+    'guard.rej': 'The request did not complete, possibly a network issue: {e}',
+    'guard.offline': 'You are offline; it will resume once reconnected',
+    'guard.online': 'Network restored',
     'c.none': '(none)',
     'c.chart': 'Chart',
     'c.charter': 'Charter',
