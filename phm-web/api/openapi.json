@@ -28,7 +28,13 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "sk-...",
-        "description": "API key. Scopes: charts:read, analyses:write, usage:read."
+        "description": "API key. Scopes: charts:read, analyses:write, usage:read. 兼容保留；部署环境的网关会注入自己的 Authorization 头，可能让 Key 静默降级为匿名 —— 优先用 x-api-key。"
+      },
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key（推荐）。sk- 加 32 位十六进制。自定义头不会被网关改写，能稳定以 Key 身份计限额。"
       }
     },
     "schemas": {
@@ -247,6 +253,9 @@
           {},
           {
             "bearer": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "x-scopes": [
@@ -307,6 +316,9 @@
           {},
           {
             "bearer": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "x-scopes": [
@@ -384,6 +396,9 @@
         "security": [
           {
             "bearer": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "x-scopes": [
