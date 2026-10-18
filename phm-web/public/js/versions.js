@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.1.0', date: '2026-10-18',
+    zh: ['离线 AI 分轨管线跑通：<b>Demucs 4.1.0 (MIT)</b> 拆 drums/no_drums，再接鼓/钢琴 onset 与规则谱，输出 .pez。新增 <code>tools/ai-chart.mjs</code> 与 <code>tools/install-demucs.ps1</code>；模型不进网页包，只在本地跑。'],
+    en: ['Offline AI stem pipeline works: <b>Demucs 4.1.0 (MIT)</b> splits drums/no_drums, then drum/piano onsets feed the rule engine and produce .pez. Added <code>tools/ai-chart.mjs</code> and <code>tools/install-demucs.ps1</code>; models are local-only.'],
+  },
+  {
     v: 'V0.20.0.0', date: '2026-10-18',
     zh: ['改为 <b>2 指自由分散</b>：x 在 ±540 内连续分布，不再固定 2/5 条轨道；一次一个 note。项目内安装 MIT <b>web-audio-beat-detector 8.2.39</b>（vendor 内已 bundle），浏览器 BPM 交叉校验；鼓/钢琴点仍分开显示。'],
     en: ['Now <b>two-finger free spread</b>: x is continuous within ±540, no fixed 2/5 lanes; one note at a time. Bundled MIT <b>web-audio-beat-detector 8.2.39</b> in vendor for browser BPM cross-check; drum/piano counts remain separate.'],
