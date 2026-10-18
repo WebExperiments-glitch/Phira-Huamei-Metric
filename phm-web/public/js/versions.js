@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.3.2', date: '2026-10-18',
+    zh: ['在写谱页顶部加醒目免责声明：<b>这是随便写的，可能有非常严重的 Bug</b>；生成结果不保证节奏/可玩性/格式正确，请先在 Phira 验证，不要用于正式谱面或比赛。'],
+    en: ['Added a prominent warning at the top of the charting page: <b>this is written casually and may contain very serious bugs</b>; results are not guaranteed, verify in Phira first, and do not use for formal charts or contests.'],
+  },
+  {
     v: 'V0.20.3.1', date: '2026-10-18',
     zh: ['单判定线 X=-300、Y=200 保持不变；音符仍保留左右手分散 x（±405/±202.5），不会全挤在线上。'],
     en: ['Single judge line stays at X=-300, Y=200; notes keep left/right spread x values (±405/±202.5) instead of collapsing onto one point.'],
