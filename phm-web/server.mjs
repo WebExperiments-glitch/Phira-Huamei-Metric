@@ -388,8 +388,11 @@ const SERVICE_VER = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToP
 const OPENAPI_SPEC = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'api', 'openapi.json'), 'utf8'));
 
 const apiRoutes = makeApiRoutes({
-  send, readBody, dbFetch, dbPutChart, recompute, hmWhoami,
+  send, readBody, dbFetch, dbPutChart, dbPageCharts, recompute, hmWhoami,
   writeSecret: WRITE_SECRET, engineVer: ENGINE_VER, serviceVersion: SERVICE_VER, openapiSpec: OPENAPI_SPEC,
+  /* 分页/排序与谱师/玩家查询复用网页端同一份实现，
+     不在这里另写一套 —— 两套分页必然漂移（见 lib/api-routes.mjs 里 handleChartList 的注释）。 */
+  SORTABLE, phiraBase: PHIRA_API,
 });
 
 const server = http.createServer(async (req, res) => {

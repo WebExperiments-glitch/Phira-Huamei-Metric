@@ -20,6 +20,10 @@
     },
     {
       "name": "keys"
+    },
+    {
+      "name": "phira",
+      "description": "Phira upstream lookups"
     }
   ],
   "components": {
@@ -97,6 +101,7 @@
       },
       "Chart": {
         "type": "object",
+        "description": "One cached chart analysis. analyzed:false means this site has not computed it yet - the field is absent, not zero.",
         "properties": {
           "chart_id": {
             "type": "integer"
@@ -105,31 +110,45 @@
             "type": "string"
           },
           "level": {
-            "type": "string"
+            "type": "string",
+            "example": "IN Lv.15"
           },
           "difficulty": {
-            "type": [
-              "number",
-              "null"
-            ]
+            "type": "number",
+            "description": "Difficulty label claimed on Phira"
           },
           "ref_const": {
-            "type": [
-              "number",
-              "null"
-            ]
+            "type": "number",
+            "description": "P.H.M. community-scale constant (9,508-chart k-NN reference)"
           },
           "ref_official": {
-            "type": [
-              "number",
-              "null"
-            ]
+            "type": "number",
+            "description": "P.H.M. official-scale constant (1,037 Phigros official charts)"
           },
           "ps_score": {
-            "type": [
-              "number",
-              "null"
-            ]
+            "type": "number",
+            "description": "PS 0-20 absolute difficulty"
+          },
+          "nps": {
+            "type": "number"
+          },
+          "hold_ratio": {
+            "type": "number"
+          },
+          "notes": {
+            "type": "integer"
+          },
+          "stair_avg": {
+            "type": "number"
+          },
+          "speed_peak": {
+            "type": "number"
+          },
+          "engine_ver": {
+            "type": "string"
+          },
+          "engine_build": {
+            "type": "string"
           },
           "analyzed": {
             "type": "boolean"
@@ -226,6 +245,598 @@
     }
   },
   "paths": {
+    "/charts": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "List / search / sort cached charts",
+        "description": "Paged listing over the shared cache. Reuses the exact query the website uses, so numbers match /data.",
+        "operationId": "listCharts",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Whitelisted sort field: chart_id, name, level, difficulty, ref_const, ref_official, ps_score, nps, notes.",
+            "schema": {
+              "type": "string",
+              "default": "chart_id"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Substring match on chart name (max 60 chars).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "description": "Filter by level prefix, e.g. IN / AT / SP.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "only",
+            "in": "query",
+            "description": "official = only charts having an official-scale value; stale = computed with a different engine build.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "official",
+                "stale"
+              ]
+            }
+          },
+          {
+            "name": "build",
+            "in": "query",
+            "description": "Engine build used as the staleness baseline; only meaningful with only=stale.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of charts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Chart"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Exact total rows, not just this page"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "pageSize": {
+                      "type": "integer"
+                    },
+                    "pages": {
+                      "type": "integer"
+                    },
+                    "sort": {
+                      "type": "string"
+                    },
+                    "order": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported sort field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key lacks the required scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Cache unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Aggregate database statistics",
+        "description": "Chart count, coverage and activity counters. Same source as the numbers on the landing page.",
+        "operationId": "getStats",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregate counters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "charts": {
+                      "type": "integer",
+                      "description": "Charts in the shared cache"
+                    },
+                    "scores": {
+                      "type": "integer"
+                    },
+                    "profiles": {
+                      "type": "integer"
+                    },
+                    "active_1d": {
+                      "type": "integer"
+                    },
+                    "active_7d": {
+                      "type": "integer"
+                    },
+                    "active_30d": {
+                      "type": "integer"
+                    },
+                    "new_1d": {
+                      "type": "integer"
+                    },
+                    "new_7d": {
+                      "type": "integer"
+                    },
+                    "phira_bound": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key lacks the required scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Statistics unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/charters/{uid}": {
+      "get": {
+        "tags": [
+          "phira"
+        ],
+        "summary": "Charts uploaded by a charter (Phira user id)",
+        "description": "Proxies Phira /chart?uploader={uid} and joins each hit against our cache. analyzed:false means we have not computed that chart yet. Upstream failures return 502 rather than an empty list - an empty list would read as \"this charter has no charts\", which is the worst possible wrong answer.",
+        "operationId": "getCharterCharts",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "description": "Phira user id (numeric)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "maxPages",
+            "in": "query",
+            "description": "Upstream pages to read, 1-5 (30 charts per page). Hard-capped to keep this from becoming a crawler.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "default": 3
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Charts by this charter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uid": {
+                      "type": "integer"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Upstream total; may be null"
+                    },
+                    "returned": {
+                      "type": "integer"
+                    },
+                    "maxPages": {
+                      "type": "integer"
+                    },
+                    "charts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chart_id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "level": {
+                            "type": "string"
+                          },
+                          "difficulty": {
+                            "type": "number"
+                          },
+                          "charter": {
+                            "type": "string"
+                          },
+                          "uploader": {
+                            "type": "integer"
+                          },
+                          "rated": {
+                            "type": "number"
+                          },
+                          "analyzed": {
+                            "type": "boolean"
+                          },
+                          "ref_const": {
+                            "type": "number"
+                          },
+                          "ref_official": {
+                            "type": "number"
+                          },
+                          "ps_score": {
+                            "type": "number"
+                          },
+                          "nps": {
+                            "type": "number"
+                          },
+                          "notes": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid uid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key lacks the required scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Phira upstream unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{uid}": {
+      "get": {
+        "tags": [
+          "phira"
+        ],
+        "summary": "Public profile and stats of a Phira player",
+        "description": "Returns public profile fields plus /user/{uid}/stats. Score details are deliberately not included: bundling hundreds of records into one response is both slow and easy to scrape in bulk.",
+        "operationId": "getPlayer",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "description": "Phira user id (numeric)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public player profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "bio": {
+                      "type": "string"
+                    },
+                    "avatar": {
+                      "type": "string"
+                    },
+                    "joined": {
+                      "type": "string"
+                    },
+                    "rks": {
+                      "type": "number"
+                    },
+                    "stats": {
+                      "type": "object",
+                      "description": "Upstream stats; null when that optional call fails. The request still succeeds."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key lacks the required scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Phira upstream unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/meta": {
       "get": {
         "tags": [
