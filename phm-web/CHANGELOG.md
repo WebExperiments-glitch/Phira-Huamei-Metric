@@ -26,6 +26,8 @@
 
 | 版本 | 日期 | commit | 内容 |
 |---|---|---|---|
+| `V0.20.1.2` | 2026-10-18 | 本次 | **系统难度生效**：`loadFile` 增加 `detectDifficulty(analysis)`，页面显示判定与依据，生成使用该难度（不再 fallback HD）。192s 参考音频实测分析 2.6s。 |
+| `V0.20.1.1` | 2026-10-18 | 本次 | **修复分析卡死**：`analyzeFile` 不再 `await` web-audio-beat-detector worker（长音频会卡几分钟），本地 FFT 分析 189s 参考曲约 0.5s。vendor 库保留，后续做后台/离线校验。 |
 | `V0.20.1.0` | 2026-10-18 | 本次 | **AI 分轨管线跑通**。① 项目 `.venv-audio` 安装 Demucs 4.1.0（MIT），`htdemucs` 权重约 80MB。② 新增 `tools/ai-chart.mjs`：MP3 → Demucs 拆 drums/no_drums → ffmpeg f32 → 鼓/钢琴 onset → 规则谱 → `.pez`。③ 新增 `tools/install-demucs.ps1`。④ 30 秒参考音频实测 CPU 21–25s 出分轨，生成 183 notes / 6.10 NPS 的 .pez。⑤ 模型不打包进网页，浏览器仍用内置频段启发式。 |
 | `V0.20.0.0` | 2026-10-18 | 本次 | **2 指自由分散 + MIT 节拍库安装**。① 移除固定 2/5 条轨道，x 在 ±540 内连续取，一次一个 note，最多 2 指。② `vendor/web-audio-beat-detector` 安装 web-audio-beat-detector 8.2.39（MIT），esbuild 打包为 `beat-detector.mjs`，`analyzeFile` 里交叉校验 BPM；失败静默回退。③ 鼓点/钢琴点仍分开显示，排谱优先钢琴点。④ 旧 .pez 必须重新生成。 |
 | `V0.19.1.0` | 2026-10-18 | 本次 | **严格 2K**：`LANES[2]` 只保留 ±405；规则引擎只生成两条轨道，移除 5 x 参考布局，避免 4K+ 观感。新增 `docs/调研/音频节拍与鼓钢琴分离.md`：MIT 项目 web-audio-beat-detector / Demucs / Spleeter / Open-Unmix / Omnizart；非 MIT 的 librosa/madmom/aubio/basic-pitch 也标注。 |

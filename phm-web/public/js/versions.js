@@ -20,6 +20,16 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.1.2', date: '2026-10-18',
+    zh: ['修复系统难度未生效：页面分析完成后重新调用 detectDifficulty 并显示判定；生成不再 fallback HD。长音频分析实测约 2.6 秒。'],
+    en: ['Fixed system difficulty not taking effect: after analysis the page calls detectDifficulty and shows the result; generation no longer falls back to HD. Long-track analysis is ~2.6s.'],
+  },
+  {
+    v: 'V0.20.1.1', date: '2026-10-18',
+    zh: ['修页面卡在“解码并分析中”：MIT 节拍库的 worker 不能阻塞分析主链路，已移出；页面只用本地 FFT 分析（参考曲 189s 实测约 0.5s）。库仍保留在 vendor。'],
+    en: ['Fixed the page hanging at “decoding/analysing”: the MIT beat-detector worker was blocking the main analysis path; it is now off the critical path. Local FFT analysis is ~0.5s for a 189s reference track; the library remains vendored.'],
+  },
+  {
     v: 'V0.20.1.0', date: '2026-10-18',
     zh: ['离线 AI 分轨管线跑通：<b>Demucs 4.1.0 (MIT)</b> 拆 drums/no_drums，再接鼓/钢琴 onset 与规则谱，输出 .pez。新增 <code>tools/ai-chart.mjs</code> 与 <code>tools/install-demucs.ps1</code>；模型不进网页包，只在本地跑。'],
     en: ['Offline AI stem pipeline works: <b>Demucs 4.1.0 (MIT)</b> splits drums/no_drums, then drum/piano onsets feed the rule engine and produce .pez. Added <code>tools/ai-chart.mjs</code> and <code>tools/install-demucs.ps1</code>; models are local-only.'],
