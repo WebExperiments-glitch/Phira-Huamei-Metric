@@ -166,6 +166,13 @@ export async function recompute(chartId, opts) {
        engine_build 是**算法版本** —— 后者让对账任务能一眼筛出
        "旧引擎算的过期行"，不用逐行重算。 */
     engine_build: ENGINE_VER,
+    /* 技能分（stamina / dexterity / reading / precision + top + profile）。
+       ⚠ **不落库**：phm_charts 表只有 16 个汇总字段，没有 feats，
+          缓存行算不出技能分。所以它只出现在"刚分析完"的响应里，
+          列表接口（读缓存）给不了 —— 这是数据模型的限制，不是遗漏。
+       ⚠ 纯展示层：由 js/skills.js 从 feats 重组，不改任何引擎数值，
+          因此不影响 ENGINE_VER，也不需要重算已有缓存。 */
+    skills: rep.skills || null,
     verified_at: new Date().toISOString(),
   };
 }

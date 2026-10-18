@@ -22,10 +22,10 @@
  *   （算法有 verify-engine.mjs 的 45 条守着）。
  */
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import net from 'node:net';
 import os from 'node:os';
-import path from 'node:path';
-import fs from 'node:fs';
 
 const BASE = (process.argv[2] || 'http://127.0.0.1:5199').replace(/\/$/, '');
 const PORT = Number(process.env.CDP_PORT || 9361);
@@ -166,6 +166,7 @@ console.log('\n[2] 拖进落地页 → 接力到 /app');
     return !!o && o.textContent.trim().length > 0;
   })()`, 25000);
   ok('★ /app 真的开始处理了（结果卡有内容）', started);
+
   ok('处理过程没有未捕获异常', errors.length === 0, errors.slice(0, 2).join(' | '));
 }
 

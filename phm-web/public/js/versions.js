@@ -20,6 +20,14 @@
 
 export const RELEASES = [
   {
+    v: 'V0.21.0.0', date: '2026-10-18',
+    zh: ['结果卡新增<b>「难在哪」</b>：耐力 / 灵活度 / 读谱 / 精度四项，'
+      + '直接回答「这首是手速难还是读谱难」。'
+      + '它不改动定数本身——同一张谱面的<b>定数一个字都不变</b>。'],
+    en: ['Results now include a <b>"where it is hard"</b> breakdown: stamina / dexterity / reading / precision. '
+      + 'It does not change the difficulty number — the score for a given chart is bit-for-bit unchanged.'],
+  },
+  {
     v: 'V0.20.4.2', date: '2026-10-18',
     zh: ['首页<b>对普通玩家友好</b>了：第一屏放一个搜索框，歌名 / 谱师 / UID 直接搜，不用先搞懂谱面文件。另外全站加了<b>错误提示</b>：页面出问题时会说出来，不再是静默无反应。'],
     en: ['The homepage is now <b>friendlier to regular players</b>: a search box up front for songs / charters / UIDs, no need to understand chart files first. Also added <b>error reporting across the site</b> — when something breaks, it says so instead of failing silently.'],
