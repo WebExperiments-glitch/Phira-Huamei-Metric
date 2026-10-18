@@ -66,6 +66,9 @@ export default {
     'app.auth.reset.done': '密码已重置，已为你登录',
     'app.auth.fail': '失败：{e}',
     'app.auth.err.retry': '请稍后再试',
+    /* ⚠ 与「未登录」严格区分：这条是**系统侧**读不到会话，
+       让用户误以为自己账号掉了、反复重新登录是最糟的次生问题。 */
+    'app.auth.err.session': '暂时连不上登录服务，读不到你的登录状态。请刷新页面重试——这不是你账号的问题。',
     'app.auth.chpw.need': '请填当前密码和新密码',
     'app.auth.chpw.fail': '修改失败：{e}',
     'app.auth.chpw.badold': '当前密码不对',
@@ -451,6 +454,7 @@ export default {
     'app.auth.reset.done': 'Password reset — you are signed in',
     'app.auth.fail': 'Failed: {e}',
     'app.auth.err.retry': 'Try again in a moment',
+    'app.auth.err.session': 'Cannot reach the sign-in service right now, so your session could not be read. Refresh to retry — this is not a problem with your account.',
     'app.auth.chpw.need': 'Enter your current and new password',
     'app.auth.chpw.fail': 'Change failed: {e}',
     'app.auth.chpw.badold': 'current password is wrong',

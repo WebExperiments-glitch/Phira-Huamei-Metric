@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.20.4.0">
+<meta name="app-version" content="V0.20.4.1">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -38,8 +38,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.20.4.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.1">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -629,10 +629,11 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.20.4.0';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.20.4.1';
 /* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
    文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
-import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.20.4.0';
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.20.4.1';
+import { initCloud, currentUser } from '/js/cloud.js?v=V0.20.4.1';
 
 /* ── 版本号：唯一来源是 <head> 里的 <meta name="app-version"> ──
    页头标签、页脚、PHM.status()、以及下面引擎的缓存版本串全从它取，只维护一处。
@@ -1225,12 +1226,19 @@ document.addEventListener("input",function(e){
 const CLOUD_CFG={endpoint:"https://phm.app.workbuddy.host",
   publishableKey:"wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b"};
 let cloud=null, cloudDB=null;
-try{
-  if(window.WorkBuddyCloud&&WorkBuddyCloud.createWorkBuddyCloud){
-    cloud=WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG);   /* 账号模块要用完整实例 */
-    cloudDB=cloud.database;
-  }
-}catch(e){ cloud=null; cloudDB=null; }
+/* ⚠ 下面这段**曾经是同步的**（SDK 没到就直接放弃），那是错的：
+   云 SDK 是 <script defer src="cdn">，本页面主逻辑是 <script type="module">，
+   两者都 defer 但内联 module 没有依赖图可以等 —— CDN 一慢，module 先跑完，
+   cloud=null，然后下面那句 `if(!cloudDB) return;` 把**会话恢复整段跳过**，
+   表现是「用户每次刷新都要重新登录」，而且界面上没有任何异常提示。
+   现在统一走 js/cloud.js 的 initCloud()：等 SDK 就绪（带上限），
+   失败时通过 PHM.status().cloudError 如实暴露，不静默降级成「未登录」。 */
+const CLOUD_READY = initCloud(CLOUD_CFG).then(function(r){
+  cloud=r.cloud; cloudDB=r.db;
+  if(r.error){ cloudInitError=r.error; }
+  return r;
+});
+let cloudInitError=null;
 
 /* 运行状态自检 —— 便于线上排查，也让「说好的行为」可被验证。
    在浏览器控制台执行 PHM.status() 即可看到各部件是否就绪。
@@ -1250,6 +1258,9 @@ window.PHM.status = function(){
     sdk: typeof window.WorkBuddyCloud,
     cloud: cloud ? "ok" : "null",
     cloudDB: cloudDB ? "ok" : "null",
+    /* ⚠ 云初始化为什么失败（timeout=等太久 / missing=SDK 没来 / init=创建抛错 / null=正常）。
+       没有这个字段时，"一直要重新登录"这件事在控制台里看不出任何线索。 */
+    cloudError: cloudInitError || null,
     autoUpload: OPTN(),
     noticeAgreed: noticeAgreed(),
     ownDeclared: __SET.own.list().length,
@@ -1566,7 +1577,30 @@ function fetchTO(url,ms,opts){
 
 /* ═════ P.H.M. 专属账号：邮箱注册/登录 · 绑定 Phira · 活跃统计 ═════
    边界：Web 端仅支持邮箱（手机短信 / 微信登录只在小程序里提供） */
-const AUTH={mode:"login",pending:null,resetChallenge:null,user:null};
+const AUTH={mode:"login",pending:null,resetChallenge:null,user:null,sessionError:false};
+
+/* ── 记住邮箱（只为了"下次不用重打"）──
+ * ⚠ 只存邮箱，绝不存密码、也不自己存 token：token 由云 SDK 管
+ *   （它把会话放在 /.cloud 下的 localStorage），我们再存一份只会多一个泄露面。
+ * ⚠ 存了邮箱**不等于**已登录 —— 界面绝不能拿它当登录态显示，
+ *   否则会出现"看着像登录了、其实没有"这种最难查的错位。 */
+function rememberLoginEmail(v){
+  const s=String(v||"").trim();
+  if(!s) return;
+  /* ⚠ settings.js 的 get/set **直接把参数当 localStorage 键用**，不查 KEYS 表，
+     所以这里必须传 __SET.KEYS.email（= "phm_email"）而不是 "email"。
+     写成 "email" 会静默读写到另一个空键 —— 表现为「功能好像没生效」且不报错。 */
+  try{ __SET.set(__SET.KEYS.email, s); }catch(e){}
+}
+/** 把记住的邮箱填进输入框（只填一次，别覆盖用户正在改的内容）。 */
+function fillRememberedEmail(){
+  try{
+    const el=document.getElementById("aemail");
+    if(!el || el.value) return;
+    const v=__SET.get(__SET.KEYS.email, "");
+    if(v) el.value=v;
+  }catch(e){}
+}
 
 function aMsg(t,kind,which){
   const el=document.getElementById(which||"amsg"); if(!el) return;
@@ -1709,6 +1743,11 @@ async function authRender(){
   }else{
     guest.style.display=""; box.style.display="none";
     if(label) label.textContent=t("c.login");
+    /* ⚠ 「云服务读不到会话」和「你没登录」是两回事：
+       前者让用户反复重新登录却找不到原因，后者照常登录即可。
+       所以这里必须显式提示，不能只显示一个"登录"按钮让人干瞪眼。 */
+    if(AUTH.sessionError) aMsg(t("app.auth.err.session"),"err","amsg2");
+    else fillRememberedEmail();
   }
 }
 async function renderBind(){
@@ -1786,19 +1825,39 @@ async function renderStats(){
     el.style.display="";
   }catch(e){ el.style.display="none"; }
 }
-/* 初始化：恢复会话 + 观察登录态变化 */
+/* 初始化：等 SDK → 恢复会话 → 观察登录态变化
+ *
+ * ⚠ 两处与旧版不同，都是为了「不用反复登录」：
+ *  ① **必须等 CLOUD_READY**。旧版开头就 `if(!cloudDB) return;` ——
+ *     CDN 慢时 cloud 还是 null，于是整段静默跳过，用户每次刷新都要重新登录，
+ *     而且看不到任何错误。现在等 SDK 就绪再谈会话。
+ *  ② **区分「未登录」与「读不出来」**。旧版 catch 里什么都不做，
+ *     网络抖动和"你没登录"在界面上长得一模一样。现在 reason==='unavailable'
+ *     会明确告诉用户是系统侧的问题，别让人以为是自己账号掉了。
+ */
 (async function(){
-  if(!cloudDB) return;
+  await CLOUD_READY;
+  if(!cloudDB){
+    /* SDK 没起来：如实说明，而不是伪装成「未登录」。 */
+    authRender();
+    return;
+  }
+  const r = await currentUser(cloud);
+  AUTH.user = r.user;
+  AUTH.sessionError = (r.reason === 'unavailable') ? true : false;
+  /* 记住邮箱：下次打开登录面板直接填好，用户不用重打一遍。
+     ⚠ 只在有用户时写 —— 「读不出来」不代表知道是谁。 */
   try{
-    const s=await cloud.auth.getSession();
-    AUTH.user=(s&&s.data&&s.data.user)||null;
-    await authRender();
-    if(AUTH.user) await touchProfile();
-    cloud.auth.onAuthStateChange(function(ev,sess){
-      AUTH.user=(sess&&sess.user)||null;
-      authRender();
-    });
+    if(r.user && (r.user.email || r.user.username)) rememberLoginEmail(r.user.email || r.user.username);
   }catch(e){}
+  await authRender();
+  if(AUTH.user) await touchProfile();
+  try{ cloud.auth.onAuthStateChange(function(ev,sess){
+    AUTH.user=(sess&&sess.user)||null;
+    AUTH.sessionError=false;
+    try{ if(AUTH.user&&(AUTH.user.email||AUTH.user.username)) rememberLoginEmail(AUTH.user.email||AUTH.user.username); }catch(e){}
+    authRender();
+  }); }catch(e){}
   renderStats();
 })();
 

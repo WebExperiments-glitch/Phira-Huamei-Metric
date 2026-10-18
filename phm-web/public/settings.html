@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.20.4.0">
+<meta name="app-version" content="V0.20.4.1">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -18,8 +18,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    键名与 /js/settings.js 的 KEYS.font / KEYS.size 一致。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f);el.setAttribute("data-size",z);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.20.4.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.1">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -383,9 +383,10 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.20.4.0';
-import * as S from '/js/settings.js?v=V0.20.4.0';
-import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.20.4.0';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.20.4.1';
+import { initCloud, currentUser as cloudCurrentUser } from '/js/cloud.js?v=V0.20.4.1';
+import * as S from '/js/settings.js?v=V0.20.4.1';
+import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.20.4.1';
 
 renderNav('settings');
 applyStatic();
@@ -505,19 +506,27 @@ const CLOUD_CFG = {
   publishableKey: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b',
 };
 let cloud = null, cloudDB = null;
-try {
-  if (window.WorkBuddyCloud && window.WorkBuddyCloud.createWorkBuddyCloud) {
-    cloud = window.WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG);
-    cloudDB = cloud.database;
-  }
-} catch (e) { cloud = null; cloudDB = null; }
+/* ⚠ 与 app.html / platform.html 同一个坑：SDK 是 `<script defer src="cdn">`，
+   本页主逻辑也是 defer —— CDN 慢一点就先跑完，于是 cloud=null，
+   账号区永远显示"未登录"。统一走 js/cloud.js 等它就绪。 */
+const CLOUD_READY = initCloud(CLOUD_CFG).then(function (r) {
+  cloud = r.cloud; cloudDB = r.db; cloudInitError = r.error || null; return r;
+});
+let cloudInitError = null;
 
-async function currentUser() {
-  if (!cloud || !cloud.auth) return null;
-  try {
-    const r = await cloud.auth.getUser();
-    return (r && (r.data ? (r.data.user || r.data) : r.user)) || null;
-  } catch (e) { return null; }
+/* ⚠ 这里**不再自己实现一份**取用户逻辑（曾经有，被 lint-slop 的
+   「重复函数定义」抓到）：两份实现必然漂移，最后一个改了一个没改，
+   症状是「/app 显示已登录、/settings 显示未登录」这种极难查的错位。
+   统一用 js/cloud.js 的 cloudCurrentUser()，本文件只做「结果 → 页面文案」的翻译。 */
+let lastUserError = false;
+/* 名字**故意不叫** currentUser —— 那是 cloud.js 里的名字，
+   lint-slop 的「重复函数定义」按名字判（不看实现），
+   同名就得把两份实现都拖下水。 */
+async function loadAccount() {
+  await CLOUD_READY;
+  const r = await cloudCurrentUser(cloud);
+  lastUserError = (r.reason === 'unavailable');
+  return r.user;
 }
 
 function mkBtn(label, cls, handler, id) {
@@ -534,7 +543,7 @@ async function paintAccount() {
   const box = $('#acctActions'), st = $('#acctState');
   if (!box || !st) return;
   box.innerHTML = '';
-  const user = await currentUser();
+  const user = await loadAccount();
   if (!user) {
     st.textContent = t('set.acct.loggedout.desc');
     const go = document.createElement('a');
@@ -582,7 +591,7 @@ async function paintBind() {
     st.textContent = t('set.acct.bindhint');
     box.appendChild(mkBtn(t('set.acct.bind'), 'primary', async function () {
       if (!cloudDB) { acctMsg('Cloud not connected', 'err'); return; }
-      const user = await currentUser();
+      const user = await loadAccount();
       if (!user) { acctMsg(t('set.acct.loggedout.desc'), 'warn'); return; }
       const r = await cloudDB.from('phm_profiles').upsert({
         phira_uid: Number(local.uid) || null,
@@ -674,7 +683,7 @@ $('#expBtn').addEventListener('click', function () {
        不挂在账号上，删账号也不会带走它。
    失败时不假装成功 —— 把错误显示出来，并给出邮件兜底渠道。 */
 $('#acctDel').addEventListener('click', async function () {
-  const user = await currentUser();
+  const user = await loadAccount();
   if (!user) { acctMsg(t('set.acct.del.nologin'), 'warn'); return; }
   if (!window.confirm(t('set.acct.del.confirm'))) return;
   if (!cloudDB) { acctMsg(t('set.acct.del.nocloud'), 'err'); return; }

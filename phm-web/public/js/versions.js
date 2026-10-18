@@ -20,6 +20,11 @@
 
 export const RELEASES = [
   {
+    v: 'V0.20.4.1', date: '2026-10-18',
+    zh: ['<b>修「每次都要重新登录」</b>：云 SDK 与页面主逻辑都是 defer 加载，CDN 一慢就会先跑完页面脚本，导致登录态恢复被静默跳过。现在统一等 SDK 就绪，并把「系统没连上」与「你没登录」分开提示。<b>另：记住登录邮箱</b>，下次打开自动填好（只存邮箱，密码与 token 均不落盘）。'],
+    en: ['<b>Fixed "I have to sign in every time"</b>: the cloud SDK and the page both load deferred, so a slow CDN let the page script finish first and session recovery was silently skipped. Now it waits for the SDK, and "the service is unreachable" is reported separately from "you are signed out". <b>Also remembers your sign-in email</b> and pre-fills it next time (email only — no password or token is ever stored here).'],
+  },
+  {
     v: 'V0.20.4.0', date: '2026-10-18',
     zh: ['<b>API 文档大幅升级</b>，端点从 9 个扩到 13 个：新增 <b>列出谱面</b>（分页/搜索/排序）、<b>全库统计</b>、<b>谱师作品</b>、<b>玩家资料</b>。文档页新增<b>在线 Playground</b> —— 填 Key 直接打真实请求，不用配环境就知道接口通不通。'],
     en: ['<b>API docs, upgraded</b> — endpoints go from 9 to 13: chart listing (paged/searchable/sortable), database statistics, charts by charter, and player profiles. The docs page gains a live <b>Playground</b>: paste a key, hit a real endpoint, no setup.'],

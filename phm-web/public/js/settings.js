@@ -35,6 +35,11 @@ export const KEYS = Object.freeze({
   phiraName: 'phm_phira_name',   /* Phira 用户名 —— 仅用于下次自动填充 */
   phiraUid:  'phm_phira_uid',
   lastUid:   'phm_last_uid',     /* 上次查询过的玩家 uid */
+  /* 登录邮箱 —— 只为「下次自动填」而存。
+   * ⚠ 存的是**邮箱**，不是密码、不是 token：token 由云 SDK 自己管（localStorage
+   *   里的 /.cloud 会话），密码绝不落盘。邮箱是公开信息，存它换来的是
+   *   「不用每次重打一遍」—— 这是用户明确要求的手感。 */
+  email:     'phm_email',
   ownPrefix: 'phm_own_',         /* + uid =「我声明这是本人的账号」 */
   theme:     'phm_theme',        /* 外观："dark" / "light" / "auto" */
   lang:      'phm_lang',         /* 界面语言："zh" / "en" */
@@ -46,7 +51,7 @@ export const KEYS = Object.freeze({
 /** 固定键（不含 own 前缀键）—— 用于清空与导出。 */
 export const PLAIN_KEYS = Object.freeze([
   KEYS.optin, KEYS.notice, KEYS.cid, KEYS.phiraName, KEYS.phiraUid, KEYS.lastUid,
-  KEYS.theme, KEYS.lang, KEYS.font, KEYS.size, KEYS.recent,
+  KEYS.email, KEYS.theme, KEYS.lang, KEYS.font, KEYS.size, KEYS.recent,
 ]);
 
 /** 本地存储表的行名 —— ⚠ 值是 **i18n 词条名**，不是给人看的字面量。
