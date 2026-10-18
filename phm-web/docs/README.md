@@ -156,6 +156,7 @@ phm-web/
 | 页面交互 / 渲染 | `public/app.html`（**工作台主体**，找对应函数名）。⚠ 里面还有约 300 行**休眠代码**（玩家面板迁到 `/user` 后遗留），见 `ARCHITECTURE.md` 的已知技术债 |
 | 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
 | 自动写谱（MP3 → 提取 → RPE v160 .pez/.zip） | `public/js/audio-analysis.js` + `public/js/rulechart.js` —— 浏览器本地提取/排谱，页面 `/rulechart` |
+| 登录态 / 云 SDK 初始化 | `public/js/cloud.js` —— **app / platform / settings 三处页面的唯一入口**。⚠ 云 SDK 是 `<script defer src=cdn>`，页面主逻辑也是 defer，但**内联 module 没有依赖图可以等**；不同步等待的话 SDK 慢一点就会先跑完 module，初始化拿到的 `cloud` 是 null，会话恢复被整段跳过 —— 症状是「用户每次刷新都要重新登录」且界面上没有任何错误 |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |
