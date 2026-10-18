@@ -205,3 +205,37 @@ button.primary:hover {
 .why summary:hover { color: var(--fg); }
 .why .fd { margin-top: 8px; font-size: 12.5px; color: var(--fg2); line-height: 1.75; }
 .why .fd b { color: var(--fg); }
+
+/* ── 全局兜底提示（js/guard.js 用）──
+ * 存在理由：全站原本只有 app.html 接了 unhandledrejection，
+ * 其余页面一个都没接 —— 未捕获的 Promise 拒绝**静默无痕**，
+ * 用户看到的是「点了没反应」，而控制台之外无从查起。
+ *
+ * ⚠ 只用令牌、不写死颜色（双主题都要能读）。
+ * ⚠ `pointer-events:none` 是必须的：它浮在右上角，
+ *   不该挡住下面的按钮 —— 一个会挡操作的兜底比原来的 bug 更烦。 */
+.phm-guard {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(380px, calc(100vw - 24px));
+  pointer-events: none;
+}
+.phm-guard-item {
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 9px 13px;
+  border-radius: 10px;
+  color: var(--fg);
+  background: var(--card);
+  border: 1px solid var(--err);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
+  pointer-events: auto;
+}
+@media (max-width: 760px) {
+  .phm-guard { top: auto; bottom: 12px; left: 12px; right: 12px; max-width: none; }
+}

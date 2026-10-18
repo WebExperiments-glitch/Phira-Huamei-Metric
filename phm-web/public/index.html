@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.20.4.1">
+<meta name="app-version" content="V0.20.4.2">
 <title>P.H.M. Standard · Phira 谱面难度参考</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -34,8 +34,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.20.4.1">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.20.4.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.20.4.2">
 <style>
 .hero{text-align:center;padding:22px 0 6px}
 .hero h1{font-size:30px;font-weight:400;letter-spacing:.5px;line-height:1.32}
@@ -88,6 +88,21 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .hdrop.bad{border-color:var(--red);color:var(--red);animation:hdropShake .3s}
 @keyframes hdropShake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 @media(max-width:520px){.hdrop{font-size:12.5px}.hdrop .hdroptip{display:none}}
+
+/* ── 首页统一搜索框（V0.20.5.0）──
+   宽度跟着内容走但封顶，圆角与站内按钮一致；移动端占满一行。
+   ⚠ 只用令牌，不写死颜色。 */
+.hfind{display:flex;gap:8px;justify-content:center;margin:18px auto 0;max-width:520px}
+.hfind input{flex:1;min-width:0;height:44px;padding:0 14px;font-size:15px;color:var(--fg);
+  background:var(--card);border:1px solid var(--line2);border-radius:10px}
+.hfind input::placeholder{color:var(--fg3)}
+.hfind input:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+.hfind button{flex:0 0 auto;height:44px;padding:0 22px;font-size:15px;font-weight:600;color:#fff;
+  background:var(--brand);border:0;border-radius:10px;cursor:pointer}
+.hfind button:hover{background:var(--brand-hover)}
+.hfind-hint{text-align:center;font-size:12.5px;color:var(--fg3);margin:8px 0 0}
+.hfind-hint.num{color:var(--link)}
+@media (max-width:760px){.hfind{max-width:none}}
 </style>
 </head>
 <body>
@@ -99,7 +114,18 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <h1 data-i18n-html="home.h1">给 Phira 谱面一个<b>可审计</b>的难度参考</h1>
   <p data-i18n-html="home.sub">拖入谱面包，浏览器里算出它的结构定数——<b>两个标度都告诉你</b>，<br>
   连同这个数字有多准。<b>谱面文件不会上传</b>，也不需要登录。</p>
-  <div class="row" style="justify-content:center;margin-top:18px">
+  <!-- ── 统一搜索框（V0.20.5.0）──
+       之前第一屏的核心动作是「拖入 .pez」，而 .pez 只有谱师才有。
+       普通玩家点进来看到的第一个东西就是自己做不了的动作 → 直接关掉。
+       现在放一个谁都能用的搜索框：歌名 / 谱师 / UID 全都接。 -->
+  <form class="hfind" id="hfind" role="search">
+    <input id="hq" type="search" data-i18n-ph="home.srch.ph" maxlength="40" autocomplete="off"
+           placeholder="搜歌名 / 谱师名 / 玩家 UID，例如 Pandemic" enterkeyhint="search">
+    <button type="submit" data-i18n="home.srch.btn">查</button>
+  </form>
+  <p class="hfind-hint" id="hhint" data-i18n="home.srch.tip"></p>
+
+  <div class="row" style="justify-content:center;margin-top:14px">
     <a class="btn primary" href="/app" style="padding:10px 22px;font-size:15px"><span data-i18n="home.cta1">算定数</span> →</a>
     <a class="btn" href="/charter" style="padding:10px 18px;font-size:15px"><span data-i18n="home.cta2">查谱师作品</span></a>
   </div>
@@ -202,9 +228,45 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER, applyStatic, t, onLangChange, currentLang, setLang, fmtInt } from '/js/ui.js?v=V0.20.4.1';
-import { stash } from '/js/handoff.js?v=V0.20.4.1';
+import { renderNav, esc, APP_VER, applyStatic, t, onLangChange, currentLang, setLang, fmtInt } from '/js/ui.js?v=V0.20.4.2';
+
+import { stash } from '/js/handoff.js?v=V0.20.4.2';
+import { installGuard } from '/js/guard.js?v=V0.20.4.2';
+
+/* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
+   ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
+try { installGuard(t); } catch (e) {}
 renderNav('home');
+
+/* ── 统一搜索框 ──
+ * ⚠ 分流规则要**写在输入框下面**（实时提示），不能等提交了才告诉用户搜错了：
+ *   · 纯数字（1–12 位）→ 玩家 UID   → /user?uid=
+ *   · 其余              → 曲名/谱师 → /app?q=
+ * 为什么不给"谱师"单开一个按钮：一个框能解决的事不要拆成三个，
+ * 拆了用户反而要停下来想"我该点哪个"——那就是新的流失点。
+ * ⚠ 数字判据放在最前面：UID 是纯数字，曲名几乎不可能纯数字。 */
+(function(){
+  var f=document.getElementById('hfind'), q=document.getElementById('hq'), hint=document.getElementById('hhint');
+  if(!f||!q) return;
+  function showHint(){
+    if(!hint) return;
+    var v=q.value.trim();
+    if(!v){ hint.textContent=t('home.srch.tip'); hint.classList.remove('num'); return; }
+    var isNum=/^\d{1,12}$/.test(v);
+    hint.textContent=t(isNum?'home.srch.hint.num':'home.srch.hint.word');
+    hint.classList.toggle('num',isNum);
+  }
+  q.addEventListener('input',showHint);
+  showHint();
+  f.addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var v=q.value.trim();
+    if(!v){ q.focus(); return; }
+    location.href = /^\d{1,12}$/.test(v)
+      ? '/user?uid='+encodeURIComponent(v)
+      : '/app?q='+encodeURIComponent(v);
+  });
+})();
 /* 首页 hero / 入口卡片是静态 HTML，靠 data-i18n 批量替换 */
 applyStatic();
 

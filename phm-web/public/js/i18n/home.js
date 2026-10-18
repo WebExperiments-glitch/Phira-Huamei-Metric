@@ -3,11 +3,19 @@
  * ============================================================ */
 export default {
   zh: {
-    'home.h1': '给 Phira 谱面一个<b>可审计</b>的难度参考',
-    'home.sub': '拖入谱面包，浏览器里算出它的结构定数——<b>两个标度都告诉你</b>，<br>连同这个数字有多准。<b>谱面文件不会上传</b>，也不需要登录。',
+    'home.h1': '这首歌到底有多难？',
+    'home.sub': '搜一下就知道：<b>定数是多少</b>、难在哪、跟哪些歌最像。<br>不用登录，也不会上传你的任何文件。',
     'home.cta1': '算定数',
     'home.cta2': '查谱师作品',
     'home.drop': '把 .pez / .zip 拖到这里，或<b>点一下选文件</b>',
+    /* ── 首页统一搜索框（V0.20.5.0）──
+       之前第一屏的核心动作是「拖入 .pez」，而 .pez 只有谱师才有 ——
+       普通玩家点进来，第一眼看到的就是自己做不了的动作。 */
+    'home.srch.ph': '搜歌名 / 谱师名 / 玩家 UID，例如 Pandemic',
+    'home.srch.btn': '查',
+    'home.srch.tip': '不知道搜什么？试试点下面的例子',
+    'home.srch.hint.num': '输入的是数字 → 当成玩家 UID 查成绩',
+    'home.srch.hint.word': '按歌名 / 谱师搜谱面',
     'home.drop.tip': '文件不上传',
     'home.drop.bad': '只认 .pez / .zip 谱面包',
     'home.tile1.t': '算定数',
@@ -71,11 +79,19 @@ export default {
       + '拖进首页虚线框，纯本机解析，<b>文件不会上传</b>。',
   },
   en: {
-    'home.h1': 'An <b>auditable</b> difficulty reference for Phira charts',
+    'home.h1': 'How hard is this song, really?',
     'home.sub': 'Drop a chart pack in and the structural constant is computed in your browser — <b>both scales</b>,<br>plus how tight that number is. <b>Nothing is uploaded</b>, and no sign-in is needed.',
     'home.cta1': 'Analyze',
     'home.cta2': 'Browse charters',
     'home.drop': 'Drop a .pez / .zip here, or <b>click to pick a file</b>',
+    /* ── Homepage unified search (V0.20.5.0) ──
+       The hero used to lead with "drop a .pez here", but only charters have .pez files,
+       so most visitors met an action they could not perform and left. */
+    'home.srch.ph': 'Song / charter / player UID, e.g. Pandemic',
+    'home.srch.btn': 'Go',
+    'home.srch.tip': 'Not sure what to search? Try an example below.',
+    'home.srch.hint.num': 'Digits are treated as a player UID',
+    'home.srch.hint.word': 'Searches charts by song or charter',
     'home.drop.tip': 'never uploaded',
     'home.drop.bad': 'Only .pez / .zip chart packs',
     'home.tile1.t': 'Analyze',
