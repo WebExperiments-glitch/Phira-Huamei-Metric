@@ -107,12 +107,31 @@ console.log('\n[review-gate] 3. 页面白名单 / 干净 URL');
 const server = fs.readFileSync(path.join(WEB, 'server.mjs'), 'utf8');
 const filesBlock = (server.match(/const PUBLIC_FILES = new Set\(\[([\s\S]*?)\]\);/ ) || [])[1] || '';
 const publicFiles = new Set([...filesBlock.matchAll(/'([^']+\.html)'/g)].map((m) => m[1]));
-const cleanBlock = (server.match(/const CLEAN = \{([\s\S]*?)\};/) || [])[1] || '';
+/* ⚠ CLEAN 的真源在 `lib/pages.mjs`（V0.21.1.2 起，页面级 SEO 路由与它放一起）。
+   硬编码只读 server.mjs 会让这道门**全页假失败** —— 实测挪走之后
+   14 个页面同时报「没有干净 URL」，而它们全都有。
+   所以按顺序找第一个有定义的文件，而不是认死一个路径。 */
+const cleanSrc = ['lib/pages.mjs', 'server.mjs']
+  .map(f => { try { return fs.readFileSync(path.join(WEB, f), 'utf8'); } catch (e) { return ''; } })
+  .join('\n');
+const cleanBlock = (cleanSrc.match(/const CLEAN = \{([\s\S]*?)\};/) || [])[1] || '';
 const cleanTargets = new Set([...cleanBlock.matchAll(/'(\/[^']+)':\s*'([^']+\.html)'/g)].map((m) => m[2]));
+/* 参数化路由：`/chart/<id>` 这类 URL 没法写成 `'/x': 'x.html'` 的固定映射，
+   所以单独一张表。⚠ 表里的每一项都必须在 lib/pages.mjs 里真的被渲染，
+   否则就是"声称有干净 URL 其实没有"。 */
+const PARAM_ROUTES = { 'chart.html': '/chart/<id>' };
+const pagesSrc = (() => { try { return fs.readFileSync(path.join(WEB, 'lib/pages.mjs'), 'utf8'); } catch (e) { return ''; } })();
+for (const [f, url] of Object.entries(PARAM_ROUTES)) {
+  if (!pagesSrc.includes("readTemplate('" + f + "')") && !pagesSrc.includes('readTemplate("' + f + '")')) {
+    fail('PARAM_ROUTES 里的 ' + f + ' 声称走 ' + url + '，但 lib/pages.mjs 里没有渲染它');
+  }
+}
 const topHtml = fs.readdirSync(path.join(WEB, 'public')).filter((f) => f.endsWith('.html'));
 for (const f of topHtml) {
   if (!publicFiles.has(f)) fail('public/' + f + ' 不在 PUBLIC_FILES');
-  if (!['404.html', 'index.html'].includes(f) && !cleanTargets.has(f)) fail('public/' + f + ' 没有干净 URL（CLEAN）');
+  if (!['404.html', 'index.html'].includes(f) && !cleanTargets.has(f) && !PARAM_ROUTES[f]) {
+    fail('public/' + f + ' 没有干净 URL（CLEAN）');
+  }
 }
 ok('public/*.html 全部在 PUBLIC_FILES' + (topHtml.length ? '（' + topHtml.length + ' 个）' : ''));
 if (!/^\.\.?\//.test(sh('git', ['rev-parse', '--show-toplevel'], ROOT))) ok('仓库根正常');
