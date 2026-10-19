@@ -36,7 +36,7 @@ const z = zipStore([{ name: 'a.txt', data: new TextEncoder().encode('hello') }])
 T('ZIP 头 PK', z[0] === 0x50 && z[1] === 0x4b);
 T('统计字段', stats.notes === notes.length && stats.bpm === 128);
 T('规则校验 0 违规', stats.valid === true && validateChart(chart, { difficulty: 'hard', lanes: 4 }).ok, JSON.stringify(stats.violations));
-T('规则版本', RULES.version === '1.0' && stats.ruleVersion === '1.0');
+T('规则版本', RULES.version === '2.0' && stats.ruleVersion === '2.0', RULES.version);
 T('实际 NPS 与统计一致', Math.abs(stats.nps - notes.length / 30) < 1e-9);
 T('同种子可复现', JSON.stringify(buildChart({ bpm: 128, duration: 30, difficulty: 'hard', lanes: 4, seed: 'test' }).chart) === JSON.stringify(chart));
 T('换种子会变化', JSON.stringify(buildChart({ bpm: 128, duration: 30, difficulty: 'hard', lanes: 4, seed: 'other' }).chart) !== JSON.stringify(chart));
