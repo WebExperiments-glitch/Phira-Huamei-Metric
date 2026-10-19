@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.21.1.0">
+<title>谱面包 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="把任意 Phira 谱面连同曲绘、音频打成 .pez 包。文件在你的浏览器里直连下载，不经我们的服务器。">
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.21.1.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.0">
+<style>
+/* ── 卡片网格 ──
+   grid 而非 flex：卡片等高，且窗口变窄时自动降列。
+   auto-fill + minmax 是关键 —— auto-fit 会把最后一列拉宽，
+   三张卡时第三张会独占整行，视觉上很怪。 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:11px;margin-top:14px}
+.card2{background:var(--card);border:1px solid var(--line);border-radius:11px;
+  padding:0;overflow:hidden;display:flex;flex-direction:column;
+  transition:border-color .15s,transform .15s}
+/* 悬停只抬 1px：抬多了会让整页在鼠标划过时晃 */
+.card2:hover{border-color:var(--brand-line);transform:translateY(-1px)}
+.card2 .top{display:flex;gap:10px;padding:11px 12px 0}
+.card2 .ill{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:none;
+  background:var(--card3);border:1px solid var(--line)}
+.card2 .meta{flex:1;min-width:0}
+.card2 .nm{font-size:13.5px;font-weight:600;color:var(--fg);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card2 .lv{font-family:var(--mono);font-size:11.5px;color:var(--brand);margin-top:3px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.card2 .who{font-size:11.5px;color:var(--fg3);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card2 .mid{padding:9px 12px 0;flex:1}
+.card2 .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}
+.card2 .tg{font-size:10.5px;color:var(--fg3);background:var(--card2);
+  border:1px solid var(--line);border-radius:5px;padding:1px 6px;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card2 .btm{display:flex;align-items:center;gap:8px;padding:9px 12px 11px;
+  border-top:1px solid var(--line);margin-top:10px}
+.card2 .rt{font-family:var(--mono);font-size:12px;color:var(--fg2);
+  font-variant-numeric:tabular-nums}
+.card2 .rt b{color:var(--fg);font-weight:600}
+.card2 .pack{margin-left:auto;font-size:11.5px;padding:4px 11px;border-radius:7px;
+  border:1px solid var(--brand-line);background:var(--brand-soft);color:var(--brand);
+  cursor:pointer;font-family:inherit;white-space:nowrap}
+.card2 .pack:hover{background:var(--brand);color:var(--brand-ink)}
+.card2 .pack:disabled{opacity:.5;cursor:default}
+
+/* ── 抽屉 ── */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;
+  opacity:0;pointer-events:none;transition:opacity .18s}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,100%);z-index:61;
+  background:var(--bg);border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden}
+.drawer.on{transform:none}
+.drawer .dh{padding:15px 17px 12px;border-bottom:1px solid var(--line)}
+.drawer .dh h3{margin:0 0 3px;font-size:15px;line-height:1.45}
+.drawer .db{padding:14px 17px;overflow-y:auto;flex:1}
+.drawer .sec{margin-bottom:17px}
+.drawer .sec>h4{margin:0 0 7px;font-size:11.5px;font-weight:600;color:var(--fg3);
+  letter-spacing:.03em;text-transform:uppercase}
+
+/* 勾选行 */
+.frow{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+  border:1px solid var(--line);background:var(--card);margin-bottom:5px;cursor:pointer}
+.frow:hover{border-color:var(--brand-line)}
+.frow.no{opacity:.45;cursor:default}
+/* ⚠ 不用 display:none 藏 checkbox —— 那样键盘 Tab 不到它。
+   改成透明但保留尺寸，视觉上由旁边的方块代替。 */
+.frow input{margin:0;width:14px;height:14px;accent-color:var(--brand);flex:none}
+.frow .fn{font-size:12.5px;color:var(--fg);font-weight:500}
+.frow .fs{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--fg4)}
+.frow .box{width:14px;height:14px;border:1.5px solid var(--fg4);border-radius:4px;
+  flex:none;position:relative}
+.frow input:checked ~ .box{background:var(--brand);border-color:var(--brand)}
+.frow input:checked ~ .box::after{content:"";position:absolute;left:3.6px;top:.8px;
+  width:3.5px;height:7px;border:solid var(--brand-ink);border-width:0 1.8px 1.8px 0;
+  transform:rotate(43deg)}
+/* 单文件下载：点它只下载这一个文件，不打整包。
+   ⚠ .fs 是 margin-left:auto 的，占了剩余空间，所以这里不再 auto。 */
+.frow .solo{flex:none;width:22px;height:22px;display:flex;align-items:center;
+  justify-content:center;border-radius:6px;text-decoration:none;color:var(--fg3);
+  font-size:14px;line-height:1;border:1px solid var(--line)}
+.frow .solo:hover{color:var(--brand-ink);border-color:var(--brand);background:var(--brand-soft)}
+.frow .solo:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+
+/* 简介：保留换行但不解析 HTML（上游是用户自由文本） */
+.desc{font-size:12.5px;line-height:1.8;color:var(--fg2);white-space:pre-wrap;
+  word-break:break-word;background:var(--card);border:1px solid var(--line);
+  border-radius:9px;padding:11px 12px;max-height:280px;overflow-y:auto}
+
+/* 进度条 */
+.prog{height:4px;border-radius:2px;background:var(--card3);overflow:hidden;margin-top:9px}
+.prog i{display:block;height:100%;background:var(--brand);transition:width .2s}
+.log{margin-top:8px;font-size:11.5px;line-height:1.7;color:var(--fg3)}
+.log .er{color:var(--err)}
+.log .ok{color:var(--ok)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px">
+    <h2 style="margin:0" data-i18n="pk.title">谱面包</h2>
+    <span class="dim2" style="font-size:12px" id="cnt"></span>
+  </div>
+  <div class="sub" data-i18n-html="pk.sub">
+    把任意谱面连同曲绘、音频打成 <b>.pez</b> 包带走。所有文件都从你的浏览器直连 Phira 的服务器下载，<b>不经我们的服务器中转</b>。
+  </div>
+</div>
+
+<div class="card">
+  <div class="row" style="gap:9px;flex-wrap:wrap">
+    <input class="inp" id="q" autocomplete="off" style="flex:1;min-width:190px"
+           data-i18n-ph="pk.search" placeholder="搜曲名、谱师、作曲、标签…">
+    <select class="inp" id="lv" data-i18n-ph="pk.allLevels" style="width:auto;min-width:104px"></select>
+    <select class="inp" id="sort" style="width:auto;min-width:104px">
+      <option value="default" data-i18n="pk.sortDefault">默认</option>
+      <option value="rating" data-i18n="pk.sortRating">评分最高</option>
+      <option value="newest" data-i18n="pk.sortNewest">最新</option>
+      <option value="level" data-i18n="pk.sortLevel">定数最高</option>
+    </select>
+  </div>
+  <div class="dim2" style="font-size:11.5px;margin-top:7px" data-i18n="pk.searchHint"></div>
+</div>
+
+<div id="list"></div>
+
+<div class="row" style="justify-content:center;margin:18px 0 8px">
+  <button class="btn" type="button" id="more" style="display:none" data-i18n="pk.more">加载更多</button>
+</div>
+
+<div class="card" style="margin:20px 0 30px">
+  <h3 style="margin:0 0 8px;font-size:14px" data-i18n="pk.noteTitle">关于这些包</h3>
+  <div class="notes" style="font-size:12.5px;line-height:1.85;color:var(--fg2)"><ol style="margin:0;padding-left:18px">
+    <li data-i18n-html="pk.note1"></li>
+    <li data-i18n-html="pk.note2"></li>
+    <li data-i18n-html="pk.note3"></li>
+    <li data-i18n-html="pk.note4"></li>
+  </ol></div>
+</div>
+
+<div id="foot"></div>
+</div>
+
+<!-- 抽屉 -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+  <div class="dh">
+    <h3 id="dTitle"></h3>
+    <div class="dim2" style="font-size:12px" id="dSub"></div>
+  </div>
+  <div class="db">
+    <div class="sec">
+      <h4 data-i18n="pk.files">包含哪些文件</h4>
+      <div id="fl"></div>
+    </div>
+    <div class="sec">
+      <h4 data-i18n="pk.tagline">简介</h4>
+      <div class="desc" id="dDesc"></div>
+    </div>
+    <div class="sec">
+      <button class="btn primary" type="button" id="doPack" style="width:100%" data-i18n="pk.pack">打包下载</button>
+      <div class="prog" id="pgWrap" style="display:none"><i id="pg"></i></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</aside>
+
+<script type="module">
+import {
+  renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER,
+} from '/js/ui.js?v=V0.21.1.0';
+import { installGuard } from '/js/guard.js?v=V0.21.1.0';
+import { cleanChart, searchText, FILE_KINDS } from '/js/chartfiles-core.mjs?v=V0.21.1.0';
+import { packPez, saveBlob, fileUrlOf } from '/js/chartfiles.js?v=V0.21.1.0';
+
+installGuard(t);
+renderNav();
+
+const $ = id => document.getElementById(id);
+const PAGE = 30;
+
+/* ⚠ 全部状态集中在一处：筛选/搜索/分页/排序互相影响，
+ * 散在各自的事件回调里必然出现「搜索没重置页码」这类组合 bug。 */
+const S = {
+  q: '', lv: '', sort: 'default',
+  page: 1, total: 0,
+  items: [],          /* 已加载的所有 chart */
+  loading: false,
+  current: null,      /* 抽屉里正在看的那张 */
+  wanted: {},         /* 勾选了哪些文件 */
+};
+
+const LEVELS = ['EZ', 'HD', 'IN', 'AT', 'SP'];
+
+/* 文件种类 → i18n 键。⚠ 必须在**模块作用域**声明：
+   之前写在 openDrawer 内部，打包失败回调里就取不到了
+   （那个回调在 openDrawer 返回之后才跑）。 */
+const KIND_KEY = {
+  chart: 'pk.chartJson', audio: 'pk.audio',
+  illust: 'pk.illust2', preview: 'pk.preview',
+};
+
+/* ── 取一页 ──
+ * ⚠ 上游 /chart?page=N **忽略搜索词**（实测 name/query/q 全都无效），
+ *   所以搜索只能**在已加载的数据里做客户端过滤**。
+ *   这意味着：搜不到不在前 N 页里的谱面。
+ *   诚实做法是把总数显示出来，让人知道这只是「已加载的里面找」，
+ *   而不是装成全库搜索。 */
+async function fetchPackPage(page) {
+  const base = '/api/phira/chart';
+  const r = await fetch(base + '?page=' + page, { cache: 'no-cache' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  return { total: Number(d.count) || 0, items: (d.results || []).map(cleanChart).filter(Boolean) };
+}
+
+async function loadPackPage(page) {
+  if (S.loading) return;
+  S.loading = true;
+  const first = page === 1;
+  if (first) {
+    $('list').innerHTML = '<div class="card"><p class="dim2" style="margin:0;font-size:13px">'
+      + esc(t('pk.loading')) + '</p></div>';
+  }
+  try {
+    const d = await fetchPackPage(page);
+    S.total = d.total;
+    /* ⚠ 去重：翻页期间上游可能插了新谱面，
+     *   导致第 2 页的第 1 条和第 1 页的最后一条 id 相同。 */
+    const seen = new Set(S.items.map(x => x.id));
+    for (const it of d.items) if (!seen.has(it.id)) S.items.push(it);
+    render();
+  } catch (e) {
+    if (first) {
+      $('list').innerHTML = '<div class="card"><p style="margin:0 0 6px;font-size:13px;color:var(--err)">'
+        + esc(t('pk.loadFail')) + '</p><p class="dim2" style="margin:0;font-size:12px">'
+        + esc(t('pk.loadFailHint')) + '</p>'
+        + '<button class="btn" style="margin-top:10px" onclick="location.reload()">'
+        + esc(t('pk.retry')) + '</button></div>';
+    }
+  } finally {
+    S.loading = false;
+  }
+}
+
+/* ── 筛选 ──
+ * ⚠ 难度是从 level 字符串里认的（"AT LV.16"），
+ *   不能只按等于匹配 —— 谱名里也可能含难度字样。 */
+function visible() {
+  let out = S.items;
+  if (S.lv) out = out.filter(c => (c.level || '').toUpperCase().includes(S.lv));
+  if (S.q) {
+    const q = S.q.toLowerCase().trim();
+    /* 空格分词，要求**全部**命中（AND）而不是任一命中（OR）：
+     * 「无限光 练习」两个词都有的才是用户要找的，
+     * 任一命中会把几万张全筛出来。 */
+    const terms = q.split(/\s+/);
+    out = out.filter(c => {
+      const s = searchText(c);
+      return terms.every(t => s.includes(t));
+    });
+  }
+  const sorted = out.slice();
+  if (S.sort === 'rating') {
+    sorted.sort((a, b) => (b.rating || -1) - (a.rating || -1) || b.ratingCount - a.ratingCount);
+  } else if (S.sort === 'newest') {
+    sorted.sort((a, b) => String(b.created || '').localeCompare(String(a.created || '')));
+  } else if (S.sort === 'level') {
+    sorted.sort((a, b) => (b.difficulty || 0) - (a.difficulty || 0));
+  }
+  return sorted;
+}
+
+function cardHtml(c) {
+  const stars = c.ratingCount > 0
+    ? '<b>' + c.rating.toFixed(3) + '</b> · ' + t('pk.votes', { n: c.ratingCount })
+    : '<span style="color:var(--fg4)">' + esc(t('pk.noVotes')) + '</span>';
+  /* ⚠ 用**代理**地址而不是上游直链 —— 上游 MIME 是 octet-stream，
+     浏览器 ORB 会拒绝解码（详见 chartfiles-core.mjs 里illustView 的注释）。
+     ⚠ 曲绘直链可能 404（上游文件被删但元数据还在）。
+     挂 onerror 换成占位块，而不是留一个碎图标。 */
+  const ill = c.illustView
+    ? '<img class="ill" loading="lazy" referrerpolicy="no-referrer" src="' + esc(c.illustView)
+      + '" alt="" onerror="this.style.visibility=\'hidden\';this.nextElementSibling.style.display=\'flex\'">'
+      + '<span class="ill" style="display:none;align-items:center;justify-content:center;font-size:15px;color:var(--fg4)">♪</span>'
+    : '<span class="ill" style="display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--fg4)">♪</span>';
+
+  const tags = (c.tags || []).slice(0, 3)
+    .map(t => '<span class="tg">' + esc(t) + '</span>').join('');
+
+  return '<div class="card2" data-id="' + c.id + '">'
+    + '<div class="top">' + ill
+    + '<div class="meta"><div class="nm">' + esc(c.name) + '</div>'
+    + '<div class="lv"><span>' + esc(c.level) + '</span>'
+    + (c.reviewed ? '<span class="tg" style="color:var(--ok)">' + esc(t('pk.verified')) + '</span>' : '')
+    + '</div>'
+    + '<div class="who">' + esc(c.charter || t('pk.by')) + '</div></div></div>'
+    + (tags ? '<div class="mid"><div class="tags">' + tags + '</div></div>' : '<div class="mid"></div>')
+    + '<div class="btm"><span class="rt">' + stars + '</span>'
+    + '<button class="pack" type="button" data-pack="' + c.id + '">' + esc(t('pk.pack')) + '</button>'
+    + '</div></div>';
+}
+
+function render() {
+  const list = visible();
+  $('cnt').textContent = t('pk.resultCount', { n: list.length });
+
+  if (!list.length) {
+    $('list').innerHTML = '<div class="card"><p style="margin:0 0 5px;font-size:13px">'
+      + esc(t('pk.noResult')) + '</p><p class="dim2" style="margin:0;font-size:12px">'
+      + esc(t('pk.noResultHint')) + '</p></div>';
+  } else {
+    $('list').innerHTML = '<div class="grid">' + list.map(cardHtml).join('') + '</div>';
+  }
+
+  $('more').style.display = S.items.length < S.total ? '' : 'none';
+  $('foot').innerHTML = '<p class="dim2" style="font-size:12px">'
+    + esc(t('foot.version', { v: APP_VER })) + '</p>';
+}
+
+/* ── 事件 ── */
+let searchTimer = null;
+$('q').addEventListener('input', e => {
+  S.q = e.target.value;
+  /* ⚠ 去抖 260ms：一边打字一边过滤 300 张卡会明显卡顿。 */
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(render, 260);
+});
+$('lv').addEventListener('change', e => { S.lv = e.target.value; render(); });
+$('sort').addEventListener('change', e => { S.sort = e.target.value; render(); });
+$('more').addEventListener('click', () => { S.page++; loadPackPage(S.page); });
+
+/* 点卡片开抽屉；点「打包」直接开抽屉并预勾默认项。
+ * ⚠ 用 closest 找按钮而不是给每张卡挂监听 ——
+ *   300 张卡挂 300 个 listener，事件委托一个就够。 */
+$('list').addEventListener('click', e => {
+  const pk = e.target.closest('[data-pack]');
+  const card = e.target.closest('[data-id]');
+  if (pk) {
+    e.stopPropagation();
+    const c = S.items.find(x => x.id === Number(pk.dataset.pack));
+    if (c) openDrawer(c, true);
+  } else if (card) {
+    const c = S.items.find(x => x.id === Number(card.dataset.id));
+    if (c) openDrawer(c, false);
+  }
+});
+
+/* ── 抽屉 ── */
+function openDrawer(c, goPack) {
+  S.current = c;
+  S.wanted = { chart: true, audio: false, illust: false, preview: false };
+  $('dTitle').textContent = c.name;
+  $('dSub').textContent = [c.level, c.charter, c.composer].filter(Boolean).join(' · ');
+  $('dDesc').textContent = c.description || '—';
+  $('log').innerHTML = '';
+  $('pgWrap').style.display = 'none';
+
+  $('fl').innerHTML = FILE_KINDS.map(k => {
+    const url = k.key === 'chart' ? c.file : k.key === 'preview' ? c.preview : c.illustration;
+    const has = !!url;
+    /* ⚠ 默认只勾 chart.json：用户点进来多半只想拿谱面本体，
+     *   音乐动辄几 MB，默认全勾会让人以为要下几百兆。 */
+    const on = k.key === 'chart';
+    return '<label class="frow' + (has ? '' : ' no') + '">'
+      + '<input type="checkbox" data-k="' + k.key + '"' + (has && on ? ' checked' : '')
+      + (has ? '' : ' disabled') + '>'
+      + '<span class="box"></span>'
+      + '<span class="fn">' + esc(t(KIND_KEY[k.key])) + '</span>'
+      + '<span class="fs">' + (has ? '' : esc(t('pk.notHas'))) + '</span>'
+      /* ⚠ 音频要走我们自己的代理（上游没有 audioUrl 直链），
+         其余是 Phira CDN 直链，浏览器直接下不过我们的服务器。 */
+      + (has ? '<a class="solo" data-solo="' + k.key + '" href="'
+          + esc(fileUrlOf({ ...c, audioUrl: '/api/phira/music?chart=' + c.id }, k.key))
+          + '" target="_blank" rel="noreferrer noopener" title="'
+          + esc(t('pk.saveOne')) + '">↓</a>' : '')
+      + '</label>';
+  }).join('');
+
+  $('scrim').classList.add('on');
+  $('drawer').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  if (goPack) setTimeout(() => $('doPack').focus(), 60);
+}
+
+function closeDrawer() {
+  $('scrim').classList.remove('on');
+  $('drawer').classList.remove('on');
+  document.body.style.overflow = '';
+  S.current = null;
+}
+$('scrim').addEventListener('click', closeDrawer);
+/* ⚠ Esc 要关抽屉：键盘用户没有别的出路。
+   同时清掉输入框的搜索状态会让人意外，所以只关抽屉。 */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('drawer').classList.contains('on')) closeDrawer();
+});
+
+$('fl').addEventListener('change', e => {
+  const k = e.target.dataset.k;
+  if (k) S.wanted[k] = e.target.checked;
+});
+
+/* ⚠ 单文件下载按钮在 <label> 里 —— 不拦住的话，点它会**顺带勾上/取消勾选**，
+     用户只想下一个文件却改了打包内容。 */
+$('fl').addEventListener('click', e => {
+  if (e.target.closest('.solo')) e.preventDefault();
+});
+
+/* ⚠ 音频没有现成直链：上游 chart 对象里没有 audioUrl（实测），
+ *   Phira 的音乐走 /music?chart=<id>。
+ *   取不到就只把「音频」这行标成没有，不静默忽略。 */
+$('doPack').addEventListener('click', async () => {
+  const c = S.current;
+  if (!c) return;
+  const btn = $('doPack');
+  const kinds = Object.keys(S.wanted).filter(k => S.wanted[k]);
+  if (!kinds.length) return;
+
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = t('pk.packing');
+  $('pgWrap').style.display = '';
+  $('log').innerHTML = '';
+
+  const chartArg = {
+    ...c,
+    /* Phira 音频端点是 /music?chart=<id>，我们走自己的代理 */
+    audioUrl: '/api/phira/music?chart=' + c.id,
+  };
+
+  const r = await packPez(chartArg, kinds, (i, n, k) => {
+    $('pg').style.width = Math.round(i / n * 100) + '%';
+    $('log').innerHTML = '<div>' + esc(t('pk.packProgress', { i, n })) + '</div>';
+  });
+
+  if (r.ok) {
+    saveBlob(r.blob, r.name);
+    const lines = ['<div class="ok">' + esc(t('pk.packDone', { name: r.name })) + '</div>'];
+    if (r.failed.length) {
+      lines.push('<div class="er">' + esc(t('pk.packPartial', { n: r.failed.length })) + '</div>');
+      for (const f of r.failed) {
+        lines.push('<div class="er">· ' + esc(t('pk.packFailed', {
+          name: t(KIND_KEY[f.kind] || 'pk.chartJson'), err: f.err,
+        })) + '</div>');
+      }
+    }
+    $('log').innerHTML = lines.join('');
+    $('pg').style.width = '100%';
+  } else {
+    $('log').innerHTML = '<div class="er">' + esc(t('pk.packAllFailed')) + '</div>'
+      + r.failed.map(f => '<div class="er">· ' + esc(f.err) + '</div>').join('');
+  }
+
+  btn.disabled = false;
+  btn.textContent = label;
+});
+
+/* ── 难度下拉 ── */
+$('lv').innerHTML = '<option value="">' + t('pk.allLevels') + '</option>'
+  + LEVELS.map(l => '<option value="' + l + '">' + l + '</option>').join('');
+
+function renderPacks() { applyStatic(); render(); }
+onLangChange(renderPacks);
+
+/* ⚠ 从别处跳进来时带上 q（首页搜索框就是这个用法） */
+const qp = new URLSearchParams(location.search);
+if (qp.get('q')) { S.q = qp.get('q'); $('q').value = S.q; }
+
+loadPackPage(1);
+</script>
+</body>
+</html>

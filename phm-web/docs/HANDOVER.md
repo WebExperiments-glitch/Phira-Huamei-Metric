@@ -64,7 +64,11 @@ cd phm-web && npm run check                           # ★ 全部非浏览器�
 node tools/gen-ref.mjs --check                        # 参照集与真源同步
 node tools/verify-engine.mjs                          # 45 条 · 引擎纯计算
 node tools/test-ratelimit.mjs                         # 80 条 · 限流
-PORT=5199 node server.mjs &                           # 先起服务
+PHM_TEST_NO_RATELIMIT=1 PORT=5199 node server.mjs &  # 先起服务
+#   ⚠ 这个变量**只在跑浏览器测试时**加。它关掉限流配额，原因是
+#     十几页都从 127.0.0.1 打 /api/phira/*，加起来轻松撞光 proxyIp=60，
+#     排在后面的页面拿到 429、渲染成空 —— 测试报「功能坏了」而功能是好的。
+#   ⚠ 生产环境绝对不许设 —— 限流会静默失效。它只绕配额，不绕路径白名单。
 
 node tools/smoke-page.mjs      http://127.0.0.1:5199  # 239 条 · 页面加载/版本号/缓存策略
 node tools/verify-pages.mjs    http://127.0.0.1:5199  # 123 条 · 真浏览器驱动 UI + 双语

@@ -185,6 +185,11 @@ export function buildKeys(scope, who, limits = {}) {
 }
 
 export async function limit(keys, max, windowMs = 60_000, opts = {}) {
+  /* 测试旁路：见文件里 NO_RL 的说明。默认不进来。
+     ⚠ 必须返回 `{ok:true}` 而不是 `true` —— 调用方 makeGate 判的是 `r.ok`，
+       传布尔值会让它读到 undefined 而当成「没过头」，直接回 429。
+       （这个坑真实发生过：旁路看起来"设了"，结果 429 照旧。） */
+  if (NO_RL) return { ok: true, via: 'bypass', n: 0, resetMs: 0 };
   /* 允许调用方传 `{k, max: undefined}` —— 这时用默认 max 补上，
      省得每个调用点都重复写一遍数字。 */
   const specs = keys.map(k => {
@@ -349,6 +354,23 @@ export const RL = {
   apiKeyHour: 1000, apiAnalyzeDay: 200,
 };
 export const RL_WINDOW = 60_000;
+
+/* ⚠⚠ **只给自动化测试用的旁路，生产绝对不许开**。
+ *
+ * 为什么需要：限流是**按真实 IP** 计的，而浏览器测试把所有页面都从
+ * 127.0.0.1 打一遍 —— 谱师页 / 玩家页 / 谱面包各自都要拉 Phira 谱面，
+ * 十几页加起来轻松撞掉 proxyIp=60 的配额，于是排在后面的页面
+ * 拿到 429、卡片渲染成 0，测试报「功能坏了」而功能其实好的。
+ * （2026-10-18 实测：只有 `/packs` 红，其他页全绿 —— 典型的配额被前面吃光。）
+ *
+ * ⚠ 为什么不能用「放宽阈值」解决：那等于为了让测试过而降低线上防线。
+ * 这里反过来 —— **只在显式设了环境变量时放行**，默认行为一字不变，
+ * 忘了设也只是回到「测试撞限流」这个吵闹但安全的状态。
+ *
+ * ⚠ 它绕过的**只有配额**，不绕过路径白名单、不绕过方法限制。
+ * ⚠ 生产若误设 PHM_TEST_NO_RATELIMIT=1，限流就静默失效了 ——
+ *   所以部署检查里必须确保它**不在**环境变量里。 */
+const NO_RL = process.env.PHM_TEST_NO_RATELIMIT === '1';
 
 /** 各路径的过闸句柄 —— 消息文案跟着配额走，改 RL 不用翻遍全文件找 429。
  *  `opts` 会透传给 limit()，测试用 `{db:false}` 只测内存路径。 */

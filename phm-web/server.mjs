@@ -43,6 +43,8 @@ import {
 import { makeContributeRoutes } from './lib/contribute-routes.mjs';
 /* API v1 路由（/api/v1/*）—— 独立模块，避免 server.mjs 破 900 行。 */
 import { makeApiRoutes } from './lib/api-routes.mjs';
+import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
+import { makeChartAssetRoutes } from './lib/chartassets.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -187,7 +189,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
   '404.html', 'sitemap.xml', 'og.png', 'version.html', 'download.html',
-  'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html']);
+  'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
+  'status.html', 'packs.html']);
 /* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
    只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
 
@@ -395,6 +398,9 @@ const apiRoutes = makeApiRoutes({
   SORTABLE, phiraBase: PHIRA_API,
 });
 
+/* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
+const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
@@ -414,6 +420,10 @@ const server = http.createServer(async (req, res) => {
   /* 健康检查：只回 ok。
      此前返回 Node 版本 / 启动时间 / uptime / 存储状态 —— 那是给攻击者的情报，已删。 */
   if (p === '/api/health') return send(res, 200, JSON.stringify({ ok: true }));
+
+  /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
+  if (p === '/api/status') return statusRoutes(req, res, url);
+  if (p.startsWith('/api/phira-illust/')) return chartAssets(req, res, url);
 
   /* ── huamei：取谱代理 ──
      客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。
@@ -837,7 +847,9 @@ const server = http.createServer(async (req, res) => {
                   '/version': 'version.html', '/download': 'download.html',
                   '/developers': 'developers.html', '/platform': 'platform.html',
                   '/developer': 'platform.html',   /* 旧链接兼容 */
-                  '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html' };
+                  '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',
+                  '/status': 'status.html',
+                  '/packs': 'packs.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
@@ -880,4 +892,8 @@ server.keepAliveTimeout = 15000;
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log('[phm] listening on 0.0.0.0:' + PORT + ' | boot ' + BOOT_AT + ' | node ' + process.version);
+  /* 自监控：打回环地址，不走外部域名（沙箱出站常被网关限制，
+     探外部只会得到一片假红）。详见 lib/status.mjs 顶部。
+     ⚠ 它自己抛异常也不该影响主服务 —— startStatusMonitor 内部已兜住。 */
+  startStatusMonitor(PORT);
 });

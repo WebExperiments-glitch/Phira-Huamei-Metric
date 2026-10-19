@@ -26,7 +26,7 @@
 ```bash
 cd phm-web
 npm run check                 # 全部非浏览器检查，1 分钟内
-PORT=5199 node server.mjs     # 另开终端
+PHM_TEST_NO_RATELIMIT=1 PORT=5199 node server.mjs   # 另开终端（浏览器测试要关限流，见 HANDOVER）
 node tools/smoke-page.mjs http://127.0.0.1:5199
 ```
 

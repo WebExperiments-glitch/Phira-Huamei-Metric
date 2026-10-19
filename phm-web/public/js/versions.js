@@ -20,6 +20,16 @@
 
 export const RELEASES = [
   {
+    v: 'V0.21.1.0', date: '2026-10-19',
+    zh: ['新增<b>谱面包</b>页：浏览 Phira 谱面库，把任意谱面连曲绘 / 音乐 / 谱面文件'
+      + '一起<b>在浏览器里</b>打成 .pez 包下载，也可以只下单个文件。'
+      + '曲绘现在能正常显示了（之前全是音符占位图）。'],
+    en: ['New <b>chart packs</b> page: browse the Phira library and download any chart as a .pez'
+      + ' with its illustration, audio and chart file — packed <b>in your browser</b>,'
+      + ' or grab single files. Illustrations now actually load (they used to be placeholder notes).'],
+  },
+
+  {
     v: 'V0.21.0.0', date: '2026-10-18',
     zh: ['结果卡新增<b>「难在哪」</b>：耐力 / 灵活度 / 读谱 / 精度四项，'
       + '直接回答「这首是手速难还是读谱难」。'

@@ -214,6 +214,13 @@ const ROUTES = [
   { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
   { path: '/settings', name: '设置', sel: ['#optin', '#inv', '#ownList', '#stMsg', '#abVer'], mod: 'settings' },
   { path: '/version', name: '版本历史', sel: ['#list', '#cnt', '#verfoot'], mod: 'ui' },
+  /* 状态页：⚠ 必须验「横幅文案非空」而不是只验节点存在。
+     这个页面的全部意义就在那一行结论上（正常/降级/中断/采集中），
+     而它恰好是最容易渲染成空白的地方 ——
+     overall 是 unknown 时文案走的是另一条分支，那条没被走到就等于没测。 */
+  { path: '/status', name: '运行状态', sel: ['#banner', '#bTitle', '#bMeta', '#groups', '#range'], mod: 'ui' },
+  { path: '/packs', name: '谱面包', sel: ['#q', '#lv', '#sort', '#list', '#more'], mod: 'ui',
+    ready: `!!document.querySelector('#list .card2')` },
   /* 下载页要额外守两件事（见下面 /download 的专用断言）：
      ① 主按钮的 href 真的指向可下载的地址；② 哈希与 release.js 一致。 */
   { path: '/download', name: '下载客户端', sel: ['#dlbtn', '#hash', '#mf', '#verfoot'], mod: 'release' },
@@ -227,6 +234,31 @@ for (const R of ROUTES) {
   const before = errors.length;
   await send('Page.navigate', { url: BASE + R.path });
   await new Promise(r => setTimeout(r, 2800));
+  /* ⚠ 有些页的内容是**异步到达**的（谱面包要等上游 Phira API 回来才画卡片）。
+     固定 2.8s 是在赌它够快 —— 串行跑十几页时前面的页面已经把连接池占满，
+     这一页就刚好慢一点，于是断言全红而功能其实好的。
+     所以按页面的「就绪信号」轮询，而不是赌时间。 */
+  if (R.ready) {
+    let got = false;
+    /* ⚠ 60 次 × 500ms = 30s 上限。谱面包那页一屏就是 30 张曲绘（1–3MB each，
+       经我们的代理），串行跑十几页时连接池被占满，首屏可能十几秒才出卡片。
+       早先只等 9.6s，于是断言全红而功能是好的 —— 和限流那次同一类误报：
+       **测试环境比真实使用更慢，所以要按信号等，不能赌时间。** */
+    for (let i = 0; i < 60 && !got; i++) {
+      got = await evalJS(R.ready);
+      if (!got) await new Promise(r => setTimeout(r, 500));
+    }
+    if (!got) {
+      /* ⚠ 打印页面上的**错误文案**：数据没加载出来时，
+         页面会渲染一张说明原因的卡片（网络失败 / 上游报错 / 无结果）。
+         只报 cards=0 等于把真因藏起来 —— 2026-10-18 为此白查了好几轮。 */
+      const why = await evalJS(`(function(){
+        const c = document.querySelector('#list .card');
+        return c ? c.textContent.trim().slice(0, 160) : '(没有 .card，可能是压根没渲染)';
+      })()`);
+      ok('页面在 30s 内进入就绪态（ready 信号命中）', false, R.ready + ' | 页面显示：' + why);
+    }
+  }
 
   const info = await evalJS(`(function(){
     const out = { ver: (document.querySelector('meta[name="app-version"]')||{}).content,
@@ -324,6 +356,193 @@ for (const R of ROUTES) {
     })()`);
     const desc = sorted.length > 1 && sorted.every((v, i) => i === 0 || sorted[i - 1] >= v);
     ok('点表头能按该列排序（降序）', desc, JSON.stringify(sorted.slice(0, 6)));
+  }
+
+  if (R.path === '/status') {
+    /* ⚠ 状态页最危险的失败不是报错，是**渲染出空白**：
+       节点都在（sel 通过），但横幅标题是空的、分组是空的，
+       用户看到一片框还以为服务挂了。所以必须断言**内容**。 */
+    const st = await evalJS(`(function(){
+      const t = document.getElementById('bTitle');
+      const meta = document.getElementById('bMeta');
+      const banner = document.getElementById('banner');
+      const groups = document.getElementById('groups');
+      const mons = document.querySelectorAll('#groups .mon');
+      return {
+        title: t ? t.textContent.trim() : '',
+        meta: meta ? meta.textContent.trim() : '',
+        cls: banner ? banner.className : '',
+        groups: groups ? groups.children.length : 0,
+        mons: mons.length,
+        /* 探测路径必须真的渲染出来 —— 那是这页最有用的信息 */
+        paths: [...document.querySelectorAll('#groups .mon .path')].map(x => x.textContent),
+        /* 有没有 i18n 键漏翻。
+           ⚠ 两个坑：
+             ① 只能扫**文本节点**，不能扫 innerHTML ——
+                属性名里本来就写着 data-i18n="st.title"，
+                扫全文必然把正当属性当成"漏翻"，一条都过不了。
+             ② 只能匹配**整个词**等于键名，不能只要出现st. 就报——
+                否则代码注释里的 "…/js/i18n/status.js…" 这类路径会误报。 */
+        raw: (function(){
+          const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          const hits = [];
+          for (let n = w.nextNode(); n; n = w.nextNode()) {
+            const s = (n.nodeValue || '').trim();
+            if (/^st\\.[a-z0-9]+$/i.test(s)) hits.push(s);
+          }
+          return hits;
+        })(),
+      };
+    })()`);
+    ok('横幅标题非空', !!st.title, JSON.stringify(st.title));
+    ok('横幅标题不是未翻译的词条键', !/^st\./.test(st.title), st.title);
+    ok('横幅有状态类名', /is-(operational|degraded|outage|unknown)/.test(st.cls), st.cls);
+    ok('更新时间是填过的（不是空串）', !!st.meta, JSON.stringify(st.meta));
+    ok('渲染出了分组', st.groups > 0, 'groups=' + st.groups);
+    ok('渲染出了监视项', st.mons > 0, 'mons=' + st.mons);
+    ok('探测路径已显示', st.paths.length > 0 && st.paths.every(p => p.startsWith('/')),
+       JSON.stringify(st.paths.slice(0, 3)));
+    ok('没有漏翻的 st.* 键', st.raw.length === 0, JSON.stringify([...new Set(st.raw)].slice(0, 5)));
+    /* 范围切换按钮的两个状态属性必须真的存在，且只有一个 pressed */
+    const seg = await evalJS(`(function(){
+      const bs = [...document.querySelectorAll('#range button[data-range]')];
+      return { n: bs.length, on: bs.filter(b => b.getAttribute('aria-pressed') === 'true').length,
+               ranges: bs.map(b => b.dataset.range) };
+    })()`);
+    ok('范围切换有 2 个按钮', seg.n === 2, JSON.stringify(seg));
+    ok('恰好一个处于选中态', seg.on === 1, JSON.stringify(seg));
+    ok('两个范围值是 24h 与 30d',
+      seg.ranges.includes('24h') && seg.ranges.includes('30d'), JSON.stringify(seg.ranges));
+  }
+
+  if (R.path === '/packs') {
+    /* ⚠ 这页的失败模式是「渲染出空div」：外框都在，但一张卡片都没画出来，
+       用户看到的就是一片白。所以必须断言**真的渲染出了内容**，
+       而且要真的去点开抽屉 —— 抽屉里的文件勾选才是这页的功能核心。 */
+    const g = await evalJS(`(function(){
+      const cards = document.querySelectorAll('#list .card2');
+      return {
+        cards: cards.length,
+        cnt: (document.getElementById('cnt')||{}).textContent || '',
+        moreVisible: (function(){ const b=document.getElementById('more');
+          return b && b.style.display !== 'none'; })(),
+        packBtns: document.querySelectorAll('#list .pack').length,
+        /* 卡上必须有曲名和难度 —— 只数卡片数会漏掉"卡片是空壳" */
+        withName: Array.prototype.filter.call(cards, function(c){
+          const n = c.querySelector('.nm'); return n && n.textContent.trim().length > 0;
+        }).length,
+        withLv: Array.prototype.filter.call(cards, function(c){
+          const l = c.querySelector('.lv'); return l && l.textContent.trim().length > 0;
+        }).length,
+      };
+    })()`);
+    ok('渲染出了谱面卡片', g.cards > 0, 'cards=' + g.cards);
+    ok('每张卡片都有曲名（卡片不是空壳）', g.withName === g.cards,
+       g.withName + '/' + g.cards);
+    ok('每张卡片都有难度', g.withLv === g.cards, g.withLv + '/' + g.cards);
+    ok('卡片上有「打包」按钮', g.packBtns > 0, 'n=' + g.packBtns);
+    ok('计数已填（非空串）', !!g.cnt, JSON.stringify(g.cnt));
+    ok('有更多可加载（未把全库一次塞进 DOM）', g.moreVisible === true, String(g.moreVisible));
+
+    /* 真的点一张卡打开抽屉 —— 这才是「能选文件打包」的入口 */
+    await evalJS(`(function(){ const b = document.querySelector('#list .pack');
+      if (b) b.click(); return 1; })()`);
+    await new Promise(r => setTimeout(r, 500));
+    const dr = await evalJS(`(function(){
+      const d = document.getElementById('drawer');
+      const open = d && d.classList.contains('on');
+      const rows = document.querySelectorAll('#fl .frow');
+      const boxes = document.querySelectorAll('#fl input[type=checkbox]');
+      return {
+        open: !!open,
+        title: (document.getElementById('dTitle')||{}).textContent || '',
+        rows: rows.length,
+        boxes: boxes.length,
+        checked: Array.prototype.filter.call(boxes, function(b){ return b.checked; }).length,
+        hasPack: !!document.getElementById('doPack'),
+        /* ⚠ checkbox 不能用 display:none 藏起来 ——
+           那样键盘 Tab 不到，等于没有无障碍。 */
+        visibleBoxes: Array.prototype.filter.call(boxes, function(b){
+          return b.offsetParent !== null || b.getClientRects().length > 0;
+        }).length,
+      };
+    })()`);
+    ok('点卡片能打开抽屉', dr.open === true, JSON.stringify(dr));
+    ok('抽屉标题非空', !!dr.title, JSON.stringify(dr.title));
+    ok('列出了 4 种文件（曲绘/音乐/谱面/音频）', dr.rows === 4, 'rows=' + dr.rows);
+    ok('每行都有勾选框', dr.boxes === 4, 'boxes=' + dr.boxes);
+    ok('默认只勾谱面 JSON（音频动辄几 MB）', dr.checked === 1, 'checked=' + dr.checked);
+    ok('勾选框键盘可达（没有被 display:none 藏掉）',
+       dr.visibleBoxes === 4, 'visible=' + dr.visibleBoxes);
+    ok('有「打包下载」按钮', dr.hasPack === true);
+
+    /* ⚠⚠ 曲绘必须真的显示出来。
+       2026-10-18 踩过两个坑，两条断言各挡一个：
+         ① 上游 MIME 是 application/octet-stream → 浏览器 ORB 拒绝解码
+            （net::ERR_BLOCKED_BY_ORB），<img> 静默失败。真实用户同样中招。
+         ② cleanChart 的零宽字符正则把 ASCII 连字符也吃掉了，
+            UUID 被抹成 32 位无横杠串 → 直链全 404。
+       两者症状一样（全是 ♪ 占位），但根因完全不同 ——
+       所以要分别断言：**URL 形状对** + **浏览器真解码出来了**。 */
+    const imgUrls = await evalJS(`[...document.querySelectorAll('#list img.ill')].map(i => i.getAttribute('src') || '')`);
+    ok('曲绘走我们的代理（不是上游直链，否则会被 ORB 挡）',
+      imgUrls.length > 0 && imgUrls.every(u => u.startsWith('/api/phira-illust/')),
+      JSON.stringify(imgUrls.slice(0, 2)));
+    ok('曲绘 URL 里 UUID 完整（36 字符 —— 别被零宽清洗吃掉横杠）',
+      imgUrls.filter(u => u.startsWith('/api/phira-illust/'))
+        .every(u => u.split('/').pop().length === 36),
+      JSON.stringify(imgUrls.slice(0, 1)));
+    /* ⚠ 必须**等解码完成**再断言，不能只看"有没有开始加载"。
+       一屏 30 张 1–3MB 的图经我们的代理，串行跑十几页时首屏可能十几秒才填满；
+       早先直接断言naturalWidth>0 的数量，结果在图还在路上时就判失败
+       （实测 ok=4/30 —— 图确实在加载，只是没到齐）。
+       这和"ORB 静默挡掉"症状几乎一样，必须靠等待把两者分开。 */
+    const decoded = await evalJS(`(async function(){
+      const im = () => [...document.querySelectorAll('#list img.ill')];
+      const want = Math.max(1, Math.ceil(im().length * 0.5));
+      for (let i = 0; i < 60; i++) {
+        const a = im();
+        const okIm = a.filter(x => x.naturalWidth > 0);
+        /* 全部 settled（complete）就立即收敛，不必死等一半 */
+        const settled = a.length > 0 && a.every(x => x.complete);
+        if (okIm.length >= want || settled) {
+          return { n: a.length, ok: okIm.length, want, settled,
+                   src0: okIm[0] ? okIm[0].getAttribute('src') : '' };
+        }
+        await new Promise(r => setTimeout(r, 500));
+      }
+      const a = im();
+      return { n: a.length, ok: a.filter(x => x.naturalWidth > 0).length, want, settled: false, timeout: true };
+    })()`);
+    ok('★ 曲绘真的被浏览器解码出来了（不是被 ORB 静默挡掉）',
+      decoded.n > 0 && decoded.ok >= Math.max(1, decoded.want || 1),
+      JSON.stringify(decoded));
+
+    /* 代理本身的行为也要探：SSRF 闸门与 Range。 */
+    const ill = await evalJS(`(async function(){
+      const uuid = (document.querySelector('#list img.ill')||{src:''}).src.split('/').pop();
+      if (!uuid) return { skip: true };
+      const out = { uuid };
+      const r = await fetch('/api/phira-illust/' + uuid, { method: 'HEAD' });
+      out.ct = r.headers.get('content-type'); out.st = r.status;
+      /* ⚠ SSRF 闸门：不像 UUID 的一律拒。
+         这个路由会替用户去 fetch 外部地址，闸门松了就是 SSRF。 */
+      out.badPath = (await fetch('/api/phira-illust/..%2F..%2Fserver.mjs')).status;
+      out.evilHost = (await fetch('/api/phira-illust/http%3A%2F%2Fevil.com%2Fx.png')).status;
+      out.post = (await fetch('/api/phira-illust/' + uuid, { method: 'POST' })).status;
+      const rr = await fetch('/api/phira-illust/' + uuid, { headers: { Range: 'bytes=0-99' } });
+      out.rangeSt = rr.status; out.rangeLen = rr.headers.get('content-length');
+      return out;
+    })()`);
+    if (!ill.skip) {
+      ok('★ 代理把 MIME 改成了 image/webp（ORB 就靠这个放行）',
+        ill.ct === 'image/webp', JSON.stringify({ ct: ill.ct, st: ill.st }));
+      ok('★ 路径穿越被拒（SSRF 闸门）', ill.badPath === 404 || ill.badPath === 400, String(ill.badPath));
+      ok('★ 绝对 URL 被拒（SSRF 闸门）', ill.evilHost === 400 || ill.evilHost === 404, String(ill.evilHost));
+      ok('★ 非 GET/HEAD 被拒', ill.post === 405, String(ill.post));
+      ok('★ 支持 Range（大图先试前 64KB）',
+        ill.rangeSt === 206 && ill.rangeLen === '100', JSON.stringify({ st: ill.rangeSt, len: ill.rangeLen }));
+    }
   }
 
   if (R.mod === 'release') {
