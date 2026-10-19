@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.21.1.0">
+<meta name="app-version" content="V0.21.1.1">
 <title>自动写谱 · P.H.M.</title>
 <meta name="description" content="导入 MP3，自动提取 BPM / 时长 / 拍点 / 踩音点，按 EZ/HD/IN/AT 规则生成谱面，下载 .pez 或 .zip。全程本地，音频不上传。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,8 +11,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.21.1.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.1.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.1">
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -140,11 +140,11 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.21.1.0';
+import { renderNav } from '/js/ui.js?v=V0.21.1.1';
 
-import { analyzeFile } from '/js/audio-analysis.js?v=V0.21.1.0';
-import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.21.1.0';
-import { installGuard } from '/js/guard.js?v=V0.21.1.0';
+import { analyzeFile } from '/js/audio-analysis.js?v=V0.21.1.1';
+import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.21.1.1';
+import { installGuard } from '/js/guard.js?v=V0.21.1.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

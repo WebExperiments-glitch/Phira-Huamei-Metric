@@ -33,6 +33,20 @@ const COPY = {
     range: '不确定范围',
     footnote: '8 维特征 + 9,508 张社区谱 k-NN（社区共识）· 纯浏览器内计算 · 谱面文件不上传',
     site: '不判定「虚标」，只给数字和它的不确定度',
+    /* ── 玩家成绩卡 ── */
+    pTag: '玩家成绩卡',
+    pRks: 'P.H.M. RKS',
+    pRksNote: '用我们的参考定数重算',
+    pSiteRks: 'Phira 官方 RKS',
+    pSiteNote: '站点自己给的数字',
+    pCover: '覆盖谱面',
+    pCoverNote: '其中 {n} 张用上我们的定数',
+    pCoverAll: '全部用上我们的定数',
+    pTop: '贡献最大的谱面',
+    pColChart: '曲目', pColLv: '定数', pColAcc: '准确率', pColSr: '单曲',
+    pFrom: '定数来源：P.H.M.（该谱无我们定数时退回 Phira 标称）',
+    pWhy: '为什么和官方不一样：官方 RKS 的分母固定 20，样本不足时会被压低；这里按实际条数平均。',
+    pNoData: '没有足够的成绩来算 RKS',
   },
   en: {
     tag: 'An auditable difficulty reference for Phira charts',
@@ -42,6 +56,19 @@ const COPY = {
     range: 'range',
     footnote: '8 features + k-NN over 9,508 community charts · runs in your browser · charts never uploaded',
     site: 'We do not call anything mis-rated. We publish numbers and their uncertainty.',
+    pTag: 'Player card',
+    pRks: 'P.H.M. RKS',
+    pRksNote: 'recomputed with our constants',
+    pSiteRks: 'Phira RKS',
+    pSiteNote: 'the number the site gives',
+    pCover: 'Charts used',
+    pCoverNote: '{n} of them use our constant',
+    pCoverAll: 'all of them use our constant',
+    pTop: 'Biggest contributors',
+    pColChart: 'Chart', pColLv: 'Const', pColAcc: 'Accuracy', pColSr: 'Single',
+    pFrom: 'Constant source: P.H.M. (falls back to the Phira level when we have none)',
+    pWhy: 'Why it differs: the official RKS always divides by 20, so it reads low when you have few records. We divide by the number actually used.',
+    pNoData: 'Not enough plays to compute a RKS',
   },
 };
 
@@ -69,6 +96,44 @@ export function fromChartRow(row, extra) {
     nps: num(o.nps),
     notes: num(o.notes),
     hold: num(o.hold_ratio),
+  };
+}
+
+/** 玩家成绩（/user 页的 pm 结果 + 玩家对象）→ 卡片输入。
+ *
+ *  ⚠ 卡片上必须**同时**印我们的 RKS 和站点给的 RKS。
+ *    只印一个数字，观众无从判断这是「我们的算法」还是「官方值」，
+ *    截图传开之后就会被当成官方数据引用 —— 那是错的。
+ *
+ *  ⚠ 定数来源要逐条标注（src: 'phm' | 'phira'）：
+ *    不是每张谱都有我们的定数（新谱、冷门谱还没算过），
+ *    混着用却不说明，等于把「部分准确」说成「全部准确」。 */
+export function fromPlayer(player, rks, date) {
+  const p = player || {}, r = rks || {};
+  /* ⚠ 用**完整**列表算总数，只在最后截断给卡片用。
+     早先直接 slice 之后再取 length，于是卡片上出现
+     「覆盖谱面 12（其中 20 张用上我们的定数）」—— 12 < 20，自相矛盾。
+     用户看到这种数字只会得出一个结论：这站的数不可信。 */
+  const all = (r.items && r.items.length) ? r.items : (r.top || []);
+  const items = all.slice(0, 12).map(x => ({
+    name: x.name || ('#' + x.chart),
+    lv: num(x.lv),
+    acc: num(x.acc),
+    sr: num(x.sr),
+    src: x.src === 'phm' ? 'phm' : 'phira',
+  }));
+  return {
+    name: p.name || ('UID ' + (p.id || '')),
+    uid: p.id != null ? String(p.id) : '',
+    rks: num(r.fair),
+    /* 「÷20 口径」是我们对官方分母的复现，作为参考列一起印 */
+    rksStrict: num(r.official),
+    siteRks: num(p.rks) || null,
+    items,
+    n: all.length,
+    phmN: num(r.phmN) || 0,
+    phiraN: num(r.phiraN) || 0,
+    date: date || '',
   };
 }
 
@@ -259,6 +324,210 @@ function drawTall(c, d, L) {
   text(c, L.site, P, urlY + 350, { size: 24, color: FG3 });
 }
 
+/* ══════════════════════════════════════════════════════════════
+ * 版式：玩家成绩卡
+ * ══════════════════════════════════════════════════════════════
+ * 与「谱面体检卡」的分工：
+ *   体检卡回答「**这张谱**有多难」，玩家卡回答「**这个人**打得怎么样」。
+ *   两张卡都印同一个域名，互为入口。
+ *
+ * ⚠ 三个必须出现在卡面上的东西（少一个这张图就会骗人）：
+ *   ① P.H.M. RKS 与 Phira 官方 RKS **并排**，且各自标注来源
+ *   ② 用了几张谱、其中几张用上我们的定数
+ *   ③ 「为什么和官方不一样」的一句话解释
+ *   截图传开之后没人会回来读网页，卡面就是全部上下文。
+ */
+
+/* 单行：曲名 + 定数 + 准确率 + 单曲 rks。两边版式共用。 */
+function playerRow(c, it, L, x, y, w, big, hasAcc) {
+  const fs = big ? 30 : 24;
+  const fs2 = big ? 26 : 21;
+  const lvW = big ? 96 : 82;
+  const accW = big ? 170 : 140;
+  const srW = big ? 130 : 108;
+
+  /* 曲名：定宽折行会把表格挤乱，所以只截断 —— 卡片不是列表页 */
+  const nameW = w - lvW - accW - srW;
+  let nm = String(it.name || '');
+  c.font = '400 ' + fs + 'px ' + FONT;
+  while (nm && c.measureText(nm).width > nameW) nm = nm.slice(0, -1);
+  if (nm !== String(it.name || '')) nm = nm.replace(/.$/, '') + '…';
+
+  text(c, nm, x, y, { size: fs, color: FG });
+  /* ⚠ 定数用**颜色**区分来源，不用额外的符号 ——
+     早先试过在数字后面点一个小圆点，那东西会随列宽漂移、
+     最后叠到隔壁的准确率上，看起来像渲染 bug。
+     现在的约定：亮 = 我们的定数，暗 = 退回 Phira 标称，页脚说明一句。 */
+  text(c, fx(it.lv, 2), x + nameW, y, { size: fs, color: it.src === 'phm' ? FG2 : FG3 });
+
+  /* 准确率列是**可选**的：B19 池给的数据里没有 acc，
+     这时候整列都不该出现（一列全是「—」会被读成加载失败）。 */
+  if (hasAcc) {
+    text(c, it.acc == null ? '—' : fx(it.acc, 2) + '%', x + nameW + lvW, y,
+      { size: fs, color: it.acc != null && it.acc >= 100 ? AMBER : FG2 });
+  }
+  text(c, fx(it.sr, 2), x + w, y, { size: fs, weight: 500, color: it.sr == null ? FG3 : BLUE, align: 'right' });
+}
+
+/** 「其中 N 张用上我们的定数」/「全部用上」（N == 总数时）。
+ *  ⚠ 覆盖数等于总数还说「其中 20 张（共 20 张）」读起来像漏了信息，
+ *    而这张图是要发出去的，措辞含糊会被当成"数据不全"。 */
+function coverNote(d, L) {
+  if (!d.n) return '';
+  if ((d.phmN || 0) >= d.n) return L.pCoverAll;
+  return L.pCoverNote.replace('{n}', d.phmN || 0);
+}
+
+function playerHead(c, d, L, P, y, titleSize) {
+  text(c, 'P.H.M.', P, y, { size: titleSize, weight: 500, color: AMBER });
+  text(c, ' ' + L.pTag, P + titleSize * 3.3, y, { size: titleSize, weight: 500 });
+  /* 玩家名。⚠ 超长名字会压到右侧装饰圆上，所以要截断而不是折行 ——
+     这行只有一行的空间。 */
+  const nmSize = Math.round(titleSize * 1.5);
+  const nmY = y + titleSize + 48;
+  let nm = String(d.name || '');
+  c.font = '500 ' + nmSize + 'px ' + FONT;
+  while (nm && c.measureText(nm).width > 760) nm = nm.slice(0, -1);
+  if (nm !== String(d.name || '')) nm = nm.slice(0, -1) + '…';
+  text(c, nm, P, nmY, { size: nmSize, weight: 500 });
+  if (d.uid) {
+    text(c, 'UID ' + d.uid + (d.date ? '   ·   ' + d.date : ''), P, nmY + 32,
+      { size: Math.round(titleSize * 0.46), color: FG3 });
+  }
+}
+
+/* ── 玩家卡 · 横屏 1200×630 ──
+ * ⚠ 630 的高度比体检卡紧得多（那边只有 4 个数字，这边要放表）。
+ *   分档时按**基线**算，不要按盒子算，否则最后一行一定会压到页脚：
+ *     66 标题 / 152 名字 / 186 UID
+ *     214–360 数字条
+ *     392 表头 / 402 分隔线
+ *     436 起 4 行，行距 34 → 最后一行 538
+ *     580 / 606 两行页脚
+ *   只放 4 行是有意的：这张图的用途是发群里让人来查，不是完整榜单。 */
+function drawPlayerWide(c, d, L) {
+  const W = 1200, H = 630;
+  c.fillStyle = '#0d1117'; c.fillRect(0, 0, W, H);
+  c.globalAlpha = 0.07; c.fillStyle = AMBER;
+  c.beginPath(); c.arc(1250, -40, 300, 0, 7); c.fill();
+  c.globalAlpha = 1;
+
+  const P = 64, TW = 1120 - P * 2;
+  playerHead(c, d, L, P, 66, 38);
+
+  /* 三个数字：我们的 RKS（大）/ 官方 / 覆盖 */
+  const y = 214, h = 146;
+  c.fillStyle = CARD; rr(c, P, y, TW, h, 18); c.fill();
+  c.strokeStyle = LINE; c.lineWidth = 1; c.stroke();
+
+  text(c, L.pRks, P + 32, y + 38, { size: 18, color: AMBER });
+  text(c, fx(d.rks, 2), P + 32, y + 108, { size: 60, weight: 500, color: AMBER });
+  text(c, L.pRksNote, P + 32, y + 132, { size: 14, color: FG3 });
+
+  const colW = TW / 3;
+  c.strokeStyle = LINE; c.beginPath(); c.moveTo(P + colW, y + 26); c.lineTo(P + colW, y + h - 26); c.stroke();
+  c.beginPath(); c.moveTo(P + colW * 2, y + 26); c.lineTo(P + colW * 2, y + h - 26); c.stroke();
+
+  text(c, L.pSiteRks, P + colW + 28, y + 38, { size: 18, color: FG3 });
+  text(c, d.siteRks == null ? '—' : fx(d.siteRks, 2), P + colW + 28, y + 108,
+    { size: 46, weight: 500, color: FG2 });
+  text(c, L.pSiteNote, P + colW + 28, y + 132, { size: 14, color: FG3 });
+
+  text(c, L.pCover, P + colW * 2 + 28, y + 38, { size: 18, color: FG3 });
+  text(c, String(d.n || 0), P + colW * 2 + 28, y + 108, { size: 46, weight: 500, color: BLUE });
+  text(c, coverNote(d, L), P + colW * 2 + 28, y + 132, { size: 14, color: FG3 });
+
+  /* 表格 */
+  const items = (d.items || []).slice(0, 4);
+  const hasAcc = items.some(x => x.acc != null);
+  /* 列表宽度的分配：准确率列不存在时，把它的宽度让给曲名 */
+  const lvW = 84, accW = hasAcc ? 150 : 0, srW = 112;
+
+  /* ⚠ 表头必须用**与 playerRow 完全相同的列偏移**算出来。
+     早先手写了一个「+8」的近似值，结果「定数」表头比数据右移了十几像素，
+     看起来像两列错位 —— 这种小偏移在大屏上不明显，缩略图里最刺眼。 */
+  const colLv = P + TW - accW - srW - lvW;
+  text(c, L.pTop, P, 392, { size: 16, color: FG3 });
+  text(c, L.pColLv, colLv, 392, { size: 14, color: FG3 });
+  if (hasAcc) text(c, L.pColAcc, P + TW - srW - accW, 392, { size: 14, color: FG3 });
+  text(c, L.pColSr, P + TW, 392, { size: 14, color: FG3, align: 'right' });
+
+  c.strokeStyle = LINE; c.beginPath(); c.moveTo(P, 402); c.lineTo(P + TW, 402); c.stroke();
+
+  items.forEach((it, i) => {
+    playerRow(c, it, L, P, 436 + i * 34, TW, false, hasAcc);
+  });
+
+  /* 页脚两行：来源说明 + 域名 / 「为什么不一样」 */
+  const f1 = L.pFrom, f2 = L.pWhy;
+  text(c, f1, P, 580, { size: 15, color: FG3 });
+  text(c, SITE, 1120 - P, 580, { size: 18, weight: 500, color: BLUE, align: 'right' });
+  /* ⚠ 第二行必须截断：中文那句有 50 多个字，不截会从右边溢出画布 */
+  c.font = '400 14px ' + FONT;
+  let why = String(f2 || '');
+  while (why && c.measureText(why).width > TW) why = why.slice(0, -1);
+  if (why !== String(f2 || '')) why = why.slice(0, -1) + '…';
+  text(c, why, P, 606, { size: 14, color: FG3 });
+}
+
+/* ── 玩家卡 · 竖屏 1080×1920 ── */
+function drawPlayerTall(c, d, L) {
+  const W = 1080, H = 1920;
+  c.fillStyle = '#0d1117'; c.fillRect(0, 0, W, H);
+  c.globalAlpha = 0.10; c.fillStyle = AMBER;
+  c.beginPath(); c.arc(1020, 60, 460, 0, 7); c.fill();
+  c.globalAlpha = 1;
+
+  const P = 84;
+  playerHead(c, d, L, P, 170, 60);
+
+  /* 主数字：P.H.M. RKS，占满一屏宽度 */
+  text(c, L.pRks, P, 470, { size: 36, color: FG3 });
+  text(c, fx(d.rks, 2), P, 690, { size: 190, weight: 500, color: AMBER });
+  text(c, L.pRksNote, P, 740, { size: 26, color: FG3 });
+
+  /* 官方 vs 覆盖：并排两个小块 */
+  const by = 800, bh = 180;
+  const halfW = (W - P * 2 - 24) / 2;
+  [[L.pSiteRks, d.siteRks == null ? '—' : fx(d.siteRks, 2), L.pSiteNote, FG2],
+   [L.pCover, String(d.n || 0), L.pCoverNote.replace('{n}', d.phmN || 0), BLUE]].forEach((cell, i) => {
+    const x = P + (halfW + 24) * i;
+    c.fillStyle = CARD; rr(c, x, by, halfW, bh, 20); c.fill();
+    c.strokeStyle = LINE; c.stroke();
+    text(c, cell[0], x + 28, by + 48, { size: 24, color: FG3 });
+    text(c, cell[1], x + 28, by + 124, { size: 60, weight: 500, color: cell[3] });
+    text(c, i === 1 ? coverNote(d, L) : cell[2], x + 28, by + 158, { size: 19, color: FG3 });
+  });
+
+  /* Top 10 —— ⚠ 竖版也必须有**列头**：
+     只画一堆「16.00  99.20%  15.00」而不说这三列是什么，
+     观众得靠猜。横版有列头、竖版没有，是两套版式漂移出来的 bug。 */
+  const tx = P, tw = W - P * 2;
+  const items = (d.items || []).slice(0, 10);
+  const hasAcc = items.some(x => x.acc != null);
+  /* 与 playerRow(big=true) 用同一组列宽 */
+  const lvW = 96, accW = 170, srW = 130;
+
+  text(c, L.pTop, tx, 1074, { size: 28, color: FG3 });
+  c.strokeStyle = LINE; c.beginPath(); c.moveTo(tx, 1102); c.lineTo(tx + tw, 1102); c.stroke();
+
+  text(c, L.pColLv, tx + tw - accW - srW - lvW, 1142, { size: 22, color: FG3 });
+  if (hasAcc) text(c, L.pColAcc, tx + tw - srW - accW, 1142, { size: 22, color: FG3 });
+  text(c, L.pColSr, tx + tw, 1142, { size: 22, color: FG3, align: 'right' });
+
+  c.strokeStyle = LINE; c.beginPath(); c.moveTo(tx, 1160); c.lineTo(tx + tw, 1160); c.stroke();
+
+  items.forEach((it, i) => {
+    playerRow(c, it, L, tx, 1206 + i * 58, tw, true, hasAcc);
+  });
+
+  const fy = 1790;
+  c.strokeStyle = LINE; c.beginPath(); c.moveTo(tx, fy - 40); c.lineTo(tx + tw, fy - 40); c.stroke();
+  text(c, L.pFrom, tx, fy, { size: 21, color: FG3 });
+  text(c, L.pWhy, tx, fy + 34, { size: 19, color: FG3 });
+  text(c, SITE, tx, fy + 92, { size: 30, weight: 500, color: BLUE });
+}
+
 /* ── 对外：渲染成 Blob ── */
 export async function renderCard(data, mode = 'wide', lang = 'zh') {
   /* 等字体就绪，否则首屏可能画成兜底字体（不同机器差很多） */
@@ -277,15 +546,29 @@ function safeName(s) {
   return String(s || 'chart').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40);
 }
 
-/* ── 对外主入口：能分享就分享，不能就下载 ──
- * 移动端优先走系统分享面板（可以直接发到 X / 抖音），桌面端退回下载。 */
-export async function exportCard(data, mode = 'wide', lang = 'zh') {
-  const blob = await renderCard(data, mode, lang);
+/* ── 玩家成绩卡：渲染成 Blob ── */
+export async function renderPlayerCard(data, mode = 'wide', lang = 'zh') {
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch {}
+  const L = COPY[lang] || COPY.zh;
+  const wide = mode !== 'tall';
+  const cv = document.createElement('canvas');
+  cv.width = wide ? 1200 : 1080;
+  cv.height = wide ? 630 : 1920;
+  const c = cv.getContext('2d');
+  (wide ? drawPlayerWide : drawPlayerTall)(c, data, L);
+  return await new Promise(res => cv.toBlob(b => res(b), 'image/png'));
+}
+
+/* ── 交付：能分享就分享，不能就下载 ──
+ * 移动端优先走系统分享面板（可以直接发到 X / 抖音），桌面端退回下载。
+ * ⚠ 两种卡片共用这一段 —— 各写一份必然漂移（分享失败时的兜底
+ *   特别容易漏掉一边，那边就变成"点了没反应"）。 */
+async function deliver(blob, baseName, title, text) {
   if (!blob) throw new Error('图片生成失败');
-  const file = new File([blob], 'PHM-' + safeName(data.name) + '.png', { type: 'image/png' });
+  const file = new File([blob], baseName, { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'P.H.M. Standard', text: data.name });
+      await navigator.share({ files: [file], title, text });
       return 'shared';
     } catch (e) {
       if (e && e.name === 'AbortError') return 'cancelled';   /* 用户自己取消，不是错误 */
@@ -298,4 +581,18 @@ export async function exportCard(data, mode = 'wide', lang = 'zh') {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   return 'downloaded';
+}
+
+/* ── 对外主入口：谱面体检卡 ── */
+export async function exportCard(data, mode = 'wide', lang = 'zh') {
+  const blob = await renderCard(data, mode, lang);
+  return deliver(blob, 'PHM-' + safeName(data.name) + '.png',
+    'P.H.M. Standard', data.name);
+}
+
+/* ── 对外主入口：玩家成绩卡 ── */
+export async function exportPlayerCard(data, mode = 'wide', lang = 'zh') {
+  const blob = await renderPlayerCard(data, mode, lang);
+  return deliver(blob, 'PHM-RKS-' + safeName(data.name) + '.png',
+    'P.H.M. RKS', data.name);
 }
