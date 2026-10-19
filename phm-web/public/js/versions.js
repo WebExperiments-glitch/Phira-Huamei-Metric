@@ -20,6 +20,16 @@
 
 export const RELEASES = [
   {
+    v: 'V0.21.1.1', date: '2026-10-19',
+    zh: ['玩家页新增<b>「导出成绩卡」</b>：把你的成绩做成一张可以直接发群里的图，'
+      + '上面同时印着 <b>P.H.M. RKS</b>（用我们的定数重算）和 Phira 官方 RKS，'
+      + '并说明为什么两者会不一样。'],
+    en: ['The player page can now <b>export a player card</b> — an image you can drop '
+      + 'straight into a group chat. It shows <b>P.H.M. RKS</b> (recomputed with our constants) '
+      + 'next to the official Phira RKS, and explains why the two differ.'],
+  },
+
+  {
     v: 'V0.21.1.0', date: '2026-10-19',
     zh: ['新增<b>谱面包</b>页：浏览 Phira 谱面库，把任意谱面连曲绘 / 音乐 / 谱面文件'
       + '一起<b>在浏览器里</b>打成 .pez 包下载，也可以只下单个文件。'

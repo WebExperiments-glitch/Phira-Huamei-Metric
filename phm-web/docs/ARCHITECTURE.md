@@ -274,6 +274,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、开放平台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
 | API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理 / 轮换；匿名与 Key 配额；scope 校验 | 不写引擎逻辑；认证与用量全走 RPC；契约在 `api/openapi.json` |
 | 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |
+| 玩家成绩卡 | `public/js/sharecard.js` | **两种卡片**：谱面体检卡（`exportCard`）与玩家成绩卡（`exportPlayerCard`）。共用同一批绘制工具与 `deliver()` —— 各写一份必然漂移，分享失败时的兜底最容易漏掉一边。⚠ 玩家卡必须同时印 P.H.M. RKS 与官方 RKS 并标注来源；只印一个数会被截图当成官方值引用。⚠ 卡片里的坐标是按**基线**分档算的（630 高度很紧），改文案前先看 `drawPlayerWide` 顶部的分档表 |
 | 曲绘代理 | `lib/chartassets.mjs` | `/api/phira-illust/<uuid>` 把 Phira CDN 的 `application/octet-stream` 改回 `image/webp`。**存在的原因是浏览器 ORB**：跨源响应的 MIME 不对时 Chrome 拒绝交给解码器，`<img>` 静默失败（`ERR_BLOCKED_BY_ORB`），真实用户同样中招。路径段严格校验 UUID —— 这是 SSRF 闸门 | ⚠ 只代理**展示用**曲绘；chart / 音乐仍浏览器直连，用户要原件，我们不改写交付物。⚠ 上游 404 回 1×1 占位 WebP 而不是报错，让浏览器缓存住 |
 | 自监控 | `lib/status.mjs` | 每 60s 探测 9 个目标（页面 / 接口 / 数据），环形缓冲存近 24h、DB 存 30 天；`/api/status` 返回聚合 | 打回环地址而非外部域名；探测失败绝不抛；**无样本时整体结论为 unknown 而不是「全部正常」** |
 | 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |

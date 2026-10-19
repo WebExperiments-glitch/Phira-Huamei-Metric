@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.21.1.0">
+<meta name="app-version" content="V0.21.1.1">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
@@ -19,8 +19,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.21.1.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.1.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.1">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -113,13 +113,13 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager, tierBadge, accCell, constCell, glossaryHTML, loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER, applyStatic, t, onLangChange, markJa, chipRow } from '/js/ui.js?v=V0.21.1.0';
+import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager, tierBadge, accCell, constCell, glossaryHTML, loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER, applyStatic, t, onLangChange, currentLang, markJa, chipRow } from '/js/ui.js?v=V0.21.1.1';
 
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
-  from '/js/phira.js?v=V0.21.1.0';
-import { installGuard } from '/js/guard.js?v=V0.21.1.0';
+  from '/js/phira.js?v=V0.21.1.1';
+import { installGuard } from '/js/guard.js?v=V0.21.1.1';
 /* 设置的真源 —— 键名不在这里硬写。见 /js/settings.js 顶部说明。 */
-import * as SET from '/js/settings.js?v=V0.21.1.0';
+import * as SET from '/js/settings.js?v=V0.21.1.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -293,6 +293,14 @@ function render() {
     h += '<div class="note">' + rksNote()
       + '<br>' + t('u.pm.src', { a: pm.phmN, b: pm.phiraN })
       + (pm.phmN ? t('u.pm.src.tail.pm') : t('u.pm.src.tail.nopm')) + '</div>';
+    /* 导出成绩卡。
+       ⚠ 只在**算出了 RKS** 时出现 —— 没数据还放个按钮，
+         点下去只会弹「没有足够的成绩」，那是拿用户当测试员。 */
+    h += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 2px">'
+      + '<button class="btn primary" type="button" id="pcard">'
+      + esc(t('u.pcard.btn')) + '</button>'
+      + '<span class="dim2" style="font-size:12px">' + esc(t('u.pcard.hint')) + '</span>'
+      + '</div>';
 
     if (pm.items.length > 1) {
       h += '<table><thead><tr><th>' + t('u.col.item') + '</th><th>' + t('c.tier') + '</th>'
@@ -390,6 +398,40 @@ function render() {
     ib.addEventListener('click', function () { importToFlywheel(); });
   }
   if (STATE.impMsg) impMsg(STATE.impMsg.text, STATE.impMsg.kind);
+
+  /* 导出成绩卡：sharecard.js 是**懒加载**的（只有点这个按钮才需要它），
+     免得每个访问 /user 的人都下 20KB 画图代码。 */
+  const pc = document.getElementById('pcard');
+  if (pc) pc.addEventListener('click', function () { doExportPlayerCard(); });
+}
+
+/* ══════════ 导出玩家成绩卡 ══════════
+   ⚠ 这里重算一次 phmRks，而不是把 render() 里的局部变量存到 STATE：
+      那样会让「渲染」和「导出」共享一份可变状态，
+      重渲染时忘了同步就会导出一张数字过期的卡（用户看不出错，最坏的一种 bug）。
+      重算是纯函数、几十条数据，代价可以忽略。 */
+async function doExportPlayerCard() {
+  const btn = document.getElementById('pcard');
+  const poolN = ((STATE.pool && STATE.pool.bestPool) || []).length;
+  const src = poolN >= 3 ? ((STATE.pool.bestPool) || []).map(p => ({ chart: p.chart, rks: p.rks, info: p.info }))
+    : (STATE.recent || []);
+  const pm = phmRks(src.map(r => ({ chart: r.chart, rks: r.rks, acc: r.acc, accuracy: r.accuracy, info: r.info })));
+  if (!pm) { msg(t('u.pcard.empty'), 'err'); return; }
+
+  const old = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = t('u.pcard.working'); }
+  try {
+    const { exportPlayerCard: run, fromPlayer } = await import('/js/sharecard.js?v=' + encodeURIComponent(APP_VER));
+    const data = fromPlayer(STATE.user,
+      { fair: pm.fair, official: pm.official, top: pm.top, items: pm.items, phmN: pm.phmN, phiraN: pm.phiraN },
+      new Date().toISOString().slice(0, 10));
+    const r = await run(data, 'wide', currentLang());
+    if (r === 'downloaded') msg(t('u.pcard.done'), 'ok');
+  } catch (e) {
+    msg(t('u.pcard.fail', { err: String((e && e.message) || e).slice(0, 80) }), 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = old || t('u.pcard.btn'); }
+  }
 }
 
 /* ══════════ 数据飞轮：把这批成绩提交入库 ══════════

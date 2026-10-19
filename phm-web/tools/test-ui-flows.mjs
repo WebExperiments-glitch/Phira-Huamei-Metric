@@ -301,6 +301,82 @@ console.log('[6] 字体设置跨页面生效');
   })()`);
 }
 
+/* ── 玩家成绩卡：真的点一下按钮，真的画出一张图 ──
+ * 为什么这条必须在这里而不是 verify-pages：
+ *   它要**点按钮 → 懒加载模块 → 拉数据算 RKS → canvas 绘制 → 生成 Blob**，
+ *   整条链路任何一环断了都只表现为「点了没反应」。
+ *   2026-10-19 实际踩到过：卡片画出来了，但版式把 UID 行压住、
+ *   表格最后一行压在页脚上、表头「定数」与数据错开十几像素 ——
+ *   这些**没有任何断言能发现**，只能靠"图里必须出现这些区域"来兜。
+ * ⚠ 用 hook URL.createObjectURL 取 Blob，不要 fetch(blobURL)：
+ *   站点 CSP 的 connect-src 不含 blob:，那样测出来的是 CSP。 */
+{
+  console.log('\n【玩家成绩卡】');
+  await evalJS(`(function(){ location.href = '/user?uid=2'; return 1; })()`);
+  await new Promise(r => setTimeout(r, 14000));
+
+  const has = await evalJS(`(function(){
+    const b = document.getElementById('pcard');
+    return { has: !!b, text: b ? b.textContent.trim() : '',
+             rows: document.querySelectorAll('#out table tbody tr').length };
+  })()`);
+  ok('成绩页出现了「导出成绩卡」按钮', has.has === true, JSON.stringify(has));
+  ok('按钮有文案（不是空壳）', has.text.length > 0, JSON.stringify(has.text));
+
+  if (has.has) {
+    const shot = await evalJS(`(async function(){
+      const b = document.getElementById('pcard');
+      let got = null;
+      const origUrl = URL.createObjectURL;
+      URL.createObjectURL = function(o){ got = o; return origUrl.call(URL, o); };
+      const origClick = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function(){};
+      const before = b.textContent;
+      b.click();
+      for (let i = 0; i < 200 && !got; i++) await new Promise(r => setTimeout(r, 50));
+      URL.createObjectURL = origUrl;
+      HTMLAnchorElement.prototype.click = origClick;
+      if (!got) return { err: '没有生成 Blob', msg: (document.getElementById('msg')||{}).textContent };
+      const bmp = await createImageBitmap(got);
+      const cv = document.createElement('canvas'); cv.width = bmp.width; cv.height = bmp.height;
+      const cx = cv.getContext('2d'); cx.drawImage(bmp, 0, 0);
+
+      /* 分区取样：证明**每一块**都画了东西，而不是只有背景。
+         这些矩形是按版式算的，改版式时它们会一起红 —— 那是好事。 */
+      const ink = (x, y, w, h) => {
+        const d = cx.getImageData(x, y, w, h).data;
+        let n = 0, on = 0;
+        for (let i = 0; i < d.length; i += 4) { n++; if (d[i] + d[i+1] + d[i+2] > 150) on++; }
+        return +(on / n).toFixed(3);
+      };
+      return {
+        w: bmp.width, h: bmp.height, bytes: got.size,
+        head: ink(60, 30, 700, 190),      /* 标题 + 玩家名 + UID */
+        big:  ink(80, 240, 400, 120),     /* 主数字 P.H.M. RKS */
+        tbl:  ink(60, 410, 1080, 160),    /* 表格区 */
+        foot: ink(60, 560, 1000, 60),     /* 页脚两行 */
+        msg: (document.getElementById('msg')||{}).textContent,
+        btnRestored: b.textContent === before && !b.disabled,
+      };
+    })()`);
+
+    if (shot && shot.err) {
+      ok('★ 点按钮能生成成绩卡', false, JSON.stringify(shot));
+    } else {
+      ok('★ 点按钮能生成成绩卡（拿到 Blob）', shot.bytes > 20000, JSON.stringify({ bytes: shot.bytes }));
+      ok('卡片是 1200×630 横版', shot.w === 1200 && shot.h === 630, shot.w + 'x' + shot.h);
+      /* ⚠ 四条分区断言：一条只扫全图是发现不了"某块被压住/漏画"的 */
+      ok('★ 头部区有内容（标题 + 玩家名 + UID 都画出来了）', shot.head > 0.02, String(shot.head));
+      ok('★ 主数字区有内容（P.H.M. RKS 那个大数）', shot.big > 0.05, String(shot.big));
+      ok('★ 表格区有内容（不是空表）', shot.tbl > 0.02, String(shot.tbl));
+      ok('★ 页脚区有内容（来源说明 + 域名）', shot.foot > 0.02, String(shot.foot));
+      ok('生成后按钮恢复可用（不会永久卡在「正在生成」）', shot.btnRestored === true);
+      ok('给了「已保存」之类的完成提示', String(shot.msg || '').length > 0, String(shot.msg));
+    }
+  }
+  ok('成绩卡流程没有运行时报错', errors.length === 0, errors.slice(0, 2).join(' | '));
+}
+
 console.log('通过 ' + pass + ' · 失败 ' + fail);
 cleanup();
 process.exit(fail ? 1 : 0);
