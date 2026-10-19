@@ -217,7 +217,7 @@ export default {
 
     'pv.foot.note': '本工具不判定「虚标」，只提供可审计的难度参考。Phira 官方定数自身标注噪声约 2.80 级。',
     'pv.foot.docs':
-      '相关文档：<a href="/terms">用户协议</a> · <a href="/settings">设置</a> · <a href="/">返回首页</a>',
+      '相关文档：<a href="/terms">用户协议</a> · <a href="/settings">设置</a> · <a href="/status">运行状态</a> · <a href="/">返回首页</a>',
 
     /* ══════════════════════════════════════════════════════════
      * 用户协议（tm.）—— public/terms.html
@@ -601,7 +601,7 @@ export default {
       'This tool does not judge "inflation"; it provides an auditable difficulty reference only. '
       + 'Phira\u2019s own nominal constants carry labelling noise of about 2.80 levels.',
     'pv.foot.docs':
-      'Related documents: <a href="/terms">Terms of Service</a> · <a href="/settings">Settings</a> · <a href="/">Back to home</a>',
+      'Related documents: <a href="/terms">Terms of Service</a> · <a href="/settings">Settings</a> · <a href="/status">Status</a> · <a href="/">Back to home</a>',
 
     /* ══════════════════════════════════════════════════════════
      * Terms of Service (tm.) — public/terms.html

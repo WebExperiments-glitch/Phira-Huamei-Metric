@@ -32,6 +32,8 @@ const STEPS = [
   ['OpenAPI 契约', 'node', ['tools/lint-openapi.mjs']],
   ['规则写谱单测（28 条）', 'node', ['tools/test-rulechart.mjs']],
   ['技能分单测（17 条）', 'node', ['tools/test-skills.mjs']],
+  ['状态探测单测（46 条）', 'node', ['tools/test-status.mjs']],
+  ['谱面包纯函数单测（33 条）', 'node', ['tools/test-chartfiles.mjs']],
   ['账号单测', 'node', ['tools/test-hm-accounts.mjs']],
   ['成绩校验单测', 'node', ['tools/test-hm-validate.mjs']],
   ['双语完整性', 'node', ['tools/lint-i18n.mjs']],
