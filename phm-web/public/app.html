@@ -652,6 +652,7 @@ import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, mar
 import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.21.1.2';
 import { initCloud, currentUser } from '/js/cloud.js?v=V0.21.1.2';
 import { installGuard } from '/js/guard.js?v=V0.21.1.2';
+import { initDeepLink } from '/js/deeplink.js?v=V0.21.1.2';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -1100,6 +1101,9 @@ if (handedOver()) {
     handleFiles([f]);
   }, 0);
 }
+
+/* 深链 ?chart=<id> 在 js/deeplink.js 里（见该文件顶部说明）。 */
+initDeepLink({ handleFiles: handleFiles, t: t, $: $, handedOver: handedOver });
 
 "use strict";
 /* ═════ 全局健壮性：统一事件委托（最先绑定，不依赖后续任何代码）═════
