@@ -208,7 +208,7 @@ function cmpVer(a, b) {
 const ROUTES = [
   { path: '/', name: '首页', sel: ['#stats', '#verfoot'], mod: 'ui' },
   { path: '/app', name: '工作台', sel: ['#drop', '#file', '#msg', '#out', '#csrch'], mod: 'engine' },
-  { path: '/rulechart', name: '规则写谱', sel: ['#rcGo', '#preview', '#rcPez'], mod: 'ui' },
+  { path: '/rulechart', name: '规则写谱', sel: ['#rcGo', '#preview', '#rcPez', '#rcReport'], mod: 'rulechart' },
   { path: '/user', name: '玩家页', sel: ['#q', '#go', '#out', '#cands'], mod: 'phira' },
   { path: '/charter', name: '谱师页', sel: ['#q', '#go', '#out'], mod: 'phira' },
   { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
@@ -413,6 +413,51 @@ for (const R of ROUTES) {
     ok('恰好一个处于选中态', seg.on === 1, JSON.stringify(seg));
     ok('两个范围值是 24h 与 30d',
       seg.ranges.includes('24h') && seg.ranges.includes('30d'), JSON.stringify(seg.ranges));
+  }
+
+  if (R.path === '/rulechart') {
+    /* ⚠ 这三层是「规则写谱」的可信度来源，不是装饰：
+         A 音符在不在拍上 · B 有没有为了凑密度造假 · C 能不能好好打。
+       它们只在**点生成之后**才有内容，所以这里查的是：
+         ① 面板节点与三行都在（别被谁删了）
+         ② 规则说明里三层都提到了（文案不能只写旧规则）
+         ③ 页面模块真的加载了新算法（rhythm.js 的导出可见） */
+    const rc = await evalJS(`(function(){
+      const g = id => document.getElementById(id);
+      /* ⚠ 页面上有两个 .rc-note：结果卡里的「ZIP 内包含…」与规则说明。
+         只取第一个会拿到前者 → 所有文案断言全空（实测踩过）。 */
+      const note = [...document.querySelectorAll('.rc-note')].map(e => e.textContent).join(' ');
+      return {
+        panel: !!g('rcReport'),
+        rows: ['rcrGrid','rcrPick','rcrPlay'].filter(x => !!g(x)).length,
+        warnNode: !!g('rcrWarn'),
+        text: note,
+      };
+    })()`);
+    ok('三层报告面板存在', rc.panel === true, JSON.stringify(rc.panel));
+    ok('三行（时间轴 / 事件选择 / 可玩性）都在', rc.rows === 3, 'rows=' + rc.rows);
+    ok('提醒块存在', rc.warnNode === true);
+    ok('规则说明提到时间轴（A）', /时间轴/.test(rc.text), rc.text.slice(0, 60));
+    ok('规则说明提到事件选择（B）', /事件选择/.test(rc.text));
+    ok('规则说明提到可玩性（C）', /可玩性/.test(rc.text));
+    ok('规则说明写明「不补造」（B 的核心承诺）', /不补造|不会再造|绝不补/.test(rc.text),
+      rc.text.slice(0, 80));
+    /* 三连音必须在文档里出现 —— 这是 A 层最容易被简化掉的一环 */
+    ok('规则说明提到三连音（1/3 网格）', /三连音/.test(rc.text));
+
+    /* 新算法模块能被浏览器加载（不是只在 Node 里能跑） */
+    const mod = await evalJS(`(async function(){
+      try {
+        const v = document.querySelector('meta[name=app-version]').content;
+        const m = await import('/js/rhythm.js?v=' + encodeURIComponent(v));
+        const s = await import('/js/salience.js?v=' + encodeURIComponent(v));
+        const p = await import('/js/playability.js?v=' + encodeURIComponent(v));
+        return { r: typeof m.buildGrid, s: typeof s.selectEvents, p: typeof p.auditPlayability };
+      } catch (e) { return { err: String(e).slice(0, 120) }; }
+    })()`);
+    ok('rhythm.js 在浏览器里可用', mod.r === 'function', JSON.stringify(mod));
+    ok('salience.js 在浏览器里可用', mod.s === 'function');
+    ok('playability.js 在浏览器里可用', mod.p === 'function');
   }
 
   if (R.path === '/packs') {
