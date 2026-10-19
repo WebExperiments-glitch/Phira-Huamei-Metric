@@ -45,6 +45,7 @@ import { makeContributeRoutes } from './lib/contribute-routes.mjs';
 import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
 import { makeChartAssetRoutes } from './lib/chartassets.mjs';
+import { CLEAN, makePageRoutes } from './lib/pages.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -188,7 +189,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
-  '404.html', 'sitemap.xml', 'og.png', 'version.html', 'download.html',
+  '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
   'status.html', 'packs.html']);
 /* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
@@ -227,7 +228,10 @@ const SEC_HEADERS = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https://api.phira.cn https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
+    /* ⚠ phira.5wyxi.com 是**谱面文件与曲绘**的 CDN（不是 API）。
+      /packs 与 /app?chart=<id> 都靠浏览器直连它取文件 ——
+      不放进 connect-src 的话 fetch 会被 CSP 直接拦掉，页面表现是「点了没反应」。 */
+    "connect-src 'self' https://api.phira.cn https://phira.5wyxi.com https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
     "form-action 'self'",
     /* frame-ancestors 交给 X-Frame-Options: DENY —— 写在 CSP 里会被 Chrome 报
        「keyword 'none' alongside with other sources」，功能重复且有告警 */
@@ -400,6 +404,10 @@ const apiRoutes = makeApiRoutes({
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
 const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+/* 详情页模板只在启动时读一次 —— 每请求读盘是纯浪费（模板不随请求变）。 */
+const chartTpl = fs.readFileSync(path.join(WEB_ROOT, 'chart.html'), 'utf8');
+const pageRoutes = makePageRoutes({ secHeaders: SEC_HEADERS, send, send404,
+  readTemplate: () => chartTpl });
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -423,7 +431,7 @@ const server = http.createServer(async (req, res) => {
 
   /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
   if (p === '/api/status') return statusRoutes(req, res, url);
-  if (p.startsWith('/api/phira-illust/')) return chartAssets(req, res, url);
+  if (p.startsWith('/api/phira-illust/') || p.startsWith('/api/phira-file/')) return chartAssets(req, res, url);
 
   /* ── huamei：取谱代理 ──
      客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。
@@ -835,21 +843,12 @@ const server = http.createServer(async (req, res) => {
      「白名单里的东西可以送」，而这个是「只准走这一条路由」。放在 public/
      下面但不在白名单里，下次有人顺手往 PUBLIC_DIRS 加个目录就会把它也放出去。 */
   if (DOWNLOAD_FILES[p]) return serveDownload(req, res, DOWNLOAD_FILES[p]);
+  /* 详情页与动态 sitemap：要**先于**静态白名单，否则 /sitemap.xml 会被旧静态文件命中。 */
+  if (await pageRoutes(req, res, url)) return;
 
   /* ── 干净 URL ──
-     站点已经拆成多页（/app 工作台、/charter 谱师、/user 玩家），
-     但不想让用户看到 .html 后缀 —— 分享链接短一点、也少一个改动点
-     （换实现时 URL 不变）。映射是**显式白名单**，不是通配：
-     将来加页面必须同时加进 PUBLIC_FILES，不会因为忘了写路由就暴露文件。 */
-  const CLEAN = { '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
-                  '/data': 'data.html', '/settings': 'settings.html',
-                  '/privacy': 'privacy.html', '/terms': 'terms.html',
-                  '/version': 'version.html', '/download': 'download.html',
-                  '/developers': 'developers.html', '/platform': 'platform.html',
-                  '/developer': 'platform.html',   /* 旧链接兼容 */
-                  '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',
-                  '/status': 'status.html',
-                  '/packs': 'packs.html' };
+     映射表在 lib/pages.mjs（与详情页 / sitemap 放一起）；
+     **显式白名单，不是通配** —— 加页面必须同时进 PUBLIC_FILES。 */
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

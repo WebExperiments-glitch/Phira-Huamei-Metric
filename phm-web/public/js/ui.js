@@ -79,6 +79,16 @@ export function renderNav(active) {
       '<a href="' + href + '"' + (act === _navActive ? ' class="on"' : '') + '>' + t(key) + '</a>'
     ).join('') + '</div>'
     + '<div class="spacer"></div>'
+    /* 全局搜索：站内没有搜索框，用户想找一首歌得先想清楚去 /data 还是 /packs。
+       统一跳到 /packs?q= —— 它的过滤覆盖曲名 / 谱师 / 作曲 / 曲绘 / 标签 / 简介，
+       是所有入口里召回最全的一个。 */
+    + '<button class="navq" id="navq" type="button" aria-label="' + esc(t('nav.search'))
+    + '" title="' + esc(t('nav.search')) + '">'
+    + '<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor"'
+    + ' stroke-width="1.7" stroke-linecap="round" aria-hidden="true">'
+    + '<circle cx="7" cy="7" r="4.6"/><path d="M10.4 10.4 14 14"/></svg></button>'
+    + '<input class="navqi" id="navqi" type="search" autocomplete="off" hidden'
+    + ' placeholder="' + esc(t('nav.search.ph')) + '" aria-label="' + esc(t('nav.search')) + '">'
     /* GitHub 放顶栏右侧（2026-10-17 评审：站内的仓库入口原来只挂在某些页面的
        底部/中段，同一份链接散在好几处）。放在版本号前面 —— 版本号是**状态**，
        永远在最右，别被链接挤走。 */
@@ -91,6 +101,32 @@ export function renderNav(active) {
        beta 期间版本连续增长；等确认没有已知问题后**归零**成 V0.1 并去掉标记。 */
     + '<span class="ver">' + esc(APP_VER) + ' beta</span>';
   wireNavSticky();
+  wireNavSearch();
+}
+
+/* 搜索框：点图标展开，回车跳 /packs?q=，Esc 收回。
+   ⚠ 每次 renderNav 都会重画 innerHTML，所以这里每次都重新取节点绑定；
+      节点是新的，不会重复绑定。 */
+function wireNavSearch() {
+  const btn = document.getElementById('navq');
+  const inp = document.getElementById('navqi');
+  if (!btn || !inp) return;
+  const open = on => {
+    inp.hidden = !on;
+    btn.classList.toggle('on', on);
+    if (on) inp.focus();
+  };
+  btn.addEventListener('click', () => open(inp.hidden));
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { inp.value = ''; open(false); return; }
+    if (e.key !== 'Enter') return;
+    const q = String(inp.value || '').trim();
+    if (!q) return;
+    /* ⚠ 纯数字不做特殊分流：看起来像 UID 的也可能是谱面 ID，
+       猜错比不猜更糟。统一交给 /packs 的文本过滤（它也匹配 id 之外的字段）。 */
+    location.href = '/packs?q=' + encodeURIComponent(q.slice(0, 60));
+  });
+  inp.addEventListener('blur', () => { if (!inp.value) open(false); });
 }
 
 onLangChange(function () { renderNav(); });

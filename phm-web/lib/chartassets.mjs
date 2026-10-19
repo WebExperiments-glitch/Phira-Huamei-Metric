@@ -68,6 +68,53 @@ export function makeChartAssetRoutes(secHeaders) {
       return true;
     }
 
+    /* ── 谱面文件代理 ──
+       ⚠ 为什么这个也要代理（而 /packs 的下载不用）：
+         谱面文件走 303 重定向到 phira-cdn.5wyxi.com，而那个域**只回
+         Access-Control-Allow-Methods，没有 Allow-Origin** ——
+         浏览器 fetch 跟随重定向后检查最终响应，直接判失败。
+         `<a href>` 点击下载不受 CORS 约束（那是导航），所以 /packs 能直连；
+         但深链要**读进内存喂给解析器**，必须 fetch，只能过我们这一跳。 */
+    const fm = /^\/api\/phira-file\/([^/?#]+)$/.exec(url.pathname);
+    if (fm) {
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        res.writeHead(405, Object.assign({ 'content-type': 'application/json; charset=utf-8' }, secHeaders));
+        res.end(JSON.stringify({ error: 'method not allowed' }));
+        return true;
+      }
+      const fid = decodeURIComponent(fm[1]);
+      if (!isUuid(fid)) {
+        res.writeHead(400, Object.assign({ 'content-type': 'application/json; charset=utf-8' }, secHeaders));
+        res.end(JSON.stringify({ error: 'bad id' }));
+        return true;
+      }
+      try {
+        const up = await fetch(CDN + fid, {
+          headers: { 'user-agent': UA, accept: '*/*' },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (!up.ok) {
+          res.writeHead(up.status === 404 ? 404 : 502,
+            Object.assign({ 'content-type': 'application/json; charset=utf-8' }, secHeaders));
+          res.end(JSON.stringify({ error: 'upstream ' + up.status }));
+          return true;
+        }
+        const buf = Buffer.from(await up.arrayBuffer());
+        res.writeHead(200, Object.assign({
+          'content-type': 'application/octet-stream',
+          'content-length': buf.length,
+          /* 谱面文件内容随上传变化 → 短缓存，别让"改了谱面却拿到旧包" */
+          'cache-control': 'private, max-age=300',
+        }, secHeaders));
+        res.end(req.method === 'HEAD' ? undefined : buf);
+      } catch (e) {
+        res.writeHead(502, Object.assign({ 'content-type': 'application/json; charset=utf-8' }, secHeaders));
+        res.end(JSON.stringify({ error: 'fetch failed' }));
+      }
+      return true;
+    }
+
     const m = /^\/api\/phira-illust\/([^/?#]+)$/.exec(url.pathname);
     if (!m) return false;
 

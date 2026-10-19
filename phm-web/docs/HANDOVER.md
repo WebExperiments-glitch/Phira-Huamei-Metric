@@ -74,6 +74,7 @@ node tools/smoke-page.mjs      http://127.0.0.1:5199  # 239 条 · 页面加载/
 node tools/verify-pages.mjs    http://127.0.0.1:5199  # 123 条 · 真浏览器驱动 UI + 双语
 node tools/test-ui-flows.mjs   http://127.0.0.1:5199  #  24 条 · 真浏览器**交互**（拖文件/结果卡/字体）
 node tools/test-api-routes.mjs http://127.0.0.1:5199  #  22 条 · 打完接口 + 贡献凭证认证再验进程没死
+node tools/test-entry.mjs http://127.0.0.1:5199    #  30 条 · **新入口链路**：详情页 SEO / sitemap / 深链 / 全局搜索 / uptime bar / 二维码
 node tools/test-contribute-ticket.mjs                  #  11 条 · 贡献凭证签/验（不联网）
 
 node tools/lint-slop.mjs                              # 必须 0

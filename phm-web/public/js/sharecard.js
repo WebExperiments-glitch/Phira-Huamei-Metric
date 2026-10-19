@@ -17,11 +17,23 @@
  *   · 数字必须可读：观众在手机上看的是缩略图，字号小等于没写。
  * ============================================================ */
 
+import { drawQrBadge } from './qr.js?v=V0.21.1.2';
+
 const AMBER = '#e8a33d', BLUE = '#5aa2e8', GREEN = '#4cc38a';
 const FG = '#e6edf3', FG2 = '#9aa7b4', FG3 = '#6b7684', LINE = '#2a313c', CARD = '#161b22';
 const SITE = 'phm.app.workbuddy.host';
 
 const FONT = '"Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif';
+
+/** 卡片上二维码要编码的地址。
+ *  ⚠ 必须落到一个**具体页面**：首页对看图的人没有信息量，
+ *    详情形（/chart/<id>）才是"他刚看到的那个人/那张谱"。
+ *    没有 id 时退回首页 —— 但那是兜底，不是常态。 */
+function qrUrlOf(d) {
+  if (d && d.url) return String(d.url);
+  if (d && d.uid) return 'https://' + SITE + '/user?uid=' + encodeURIComponent(d.uid);
+  return 'https://' + SITE + '/';
+}
 
 /* 文案：中英两套。X 的观众看不懂「参考定数」四个字。 */
 const COPY = {
@@ -212,7 +224,7 @@ function wrapLines(c, s, maxW, maxLines, setFont) {
 }
 
 /* ── 版式：横屏 1200×630 ── */
-function drawWide(c, d, L) {
+async function drawWide(c, d, L) {
   const W = 1200, H = 630;
   c.fillStyle = '#0d1117'; c.fillRect(0, 0, W, H);
   /* 两块纯色装饰（不用渐变 —— 与站点风格一致，也更抗压缩） */
@@ -236,7 +248,7 @@ function drawWide(c, d, L) {
   if (meta) text(c, meta, P, 282, { size: 24, color: FG2 });
 
   /* 数字条 */
-  const y = 340, h = 168;
+  const y = 326, h = 142;
   c.fillStyle = CARD; rr(c, P, y, 1120 - P * 2, h, 18); c.fill();
   c.strokeStyle = LINE; c.lineWidth = 1; c.stroke();
 
@@ -252,21 +264,45 @@ function drawWide(c, d, L) {
     const cx = P + colW * i + 34;
     text(c, cell.k, cx, y + 46, { size: 20, color: FG3 });
     text(c, cell.v, cx, y + 112, { size: cell.big, weight: 500, color: cell.col });
-    if (cell.sub) text(c, cell.sub, cx, y + 146, { size: 15, color: FG3 });
+    if (cell.sub) text(c, cell.sub, cx, y + 128, { size: 15, color: FG3 });
     if (i) { c.strokeStyle = LINE; c.beginPath(); c.moveTo(P + colW * i, y + 30); c.lineTo(P + colW * i, y + h - 30); c.stroke(); }
   });
 
   /* 官谱标度对照行 —— 双标度里更"客观"的那一栏 */
+  /* 右下角留给二维码：这里的文字一律截断到 QR_LEFT 之前，
+     否则长文案会从码上穿过去（缩略图里最难看的一种）。
+     ⚠ 二维码是**带静区**画的，所以文字要再往里收 20px。 */
+  /* ⚠ 二维码尺寸不是"看着合适"就行，它有个硬下限：
+     **每个模块至少 3–4 像素**，否则解码器（含手机相机）认不出来。
+     29 模块的码 + 静区 ≈ 37 格，84px 只有 2.3px/模块 —— 实测扫不出来。
+     132px 约 3.6px/模块，这是横版放得下的上限，所以把数字条压矮腾地方。 */
+  const QS = 132, QPAD = 10;
+  const qRight = 1120 - P;
+  const qLeft = qRight - QS - QPAD * 2;
+  const textMax = qLeft - P - 24;
+
   if (d.refOfficial != null) {
-    text(c, L.refOff + '  ' + fx(d.refOfficial, 2) + L.refOffNote, P, 538, { size: 19, color: FG3 });
+    const line = wrapLines(c, L.refOff + '  ' + fx(d.refOfficial, 2) + L.refOffNote,
+      textMax, 1, cc => { cc.font = '400 19px ' + FONT; })[0];
+    text(c, line, P, 496, { size: 19, color: FG3 });
   }
   /* 底部 */
-  text(c, L.footnote, P, 566, { size: 20, color: FG3 });
-  text(c, SITE, 1120 - P, 566, { size: 24, weight: 500, color: BLUE, align: 'right' });
+  /* ⚠ 两段文字必须在同一行共存：先量出域名的宽度，再从 footnote 的可用宽度里扣掉。
+     早先两段都截到 textMax，结果域名压住了 footnote 的后半句（截图一眼可见）。 */
+  c.font = '500 22px ' + FONT;
+  const siteW = c.measureText(SITE).width;
+  const footMax = qLeft - 18 - siteW - 26 - P;
+  const foot = wrapLines(c, L.footnote, Math.max(80, footMax), 1, cc => { cc.font = '400 20px ' + FONT; })[0];
+  text(c, foot, P, 524, { size: 20, color: FG3 });
+  text(c, SITE, qLeft - 18, 524, { size: 22, weight: 500, color: BLUE, align: 'right' });
+
+  /* 二维码：右下角，白底板让它从深色卡片上"浮"起来 */
+  await drawQrBadge(c, qrUrlOf(d), qLeft + QPAD, 478 + QPAD, QS,
+    { light: '#ffffff', dark: '#0d1117' });
 }
 
 /* ── 版式：竖屏 1080×1920（抖音 / 小红书）── */
-function drawTall(c, d, L) {
+async function drawTall(c, d, L) {
   const W = 1080, H = 1920;
   c.fillStyle = '#0d1117'; c.fillRect(0, 0, W, H);
   c.globalAlpha = 0.10; c.fillStyle = AMBER;
@@ -318,8 +354,18 @@ function drawTall(c, d, L) {
   const urlY = gridY + (boxH + 24) * 2 + 82;
   c.fillStyle = CARD; rr(c, P, urlY, W - P * 2, 210, 18); c.fill();
   c.strokeStyle = LINE; c.stroke();
-  text(c, '浏览器打开', P + 34, urlY + 72, { size: 28, color: FG3 });
-  text(c, SITE, P + 34, urlY + 162, { size: 58, weight: 500, color: BLUE });
+  /* 这个区块右侧放二维码（150px），文字一律收在它左边 */
+  const TQS = 180, TQPAD = 10;
+  const tqRight = W - P - 22;
+  const tqLeft = tqRight - TQS - TQPAD * 2;
+  const tMax = tqLeft - (P + 34) - 24;
+
+  text(c, '浏览器打开', P + 34, urlY + 66, { size: 26, color: FG3 });
+  const siteLine = wrapLines(c, SITE, tMax, 1, cc => { cc.font = '500 46px ' + FONT; })[0];
+  text(c, siteLine, P + 34, urlY + 150, { size: 46, weight: 500, color: BLUE });
+  await drawQrBadge(c, qrUrlOf(d), tqLeft + TQPAD, urlY + 22, TQS,
+    { light: '#ffffff', dark: '#0d1117' });
+
   text(c, L.footnote, P, urlY + 300, { size: 24, color: FG3 });
   text(c, L.site, P, urlY + 350, { size: 24, color: FG3 });
 }
@@ -387,7 +433,7 @@ function playerHead(c, d, L, P, y, titleSize) {
   const nmY = y + titleSize + 48;
   let nm = String(d.name || '');
   c.font = '500 ' + nmSize + 'px ' + FONT;
-  while (nm && c.measureText(nm).width > 760) nm = nm.slice(0, -1);
+  while (nm && c.measureText(nm).width > 660) nm = nm.slice(0, -1);
   if (nm !== String(d.name || '')) nm = nm.slice(0, -1) + '…';
   text(c, nm, P, nmY, { size: nmSize, weight: 500 });
   if (d.uid) {
@@ -405,7 +451,7 @@ function playerHead(c, d, L, P, y, titleSize) {
  *     436 起 4 行，行距 34 → 最后一行 538
  *     580 / 606 两行页脚
  *   只放 4 行是有意的：这张图的用途是发群里让人来查，不是完整榜单。 */
-function drawPlayerWide(c, d, L) {
+async function drawPlayerWide(c, d, L) {
   const W = 1200, H = 630;
   c.fillStyle = '#0d1117'; c.fillRect(0, 0, W, H);
   c.globalAlpha = 0.07; c.fillStyle = AMBER;
@@ -414,6 +460,11 @@ function drawPlayerWide(c, d, L) {
 
   const P = 64, TW = 1120 - P * 2;
   playerHead(c, d, L, P, 66, 38);
+
+  /* 玩家卡上半部左边是名字、右边是空白（只有装饰圆），把码放这儿不挤占表格。
+     ⚠ 放右下角会压住第 4 行 —— 630 的高度装不下"表 + 页脚 + 码"。 */
+  await drawQrBadge(c, qrUrlOf(d), 1120 - P - 96, 26, 96,
+    { light: '#ffffff', dark: '#0d1117' });
 
   /* 三个数字：我们的 RKS（大）/ 官方 / 覆盖 */
   const y = 214, h = 146;
@@ -471,7 +522,7 @@ function drawPlayerWide(c, d, L) {
 }
 
 /* ── 玩家卡 · 竖屏 1080×1920 ── */
-function drawPlayerTall(c, d, L) {
+async function drawPlayerTall(c, d, L) {
   const W = 1080, H = 1920;
   c.fillStyle = '#0d1117'; c.fillRect(0, 0, W, H);
   c.globalAlpha = 0.10; c.fillStyle = AMBER;
@@ -480,6 +531,9 @@ function drawPlayerTall(c, d, L) {
 
   const P = 84;
   playerHead(c, d, L, P, 170, 60);
+
+  await drawQrBadge(c, qrUrlOf(d), W - P - 168, 108, 168,
+    { light: '#ffffff', dark: '#0d1117' });
 
   /* 主数字：P.H.M. RKS，占满一屏宽度 */
   text(c, L.pRks, P, 470, { size: 36, color: FG3 });
@@ -538,7 +592,7 @@ export async function renderCard(data, mode = 'wide', lang = 'zh') {
   cv.width = wide ? 1200 : 1080;
   cv.height = wide ? 630 : 1920;
   const c = cv.getContext('2d');
-  (wide ? drawWide : drawTall)(c, data, L);
+  await (wide ? drawWide : drawTall)(c, data, L);
   return await new Promise(res => cv.toBlob(b => res(b), 'image/png'));
 }
 
@@ -555,7 +609,7 @@ export async function renderPlayerCard(data, mode = 'wide', lang = 'zh') {
   cv.width = wide ? 1200 : 1080;
   cv.height = wide ? 630 : 1920;
   const c = cv.getContext('2d');
-  (wide ? drawPlayerWide : drawPlayerTall)(c, data, L);
+  await (wide ? drawPlayerWide : drawPlayerTall)(c, data, L);
   return await new Promise(res => cv.toBlob(b => res(b), 'image/png'));
 }
 

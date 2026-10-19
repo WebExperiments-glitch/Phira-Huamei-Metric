@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-font="serif">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="app-version" content="V0.21.1.2">
+<!--seo-->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.1.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.2">
+<script>
+/* 防闪烁：在首帧之前把主题定下来（与其它页同款） */
+(function(){try{var t=localStorage.getItem("phm_theme")||"auto";var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}})();
+</script>
+<style>
+/* 详情页专用：曲绘做主视觉，其余复用站点组件 */
+.cd-hero{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.cd-ill{width:190px;height:190px;flex:none;border-radius:12px;object-fit:cover;
+  background:var(--card2);border:1px solid var(--line)}
+.cd-ill.ph{display:flex;align-items:center;justify-content:center;font-size:34px;color:var(--fg4)}
+.cd-main{flex:1;min-width:240px}
+.cd-name{font-family:var(--font-display);font-size:30px;line-height:1.3;margin:0 0 8px;font-weight:600}
+.cd-sub{color:var(--fg2);font-size:13.5px;line-height:1.9}
+.cd-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.cd-num{display:flex;gap:26px;flex-wrap:wrap;margin:18px 0 0}
+.cd-num .b{min-width:118px}
+.cd-num .k{font-size:11.5px;color:var(--fg3);letter-spacing:.03em}
+.cd-num .v{font-family:var(--font-display);font-size:40px;line-height:1.15;color:var(--brand);font-variant-numeric:tabular-nums}
+.cd-num .v.alt{color:var(--fg2);font-size:30px}
+.cd-num .n{font-size:11.5px;color:var(--fg4)}
+.cd-act{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
+.cd-kv{display:grid;grid-template-columns:110px 1fr;gap:8px 14px;font-size:13px;line-height:1.8}
+.cd-kv dt{color:var(--fg3)}
+.cd-kv dd{margin:0;color:var(--fg2);word-break:break-word;white-space:pre-wrap}
+@media(max-width:560px){
+  .cd-ill{width:100%;height:auto;aspect-ratio:1/1}
+  .cd-num .v{font-size:34px}
+}
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+
+<main class="wrap" id="main">
+  <div class="card">
+    <div class="cd-hero">
+      <!-- ⚠ 不能加 loading="lazy"：这张图初始是 hidden，
+         而**隐藏的懒加载图浏览器根本不会去请求** → 永远停在 naturalWidth=0。
+         曲绘是首屏主视觉，本来就该立即加载。 -->
+      <img class="cd-ill" id="ill" alt="" referrerpolicy="no-referrer" hidden>
+      <div class="cd-ill ph" id="illWrap"><span>♪</span></div>
+      <div class="cd-main">
+        <h1 class="cd-name" id="name">加载中…</h1>
+        <div class="cd-sub" id="sub">正在读取这张谱面…</div>
+        <div class="cd-tags" id="tags"></div>
+      </div>
+    </div>
+
+    <div class="cd-num" id="nums">
+      <div class="b">
+        <div class="k">参考定数 · 社区共识</div>
+        <div class="v" id="ref">—</div>
+        <div class="n" id="range">—</div>
+      </div>
+      <div class="b">
+        <div class="k">官谱标度</div>
+        <div class="v alt" id="refOff">—</div>
+        <div class="n">同一算法，参照集换成 1,037 张官谱</div>
+      </div>
+      <div class="b">
+        <div class="k">Phira 标称</div>
+        <div class="v alt" id="offical">—</div>
+        <div class="n">谱面文件里写的数字</div>
+      </div>
+    </div>
+
+    <div class="cd-act">
+      <a class="btn primary" id="openApp" href="/app">在分析台打开</a>
+      <a class="btn" id="openPacks" href="/packs">找这张谱的文件</a>
+      <a class="btn" id="openCharter" href="/charter">按谱师查作品</a>
+    </div>
+  </div>
+
+  <div class="card" id="emptyCard" hidden>
+    <h2>这张谱还没算过</h2>
+    <p class="dim2" style="margin:0 0 10px;font-size:13px;line-height:1.9">
+      库里还没有它的参考定数。点下面的按钮，把谱面文件（.pez / .zip）丢进去，几秒就能算出来，
+      而且会自动进共享缓存 —— <b>下一个人再来看这张谱就是现成的</b>。
+    </p>
+    <a class="btn primary" href="/app" id="goCalc">去算一张</a>
+  </div>
+
+  <div class="card" id="metaCard" hidden>
+    <h2>谱面信息</h2>
+    <dl class="cd-kv" id="kv"></dl>
+  </div>
+
+  <div class="card" id="descCard" hidden>
+    <h2>谱面简介</h2>
+    <div class="desc" id="desc"></div>
+  </div>
+</main>
+
+<footer id="foot"></footer>
+
+<script type="module">
+import {
+  renderNav, esc, t, applyStatic, onLangChange, APP_VER, loadChartCache, f1, f2,
+} from '/js/ui.js?v=V0.21.1.2';
+import { installGuard } from '/js/guard.js?v=V0.21.1.2';
+import { illustProxy } from '/js/chartfiles-core.mjs?v=V0.21.1.2';
+
+try { installGuard(t); } catch (e) {}
+renderNav('');
+
+/* 详情页的 id 来自路径（服务端已按同一规则匹配过，这里再校验一次） */
+const ID = Number((/^\/chart\/(\d{1,12})\/?$/.exec(location.pathname) || [])[1]) || 0;
+const $ = s => document.querySelector(s);
+
+/* ⚠ 服务端已经把 title/description 写好了。这里只填可见内容 ——
+   如果这里失败（断网/上游挂），页面仍有服务端渲染的标题与描述，
+   搜索者点进来不会看到一张空白页。 */
+async function bootDetail() {
+  if (!ID) { location.replace('/'); return; }
+
+  let meta = null, cacheRow = null;
+  try {
+    const r = await fetch('/api/phira/chart/' + ID, { cache: 'no-cache' });
+    if (r.ok) meta = await r.json();
+  } catch (e) {}
+  try {
+    await loadChartCache([ID]);
+    cacheRow = (await import('/js/ui.js?v=' + encodeURIComponent(APP_VER))).cachedRow(ID);
+  } catch (e) {}
+
+  paint(meta, cacheRow);
+}
+
+function paint(m, c) {
+  const name = (m && m.name) || ('谱面 #' + ID);
+  const level = (m && m.level) || '';
+  const charter = (m && m.charter) || '';
+  const composer = (m && m.composer) || '';
+  const illustrator = (m && m.illustrator) || '';
+  const official = m && isFinite(+m.difficulty) && +m.difficulty > 0 ? +m.difficulty : null;
+
+  document.title = name + (c && c.ref_const ? ' 定数 ' + f2(c.ref_const) : '') + ' · P.H.M.';
+  $('#name').textContent = name;
+
+  /* 副标题：难度 · 谱师 · 作曲 —— 空的不占位，别出现「· · ·」 */
+  $('#sub').textContent = [level, charter && ('谱师 ' + charter), composer && ('作曲 ' + composer)]
+    .filter(Boolean).join('   ·   ') || '资料来自 Phira 公开 API';
+
+  const tags = (m && Array.isArray(m.tags) ? m.tags : []).slice(0, 8);
+  $('#tags').innerHTML = tags.map(x => '<span class="tg">' + esc(x) + '</span>').join('')
+    + (m && m.reviewed ? '<span class="tg" style="color:var(--ok)">已审核</span>' : '');
+
+  /* 曲绘：走代理（上游 MIME 是 octet-stream，浏览器 ORB 会拒绝解码）。
+     ⚠ 用「img 先占位、onload 才显形」而不是 new Image() + replaceWith：
+        后者在图片慢/失败时完全没有反馈，排查起来只能靠猜；
+        而且节点在 onload 时可能已经被别的渲染覆盖掉。
+        现在失败就保持 ♪ 占位，成功才把占位换成图。 */
+  const illUrl = illustProxy(m && m.illustration);
+  const ill = $('#ill');
+  if (illUrl && ill) {
+    ill.addEventListener('load', () => {
+      if (!ill.naturalWidth) return;          /* 解码失败也走不到这 */
+      ill.hidden = false;
+      $('#illWrap').style.display = 'none';
+    });
+    ill.addEventListener('error', () => { ill.hidden = true; });
+    ill.src = illUrl;
+  }
+
+  if (c && isFinite(+c.ref_const) && +c.ref_const > 0) {
+    $('#ref').textContent = f2(c.ref_const);
+    /* 定数下面那行小字：缓存里**实际有**的三项。
+       ⚠ 原来写的是 ref_lo / ref_hi（不确定范围），但 phm_charts 表没有这两列 ——
+         于是这一行永远显示"社区共识标度"，等于装饰。
+         改成 PS 负荷 / 物量 / NPS：都是缓存里现成的，而且能帮人判断"这谱凭什么是 17.45"。 */
+    const bits = [];
+    if (isFinite(+c.ps_score)) bits.push('PS ' + f1(c.ps_score));
+    if (isFinite(+c.notes)) bits.push('物量 ' + Math.round(+c.notes));
+    if (isFinite(+c.nps)) bits.push('NPS ' + f2(c.nps));
+    $('#range').textContent = bits.length ? bits.join(' · ') : '社区共识标度';
+    if (isFinite(+c.ref_official) && +c.ref_official > 0) $('#refOff').textContent = f2(c.ref_official);
+    if (isFinite(+official)) $('#offical').textContent = f2(official);
+  } else {
+    $('#emptyCard').hidden = false;
+    $('#nums').style.display = 'none';
+    if (isFinite(+official)) $('#offical').textContent = f2(official);
+  }
+
+  $('#openApp').href = '/app?chart=' + ID;
+  $('#openPacks').href = '/packs?q=' + encodeURIComponent(name);
+  $('#openCharter').href = '/charter?q=' + encodeURIComponent(charter || name);
+
+  const rows = [
+    ['难度', level],
+    ['谱师', charter],
+    ['作曲', composer],
+    ['曲绘', illustrator],
+    ['谱面 ID', String(ID)],
+    ['上传', m && m.created ? String(m.created).slice(0, 10) : ''],
+    ['更新', m && m.updated ? String(m.updated).slice(0, 10) : ''],
+    ['评级', m && m.ratingCount > 0 ? f2(m.rating) + '（' + m.ratingCount + ' 票）' : '暂无评分'],
+    ['标签', tags.join(' · ')],
+  ].filter(r => r[1]);
+  if (rows.length) {
+    $('#metaCard').hidden = false;
+    $('#kv').innerHTML = rows.map(r => '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>').join('');
+  }
+
+  if (m && m.description && String(m.description).trim()) {
+    $('#descCard').hidden = false;
+    $('#desc').textContent = m.description;
+  }
+}
+
+bootDetail();
+onLangChange(() => { applyStatic(); });
+applyStatic();
+</script>
+</body>
+</html>

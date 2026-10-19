@@ -362,6 +362,24 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .nav .ghlink:hover { color: var(--fg); background: var(--card2); }
 
+/* 顶栏的全局搜索：默认只是图标，点开变成输入框。
+   收起时只占 26px，但省掉了「先想清楚去 /data 还是 /packs」这一步。 */
+.nav .navq {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; margin-left: 4px; padding: 0; border: 0;
+  border-radius: 7px; background: none; color: var(--fg3); cursor: pointer;
+  transition: color .14s, background .14s;
+}
+.nav .navq:hover, .nav .navq.on { color: var(--fg); background: var(--card2); }
+.nav .navqi {
+  width: 150px; height: 26px; margin-left: 4px; padding: 0 8px;
+  border: 1px solid var(--line2); border-radius: 7px; background: var(--card3);
+  color: var(--fg); font-size: 12px; font-family: inherit;
+}
+.nav .navqi:focus { outline: none; border-color: var(--brand-line); }
+.nav .navqi::-webkit-search-cancel-button { -webkit-appearance: none; }
+@media (max-width: 760px) { .nav .navqi { width: 104px; } }
+
 /* ── 卡片 / 面板 ──────────────────────────────────────── */
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r2);
