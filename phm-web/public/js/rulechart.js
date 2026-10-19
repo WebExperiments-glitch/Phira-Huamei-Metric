@@ -9,6 +9,10 @@
  * points 后再调用 buildChartFromPoints（预留）。
  * ============================================================ */
 
+import { buildGrid, quantizeOnsets, markTuplets, phraseBounds, quantizeReport } from './rhythm.js?v=V0.21.1.2';
+import { scoreEvents, selectEvents, assignHands, assignNotes, selectionReport } from './salience.js?v=V0.21.1.2';
+import { auditPlayability } from './playability.js?v=V0.21.1.2';
+
 const LANES = {
   5: [-405, -202.5, 0, 202.5, 405],
   /* 2K = 两根手指可打，不是两根固定轨道：x 分散在整屏，左右手交替。 */
@@ -66,7 +70,7 @@ const AUDIO_PRESETS = {
         weights: { tap: .57, hold: .08, flick: .08, drag: .27 }, holds: [.25, .5], phrase: 8 },
 };
 
-const RULE_VERSION = '1.0';
+const RULE_VERSION = '2.0';
 
 /* 对外公开的规则表：页面/docs 与校验器共用同一份。 */
 const RULES = {
@@ -369,59 +373,101 @@ export function buildChartFromAnalysis(analysis, opts) {
   const lead = 2 * beatSec;
   const end = (totalBeats - 1) * beatSec;
 
-  /* 先用音频分离结果：钢琴曲走 pianoOnsets，鼓重的曲子走 drumOnsets，二者都没有才回退总 onset。 */
-  const piano = (analysis.pianoOnsets || []).filter(p => Number.isFinite(p.time));
-  const drum = (analysis.drumOnsets || []).filter(p => Number.isFinite(p.time));
-  const source = piano.length >= drum.length * 0.8 ? 'piano' : (drum.length ? 'drum' : 'onset');
-  let picked = source === 'piano' ? piano : source === 'drum' ? drum : (analysis.onsets || []);
+  /* ══════════════════════════════════════════════════════════════
+   * ① 拍网格 —— 所有时间都要落到这上面
+   * ══════════════════════════════════════════════════════════════
+   * ⚠ 以前这里是「每个 onset 的时间原样当音符时间」。
+   *   后果是音符落在 0.47 / 0.94 拍这种位置：检测误差 ±20ms 起，
+   *   而判定线按拍走 —— 玩家读不出来，只能靠背。
+   *   现在先建网格，再量化（推导见 rhythm.js 顶部）。 */
+  const grid = buildGrid({
+    bpm, offset: analysis.offset, duration, beats: analysis.beats,
+    /* ⚠ 必须把 onsets 传进去：网格相位要靠它们精调一次。
+       不传的话相位精度只到半拍，整张谱会整体落在「半拍」上。 */
+    onsets: analysis.onsets,
+  });
 
-  let times = picked
-    .map(p => ({ t: Number(p.time), s: Number(p.strength) || 0.35 }))
-    .filter(p => Number.isFinite(p.t) && p.t >= lead && p.t <= end)
-    .sort((a, b) => a.t - b.t);
-  const dedup = [];
-  for (const p of times) if (!dedup.length || p.t - dedup[dedup.length - 1].t > 0.05) dedup.push(p);
-  times = dedup;
+  /* ══════════════════════════════════════════════════════════════
+   * ② 三个声部各自量化，合并成一个候选池
+   * ══════════════════════════════════════════════════════════════
+   * ⚠ 以前是「二选一」：piano 多就只用 piano，否则只用 drum。
+   *   这等于丢掉一半音乐信息 —— 鼓点给骨架、旋律给重音，两者互补。
+   *   现在三路都量化、都进池子，由显著性排序决定谁留下。 */
+  const leadBeat = 2, endBeat = totalBeats - 1;
+  /* 容差不写死：用 rhythm.js 的默认值（40ms）。
+     早先这里写 95，比最细网格的半格还大 —— 于是任何位置都能被吸上，
+     "量化失败"永远不会发生，容差等于没有。 */
+  const qOpts = { minBeat: leadBeat, maxBeat: endBeat, maxShiftBeats: 1 };
+  const tag = (arr, layer) => (arr || []).map(p => Object.assign({ layer }, p));
 
-  const target = Math.max(1, Math.round(preset.targetNps * duration));
-  if (times.length > target) {
-    times = times.slice().sort((a, b) => b.s - a.s).slice(0, target).sort((a, b) => a.t - b.t);
-  } else if (times.length < target) {
-    const beats = (analysis.beats || []).filter(x => Number.isFinite(x));
-    const filled = times.slice();
-    if (beats.length) {
-      for (let i = 0; i < beats.length && filled.length < target; i++) {
-        for (let s = 0; s < 4; s++) {
-          const tt = beats[i] + s * beatSec / 4;
-          if (tt < lead || tt > end) continue;
-          if (filled.some(q => Math.abs(q.t - tt) < 0.05)) continue;
-          filled.push({ t: tt, s: 0.2 });
-          if (filled.length >= target) break;
-        }
-      }
+  const drumQ = quantizeOnsets(tag(analysis.drumOnsets, 'drum'), grid, qOpts);
+  const pianoQ = quantizeOnsets(tag(analysis.pianoOnsets, 'piano'), grid, qOpts);
+  const allQ = quantizeOnsets(tag(analysis.onsets, 'onset'), grid, qOpts);
+
+  /* 合并 + 去重：不同声部的 onset 常被量化到**同一格**（鼓点与旋律同时响）。
+     同一格只留一个，先用 conf × 层权重 粗筛（真正的排序在 scoreEvents 之后）。 */
+  const layerPri = { drum: 1.0, piano: 0.72, onset: 0.6 };
+  const bySlot = new Map();
+  const pool = [];
+  for (const e of [].concat(drumQ, pianoQ, allQ)) {
+    if (!e || e.dropped) continue;
+    const key = e.beat.toFixed(4);
+    const score = (e.conf || 0) * (layerPri[e.layer] || 0.6);
+    const prev = bySlot.get(key);
+    if (prev) {
+      if (score > prev._pick) { prev._pick = score; Object.assign(prev, e, { _pick: score }); }
+      continue;
     }
-    filled.sort((a, b) => a.t - b.t);
-    times = filled;
+    e._pick = score;
+    bySlot.set(key, e);
+    pool.push(e);
   }
+  pool.sort((a, b) => a.beat - b.beat);
 
-  /* 2 指自由分散：左右手分区交替，每只手只在半屏内移动；一次一个。
-   * 去掉 Hold（长条），只留 Tap/Drag，避免长条和蓝键重叠。 */
-  const left = [-405, -202.5];
-  const right = [202.5, 405];
-  const weights = { tap: 0.85, drag: 0.15 };
-  const notes = [];
-  times.forEach((p, i) => {
-    const beat = p.t / beatSec;
-    if (beat < 2 - 1e-6 || beat > totalBeats - 1 + 1e-6) return;
-    const pool = i % 2 === 0 ? left : right;
-    const x = pool[(Math.floor(i / 2) + (i % 2)) % pool.length];
-    const type = pickWeighted(rng, weights);
-    notes.push({
-      above: 1, alpha: 255, endTime: frac(beat), isFake: 0,
-      positionX: x, size: 1, speed: 1,
-      startTime: frac(beat), type: type === 'drag' ? 4 : 1,
+  /* ══════════════════════════════════════════════════════════════
+   * ③ 乐句边界 —— 换气口上的音最该保留
+   * ══════════════════════════════════════════════════════════════ */
+  const phrases = phraseBounds(grid, analysis.sections, {
+    phraseBars: preset.phrase >= 10 ? 4 : 2,
+    duration,
+  });
+
+  /* ══════════════════════════════════════════════════════════════
+   * ④ 打分 → 选点
+   * ══════════════════════════════════════════════════════════════
+   * ⚠⚠ **绝不凭空造音符。**
+   *   旧代码在候选不足时会 `filled.push({t: beats[i] + s*beatSec/4, s: 0.2})`
+   *   —— 那段音频里根本没有那个声音，玩家打到的是一张假谱。
+   *   现在候选不够就少给，并把 shortfall 如实报出来。 */
+  const target = Math.max(1, Math.round(preset.targetNps * duration));
+  const scored = scoreEvents(pool, grid, { phrases });
+  const sel = selectEvents(scored, {
+    targetNotes: target,
+    /* 阈值按难度微调：高难度允许更细的格子（那些音确实存在），
+       低难度只留骨架。0.30 约等于「整拍 + 中等强度」能过的线。 */
+    minSalience: preset.keep >= 0.9 ? 0.26 : preset.keep >= 0.75 ? 0.30 : 0.34,
+  });
+  const picked = sel.picked;
+  markTuplets(picked);
+
+  /* ══════════════════════════════════════════════════════════════
+   * ⑤ 映射到判定线 + 决定类型
+   * ══════════════════════════════════════════════════════════════ */
+  assignHands(picked, { maxSameSide: 6 });
+  assignNotes(picked, {
+    weights: preset.weights, holds: preset.holds,
+    beatSec, rng, maxHoldBeats: 2,
+  });
+
+  const notes = picked.map((e) => {
+    const t = TYPE[e.kind] || 1;
+    const endB = e.kind === 'hold' ? e.beat + (e.holdBeats || 0.5) : e.beat;
+    return {
+      above: 1, alpha: 255, endTime: frac(endB), isFake: 0,
+      positionX: e.x, size: 1, speed: 1,
+      startTime: frac(e.beat), type: t,
       visibleTime: 999999, yOffset: 0,
-    });
+    };
   });
 
   notes.sort((a, b) => a.startTime[0] - b.startTime[0] || a.startTime[1] / a.startTime[2] - b.startTime[1] / b.startTime[2]);
@@ -456,18 +502,54 @@ export function buildChartFromAnalysis(analysis, opts) {
     },
     judgeLineGroup: ['Default'], judgeLineList: [mainLine],
   };
-  const validation = validateChart(chart, { difficulty: o.difficulty, lanes: 2, free: true });
+  const validation = validateChart(chart, {
+    difficulty: o.difficulty, lanes: 2, free: true,
+    targetNps: preset.targetNps, minGapBeats: preset.minGap, maxChord: preset.maxChord,
+  });
   const typeCounts = { tap: 0, hold: 0, flick: 0, drag: 0 };
   for (const n of notes) for (const [k, v] of Object.entries(TYPE)) if (v === n.type) typeCounts[k]++;
+
+  /* 三层报告全部带回给页面 —— 用户要能看见「时间轴靠不靠谱」、
+     「为什么只出了这么多音」、「哪里可能难打」，而不是只拿到一个 valid 布尔。 */
+  /* ⚠ 量化报告要分两层看：
+     ① **候选池**（三声部合计）→ 平均偏差、丢弃数：衡量"时间轴靠不靠谱"
+     ② **最终入选**（picked）→ 时值分布、三连音数：衡量"这份谱面长什么样"
+     早先两者混用，页面出现「时值 1/1×174」而音符只有 58 —— 统计的是池子，
+     用户会以为谱面里有 174 个音。 */
+  const qAll = quantizeReport([].concat(drumQ, pianoQ, allQ));
+  const qSel = quantizeReport(picked);
+  const qReport = Object.assign({}, qAll, {
+    byValue: qSel.byValue,
+    tuplets: qSel.tuplets,
+    meanDevMs: qSel.meanDevMs,
+    maxDevMs: qSel.maxDevMs,
+    candidates: qAll.kept,
+  });
+  const sReport = selectionReport(sel, picked);
   return {
     chart,
     stats: {
       notes: notes.length, bpm, duration, difficulty: preset.label, lanes: 2,
-      onsets: (analysis.onsets || []).length, drumOnsets: drum.length, pianoOnsets: piano.length,
-      onsetSource: source, nps: notes.length / duration,
+      onsets: (analysis.onsets || []).length,
+      drumOnsets: (analysis.drumOnsets || []).length,
+      pianoOnsets: (analysis.pianoOnsets || []).length,
+      /* 三个声部都进了池子，不再有「只用一个源」这回事 */
+      onsetSource: 'merged',
+      nps: notes.length / duration,
       targetNps: preset.targetNps, targetNotes: target,
       typeCounts, valid: validation.ok,
-      violations: validation.violations, metrics: validation.metrics, ruleVersion: RULE_VERSION,
+      violations: validation.violations, warnings: validation.warnings,
+      metrics: validation.metrics, ruleVersion: RULE_VERSION,
+      /* ── A：时间轴 ── */
+      quantize: qReport,
+      grid: { bpm: grid.bpm, beatSec: Math.round(grid.beatSec * 10000) / 10000,
+              offsetSec: Math.round(grid.offsetSec * 10000) / 10000,
+              beatsPerBar: grid.beatsPerBar },
+      phrases: phrases.length,
+      /* ── B：事件选择 ── */
+      selection: sReport,
+      /* ── C：可玩性 ── */
+      playability: validation.playability || null,
     },
   };
 }
@@ -487,7 +569,7 @@ export function validateChart(chart, opts) {
   const violations = [];
   const lines = chart && chart.judgeLineList;
   if (!lines || !Array.isArray(lines) || !lines.length) {
-    return { ok: false, violations: ['chart has no judge line notes'], metrics: null };
+    return { ok: false, violations: ['chart has no judge line notes'], warnings: [], metrics: null };
   }
   const notes = lines.flatMap(l => Array.isArray(l.notes) ? l.notes : [])
     .sort((a, b) => (a.startTime[0] + a.startTime[1] / a.startTime[2]) - (b.startTime[0] + b.startTime[1] / b.startTime[2]));
@@ -520,7 +602,14 @@ export function validateChart(chart, opts) {
     const rec = byLane.get(lane);
     if (rec) {
       const gap = start - rec.start;
-      if (!free && gap < preset.minGap - 1e-6) violations.push(where + ' same-lane gap ' + gap.toFixed(3) + ' < ' + preset.minGap);
+      /* ⚠ **free 模式也要查间隔。**
+         以前这里是 `if (!free && gap < preset.minGap)` —— 而 2 指自由分散
+         恰恰是最需要查的：x 可以落在任意位置，同一只手连打两个 0 间隔的音符
+         完全"合法"。间隔的具体判定交给 playability（它会区分 error/warn），
+         这里只统计 minGap 供 metrics 用。 */
+      if (gap < (free ? 0.12 : preset.minGap) - 1e-6) {
+        /* 硬冲突（同一时刻）由 playability 报 error，这里不重复报 */
+      }
       if (rec.type === 2 && start < rec.end - 1e-6) violations.push(where + ' overlaps previous hold on lane ' + lane);
       minGap = Math.min(minGap, gap);
     }
@@ -538,9 +627,31 @@ export function validateChart(chart, opts) {
   if (maxChord > preset.maxChord) violations.push('chord ' + maxChord + ' > maxChord ' + preset.maxChord);
   if (notes.length === 0) violations.push('no notes');
 
+  /* ── 可玩性审计 ──
+     格式合法 ≠ 能好好打。三条实测过的「合法但没法玩」：
+     12 NPS 挤在同一个 x、连续 40 个 90ms 间隔、音符落在 0.47/0.94 拍。
+     审计把 error 折进 violations（不能下载），warn 折进 warnings（能下但提示）。 */
+  const audit = auditPlayability(chart, {
+    targetNps: Number.isFinite(o.targetNps) ? o.targetNps : preset.targetNps,
+    minGapBeats: Number.isFinite(o.minGapBeats) ? o.minGapBeats : preset.minGap,
+    maxChord: Number.isFinite(o.maxChord) ? o.maxChord : preset.maxChord,
+    free, durationSec: duration,
+  });
+  /* 去重：lead-in / chord 这类两边都会查，别在 violations 里出现两遍 */
+  const seen = new Set(violations.map(v => String(v).slice(0, 40)));
+  for (const e of audit.errors) {
+    const sig = (e.code + ':' + e.at).slice(0, 40);
+    if (seen.has(sig)) continue;
+    if (e.code === 'lead-in' || e.code === 'chord') continue;
+    seen.add(sig);
+    violations.push('[' + e.code + '] ' + e.msg);
+  }
+
   return {
     ok: violations.length === 0,
     violations,
+    warnings: audit.warnings.map(w => '[' + w.code + '] ' + w.msg),
+    playability: audit,
     metrics: {
       notes: notes.length,
       nps: duration ? notes.length / duration : 0,
@@ -548,6 +659,10 @@ export function validateChart(chart, opts) {
       minGap: minGap === Infinity ? null : minGap,
       types,
       lanes: [...lanes].sort((a, b) => a - b),
+      /* 时间轴质量：直接来自审计，页面可以直接显示 */
+      offGridRatio: audit.metrics ? audit.metrics.offGridRatio : null,
+      peakNps: audit.metrics ? audit.metrics.peakNps : null,
+      worstSameHandRun: audit.metrics ? audit.metrics.worstSameHandRun : null,
     },
   };
 }

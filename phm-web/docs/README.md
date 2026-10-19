@@ -156,6 +156,9 @@ phm-web/
 | 页面交互 / 渲染 | `public/app.html`（**工作台主体**，找对应函数名）。⚠ 里面还有约 300 行**休眠代码**（玩家面板迁到 `/user` 后遗留），见 `ARCHITECTURE.md` 的已知技术债 |
 | 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
 | 自动写谱（MP3 → 提取 → RPE v160 .pez/.zip） | `public/js/audio-analysis.js` + `public/js/rulechart.js` —— 浏览器本地提取/排谱，页面 `/rulechart` |
+| 自动写谱 · 时间轴（A） | `public/js/rhythm.js` —— 拍网格 / 相位精调 / **量化（含三连音）** / 乐句边界。⚠ 量化不是「吸到 1/4 网格」：层级 1·2·3·4·6，**故意不含 1/8** —— 三十二分太细，有了它任何位置都能被「对上」，容差就形同虚设。层级代价 `SUBDIV_COST_MS` 保证「简单读法优先」|
+| 自动写谱 · 事件选择（B） | `public/js/salience.js` —— 给每个候选打**音乐显著性**（强度打底 × 拍位 × 声部，乘子结构不是加权求和），再按分数选到目标数量。⚠⚠ **绝不凭空造音符**：候选不够就少给，`shortfall` 如实上报。同一份文件还负责映射判定线（按「哪只手更空」分配，不是 i%2 机械交替）|
+| 自动写谱 · 可玩性（C） | `public/js/playability.js` —— 独立审计器：时间冲突 / 同手过近 / 过密（按**时间窗**不按总数）/ 连续操作负担 / 异常长串 / 节奏可读性 / 目标难度偏差。error 折进 `violations`（不能下载），warn 折进 `warnings`（能下但提示）。⚠ **free 模式也查同手间隔** —— 以前 `if (!free)` 整条跳过，而 2 指自由分散恰恰最需要查 |
 | 登录态 / 云 SDK 初始化 | `public/js/cloud.js` —— **app / platform / settings 三处页面的唯一入口**。⚠ 云 SDK 是 `<script defer src=cdn>`，页面主逻辑也是 defer，但**内联 module 没有依赖图可以等**；不同步等待的话 SDK 慢一点就会先跑完 module，初始化拿到的 `cloud` 是 null，会话恢复被整段跳过 —— 症状是「用户每次刷新都要重新登录」且界面上没有任何错误 |
 | 全局错误兜底 | `public/js/guard.js` —— `error` / `unhandledrejection` / 断网三类提示，右上角 toast。**原本全站只有 app.html 接了 rejection，其余 9 页静默无痕**。自包含页 `phm-api.html` 内联一份（改名 `_gcut` 避开重名） |
 | 技能分（难在哪） | public/js/skills.js —— 把 feats 的 39 个特征重组为 stamina/dexterity/reading/precision 四技能。纯展示层：不改数值、不动 ENGINE_VER、不进 k-NN 的 REF_DIMS，所以不需要重算缓存。⚠ 只在「刚分析完」的响应里给 —— phm_charts 表没有 feats 字段，缓存行算不出来 |

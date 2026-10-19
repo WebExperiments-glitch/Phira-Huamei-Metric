@@ -20,6 +20,17 @@
 
 export const RELEASES = [
   {
+    v: 'V0.21.1.2', date: '2026-10-19',
+    zh: ['自动写谱的<b>节奏准了</b>：每个音都会被吸到能打的拍子上（含<b>三连音</b>），'
+      + '而不是检测到哪就放在哪。另外<b>不会再为了凑密度造音符</b>——'
+      + '歌里有多少音乐事件就出多少音，凑不够会直接告诉你差多少。'],
+    en: ['<b>Auto-charting now stays on the beat</b>: every note snaps to a playable subdivision '
+      + '(including <b>triplets</b>) instead of landing wherever the detector fired. '
+      + 'It also <b>no longer invents notes to hit a density target</b> — if the song has fewer '
+      + 'musical events, it says so.'],
+  },
+
+  {
     v: 'V0.21.1.1', date: '2026-10-19',
     zh: ['玩家页新增<b>「导出成绩卡」</b>：把你的成绩做成一张可以直接发群里的图，'
       + '上面同时印着 <b>P.H.M. RKS</b>（用我们的定数重算）和 Phira 官方 RKS，'

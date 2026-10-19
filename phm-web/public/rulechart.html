@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.21.1.1">
+<meta name="app-version" content="V0.21.1.2">
 <title>自动写谱 · P.H.M.</title>
 <meta name="description" content="导入 MP3，自动提取 BPM / 时长 / 拍点 / 踩音点，按 EZ/HD/IN/AT 规则生成谱面，下载 .pez 或 .zip。全程本地，音频不上传。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,8 +11,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.21.1.1">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.1">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.1.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.2">
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -45,6 +45,14 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .rc-warn b{color:var(--warn)}
 .rc-status{font-size:12.5px;min-height:20px;margin-top:8px;color:var(--fg3)}
 .rc-status.err{color:var(--red)} .rc-status.ok{color:var(--green)}
+.rc-report{margin:10px 0 2px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:9px;background:var(--card2);font-size:12.5px;line-height:1.9}
+.rc-rrow{display:flex;gap:10px;align-items:baseline}
+.rc-rk{flex:none;width:96px;color:var(--fg3);font-size:11.5px;letter-spacing:.02em}
+.rc-rv{color:var(--fg2);word-break:break-word}
+.rc-rv b{color:var(--fg);font-weight:500;font-variant-numeric:tabular-nums}
+.rc-rwarn{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);
+  color:var(--warn);font-size:11.5px;line-height:1.75;white-space:pre-wrap}
 .rc-dl{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .rc-dl .btn{display:none}
 @media(max-width:780px){.rc-grid{grid-template-columns:1fr}}
@@ -109,6 +117,16 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
         <div class="rc-stat"><div class="k">文件</div><div class="v small" id="rcName">—</div></div>
       </div>
       <canvas id="preview" width="520" height="190"></canvas>
+      <!-- 三层报告：时间轴 / 事件选择 / 可玩性。
+           ⚠ 这些数字是给用户"检查这份谱靠不靠谱"的，不是装饰。
+             以前页面只给「音符数 / NPS / 通过」，用户没法判断
+             音符到底在不在拍上、有没有为了凑密度造假。 -->
+      <div class="rc-report" id="rcReport" hidden>
+        <div class="rc-rrow"><span class="rc-rk">A · 时间轴</span><span class="rc-rv" id="rcrGrid">—</span></div>
+        <div class="rc-rrow"><span class="rc-rk">B · 事件选择</span><span class="rc-rv" id="rcrPick">—</span></div>
+        <div class="rc-rrow"><span class="rc-rk">C · 可玩性</span><span class="rc-rv" id="rcrPlay">—</span></div>
+        <div class="rc-rwarn" id="rcrWarn" hidden></div>
+      </div>
       <div class="rc-dl">
         <a class="btn primary" id="rcPez">下载 .pez</a>
         <a class="btn" id="rcZip">下载 .zip</a>
@@ -124,10 +142,16 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <div class="rc-card">
     <h2>规则说明</h2>
     <div class="rc-note">
-      拍点与踩音点来自音频分析；按 1/4 拍网格排谱，
-      2 指自由分散：左右手各占半屏、交替落点，一次一个 note，只有 Tap/Drag（无 Hold 长条）；单条判定线固定在 X=-300、Y=200；难度由系统判定。
-      同轨最小间隔、Hold 不重叠、和弦上限、lead-in 2 拍、收尾留 1 拍都由校验器强制检查；
-      下载前校验不通过会禁止下载。规则细节见 <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/docs/RULECHART.md" target="_blank" rel="noopener">RULECHART.md</a>。
+      <b>时间轴（A）</b>：拍点与踩音点来自音频分析，再建一条拍网格（BPM + 相位 + 小节）。
+      每个音吸附到<b>可读时值</b>上 —— 1/1 · 1/2 · <b>1/3（三连音）</b> · 1/4 · 1/6，偏好简单读法；
+      偏得太远（超过 40ms）的音<b>直接丢掉</b>，不硬吸到拍上。<br>
+      <b>事件选择（B）</b>：不是「检测到声音就放音符」。候选按音乐显著性排序
+      （强度打底 × 拍位 × 声部，鼓点与乐句起点加权），选到目标密度为止。
+      <b>候选不够就少给</b> —— 一个音符都不会凭空造出来（<b>不补造</b>）。<br>
+      <b>可玩性（C）</b>：生成后独立审计时间冲突 / 同手过近 / 过密（按时间窗）/ 连续操作负担 /
+      异常长串 / 节奏可读性 / 目标难度偏差。硬错误禁止下载，提示项会列在下方。<br>
+      2 指自由分散：左右手各占半屏，按「哪只手更空」分配，同侧连续不超过 6 个；单条判定线固定在 X=-300、Y=200。
+      规则细节见 <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/docs/RULECHART.md" target="_blank" rel="noopener">RULECHART.md</a>。
     </div>
   </div>
 </div>
@@ -140,11 +164,15 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.21.1.1';
+/* ⚠ esc / t 必须一起 import：
+   三层报告用 esc() 转义文本，漏了它 → 点「生成谱面」直接 ReferenceError，
+   页面表现是「点了没反应」。t 之前也漏了，被 try{installGuard(t)} 吞掉，
+   所以守卫其实一直拿到 undefined。 */
+import { renderNav, esc, t } from '/js/ui.js?v=V0.21.1.2';
 
-import { analyzeFile } from '/js/audio-analysis.js?v=V0.21.1.1';
-import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.21.1.1';
-import { installGuard } from '/js/guard.js?v=V0.21.1.1';
+import { analyzeFile } from '/js/audio-analysis.js?v=V0.21.1.2';
+import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.21.1.2';
+import { installGuard } from '/js/guard.js?v=V0.21.1.2';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -214,6 +242,7 @@ async function loadFile(f) {
   showAnalysis({ bpm: 0, duration: 0, beats: [], onsets: [], sections: [] });
   $('#rcNotes').textContent = '—'; $('#rcNps').textContent = '—'; $('#rcLevel').textContent = '—';
   $('#rcValid').textContent = '—'; $('#rcSize').textContent = '—'; $('#rcName').textContent = f.name;
+  $('#rcReport').hidden = true; $('#rcrWarn').hidden = true;
   rcStatusMsg($('#rcStatus'), '解码并分析中…（大文件可能需要几秒）');
   try {
     analysis = await analyzeFile(f);
@@ -261,16 +290,65 @@ async function generate() {
     $('#rcValid').textContent = built.stats.valid ? '通过' : '失败';
     $('#rcSize').textContent = (pez.length / 1048576).toFixed(2) + ' MB';
     drawPreview(chartJson);
+    rcReport(built.stats);
     if (!built.stats.valid) {
       $('#rcPez').style.display = 'none'; $('#rcZip').style.display = 'none'; $('#rcJson').style.display = 'none';
       rcStatusMsg($('#rcGenStatus'), '规则校验失败：' + built.stats.violations.slice(0, 3).join('；'), 'err');
       return;
     }
-    rcStatusMsg($('#rcGenStatus'), '完成 · ZIP 内 ' + (built.stats.notes) + ' notes · 规则校验 0 违规', 'ok');
+    const wn = (built.stats.warnings || []).length;
+    rcStatusMsg($('#rcGenStatus'), '完成 · ZIP 内 ' + (built.stats.notes) + ' notes · 规则校验 0 违规'
+      + (wn ? ' · ' + wn + ' 条可玩性提醒（见下方）' : ''), 'ok');
   } catch (e) {
     console.error(e);
     rcStatusMsg($('#rcGenStatus'), '生成失败：' + String(e.message || e), 'err');
   }
+}
+
+/* 三层报告：把「这份谱怎么来的」摊开给用户看。
+   ⚠ 不是装饰。用户要能回答三个问题：
+     A 音符到底在不在拍上？→ 平均偏差 / 丢弃数 / 三连音数 / 网格相位
+     B 有没有为了凑密度造假？→ 差目标多少个（shortfall），一个都不补
+     C 能不能好好打？→ 瞬时峰值 / 同手连打 / 不可读比例 / 具体提醒 */
+function rcReport(st) {
+  const q = st.quantize || {}, sel = st.selection || {}, g = st.grid || {}, p = st.playability;
+  const $r = $('#rcrGrid'), $p = $('#rcrPick'), $y = $('#rcrPlay'), $w = $('#rcrWarn');
+  if (!q.input && !sel.picked && !p) { $('#rcReport').hidden = true; return; }
+
+  /* A */
+  const vals = q.byValue || {};
+  const vTxt = Object.keys(vals).sort().map(k => k + '×' + vals[k]).join(' · ') || '—';
+  $r.innerHTML = 'BPM <b>' + g.bpm + '</b> · 相位 <b>' + g.offsetSec + 's</b> · 小节 <b>' + g.beatsPerBar + '</b> 拍'
+    + ' ｜ 平均偏差 <b>' + q.meanDevMs + 'ms</b> · 最大 <b>' + q.maxDevMs + 'ms</b>'
+    + ' ｜ 时值 ' + esc(vTxt)
+    + (q.tuplets ? ' · <b>三连音 ' + q.tuplets + ' 个</b>' : '')
+    + (q.dropped ? ' · 丢弃 <b>' + q.dropped + '</b>（离网格太远，不硬吸）' : '');
+
+  /* B */
+  const short = sel.shortfall || 0;
+  $p.innerHTML = '候选 <b>' + (sel.candidates || 0) + '</b> · 入选 <b>' + (sel.picked || 0) + '</b>'
+    + ' · 目标 <b>' + st.targetNotes + '</b>'
+    + (short ? ' ｜ <b>差 ' + short + ' 个</b>（音乐事件就这么多，<b>不补造</b>）' : '')
+    + (sel.rejectedByThreshold ? ' · 低于阈值被拒 <b>' + sel.rejectedByThreshold + '</b>' : '')
+    + ' ｜ 左右手 ' + (sel.byHand ? sel.byHand.L + '/' + sel.byHand.R : '—')
+    + ' · 最长同手连打 <b>' + (sel.maxSameHand || 0) + '</b>';
+
+  /* C */
+  if (p && p.metrics) {
+    const m = p.metrics;
+    $y.innerHTML = '瞬时峰值 <b>' + m.peakNps + '</b> NPS · 2 秒峰 <b>' + m.peakSustainedNps + '</b> NPS'
+      + ' ｜ 不可读 <b>' + Math.round((m.offGridRatio || 0) * 100) + '%</b>'
+      + ' · 最长串 <b>' + m.worstStream + '</b>'
+      + ' ｜ <b>' + (p.errors.length ? p.errors.length + ' 个硬错误' : '无硬错误')
+      + '</b> / ' + p.warnings.length + ' 条提醒';
+    const lines = [].concat(
+      p.errors.map(e => '✗ ' + e.msg),
+      p.warnings.map(w => '· ' + w.msg));
+    if (lines.length) { $w.textContent = lines.slice(0, 6).join('\n'); $w.hidden = false; }
+    else $w.hidden = true;
+  } else { $y.textContent = '—'; $w.hidden = true; }
+
+  $('#rcReport').hidden = false;
 }
 
 const drop = $('#rcDrop');
