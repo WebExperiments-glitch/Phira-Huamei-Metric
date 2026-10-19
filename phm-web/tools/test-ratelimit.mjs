@@ -256,11 +256,19 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
      这一步是整个 DB 路径存在的理由，不能省。
      ⚠ execFileSync 失败时会把子进程的 stderr 全塞进 error.message，
        直接拿去当断言消息会刷出几十万字符。这里只取第一行。 */
+  /* ⚠ 先断言测试旁路**没被打开**。
+     `lib/ratelimit.mjs` 里有个 PHM_TEST_NO_RATELIMIT=1 的旁路，
+     给浏览器测试用（十几页都从 127.0.0.1 拉 Phira 会撞光proxyIp 配额）。
+     它是**继承环境变量**的 —— 万一开发者在自己 shell 里设了没撤，
+     下面这些断言会「全部通过」而其实一条都没真的限流。 */
+  T('测试旁路未打开（本套断言真的在测限流）',
+    process.env.PHM_TEST_NO_RATELIMIT !== '1',
+    'PHM_TEST_NO_RATELIMIT=1 —— 撤掉这个变量再跑，否则测的是空气');
   let out = '';
   try {
     out = execFileSync(process.execPath, [
       fileURLToPath(import.meta.url), '--child', K, '3',
-    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PHM_TEST_NO_RATELIMIT: '' } });
   } catch (e) {
     out = String(e.stdout || '') + '\n' + String(e.stderr || '').split('\n')[0];
   }

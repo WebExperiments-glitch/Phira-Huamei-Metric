@@ -44,6 +44,7 @@ import { makeContributeRoutes } from './lib/contribute-routes.mjs';
 /* API v1 路由（/api/v1/*）—— 独立模块，避免 server.mjs 破 900 行。 */
 import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
+import { makeChartAssetRoutes } from './lib/chartassets.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -189,7 +190,7 @@ const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.ht
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
   '404.html', 'sitemap.xml', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
-  'status.html']);
+  'status.html', 'packs.html']);
 /* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
    只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
 
@@ -397,8 +398,8 @@ const apiRoutes = makeApiRoutes({
   SORTABLE, phiraBase: PHIRA_API,
 });
 
-/* 状态页路由：工厂要 SEC_HEADERS，所以必须装配在它之后。 */
-const statusRoutes = makeStatusRoutes(SEC_HEADERS);
+/* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
+const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -422,6 +423,7 @@ const server = http.createServer(async (req, res) => {
 
   /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
   if (p === '/api/status') return statusRoutes(req, res, url);
+  if (p.startsWith('/api/phira-illust/')) return chartAssets(req, res, url);
 
   /* ── huamei：取谱代理 ──
      客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。
@@ -846,7 +848,8 @@ const server = http.createServer(async (req, res) => {
                   '/developers': 'developers.html', '/platform': 'platform.html',
                   '/developer': 'platform.html',   /* 旧链接兼容 */
                   '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',
-                  '/status': 'status.html' };
+                  '/status': 'status.html',
+                  '/packs': 'packs.html' };
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */

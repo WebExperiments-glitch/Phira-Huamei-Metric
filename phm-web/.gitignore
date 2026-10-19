@@ -29,3 +29,4 @@ public/fonts/.cache-*
 #     cp phira-huamei/target/release/phira-main.exe phm-web/downloads/phira-huamei.exe
 #     node tools/gen-release.mjs
 downloads/*.exe
+.shots/

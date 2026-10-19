@@ -159,7 +159,9 @@ phm-web/
 | 登录态 / 云 SDK 初始化 | `public/js/cloud.js` —— **app / platform / settings 三处页面的唯一入口**。⚠ 云 SDK 是 `<script defer src=cdn>`，页面主逻辑也是 defer，但**内联 module 没有依赖图可以等**；不同步等待的话 SDK 慢一点就会先跑完 module，初始化拿到的 `cloud` 是 null，会话恢复被整段跳过 —— 症状是「用户每次刷新都要重新登录」且界面上没有任何错误 |
 | 全局错误兜底 | `public/js/guard.js` —— `error` / `unhandledrejection` / 断网三类提示，右上角 toast。**原本全站只有 app.html 接了 rejection，其余 9 页静默无痕**。自包含页 `phm-api.html` 内联一份（改名 `_gcut` 避开重名） |
 | 技能分（难在哪） | public/js/skills.js —— 把 feats 的 39 个特征重组为 stamina/dexterity/reading/precision 四技能。纯展示层：不改数值、不动 ENGINE_VER、不进 k-NN 的 REF_DIMS，所以不需要重算缓存。⚠ 只在「刚分析完」的响应里给 —— phm_charts 表没有 feats 字段，缓存行算不出来 |
+| 谱面包 / 资源打包下载 | `public/js/chartfiles.js` + `public/js/chartfiles-core.mjs` —— 页面 `/packs`。**零中转**：服务器只代理 JSON 元数据，曲绘/音乐/chart 文件一律**浏览器直连 Phira CDN**，`.pez` 在浏览器本地用 `rulechart.js` 导出的 `zipStore` 打包。⚠ 纯函数层必须在 `public/js/` 不能放 `lib/` —— `lib/` 不在静态白名单里 |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
+| 曲绘为什么加载不出来 | `lib/chartassets.mjs` —— 上游 MIME 是 `application/octet-stream`，浏览器 **ORB** 会拒绝解码（`ERR_BLOCKED_BY_ORB`），所以展示用曲绘必须过我们的代理改 MIME。排查曲绘空白时先看这里，别再怀疑 CDN 挂了 |
 | 数据库地址 / 写入凭据 / 读写封装 | `lib/cloud.mjs` |
 | 服务端复核逻辑 | `lib/review.mjs` |
 | 数据库表或权限 | `docs/DATA-MODEL.md` → 然后用 MCP 执行 SQL |
