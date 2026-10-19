@@ -49,6 +49,7 @@
 | `/developers` | `developers.html` | **开发者文档**：快速开始 / 认证 / 接口 / 错误码 / 限流 / 更新日志（API v1） |
 | `/platform` | `platform.html` | **API 开放平台**：默认用量信息 + API Key 管理 + 资源入口；`/developer` 为旧链接别名 |
 | `/phm-api` | `phm-api.html` | **单文件 API 客户端**：下载后双击即用，填 API Key 查询/分析；零依赖 |
+| `/chart/<id>` | `chart.html` | **谱面详情页（SEO 落地页）**：服务端注入 title / description / canonical / OG / JSON-LD （**爬虫不执行 JS**，客户端渲染等于没做），客户端再填定数、曲绘与元数据。数据源 `phm_charts` 缓存 + 上游 `/chart/{id}`，两者各套短超时，任一挂了仍返回 200 + 通用 meta |
 | `/packs` | `packs.html` | **谱面包**：浏览 Phira 公开谱面库，把任意谱面（曲绘 / 音乐 / chart JSON）在**浏览器本地**打成 `.pez` 包并下载。零中转 —— 服务器只代理 JSON 元数据，文件一律浏览器直连 Phira CDN（不烧我们的带宽、也不替上游再分发） |
 | `/status` | `status.html` | **运行状态**：9 个目标每 60s 自检一次，报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
@@ -275,6 +276,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理 / 轮换；匿名与 Key 配额；scope 校验 | 不写引擎逻辑；认证与用量全走 RPC；契约在 `api/openapi.json` |
 | 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |
 | 玩家成绩卡 | `public/js/sharecard.js` | **两种卡片**：谱面体检卡（`exportCard`）与玩家成绩卡（`exportPlayerCard`）。共用同一批绘制工具与 `deliver()` —— 各写一份必然漂移，分享失败时的兜底最容易漏掉一边。⚠ 玩家卡必须同时印 P.H.M. RKS 与官方 RKS 并标注来源；只印一个数会被截图当成官方值引用。⚠ 卡片里的坐标是按**基线**分档算的（630 高度很紧），改文案前先看 `drawPlayerWide` 顶部的分档表 |
+| 页面级 SEO | `lib/pages.mjs` | `/chart/<id>` 详情页（**服务端注入** title/description/canonical/OG/JSON-LD —— 爬虫不执行 JS，客户端渲染等于没做）与动态 `/sitemap.xml`（661 张谱面各一条，内存缓存 10 分钟）。数据源 `phm_charts` + 上游 `/chart/{id}`，各套短超时，任一挂了仍返回 200 + 通用 meta |
 | 曲绘代理 | `lib/chartassets.mjs` | `/api/phira-illust/<uuid>` 把 Phira CDN 的 `application/octet-stream` 改回 `image/webp`。**存在的原因是浏览器 ORB**：跨源响应的 MIME 不对时 Chrome 拒绝交给解码器，`<img>` 静默失败（`ERR_BLOCKED_BY_ORB`），真实用户同样中招。路径段严格校验 UUID —— 这是 SSRF 闸门 | ⚠ 只代理**展示用**曲绘；chart / 音乐仍浏览器直连，用户要原件，我们不改写交付物。⚠ 上游 404 回 1×1 占位 WebP 而不是报错，让浏览器缓存住 |
 | 自监控 | `lib/status.mjs` | 每 60s 探测 9 个目标（页面 / 接口 / 数据），环形缓冲存近 24h、DB 存 30 天；`/api/status` 返回聚合 | 打回环地址而非外部域名；探测失败绝不抛；**无样本时整体结论为 unknown 而不是「全部正常」** |
 | 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |

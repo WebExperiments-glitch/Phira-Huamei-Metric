@@ -26,6 +26,9 @@ export default {
 
     /* ── 时间范围切换 ── */
     'st.range': '范围',
+    'st.uptimeBar': '按小时的可用情况（绿=全通，黄=部分失败，红=多数失败，灰=无样本）',
+    'st.thin': '历史样本还在积累',
+    'st.thin.body': '每行底部那条色条是一格一个时段的可用情况：绿=全通，黄=部分失败，红=多数失败，灰=那个时段没有样本。刚部署或刚重启时大部分是灰的 —— 那不是「平时不监控」，而是还没有数据可以画。',
     'st.range24': '24 小时',
     'st.range30': '30 天',
 
@@ -85,6 +88,9 @@ export default {
     'st.interval': 'Checked every {n}s',
 
     'st.range': 'Range',
+    'st.uptimeBar': 'Hourly availability (green = all good, amber = some failures, red = mostly failing, grey = no samples)',
+    'st.thin': 'History is still filling in',
+    'st.thin.body': 'The strip under each row is one cell per period: green = all good, amber = some failures, red = mostly failing, grey = no samples for that period. Right after a deploy or restart most cells are grey — that is not "we only monitor when someone looks", it just means there is no data to draw yet.',
     'st.range24': '24 hours',
     'st.range30': '30 days',
 
