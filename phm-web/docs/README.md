@@ -91,7 +91,7 @@ phm-web/
 │       ├── versions-archive.js ← 版本历史的旧条目。拆开的原因：versions.js 只增不减，每次发版都会顶到 900 行上限
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
-├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（30 个）
+├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（49 个）
 │   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件）
 │   ├── gen-release.mjs        ← 从实际 exe 算大小 / sha256 / 客户端版本
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
@@ -103,6 +103,8 @@ phm-web/
 │   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（48 条）
 │   ├── test-ratelimit.mjs     ← 限流（80 条，含禁读 XFF 的防回归断言）
 │   ├── golden-engine.mjs      ← 引擎数值金标（固定谱面 → 固定输出，防悄悄变数）
+│   ├── audit-baselines.mjs    ← ★ 参照集的基线 / 天花板 / 时间外推 / 区间校准（只读审计）
+│   ├── charter-prior.mjs      ← ★ 谱师先验可行性（负面结果：谱师级修正学不到）
 │   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
 │   ├── lint-openapi.mjs       ← ★★ OpenAPI 契约校验（零依赖，81 条）
 │   ├── rulechart.mjs          ← ★ 规则写谱 CLI（BPM/难度 → RPE v160 .pez）

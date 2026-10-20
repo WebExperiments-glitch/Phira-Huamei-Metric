@@ -205,6 +205,31 @@ console.log('[6] 旧文件名黑名单');
   }
 }
 
+/* 7) 目录地图里的 tools 数量必须与实际文件数一致
+   ────────────────────────────────────────────────────────────
+   【为什么】这个数字**漂过三次**：写成 30 个 → 加了几个工具没改 → 改成 45 个
+   → 又加了几个（predeploy / fuzz-http / test-resilience…）还是没改。
+   写死一个会漂的数字，不如让 lint 盯着它 —— 漂了就红，改了工具的人立刻知道。
+   同理适用于「文件数」这类**手工维护的统计**。 */
+console.log('[7] tools 目录地图计数');
+{
+  const doc = path.join(ROOT, 'docs', 'README.md');
+  const toolsDir = path.join(ROOT, 'tools');
+  if (!fs.existsSync(doc) || !fs.existsSync(toolsDir)) {
+    bad('找不到 docs/README.md 或 tools/');
+  } else {
+    const txt = fs.readFileSync(doc, 'utf8');
+    const m = txt.match(/tools\/[^\n]*（(\d+)\s*个）/);
+    const actual = fs.readdirSync(toolsDir).filter(f => {
+      try { return fs.statSync(path.join(toolsDir, f)).isFile(); } catch { return false; }
+    }).length;
+    if (!m) bad('docs/README.md 的目录地图里找不到 tools 数量（格式应含「（N 个）」）');
+    else if (+m[1] !== actual) {
+      bad(`目录地图写 ${m[1]} 个 tools，实际 ${actual} 个 —— 加/删工具时必须同步这个数字`);
+    } else ok(`tools 计数一致（${actual}）`);
+  }
+}
+
 console.log('\n────────');
 console.log(`文档同步检查：${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);

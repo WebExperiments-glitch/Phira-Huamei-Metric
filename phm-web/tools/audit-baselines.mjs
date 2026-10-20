@@ -302,6 +302,103 @@ const CREATED_MAP = (() => {
   return m.size ? m : null;
 })();
 
+/* ── 全量口径的谱师内聚 ──
+   【为什么要单独算一遍】
+   上面两种切分里的谱师内聚是**在测试集上**算的：
+   随机留出只有 77 张（22 个谱师）、id 分块 415 张（112 个谱师）——
+   **都低于本项目《严谨性工程契约》§2.2 定的「描述性统计样本量下限 500」**。
+   按自己项目的规矩，这种样本量下的结论只能算「参考」，不能当结论用。
+
+   所以这里再算一遍：参照集用**全部 9,508 张**（排除自身），
+   从全语料按 id 均匀抽样 N 张做留一预测，把残差按谱师分组。
+   N 默认 3,000（> 500，满足契约），结果与前两个切分互相印证。
+   引用这个数字时请连 n 一起写。 */
+function charterEffectFull(sampleN) {
+  /* ⚠ 口径要点：谱师分组要按**全语料**算，不能在抽样上算。
+     抽样会把每个谱师的组规模压小（单例更多），矩估计的修正项随之变大、
+     结果被压向 0 —— 那不是「没有谱师效应」，是抽样把分组结构打碎了。
+     所以这里默认**全量 9,508 张**（约 45 秒）；传 0 也是全量。 */
+  const useAll = sampleN <= 0 || sampleN >= rows.length;
+  if (!useAll && sampleN < 500) {
+    console.log('  [跳过 全量谱师内聚] 样本量 ' + sampleN + ' < 500（严谨性工程契约 §2.2 的描述性统计下限）');
+    return null;
+  }
+  const poolRows = rows.map(r => r);
+  let items = rows;
+  if (!useAll) {
+    const step = rows.length / sampleN;
+    items = Array.from({ length: sampleN }, (_, k) => rows[Math.floor(k * step)]);
+  }
+  const preds = [], truths = [], ids = [];
+  for (const r of items) {
+    const rec = byId.get(r[3]);
+    if (!rec) continue;
+    const kn = knnReference(rec, rec.strain_peak, poolRows, 'community', r[3]);
+    if (!kn || !isFinite(kn.ref)) continue;
+    preds.push(kn.ref); truths.push(r[0]); ids.push(r[3]);
+  }
+  const groups = new Map();
+  ids.forEach((id, k) => {
+    const rec = byId.get(id);
+    const ch = rec && rec.charter ? rec.charter : '';
+    if (!ch) return;
+    if (!groups.has(ch)) groups.set(ch, []);
+    groups.get(ch).push(truths[k] - preds[k]);
+  });
+  const big = [...groups.entries()].filter(([, v]) => v.length >= MIN_GROUP);
+  if (big.length < 5) return null;
+  const all = [...groups.values()].flat();
+  const meanAll = all.reduce((a, v) => a + v, 0) / all.length;
+  const totVar = all.reduce((a, v) => a + (v - meanAll) ** 2, 0) / all.length;
+  const totSS = totVar * all.length;
+  /* ⚠⚠ **单例组会把「谱师间方差」系统性抬高**。语料里 6,823 个谱师有 5,539 个只出现过一次 ——
+     单例组的组均值就是它自己那一张的残差，于是「组间方差」被这些组灌水。
+     所以下面给三个口径，**引用时必须写清楚用的是哪个**：
+       ① 含单例（全部真实谱师组；偏高）
+       ② 只留 n≥2 的组（更接近真值，但样本少）
+       ③ 矩估计：扣掉「若真无效应、单例组仍会贡献的那部分」（σ²_w · mean(1/n)）
+     详细讨论见 docs/结果/谱师先验可行性.md。 */
+  const pool = new Map();
+  for (const [ch, v] of groups) {
+    if (v.length >= 2) pool.set(ch, v);
+  }
+  /* 三个口径的分子分母必须**同口径**，否则会算出 0 或 >100% 这种 nonsense：
+     · varBetween 用**全体组**（含单例）的组间方差
+     · 修正项 meanInvN 也用**全体组**
+     · 「只留 n≥2」是另一个独立口径（ssMulti / totSS），不是前者的输入 */
+  let ssAll = 0, nAll = 0, ssMulti = 0, nMulti = 0, withinPooled = 0, withinDf = 0, meanInvN = 0;
+  for (const v of groups.values()) {
+    const m = v.reduce((a, b) => a + b, 0) / v.length;
+    ssAll += v.length * (m - meanAll) ** 2;
+    nAll += v.length;
+    meanInvN += 1 / v.length;
+    if (v.length > 1) {
+      ssMulti += v.length * (m - meanAll) ** 2;
+      nMulti += v.length;
+      const w = v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1);
+      withinPooled += w * (v.length - 1);
+      withinDf += v.length - 1;
+    }
+  }
+  meanInvN /= groups.size;
+  const sigmaW2 = withinDf ? withinPooled / withinDf : 0;
+  const varBetween = nAll ? ssAll / nAll : 0;
+  const sigmaCharter2 = Math.max(0, varBetween - sigmaW2 * meanInvN);
+  const shareAll = totSS ? ssAll / totSS : 0;
+  const shareMulti = totSS ? ssMulti / totSS : 0;
+  const shareMoment = totSS ? sigmaCharter2 * nAll / totSS : 0;
+  console.log('\n── 谱师内聚（全量参照集，' + preds.length + ' 张）──');
+  console.log('  谱师 ' + groups.size + ' 个（其中 ' + pool.size + ' 个有 ≥2 张谱）'
+    + '，参与分组的谱 ' + all.length + ' 张');
+  console.log('  ① 含单例（偏高）　　　　　　 ' + (shareAll * 100).toFixed(1) + '%');
+  console.log('  ② 只留 n≥2 的组　　　　　　 ' + (shareMulti * 100).toFixed(1) + '%');
+  console.log('  ③ 矩估计（扣掉单例组纯噪声） ' + (shareMoment * 100).toFixed(1) + '%'
+    + '   ← 「谱师系统性偏高/偏低」真正可修正的部分');
+  console.log('  组内残差 σ²_w = ' + sigmaW2.toFixed(3) + '（标准差 ' + Math.sqrt(sigmaW2).toFixed(3) + ' 级）');
+  console.log('  样本量 ' + preds.length + ' ≥ 500，满足《严谨性工程契约》§2.2 的描述性统计下限。');
+  return { share: shareAll, shareMulti, shareMoment, charters: groups.size, charts: preds.length };
+}
+
 /* ── 官谱「相邻档位定数差」拆解 ──
    【为什么】项目文档把「同曲、物量相近、相邻难度」的定数差中位 2.80 叫
    「官方标注噪声」，并据此说「没有任何工具能区分谱师标错与官方也会这么标」。
@@ -418,6 +515,9 @@ if (SPLIT === 'created' || SPLIT === 'all') {
 /* 4) 官谱档位差拆解 */
 officialTierGaps();
 
+/* 5) 全量口径的谱师内聚（满足《严谨性工程契约》§2.2 的样本量下限） */
+const charterFull = charterEffectFull(+arg('charter', 0));
+
 /* ── 小结与建议 ── */
 console.log('\n════════ 审计小结 ════════');
 if (resHash) {
@@ -446,7 +546,13 @@ if (resCreated) {
 }
 if (resHash && resHash.ce) {
   console.log('  结构解释 R²=' + resHash.mKnn.r2.toFixed(3) + '；残差里谱师间可解释 '
-    + (resHash.ce.betweenShare * 100).toFixed(1) + '%');
+    + (resHash.ce.betweenShare * 100).toFixed(1) + '%（测试集 n=' + resHash.ce.charts
+    + '，低于 500，只作参考）');
+  if (charterFull) {
+    console.log('  → 全量口径（n=' + charterFull.charts + '，满足样本量下限）：谱师间可解释 '
+      + (charterFull.share * 100).toFixed(1) + '%');
+  }
   console.log('  → 声明定数里最大的一块是「谁标的」，不是「这张谱多难」。'
     + '注意：谱师习惯是**系统性偏移**，该进点估计的修正项，不该靠放宽不确定带来解决。');
 }
+
