@@ -17,8 +17,8 @@
  *   界面就停在「正在打包」—— 用户看不出是死了还是在等。
  * ============================================================ */
 
-import { zipStore } from './rulechart.js?v=V0.21.1.2';
-import { clipName, pezFileName, PEZ_CHART_ENTRY } from './chartfiles-core.mjs?v=V0.21.1.2';
+import { zipStore } from './rulechart.js?v=V0.21.1.3';
+import { clipName, pezFileName, PEZ_CHART_ENTRY } from './chartfiles-core.mjs?v=V0.21.1.3';
 
 /* 单个文件的上限。⚠ 必须有：Phira 的音频最大能到 40MB+，
  * 不设限时一个卡住的文件能把整个打包拖到天荒地老。 */
