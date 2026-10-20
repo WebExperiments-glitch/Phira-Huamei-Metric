@@ -96,10 +96,17 @@ export function validateEmail(email) {
   return null;
 }
 
+/* 密码策略 —— **只用于「设置新密码」**（注册 / 重置）。
+ *
+ *  ⚠⚠ 登录路径**绝不走这里**（见 login() 的注释）：老账号可能是 6 位密码，
+ *     拿新策略去卡登录 = 把用户自己锁在门外，而且他会以为"密码错了"
+ *     然后反复重置。这条规则有专门的单测守着。
+ *  下限 10 位与前端 public/js/auth.js 的 PW_MIN 对齐；
+ *  前端更严也没关系（前端先拦一道，服务端是兜底的地板）。 */
 export function validatePassword(pw) {
   const p = String(pw || '');
   if (!p) return '密码不能为空';
-  if (p.length < 8) return `密码至少 8 位（当前 ${p.length} 位）`;
+  if (p.length < 10) return `密码至少 10 位（当前 ${p.length} 位）`;
   if (p.length > 128) return '密码太长（最多 128 位）';
   if (/^\s+$/.test(p)) return '密码不能全是空白字符';
   return null;
@@ -240,8 +247,13 @@ export async function login(email, password) {
   const e = String(email || '').trim().toLowerCase();
   const eErr = validateEmail(e);
   if (eErr) return { error: 'email_invalid', detail: eErr };
-  const pErr = validatePassword(password);
-  if (pErr) return { error: 'password_invalid', detail: pErr };
+  /* ⚠⚠ **登录不校验密码强度**，只挡明显不可能的情况。
+     拿 validatePassword() 来卡登录会锁死老账号（6 位 / 8 位的），
+     而用户看到的是"密码错"→ 去重置 → 又被强度规则挡住，彻底进不来。
+     强度规则属于「设置新密码」这条路径，不属于「证明你是你」。 */
+  const pw = String(password || '');
+  if (!pw) return { error: 'bad_credentials' };
+  if (pw.length > 128) return { error: 'bad_credentials' };
   if (!WRITE_SECRET) return { error: 'unavailable', detail: '服务端未配置写入凭据' };
 
   const r = await rpc('hm_account_lookup', { p_email: e });
@@ -415,10 +427,88 @@ export async function resetPassword(email, password, code) {
 /** 诊断用：当前 token 密钥来自哪一路。**不返回值本身**。 */
 export function tokenSecretSource() { return TOKEN_SECRET.source; }
 
+/* ── 档案：绑定 Phira + 活跃统计 ──
+ * ⚠ 这三件事**只能走 RPC**（db/api-v2/20.sql）：`dbFetch` 用的是 publishable key
+ *    + RLS，而 hm_profiles 对任何直连角色都没有权限 —— 实测直接 POST 表
+ *    返回 401 `invalid_client`。写入通道只有带 p_secret 的 SECURITY DEFINER 函数。
+ *
+ * ⚠ sub 一律由调用方从**已验签的 token** 里取，不接受前端传入 ——
+ *    否则任何人都能改别人的绑定。 */
+
+/** 读自己的档案的**原始返回**（不做语义判断）。
+ *
+ *  ⚠ 为什么不在这里把 `{}` 归一成 null：返回体里有三种不同的状态，
+ *    由**路由**决定各自怎么回 HTTP ——
+ *      `{}`                       → 账号存在、还没绑过 Phira（200 + profile:null）
+ *      `{account_exists:false}`   → 账号已注销，旧 token 还活着（401，让前端清 token）
+ *      null                       → 上游失败（502）
+ *    在这里提前归一，三种就都变成 null 了，路由再想区分就区分不了。 */
+export async function getProfile(sub) {
+  if (!sub) return null;
+  if (!WRITE_SECRET) return null;
+  const r = await rpc('hm_profile_get', { p_sub: String(sub) });
+  if (!r.ok) return null;
+  try {
+    const o = JSON.parse(r.body || '{}');
+    return (o && typeof o === 'object') ? o : null;
+  } catch (e) { return null; }
+}
+
+/** 写自己的档案。`clear=true` 表示解绑。返回 `{ok}` 或 `{error}`。 */
+export async function putProfile(sub, opts) {
+  const o = opts || {};
+  if (!sub) return { error: 'no_sub' };
+  if (!WRITE_SECRET) return { error: 'unavailable' };
+  const uid = o.phiraUid == null ? null : Number(o.phiraUid);
+  /* ⚠ uid 必须是真的正整数或 null —— 传 0 / 负数 / NaN 都会变成"绑了但绑了个假的" */
+  if (uid != null && (!Number.isFinite(uid) || uid <= 0 || uid > 1e12)) {
+    return { error: 'bad_uid' };
+  }
+  const r = await rpc('hm_profile_put', {
+    p_sub: String(sub),
+    p_email: o.email ? String(o.email).slice(0, 254) : null,
+    p_phira_uid: uid,
+    p_phira_name: o.phiraName ? String(o.phiraName).slice(0, 80) : null,
+    p_clear: !!o.clear,
+  });
+  if (!r.ok) {
+    /* P0002 = 账号不存在（注销后残留的旧 token）。与 42501（没配凭据）必须分开：
+       前端据此决定是「重新登录」还是「服务未配置」。 */
+    const gone = /P0002/.test(String(r.body || '') + String(r.error || ''));
+    if (gone) return { error: 'no_account' };
+    return { error: 'store_failed', detail: String(r.body || r.error || '').slice(0, 160) };
+  }
+  return { ok: true };
+}
+
+/** 活跃 +1（原子自增）。失败不影响登录 —— 统计不该阻断业务。 */
+export async function touchProfile(sub, email) {
+  if (!sub || !WRITE_SECRET) return { ok: false };
+  const r = await rpc('hm_touch', { p_sub: String(sub), p_email: email ? String(email).slice(0, 254) : null });
+  if (!r.ok) return { ok: false };
+  try { return JSON.parse(r.body || '{}'); } catch (e) { return { ok: false }; }
+}
+
+/** 注销：删除账号 + 档案 + 未消费的验证码。
+ *
+ *  ⚠ 幂等 —— 账号已经不存在也回 `{ok:true}`，客户端可以安全重试。
+ *  ⚠ 不删 `hm_plays`：贡献的成绩本来就匿名，不挂在账号上。
+ *  ⚠ `store_failed` 要与 `unavailable` 分开：前者是库那边出错（可能没跑 20.sql），
+ *    后者是本机没配凭据。前端文案不同：一个该提示"稍后再试"，一个该提示"服务未配置"。 */
+export async function deleteAccount(sub) {
+  if (!sub) return { error: 'no_sub' };
+  if (!WRITE_SECRET) return { error: 'unavailable' };
+  const r = await rpc('hm_account_delete', { p_sub: String(sub) });
+  if (!r.ok) return { error: 'store_failed', detail: String(r.body || r.error || '').slice(0, 160) };
+  try { return JSON.parse(r.body || '{}'); } catch (e) { return { ok: true }; }
+}
+
+
 /* 单测钩子：让 tools/test-hm-accounts.mjs 能验 JWT 与 sub 生成的**真身**，
    不需要起服务器、也不需要一个真数据库。 */
 export const __test = {
   validateEmail, validatePassword, signJwt, verifyOwnToken, claimsOwnIssuer,
   hashPassword, verifyPassword, newSub,
+  getProfile, putProfile, touchProfile, deleteAccount,
   tokenSecretSource,
 };

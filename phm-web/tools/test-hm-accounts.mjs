@@ -21,7 +21,7 @@ if (!(process.env.PHM_TOKEN_SECRET || '').trim()) {
 }
 const {
   validateEmail, validatePassword, signJwt, verifyOwnToken,
-  hashPassword, verifyPassword, tokenSecretSource,
+  hashPassword, verifyPassword, tokenSecretSource, login,
 } = await import('../lib/hm-accounts.mjs');
 
 let pass = 0, fail = 0;
@@ -59,8 +59,11 @@ T('大小写不敏感由调用方负责（这里原样返回错误/null）', val
 
 console.log('\n【2】密码校验');
 T('空密码被拒', validatePassword('') !== null);
-T('7 位被拒', validatePassword('1234567') !== null);
-T('8 位通过', validatePassword('12345678') === null);
+/* 下限 2026-10-20 从 8 提到 10，与前端 public/js/auth.js 的 PW_MIN 对齐。
+   ⚠ 这条只管「设置新密码」；登录路径**不**走 validatePassword
+     （老账号可能是 6 位，卡住就是把人锁在门外），见文件末尾那一组。 */
+T('9 位被拒', validatePassword('123456789') !== null);
+T('10 位通过', validatePassword('1234567890') === null);
 T('128 位通过', validatePassword('x'.repeat(128)) === null);
 T('129 位被拒', validatePassword('x'.repeat(129)) !== null);
 T('全空白被拒', validatePassword('        ') !== null);
@@ -128,6 +131,35 @@ console.log('\n【5】sub 生成');
   for (let i = 0; i < 500; i++) subs.add((await import('../lib/hm-accounts.mjs')).__test.newSub());
   T('500 个不重复', subs.size === 500, `${subs.size}/500`);
   T('形如 19 位数字', [...subs].every(s => /^\d{19}$/.test(s)), [...subs][0]);
+}
+
+/* ══════════════════════════════════════════════════
+ * 【6】★ 登录路径**不能**校验密码强度
+ * ──────────────────────────────────────────────────
+ * 密码下限提到 10 位之后，这一条很容易被弄丢：
+ * 只要有人把 login() 里的校验接回 validatePassword()，
+ * 老账号（6 位）就再也登不进来 —— 而用户看到的是"密码错"，
+ * 于是他反复重置、又被强度规则挡住，彻底进不去。
+ * ⚠ 不需要数据库：只要不是 password_invalid 就算通过
+ *   （后续走到查库那步，回 unavailable 或 bad_credentials 都行）。
+ * ══════════════════════════════════════════════════ */
+console.log('\n【6】★ 登录不校验密码强度（老账号能登）');
+{
+  const r6 = await login('legacy-probe@example.invalid', '123456');
+  T('6 位密码不被强度规则拦下', r6.error !== 'password_invalid',
+    JSON.stringify(r6).slice(0, 80));
+
+  const rEmpty = await login('legacy-probe@example.invalid', '');
+  T('空密码仍被拒，且回凭证错（不泄露"密码为空"）',
+    rEmpty.error === 'bad_credentials', JSON.stringify(rEmpty).slice(0, 80));
+
+  const rLong = await login('legacy-probe@example.invalid', 'x'.repeat(200));
+  T('超长密码也回凭证错（而不是 5xx）',
+    rLong.error === 'bad_credentials', JSON.stringify(rLong).slice(0, 80));
+
+  const rBadMail = await login('not-an-email', '123456');
+  T('非法邮箱在查库之前就被拒', rBadMail.error === 'email_invalid',
+    JSON.stringify(rBadMail).slice(0, 80));
 }
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);

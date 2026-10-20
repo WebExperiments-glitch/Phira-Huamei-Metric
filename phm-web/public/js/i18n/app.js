@@ -39,42 +39,38 @@ export default {
     'app.auth.submit.login': '登录',
     'app.auth.submit.signup': '注册',
     'app.auth.submit.reset': '重置密码',
+    /* 找回密码第二步（已填码、正在设新密码）—— 按钮文案要变，
+       否则用户点完不知道再点一次是在干什么。 */
+    'app.auth.submit.reset2': '设定新密码',
 
     'app.auth.signout': '退出登录',
     'app.auth.chpw': '修改密码',
-    'app.auth.chpw.go': '确认修改',
-    'app.auth.old': '当前密码',
-    'app.auth.new': '新密码',
     'app.auth.meta': '{email} · 账号 ID {id}',
 
     'app.auth.loggedin': '已登录',
     'app.auth.loggedin.email': '已登录：{email}',
-    'app.auth.err.email': '请先填一个正确的邮箱',
-    'app.auth.sending': '正在发送验证码…',
-    'app.auth.send.fail': '发送失败：{e}',
     'app.auth.send.ok': '验证码已发到 {email}，去收件箱看看（含垃圾箱）',
+    'app.auth.resend.in': '{s} 秒后可重发',
     'app.auth.need.email': '请填邮箱',
     'app.auth.working': '处理中…',
-    'app.auth.login.fail': '登录失败：邮箱或密码不对',
-    'app.auth.need.send': '请先点「获取验证码」',
     'app.auth.need.code': '请填邮箱里收到的验证码',
-    'app.auth.verify.fail': '验证失败：{e}',
-    'app.auth.existing': '该邮箱已注册，已直接为你登录',
     'app.auth.reset.sent': '重置验证码已发送——填验证码和新密码，再点一次「重置密码」',
     'app.auth.reset.needcode': '请填收到的重置验证码',
-    'app.auth.reset.fail': '重置失败：{e}',
     'app.auth.reset.done': '密码已重置，已为你登录',
-    'app.auth.fail': '失败：{e}',
-    'app.auth.err.retry': '请稍后再试',
+    /* ── 错误分类（js/auth.js 的 authErrorKey 映射到这里）──
+       ⚠ 每一条都要说清"该怎么办"，不只是"什么坏了"。
+       ⚠ 网络与密码错**绝不能**写成一句 —— 把断网说成"密码错"会让人反复改密码。 */
+    'app.auth.err.network': '连不上服务器。检查网络后重试——你的账号没问题。',
+    'app.auth.err.invalid': '邮箱或密码不对。验证码错了也会显示这句。',
+    'app.auth.err.rateLimited': '操作太频繁了，等一分钟再试。',
+    'app.auth.err.expired': '验证码或登录已过期，请重新获取。',
+    'app.auth.err.conflict': '这个邮箱已经注册了——直接登录，或用「找回密码」。',
+    'app.auth.err.weakPw': '密码太弱，请换一个。',
+    'app.auth.err.unavailable': '服务端暂时不可用（可能在维护）。稍后再试。',
+    'app.auth.err.unknown': '出了点问题。刷新重试；一直不行就发邮件告诉我们。',
     /* ⚠ 与「未登录」严格区分：这条是**系统侧**读不到会话，
        让用户误以为自己账号掉了、反复重新登录是最糟的次生问题。 */
-    'app.auth.err.session': '暂时连不上登录服务，读不到你的登录状态。请刷新页面重试——这不是你账号的问题。',
-    'app.auth.chpw.need': '请填当前密码和新密码',
-    'app.auth.chpw.fail': '修改失败：{e}',
-    'app.auth.chpw.badold': '当前密码不对',
-    'app.auth.chpw.ok': '密码已修改',
-    'app.auth.code.wrong': '验证码不对或已过期',
-    'app.auth.code.wrong2': '验证码不对',
+    'app.auth.chpw.hint': '改密码需要先验过当前密码。忘了就走「找回密码」。',
 
     'app.auth.bind.bound': '已绑定 Phira：<b>{name}</b> #{uid}',
     'app.auth.bind.unbind': '解除绑定',
@@ -94,6 +90,7 @@ export default {
     'app.pw.short': '密码至少 10 位（6 位密码离线破解只要几分钟）',
     'app.pw.digits': '纯数字密码太弱——建议字母 + 数字混着来',
     'app.pw.lower': '纯小写字母还是偏弱——加个数字或大写字母吧',
+    'app.pw.upper': '纯大写字母也偏弱——加个数字或小写字母吧',
 
     /* ── 拖入区 ── */
     'app.drop.big': '把 Phira 谱面包拖到这里',
@@ -371,15 +368,6 @@ export default {
     'app.playstat.oc': ' · 库中定数 {v}',
 
     /* ── 公开统计条 ── */
-    'app.stats.head': '本站公开数据：',
-    'app.stats.profiles': '账号 <b>{n}</b> 个',
-    'app.stats.active': '7 日活跃 <b>{n}</b>',
-    'app.stats.bound': '已绑定 Phira <b>{n}</b>',
-    'app.stats.scores': '成绩数据 <b>{n}</b> 条',
-    'app.stats.charts': '定数缓存 <b>{n}</b> 张',
-    'app.stats.thin':
-      '<br>⚠ 样本量还小（成绩 {n} 条）：'
-      + '<b>玩家表现统计（平均 / 中位）波动大，仅供参考</b>。多导入几条成绩就是在帮它变准。',
 
     /* ── 首次上传前的告知（confirm 弹窗）── */
     'app.notice.body':
@@ -430,40 +418,31 @@ export default {
     'app.auth.submit.login': 'Sign in',
     'app.auth.submit.signup': 'Sign up',
     'app.auth.submit.reset': 'Reset password',
+    'app.auth.submit.reset2': 'Set new password',
 
     'app.auth.signout': 'Sign out',
     'app.auth.chpw': 'Change password',
-    'app.auth.chpw.go': 'Confirm change',
-    'app.auth.old': 'Current password',
-    'app.auth.new': 'New password',
     'app.auth.meta': '{email} · account ID {id}',
 
     'app.auth.loggedin': 'Signed in',
     'app.auth.loggedin.email': 'Signed in: {email}',
-    'app.auth.err.email': 'Enter a valid email first',
-    'app.auth.sending': 'Sending the code…',
-    'app.auth.send.fail': 'Send failed: {e}',
     'app.auth.send.ok': 'Code sent to {email} — check your inbox (and spam)',
+    'app.auth.resend.in': 'You can resend in {s}s',
     'app.auth.need.email': 'Enter your email',
     'app.auth.working': 'Working…',
-    'app.auth.login.fail': 'Sign-in failed: wrong email or password',
-    'app.auth.need.send': 'Hit "Send code" first',
     'app.auth.need.code': 'Enter the code from your inbox',
-    'app.auth.verify.fail': 'Verification failed: {e}',
-    'app.auth.existing': 'That email is already registered — signed you straight in',
     'app.auth.reset.sent': 'Reset code sent — enter the code and a new password, then hit "Reset password" again',
     'app.auth.reset.needcode': 'Enter the reset code you received',
-    'app.auth.reset.fail': 'Reset failed: {e}',
     'app.auth.reset.done': 'Password reset — you are signed in',
-    'app.auth.fail': 'Failed: {e}',
-    'app.auth.err.retry': 'Try again in a moment',
-    'app.auth.err.session': 'Cannot reach the sign-in service right now, so your session could not be read. Refresh to retry — this is not a problem with your account.',
-    'app.auth.chpw.need': 'Enter your current and new password',
-    'app.auth.chpw.fail': 'Change failed: {e}',
-    'app.auth.chpw.badold': 'current password is wrong',
-    'app.auth.chpw.ok': 'Password changed',
-    'app.auth.code.wrong': 'the code is wrong or expired',
-    'app.auth.code.wrong2': 'the code is wrong',
+    'app.auth.err.network': 'Cannot reach the server. Check your connection and retry — your account is fine.',
+    'app.auth.err.invalid': 'Email or password is wrong. A wrong verification code shows this too.',
+    'app.auth.err.rateLimited': 'Too many attempts — wait a minute and try again.',
+    'app.auth.err.expired': 'That code or session expired. Request a new one.',
+    'app.auth.err.conflict': 'That email is already registered — just sign in, or use "Forgot password".',
+    'app.auth.err.weakPw': 'That password is too weak — pick another.',
+    'app.auth.err.unavailable': 'The service is temporarily unavailable (possibly maintenance). Try again later.',
+    'app.auth.err.unknown': 'Something went wrong. Refresh and retry; if it persists, send us an email.',
+    'app.auth.chpw.hint': 'Changing your password requires your current one. Forgot it? Use "Forgot password".',
 
     'app.auth.bind.bound': 'Phira linked: <b>{name}</b> #{uid}',
     'app.auth.bind.unbind': 'Unlink',
@@ -483,6 +462,7 @@ export default {
     /* ── password strength (only when setting a new password) ── */
     'app.pw.short': 'Password must be at least 10 characters (a 6-char password falls to offline cracking in minutes)',
     'app.pw.digits': 'All-digits is too weak — mix letters with digits',
+    'app.pw.upper': 'All-uppercase is weak too — add digits or lowercase letters',
     'app.pw.lower': 'All-lowercase is still weak — add a digit or an uppercase letter',
 
     /* ── drop zone ── */
@@ -767,16 +747,6 @@ export default {
     'app.playstat.oc': ' · library constant {v}',
 
     /* ── public stats bar ── */
-    'app.stats.head': 'Public data on this site: ',
-    'app.stats.profiles': '<b>{n}</b> accounts',
-    'app.stats.active': '<b>{n}</b> active in 7 days',
-    'app.stats.bound': '<b>{n}</b> Phira linked',
-    'app.stats.scores': '<b>{n}</b> score records',
-    'app.stats.charts': '<b>{n}</b> cached constants',
-    'app.stats.thin':
-      '<br>⚠ Still a small sample ({n} scores): '
-      + '<b>player stats (mean / median) swing widely — treat them as indicative only</b>. '
-      + 'Importing a few more scores is what makes it sharper.',
 
     /* ── first-upload notice (confirm dialog) ── */
     'app.notice.body':
