@@ -23,6 +23,7 @@ export default {
     'nav.search.ph': '曲名 / 谱师 / 标签',
     'nav.settings': '设置',
     'nav.platform': 'API 开放平台',
+    'nav.status': '状态',
     'nav.download': '下载',
 
     /* ── 通用动作 ── */
@@ -148,6 +149,7 @@ export default {
     'nav.search.ph': 'title / charter / tag',
     'nav.settings': 'Settings',
     'nav.platform': 'API Platform',
+    'nav.status': 'Status',
     'nav.download': 'Download',
 
     /* ── common ── */
