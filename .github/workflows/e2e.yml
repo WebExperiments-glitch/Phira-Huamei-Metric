@@ -37,6 +37,9 @@ jobs:
 
       - name: Start local server
         working-directory: phm-web
+        env:
+          # 只绕配额、不绕路径白名单（生产绝不许设）。见 docs/README.md「跑浏览器测试要关限流」
+          PHM_TEST_NO_RATELIMIT: '1'
         run: |
           PORT=5199 node server.mjs > /tmp/phm-server.log 2>&1 &
           echo $! > /tmp/phm-server.pid
@@ -55,6 +58,12 @@ jobs:
       - name: UI flows (24)
         working-directory: phm-web
         run: node tools/test-ui-flows.mjs http://127.0.0.1:5199
+
+      # 摧残：畸形编码 / 超长 / 深嵌套 / 错动词 / 原始 socket……
+      # 判据不是状态码，而是「打完 /api/health 还通不通」——单进程服务死在一次未捕获异常上。
+      - name: Fuzz (145 · hostile inputs)
+        working-directory: phm-web
+        run: node tools/fuzz-http.mjs http://127.0.0.1:5199
 
       # verify-pages / api-routes 依赖生产数据库与外部 Phira 写入路径，
       # 在 CI 里跑会得到假失败；它们留在本地发版前跑（见 HANDOVER §2）。

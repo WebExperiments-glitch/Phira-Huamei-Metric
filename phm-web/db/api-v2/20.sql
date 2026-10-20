@@ -137,7 +137,7 @@ create or replace function public.hm_touch(
   p_secret text, p_sub text, p_email text
 ) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare v integer;
+declare n_visits integer;
 begin
   if p_secret is null or p_secret <> (select v from phm_secrets where k='writer') then
     raise exception 'unauthorized writer' using errcode = '42501';
@@ -156,9 +156,9 @@ begin
   on conflict (sub) do update set
     visits    = public.hm_profiles.visits + 1,
     last_seen = now()
-  returning visits into v;
+  returning visits into n_visits;
 
-  return jsonb_build_object('ok', true, 'visits', v);
+  return jsonb_build_object('ok', true, 'visits', n_visits);
 end $$;
 
 -- ────────────────────────────────────────────────────────────
@@ -207,8 +207,27 @@ begin
   return jsonb_build_object('ok', true, 'deleted', n > 0);
 end $$;
 
--- 只给服务端用：撤销公开执行权（RPC 仍然能调，因为走的是 service 侧凭据）
+-- ────────────────────────────────────────────────────────────
+-- 权限：先收回，再**显式授权给 anon**
+-- ────────────────────────────────────────────────────────────
+-- ⚠⚠ 这一段最初写错了两次，都是**部署时才炸**的：
+--   ① 只写了 revoke，忘了 grant → 调用方拿到 `permission denied for function`
+--      （42501）。当时注释还写着「RPC 仍然能调，因为走的是 service 侧凭据」——
+--      **我们没有 service_role 凭据**：站内所有 RPC 都是用网页里那把
+--      publishable key 以 `anon` 身份调的。看一眼 hm_account_lookup 的 acl 就明白：
+--      它显式 grant 给了 anon / authenticated。
+--   ② `hm_touch` 里 `declare v integer` 与 `phm_secrets.v` **撞名**，
+--      函数体内的 `select v from phm_secrets` 于是报 42702 column reference is ambiguous。
+--      变量改名 n_visits。
+--
+-- 安全性不靠权限位，靠函数体里的 `p_secret` 比对（SECURITY DEFINER 以属主身份运行）：
+-- 谁都能调，但没有写入凭据就只会拿到 42501。
 revoke all on function public.hm_profile_get(text, text) from public, anon, authenticated;
 revoke all on function public.hm_profile_put(text, text, text, bigint, text, boolean) from public, anon, authenticated;
 revoke all on function public.hm_touch(text, text, text) from public, anon, authenticated;
 revoke all on function public.hm_account_delete(text, text) from public, anon, authenticated;
+
+grant execute on function public.hm_profile_get(text, text) to anon, authenticated;
+grant execute on function public.hm_profile_put(text, text, text, bigint, text, boolean) to anon, authenticated;
+grant execute on function public.hm_touch(text, text, text) to anon, authenticated;
+grant execute on function public.hm_account_delete(text, text) to anon, authenticated;

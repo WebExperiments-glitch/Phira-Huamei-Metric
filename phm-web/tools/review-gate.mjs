@@ -162,6 +162,32 @@ for (const p of dbFiles) {
   if (fns && sec < fns) fail(path.relative(ROOT, p) + '：' + fns + ' 个函数只有 ' + sec + ' 个 SECURITY DEFINER');
   if (fns && !/p_secret/.test(sql)) fail(path.relative(ROOT, p) + '：函数没有 p_secret 校验');
 }
+/* 4b) 函数必须有对应的 GRANT —— 2026-10-20 真实事故
+   ────────────────────────────────────────────────────────────
+   `db/api-v2/20.sql` 里 4 个 RPC **只写了 revoke、忘了 grant**：
+   本地全绿、CI 全绿，部署后每次调用都是 `permission denied for function`。
+   漏它的原因很简单 —— 上面那一段**显式跳过了 api-v2/**（认为拆分文件由合并版守），
+   而线上实际执行的就是拆分文件。所以这里单独补一条，只查最要命的那件事：
+   **每个 SECURITY DEFINER 函数都得有一条 grant execute**。
+   ⚠ 按**目录聚合**而不是按文件：函数和 grant 常常分两个文件（17/18 建函数、19 授权）。 */
+/* ⚠ 判断目录名要用 path.basename(path.dirname(...))，**别在正则里写路径分隔符**：
+   Windows 是 `\`、Linux 是 `/`，写成 `[\\/]` 在 shell / heredoc 里来回转义极易失效
+   （这条规则本身第一版就踩了：过滤器在 Windows 上一份都没匹配到，检查静默空转）。 */
+const apiV2 = dbFiles.filter(x => /^api-v\d+$/.test(path.basename(path.dirname(x))));
+let fnTotal = 0, grantTotal = 0;
+for (const p of apiV2) {
+  const sql = fs.readFileSync(p, 'utf8');
+  fnTotal += (sql.match(/create or replace function/gi) || []).length;
+  grantTotal += (sql.match(/grant execute on function/gi) || []).length;
+}
+if (fnTotal && grantTotal < fnTotal) {
+  fail('db/api-v*/: ' + fnTotal + ' 个函数只有 ' + grantTotal + ' 条 grant execute' +
+    '（只 revoke 不 grant = 部署后 permission denied）');
+} else if (fnTotal) {
+  ok('db/api-v* 函数授权齐全（' + fnTotal + ' 个函数 / ' + grantTotal + ' 条 grant，' +
+    apiV2.length + ' 个文件）');
+}
+
 if (!dbFiles.length) warn('db/ 下没有 SQL 文件');
 else ok('SQL 迁移检查完成（' + dbFiles.length + ' 个文件）');
 
