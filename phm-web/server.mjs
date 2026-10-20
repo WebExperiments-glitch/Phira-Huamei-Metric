@@ -37,6 +37,7 @@ import {
   deleteAccount as hmDeleteAccount } from './lib/hm-accounts.mjs';
 import { makeProfileRoutes } from './lib/hm-profile-routes.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
+import { installFaultGuards, guardRequest } from './lib/resilience.mjs';
 /* 贡献凭证：/api/contribute 的准入能力票（见 lib/contribute-ticket.mjs 顶部）。 */
 import {
   ticketAvailable, issueTicket, verifyTicket, ticketCovers,
@@ -414,7 +415,8 @@ const chartTpl = fs.readFileSync(path.join(WEB_ROOT, 'chart.html'), 'utf8');
 const pageRoutes = makePageRoutes({ secHeaders: SEC_HEADERS, send, send404,
   readTemplate: () => chartTpl });
 
-const server = http.createServer(async (req, res) => {
+const softFault = installFaultGuards();   /* 最后一层兜底，见 lib/resilience.mjs 顶部 */
+const server = http.createServer(guardRequest(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
   /* ── 客户端身份（限流键用）──
@@ -859,11 +861,8 @@ const server = http.createServer(async (req, res) => {
   const cleanHit = CLEAN[p];
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
-  /* ⚠ decodeURIComponent 遇畸形百分号编码会 **抛 URIError**
-     （`/%`、`/%E0%A4%A` 这类）。这个处理函数是 async，外面没有 try/catch，
-     而 Node 默认把未处理的 rejection 当致命错误 → **整个进程被打掉**。
-     一个畸形 URL 就能下线站点，所以必须自己接住、按客户端错误返回。
-     （路径穿越本身是安全的：`%2e%2e` 解码后被 isPublicPath 的白名单挡住。） */
+  /* ⚠ 畸形百分号编码（`/%`）会让 decodeURIComponent 抛 URIError —— 一个畸形 URL
+     就能打掉进程。必须自己接住。（路径穿越是安全的：`%2e%2e` 解码后被白名单挡住。） */
   let decoded;
   try {
     decoded = p === '/' ? null : decodeURIComponent(p);
@@ -883,7 +882,7 @@ const server = http.createServer(async (req, res) => {
      所以干净 URL 不需要额外处理缓存头。 */
   if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache, req);
   return send404(res);
-});
+}), softFault);
 
 /* 请求级超时：出站 fetch 有 15s 上限，入站此前没有 —— 慢连接可以挂住进程 */
 server.requestTimeout = 30000;

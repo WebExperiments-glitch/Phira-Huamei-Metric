@@ -99,15 +99,20 @@ phm-web/
 │   ├── smoke-page.mjs         ← ★ 冒烟（239 条：页面 / 版本号 / 缓存策略）
 │   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
 │   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）
-│   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（22 条）
+│   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（48 条）
 │   ├── test-ratelimit.mjs     ← 限流（80 条，含禁读 XFF 的防回归断言）
 │   ├── golden-engine.mjs      ← 引擎数值金标（固定谱面 → 固定输出，防悄悄变数）
 │   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
 │   ├── lint-openapi.mjs       ← ★★ OpenAPI 契约校验（零依赖，81 条）
 │   ├── rulechart.mjs          ← ★ 规则写谱 CLI（BPM/难度 → RPE v160 .pez）
 │   ├── test-rulechart.mjs     ← 规则写谱单测（28 条）
-│   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL / workflow
-│   ├── preflight.mjs          ← ★★ pre-push 闸门：review-gate + check
+│   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL（含**函数必须有 grant**）/ workflow
+│   ├── preflight.mjs          ← ★★ **推送**闸门：review-gate + check（pre-push 钩子调）
+│   ├── predeploy.mjs          ← ★★ **发布**闸门：版本/tag/工作区/生成物 + 去库里问「这些 RPC 真能用吗」；
+│   │                             加 --prod 复验线上（关键路由 / 版本号 / 白名单 404 / 匿名 API）
+│   ├── fuzz-http.mjs          ← ★★ 摧残测试（145 条）：畸形编码 / 超长 / 深嵌套 / 错动词×每个路由 /
+│   │                             原始 socket。**判据不是状态码，是打完 /api/health 还通不通**
+│   ├── test-resilience.mjs    ← 兜底层单测（9 条）：逼 guardRequest 走一遍同步抛 / reject / 迟抛
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
 │   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
 │   ├── lint-i18n.mjs          ← 双语完整性（823 词条 / 805 引用）
