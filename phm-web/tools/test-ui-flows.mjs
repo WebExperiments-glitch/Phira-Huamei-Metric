@@ -320,8 +320,17 @@ console.log('[6] 字体设置跨页面生效');
     return { has: !!b, text: b ? b.textContent.trim() : '',
              rows: document.querySelectorAll('#out table tbody tr').length };
   })()`);
-  ok('成绩页出现了「导出成绩卡」按钮', has.has === true, JSON.stringify(has));
-  ok('按钮有文案（不是空壳）', has.text.length > 0, JSON.stringify(has.text));
+  /* ⚠ **rows>0 是按钮存在的前提**。上游偶发失败/限流时页面根本没拿到成绩，
+     这时判「按钮不存在」等于把别人的服务可用性当成我们的回归 ——
+     2026-10-20 audit 就是这么红了一次（rows=0），之后同样的代码连着 4 条都绿。
+     反过来，只要有成绩却仍然没有按钮，那就是真回归，必须红。 */
+  if (!has.rows) {
+    console.log('  ⚠ 跳过成绩卡断言：/user 没拿到成绩（rows=0）—— 上游不可用，不是代码坏了');
+    console.log('     想确认就本机重跑一次，或换个 uid；CI 里这类跳过会打印在日志里，不会静默。');
+  } else {
+    ok('成绩页出现了「导出成绩卡」按钮', has.has === true, JSON.stringify(has));
+    ok('按钮有文案（不是空壳）', has.text.length > 0, JSON.stringify(has.text));
+  }
 
   if (has.has) {
     const shot = await evalJS(`(async function(){

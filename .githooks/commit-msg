@@ -1,0 +1,39 @@
+#!/bin/sh
+# ============================================================
+# commit-msg —— 给每条提交补上 AI 协作署名
+# ============================================================
+# 安装：git config core.hooksPath .githooks   （仓库根执行一次）
+# 绕过：git commit --no-verify（不推荐）
+#
+# 【为什么用钩子而不是靠自觉】
+#   2026-10-20 发现：`V0.21.2.0` 之后连着 5 条提交的署名都丢了。
+#   根因不是谁写错了字，而是**提交消息的产生方式换了** ——
+#   以前是手写 `git commit -F file`，模板里带着 trailer；
+#   后来改成 `gh api --input <json>` 走 squash 合并，JSON 里没人记得加。
+#   凡是"记得就加、忘了就没有"的约定，最后一定会丢。所以交给钩子。
+#
+# 【为什么是 huamei <huamei@local>】
+#   这是本项目一直用的协作署名（见更早的提交）。
+#   邮箱是本地占位符 —— 它不对应 GitHub 账号，但 GitHub 仍会把它
+#   渲染成「和 huamei 撰写」，所以署名是可见的。
+# ============================================================
+set -e
+
+MSG_FILE="$1"
+TRAILER="Co-authored-by: huamei <huamei@local>"
+
+# 空消息/读不到就放行，别让钩子把提交卡死在奇怪的地方
+[ -f "$MSG_FILE" ] || exit 0
+
+# 合并提交不加：它没有独立的改动内容，署名只会变成噪音
+if grep -qE '^Merge (branch|remote-tracking|pull request)' "$MSG_FILE"; then
+  exit 0
+fi
+
+# 已经写过就别重复（幂等 —— 钩子会被重放，amend/rebase 都会再跑一遍）
+if grep -qiE "^Co-authored-by: *huamei( |<|$)" "$MSG_FILE"; then
+  exit 0
+fi
+
+# 末尾保证恰好一个空行再接 trailer
+printf '\n%s\n' "$TRAILER" >> "$MSG_FILE"
