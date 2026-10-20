@@ -32,7 +32,10 @@ export default {
 
     'set.acct.title': 'P.H.M. 账号',
     'set.acct.desc': '本站的账号只用于：绑定你的 Phira 账号、查看你自己的贡献记录。不需要它也能用全部功能。',
-    'set.acct.loggedout.desc': '注册一个账号可以把「本人账号声明」同步到云端，换设备也不用重新声明。',
+    'set.acct.loggedout.desc': '注册一个账号可以把「本人账号声明」同步到服务器，换设备也不用重新声明。',
+    /* ⚠ 与上一条**必须分开**：读不到状态是系统侧的事，
+       写成"未登录"会让网络抖动的人以为自己账号丢了。 */
+    'set.acct.offline': '暂时读不到登录状态（可能是网络问题）。刷新重试——这不是你账号的问题。',
     'set.acct.go': '去登录 / 注册',
     'set.acct.bound': '已绑定 Phira',
     'set.acct.unbound': '尚未绑定 Phira 账号',
@@ -44,13 +47,24 @@ export default {
 
     /* ── 注销（自助删本站资料；邮箱删不掉，如实写）── */
     'set.acct.del': '注销账号',
-    'set.acct.del.desc': '删除本站云端资料（Phira 绑定与显示名）。<b>登录邮箱需另行申请</b>。',
-    'set.acct.del.go': '删除本站资料…',
+    'set.acct.del.desc': '删除账号、绑定与访问计数。<b>不可撤销</b>。贡献的成绩是匿名的，不会被删。',
+    'set.acct.del.go': '注销账号…',
     'set.acct.del.nologin': '你还没有登录，没有可注销的资料。',
-    'set.acct.del.nocloud': '云端未连接，暂时无法删除 —— 请改用邮件申请（见隐私政策第 10 节）。',
-    'set.acct.del.confirm': '确定要删除本站在云端的资料吗？\n\n会删掉：Phira 绑定关系、显示名、访问计数。\n不会删：登录邮箱本身（需要另行申请），以及你贡献过的成绩（它们本来就是匿名的，不挂在账号上）。\n\n此操作不可撤销。',
-    'set.acct.del.done': '本站资料已删除 ✓ 正在登出…',
+    'set.acct.del.nocloud': '服务器未配置写入凭据，暂时无法删除 —— 请改用邮件申请（见隐私政策第 10 节）。',
+    'set.acct.del.confirm': '确定要注销这个账号吗？\n\n会删掉：账号本身（邮箱 + 密码哈希）、Phira 绑定、访问计数、未用完的验证码。\n不会删：你贡献过的成绩（它们本来就是匿名的，不挂在账号上）。\n\n此操作不可撤销。',
+    'set.acct.del.done': '账号已删除 ✓ 正在登出…',
     'set.acct.del.fail': '删除失败：{e} —— 可改用邮件申请（见隐私政策第 10 节）。',
+
+    /* ── 账号操作失败的文案（键名由 js/auth.js 的 authErrorKey 决定）──
+       ⚠ 与 /app 上的说法保持一致 —— 同一个错误在两页显示不同原因是最费解的。 */
+    'set.auth.err.network': '连不上服务器。检查网络后重试——你的账号没问题。',
+    'set.auth.err.invalid': '凭据不对或过期，请到 /app 重新登录。',
+    'set.auth.err.rateLimited': '操作太频繁了，等一分钟再试。',
+    'set.auth.err.expired': '登录已过期，请到 /app 重新登录。',
+    'set.auth.err.conflict': '这个 Phira 账号已经被绑定了。',
+    'set.auth.err.weakPw': '密码太弱，请换一个。',
+    'set.auth.err.unavailable': '服务端暂时不可用（可能在维护）。稍后再试。',
+    'set.auth.err.unknown': '出了点问题。刷新重试；一直不行就发邮件告诉我们。',
 
     'set.phira.desc': '本站连 Phira 只读公开资料（RKS、最好成绩），不需要也不接受密码。',
     'set.phira.name': '上次填过的用户名',
@@ -125,7 +139,8 @@ export default {
 
     'set.acct.title': 'P.H.M. account',
     'set.acct.desc': 'This account exists only to link your Phira account and to view your own contributions. Every feature works without it.',
-    'set.acct.loggedout.desc': 'An account syncs your "this is my account" declarations to the cloud, so you do not have to re-declare on another device.',
+    'set.acct.loggedout.desc': 'An account syncs your "this is my account" declarations to the server, so you do not have to re-declare on another device.',
+    'set.acct.offline': 'Cannot read your sign-in state right now (possibly a network issue). Refresh to retry — this is not a problem with your account.',
     'set.acct.go': 'Sign in / Sign up',
     'set.acct.bound': 'Phira linked',
     'set.acct.unbound': 'No Phira account linked',
@@ -137,13 +152,22 @@ export default {
 
     /* ── account deletion (self-service for site data; the login e-mail cannot be deleted) ── */
     'set.acct.del': 'Delete account',
-    'set.acct.del.desc': 'Removes this site’s cloud data (Phira binding and display name). <b>The login e-mail needs a separate request.</b>',
-    'set.acct.del.go': 'Delete site data…',
+    'set.acct.del.desc': 'Deletes the account, its Phira binding and visit count. <b>Cannot be undone.</b> Contributed scores are anonymous and are kept.',
+    'set.acct.del.go': 'Delete account…',
     'set.acct.del.nologin': 'You are not signed in, so there is nothing to delete.',
-    'set.acct.del.nocloud': 'Cloud is not connected, so this cannot be done here — please use e-mail instead (see section 10 of the privacy policy).',
-    'set.acct.del.confirm': 'Delete this site’s cloud data?\n\nDeleted: the Phira binding, display name, visit counter.\nNot deleted: the login e-mail itself (needs a separate request), and any scores you contributed (those are anonymous and are not tied to your account).\n\nThis cannot be undone.',
-    'set.acct.del.done': 'Site data deleted ✓ signing out…',
+    'set.acct.del.nocloud': 'The server has no write credential configured, so this cannot be done here — please use e-mail instead (see section 10 of the privacy policy).',
+    'set.acct.del.confirm': 'Delete this account?\n\nDeleted: the account itself (e-mail + password hash), the Phira binding, the visit counter, and any unused verification codes.\nNot deleted: scores you contributed (those are anonymous and are not tied to your account).\n\nThis cannot be undone.',
+    'set.acct.del.done': 'Account deleted ✓ signing out…',
     'set.acct.del.fail': 'Delete failed: {e} — you can use e-mail instead (see section 10 of the privacy policy).',
+
+    'set.auth.err.network': 'Cannot reach the server. Check your connection and retry — your account is fine.',
+    'set.auth.err.invalid': 'Credentials are wrong or expired — sign in again on /app.',
+    'set.auth.err.rateLimited': 'Too many attempts — wait a minute and try again.',
+    'set.auth.err.expired': 'Your session expired — sign in again on /app.',
+    'set.auth.err.conflict': 'That Phira account is already linked.',
+    'set.auth.err.weakPw': 'That password is too weak — pick another.',
+    'set.auth.err.unavailable': 'The service is temporarily unavailable (possibly maintenance). Try again later.',
+    'set.auth.err.unknown': 'Something went wrong. Refresh and retry; if it persists, send us an email.',
 
     'set.phira.desc': 'Phira is accessed read-only for public data (RKS, best scores). A password is neither required nor accepted.',
     'set.phira.name': 'Last username entered',

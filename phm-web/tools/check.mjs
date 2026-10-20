@@ -36,6 +36,7 @@ const STEPS = [
   ['谱面包纯函数单测（33 条）', 'node', ['tools/test-chartfiles.mjs']],
   ['规则写谱三层单测（65 条）', 'node', ['tools/test-rhythm.mjs']],
   ['账号单测', 'node', ['tools/test-hm-accounts.mjs']],
+  ['账号门面单测（79 条）', 'node', ['tools/test-auth.mjs']],
   ['成绩校验单测', 'node', ['tools/test-hm-validate.mjs']],
   ['双语完整性', 'node', ['tools/lint-i18n.mjs']],
   ['屎山考核', 'node', ['tools/lint-slop.mjs']],
