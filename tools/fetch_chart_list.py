@@ -40,7 +40,10 @@ Phira 谱面**列表**抓取器（只取元数据，不下谱面文件）
       { id, name, level, difficulty, charter, rating, ratingCount,
         created, updated, uploader, tags, file, preview, illustration }
 
-⚠ **礼貌抓取**：默认 4 并发 + 每页之间 0.15s 间隔，单次请求超时 30s。
+⚠ **礼貌抓取**：默认 **2 并发 + 每批 0.3s 间隔**（约 6–8 req/s），单次请求超时 30s。
+  早先是 4 并发 + 0.15s，实测约 20–30 req/s …… 对一个免费公共 API 偏激进，
+  而且它是我们**唯一**的上游数据来源 —— 不值得为了快一分钟拿它冒险。
+  全量拉一遍大约 2–3 分钟，而这个脚本本来就是偶尔跑一次。
    这是第三方公开 API，不要打爆它。
 """
 import argparse
@@ -89,7 +92,7 @@ def fetch_page(page, page_size, order="-created", retries=3):
     raise RuntimeError(f"page {page} 取不到：{last}")
 
 
-def fetch_list(since=None, page_size=30, workers=4, order="-created", max_pages=0):
+def fetch_list(since=None, page_size=30, workers=2, order="-created", max_pages=0):
     """翻页抓列表。
 
     since：ISO 日期字符串（如 2026-10-19）。给了之后**只保留 created >= since**
@@ -133,7 +136,7 @@ def fetch_list(since=None, page_size=30, workers=4, order="-created", max_pages=
             if max_pages and page > max_pages:
                 break
             if not stop.is_set():
-                time.sleep(0.15)
+                time.sleep(0.3)
             if page % 40 == 0:
                 log(f"  [..] 已翻 {page-1} 页，取到 {len(rows)} 行")
     return rows, total
@@ -182,7 +185,7 @@ def main():
     ap.add_argument("--merge", action="store_true",
                     help="与已有文件合并（按 id 去重，新信息覆盖旧信息）")
     ap.add_argument("--page-size", type=int, default=30, help="每页条数，最大 30")
-    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--max-pages", type=int, default=0, help="0 = 不限")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()

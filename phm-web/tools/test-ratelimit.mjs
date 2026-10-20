@@ -211,13 +211,26 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
   /* ⚠ 本机没有可用数据库时**优雅跳过**这一段，而不是假失败。
      真实 DB 路径（跨进程计数）本来只能在有库的环境里验；没有库时
      limit() 会走内存兜底（via='memory'），下面那几条断言必然挂 ——
-     那是环境缺东西，不是代码坏了。 */
+     那是环境缺东西，不是代码坏了。
+
+     ⚠⚠ 但**「环境缺东西」与「代码坏了」必须分开**。`limit()` 的 via 有四种取值
+     （见 lib/ratelimit.mjs）：
+       bypass    NO_RL=1，压根不计数          → 该跳
+       memory    没配写入凭据，走内存兜底      → 该跳
+       db        正常走库                     → 必须断言
+       db-down   **配了凭据，但 DB 报错**     → 必须红
+     早先这里写的是 `if (probe.via !== 'db') 跳过` —— 于是 db-down 被当成
+     "没有数据库"跳过了，而它恰恰是本段唯一想抓的回归：
+     DB 计数真的坏了的时候，这条测试会静默变绿。 */
   let SKIP_DB = process.env.PHM_RL_FORCE_DB_DOWN === '1';
   if (!SKIP_DB) {
     const probe = await limit(['probe-db-' + Date.now()], 3, 120_000);
+    if (probe.via === 'db-down') {
+      throw new Error('DB 配了写入凭据但计数报错（via=db-down）—— 这是回归，不是环境缺失');
+    }
     if (probe.via !== 'db') {
       SKIP_DB = true;
-      console.log('  - 跳过真实 DB 断言（本机没有可用数据库，探测 via=' + probe.via + '）');
+      console.log('  - 跳过真实 DB 断言（via=' + probe.via + '，本机没有可用数据库）');
     }
   }
   let K;
