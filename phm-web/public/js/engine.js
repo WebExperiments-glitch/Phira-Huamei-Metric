@@ -654,6 +654,15 @@ export function knnReference(f, spPeak, refRows, basis, excludeId) {
     q3: d20.length ? d20[Math.floor(d20.length * 0.75)] : null,
     spread: d20.length ? d20[d20.length - 1] - d20[0] : null,
     d1: near[0][0], dMean, n20: d20.length, selfExcluded,
+    /* ★ dvals：20 个近邻的定数全量（已排序）。
+       为什么加这个：lo/hi 是「近邻跨度」，它**没被校准过** ——
+       只在「官谱参照」上测过覆盖率，而桌面引擎（phm/core.py）给的是
+       加权 P25/P75（四分位距），55.4% 是四分位距的数学性质，
+       不是「官方乱标」的证据（见 tools/audit-baselines.mjs）。
+       要重新定宽，必须拿到近邻分布本身（均值/标准差/分位数），
+       不能只有首尾两个数。**纯加字段，不改任何已有取值**，
+       金标测试（tools/golden-engine.mjs）只多一个键。 */
+    dvals: d20,
     near: near.slice(0, 5).map(([, i]) => ({
       name: idx.rows[i][2], level: ['EZ', 'HD', 'IN', 'AT', 'SP', '?'][idx.rows[i][1]],
       diff: idx.rows[i][0],
