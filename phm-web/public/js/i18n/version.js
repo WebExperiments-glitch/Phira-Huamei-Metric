@@ -16,6 +16,9 @@ export default {
     'vn.note':
       '想看得更深？仓库里有完整的 <span class="mono">CHANGELOG.md</span>（含每次的取舍与理由）'
       + '和架构文档。',
+    'vn.lic.kai': '霞鹜文楷 · OFL',
+    'vn.lic.serif': '思源宋体 · OFL',
+    'vn.lic.uqr': 'uqr · MIT',
     'vn.back': '← 返回设置',
     'vn.tip':
       '每条都对应一个 Git tag，可以按版本号检出当时的状态。',
@@ -30,6 +33,9 @@ export default {
     'vn.note':
       'Want the full picture? The repository carries a complete <span class="mono">CHANGELOG.md</span> '
       + '(with the trade-offs and reasoning behind each change) plus the architecture docs.',
+    'vn.lic.kai': 'LXGW WenKai · OFL',
+    'vn.lic.serif': 'Noto Serif SC · OFL',
+    'vn.lic.uqr': 'uqr · MIT',
     'vn.back': '← Back to settings',
     'vn.tip': 'Each entry maps to a Git tag, so you can check out the exact state of any version.',
   },

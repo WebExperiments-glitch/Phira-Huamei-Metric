@@ -23,6 +23,13 @@ type(scope): 一句话（≤ 72 字，祈使句，不加句号）
 - `type`：`feat` `fix` `docs` `test` `chore` `refactor` `perf` `ci`
 - `scope`：`rulechart` `engine` `api` `auth` `web` `docs` `ci` `db`
 - ⚠ 首行会成为 squash 后的 commit message，**永久留在 main 上**。
+- **协作署名由钩子自动补**：`.githooks/commit-msg` 会给每条提交追加
+  `Co-authored-by: huamei <huamei@local>`（幂等，合并提交不加）。
+  `git config core.hooksPath .githooks` 之后自动生效。
+  ⚠ 用 `gh api --input` 之类**绕过 git 钩子**的方式造提交（例如 squash 合并）时，
+  trailer 要**手写进 JSON 的 `commit_message`** —— 否则它照样会丢。
+  这条不是形式主义：署名是「谁在和你一起写这个仓库」的唯一记录，
+  丢一次不会有感觉，丢十次就再也说不清了。
 - ⚠ **别在 `python -c "…"` 里写反引号**：bash 会把它当命令替换执行掉，文案被掏空。
   要用 `--input <json 文件>`。（真踩过，且改不了：main 不许改写历史。）
 
