@@ -20,6 +20,20 @@
 
 export const RELEASES = [
   {
+    v: 'V0.21.1.3', date: '2026-10-20',
+    zh: ['自动写谱<b>节奏准了</b>：每个音都落在能打的拍子上（含<b>三连音</b>），'
+      + '而且<b>不会再为了凑密度造音符</b> —— 歌里有多少音乐事件就出多少音。',
+      '新增<b>谱面详情页</b>：每首歌都有一个可分享的链接，搜索引擎也能找到；'
+      + '分享卡上多了<b>二维码</b>（手机扫码直达）；导航多了<b>全局搜索</b>；'
+      + '状态页多了<b>按小时的可用色条</b>。'],
+    en: ['<b>Auto-charting now stays on the beat</b>: every note snaps to a playable subdivision '
+      + '(including <b>triplets</b>), and it <b>no longer invents notes to hit a density target</b>.',
+      'New <b>chart detail pages</b>: every chart has a shareable, indexable URL. '
+      + 'Share cards now carry a <b>QR code</b>, the nav has <b>global search</b>, '
+      + 'and the status page gained an <b>hourly availability strip</b>.'],
+  },
+
+  {
     v: 'V0.21.1.2', date: '2026-10-19',
     zh: ['自动写谱的<b>节奏准了</b>：每个音都会被吸到能打的拍子上（含<b>三连音</b>），'
       + '而不是检测到哪就放在哪。另外<b>不会再为了凑密度造音符</b>——'

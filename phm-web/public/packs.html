@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.21.1.2">
+<meta name="app-version" content="V0.21.1.3">
 <title>谱面包 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="把任意 Phira 谱面连同曲绘、音频打成 .pez 包。文件在你的浏览器里直连下载，不经我们的服务器。">
@@ -12,8 +12,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.21.1.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.1.3">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.3">
 <style>
 /* ── 卡片网格 ──
    grid 而非 flex：卡片等高，且窗口变窄时自动降列。
@@ -180,10 +180,10 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <script type="module">
 import {
   renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER,
-} from '/js/ui.js?v=V0.21.1.2';
-import { installGuard } from '/js/guard.js?v=V0.21.1.2';
-import { cleanChart, searchText, FILE_KINDS } from '/js/chartfiles-core.mjs?v=V0.21.1.2';
-import { packPez, saveBlob, fileUrlOf } from '/js/chartfiles.js?v=V0.21.1.2';
+} from '/js/ui.js?v=V0.21.1.3';
+import { installGuard } from '/js/guard.js?v=V0.21.1.3';
+import { cleanChart, searchText, FILE_KINDS } from '/js/chartfiles-core.mjs?v=V0.21.1.3';
+import { packPez, saveBlob, fileUrlOf } from '/js/chartfiles.js?v=V0.21.1.3';
 
 installGuard(t);
 renderNav();
