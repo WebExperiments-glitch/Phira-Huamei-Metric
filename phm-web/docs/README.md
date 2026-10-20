@@ -87,7 +87,8 @@ phm-web/
 │       ├── i18n.js + i18n/    ← 双语：10 个页面分片，中英写在同一个文件
 │       ├── ref-official.js    ← 官谱参照 1,037 张（生成物，由 gen-ref.mjs 产出）
 │       ├── release.js         ← 下载页元数据（生成物，由 gen-release.mjs 从 exe 实算）
-│       ├── versions.js        ← 用户向版本历史（与 CHANGELOG.md 分工不同）
+│       ├── versions.js        ← 用户向版本历史（与 CHANGELOG.md 分工不同）。近两个版本在这里，更早的拼自 versions-archive.js
+│       ├── versions-archive.js ← 版本历史的旧条目。拆开的原因：versions.js 只增不减，每次发版都会顶到 900 行上限
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
 ├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（30 个）
