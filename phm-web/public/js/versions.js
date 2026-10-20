@@ -20,6 +20,34 @@
 
 export const RELEASES = [
   {
+    v: 'V0.21.3.0', date: '2026-10-20',
+    zh: ['<b>服务更不容易挂了</b>：以前一次意外错误就能让整站下线（真的发生过三次），现在单个请求出错只影响那一个请求。'
+      + '<b>账号绑定 / 注销 / 状态页 30 天视图已全部打通</b>（数据库权限补齐，实测跑通），并且<b>状态页终于进导航了</b>——之前它其实一直存在，只是没人找得到。'],
+    en: ['<b>Much harder to knock over</b>: one unexpected error used to take the whole site down '
+      + '(it happened three times); now a bad request only affects that request. Account linking, '
+      + 'deletion and the 30-day status history now all work end to end.'],
+  },
+
+  {
+    v: 'V0.21.2.0', date: '2026-10-20',
+    zh: ['登录/注册<b>换成本站自己的账号系统</b>。好处是三件：'
+      + '<b>不再依赖第三方 CDN</b>（首页更快、少一个外部来源）、'
+      + '<b>注销账号是真删除</b>（账号、绑定、访问计数一起清掉，以前只能删资料、邮箱要另发邮件申请）、'
+      + '以及<b>登录状态更稳</b>（断网时提示"读不到状态"而不是误报"未登录"）。',
+      '⚠ 已有账号<b>需要重新注册一次</b>（密码自定）—— '
+      + '旧的平台账号本站无法读取；但<b>贡献过的成绩不受影响</b>（它们本来就不挂在账号上）。'],
+    en: ['Sign-in and sign-up now run on <b>our own account system</b>. Three things change: '
+      + '<b>no third-party CDN</b> (faster first paint, one less external source), '
+      + '<b>deleting an account really deletes it</b> (account, Phira link and visit count together — '
+      + 'before, only site data could be removed and the e-mail needed a separate request), '
+      + 'and <b>sign-in state is more reliable</b> (a network hiccup now says "cannot read state" '
+      + 'instead of wrongly claiming "signed out").',
+      '⚠ Existing accounts <b>need to register once more</b> (pick your password) — '
+      + 'the old platform account cannot be read from here. '
+      + '<b>Scores you contributed are unaffected</b> (they were never tied to an account).'],
+  },
+
+  {
     v: 'V0.21.1.3', date: '2026-10-20',
     zh: ['自动写谱<b>节奏准了</b>：每个音都落在能打的拍子上（含<b>三连音</b>），'
       + '而且<b>不会再为了凑密度造音符</b> —— 歌里有多少音乐事件就出多少音。',

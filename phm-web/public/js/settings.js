@@ -16,8 +16,9 @@
  *   2. **读失败一律返回默认值**，绝不抛异常。隐私模式 / 禁用存储时，
  *      整站的原则是「设置读不到 = 用默认」，而不是页面崩掉。
  *   3. **clearAll() 只清本站自己的键**（白名单）。
- *      同源下还住着云 SDK 的会话（`workbuddy-cloud.session.*`），
- *      那是别人的数据 —— 顺手清掉会把用户从账号里踢出去。
+ *      **登录凭据 `phm_hm_token` 故意不在这张清单里** —— 它是 auth.js 的，
+ *      不归设置管。顺手清掉会把用户踢下线，而"清空设置"从来没承诺过这个。
+ *      （以前同源下还住着云 SDK 的会话，同样不在清单里，理由一样。）
  *
  * 【和别的文件的分工】
  *   engine.js  纯计算（解析谱面 → 定数），不碰浏览器 API
@@ -36,9 +37,10 @@ export const KEYS = Object.freeze({
   phiraUid:  'phm_phira_uid',
   lastUid:   'phm_last_uid',     /* 上次查询过的玩家 uid */
   /* 登录邮箱 —— 只为「下次自动填」而存。
-   * ⚠ 存的是**邮箱**，不是密码、不是 token：token 由云 SDK 自己管（localStorage
-   *   里的 /.cloud 会话），密码绝不落盘。邮箱是公开信息，存它换来的是
-   *   「不用每次重打一遍」—— 这是用户明确要求的手感。 */
+   * ⚠ 存的是**邮箱**，不是密码、不是 token：token 由 auth.js 自己管
+   *   （localStorage 的 `phm_hm_token`），密码绝不落盘。
+   *   邮箱是公开信息，存它换来的是「不用每次重打一遍」—— 用户明确要求的手感。
+   * ⚠ 存了邮箱**不等于**已登录，界面绝不拿它当登录态显示。 */
   email:     'phm_email',
   ownPrefix: 'phm_own_',         /* + uid =「我声明这是本人的账号」 */
   theme:     'phm_theme',        /* 外观："dark" / "light" / "auto" */

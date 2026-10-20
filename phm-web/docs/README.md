@@ -99,15 +99,20 @@ phm-web/
 │   ├── smoke-page.mjs         ← ★ 冒烟（239 条：页面 / 版本号 / 缓存策略）
 │   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
 │   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）
-│   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（22 条）
+│   ├── test-api-routes.mjs    ← 打完接口 + 贡献凭证认证再验进程没死（48 条）
 │   ├── test-ratelimit.mjs     ← 限流（80 条，含禁读 XFF 的防回归断言）
 │   ├── golden-engine.mjs      ← 引擎数值金标（固定谱面 → 固定输出，防悄悄变数）
 │   ├── check.mjs              ← ★ 一条命令跑完全部非浏览器检查（CI 同款）
 │   ├── lint-openapi.mjs       ← ★★ OpenAPI 契约校验（零依赖，81 条）
 │   ├── rulechart.mjs          ← ★ 规则写谱 CLI（BPM/难度 → RPE v160 .pez）
 │   ├── test-rulechart.mjs     ← 规则写谱单测（28 条）
-│   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL / workflow
-│   ├── preflight.mjs          ← ★★ pre-push 闸门：review-gate + check
+│   ├── review-gate.mjs        ← ★★ 静态审计：凭据 / 版本 / 白名单 / SQL（含**函数必须有 grant**）/ workflow
+│   ├── preflight.mjs          ← ★★ **推送**闸门：review-gate + check（pre-push 钩子调）
+│   ├── predeploy.mjs          ← ★★ **发布**闸门：版本/tag/工作区/生成物 + 去库里问「这些 RPC 真能用吗」；
+│   │                             加 --prod 复验线上（关键路由 / 版本号 / 白名单 404 / 匿名 API）
+│   ├── fuzz-http.mjs          ← ★★ 摧残测试（145 条）：畸形编码 / 超长 / 深嵌套 / 错动词×每个路由 /
+│   │                             原始 socket。**判据不是状态码，是打完 /api/health 还通不通**
+│   ├── test-resilience.mjs    ← 兜底层单测（9 条）：逼 guardRequest 走一遍同步抛 / reject / 迟抛
 │   ├── test-hm-accounts.mjs / test-hm-validate.mjs ← 账号与成绩校验单测
 │   ├── lint-slop.mjs          ← 屎山考核（必须 0，含 CSS 括号平衡）
 │   ├── lint-i18n.mjs          ← 双语完整性（823 词条 / 805 引用）
@@ -161,7 +166,8 @@ phm-web/
 | 自动写谱 · 时间轴（A） | `public/js/rhythm.js` —— 拍网格 / 相位精调 / **量化（含三连音）** / 乐句边界。⚠ 量化不是「吸到 1/4 网格」：层级 1·2·3·4·6，**故意不含 1/8** —— 三十二分太细，有了它任何位置都能被「对上」，容差就形同虚设。层级代价 `SUBDIV_COST_MS` 保证「简单读法优先」|
 | 自动写谱 · 事件选择（B） | `public/js/salience.js` —— 给每个候选打**音乐显著性**（强度打底 × 拍位 × 声部，乘子结构不是加权求和），再按分数选到目标数量。⚠⚠ **绝不凭空造音符**：候选不够就少给，`shortfall` 如实上报。同一份文件还负责映射判定线（按「哪只手更空」分配，不是 i%2 机械交替）|
 | 自动写谱 · 可玩性（C） | `public/js/playability.js` —— 独立审计器：时间冲突 / 同手过近 / 过密（按**时间窗**不按总数）/ 连续操作负担 / 异常长串 / 节奏可读性 / 目标难度偏差。error 折进 `violations`（不能下载），warn 折进 `warnings`（能下但提示）。⚠ **free 模式也查同手间隔** —— 以前 `if (!free)` 整条跳过，而 2 指自由分散恰恰最需要查 |
-| 登录态 / 云 SDK 初始化 | `public/js/cloud.js` —— **app / platform / settings 三处页面的唯一入口**。⚠ 云 SDK 是 `<script defer src=cdn>`，页面主逻辑也是 defer，但**内联 module 没有依赖图可以等**；不同步等待的话 SDK 慢一点就会先跑完 module，初始化拿到的 `cloud` 是 null，会话恢复被整段跳过 —— 症状是「用户每次刷新都要重新登录」且界面上没有任何错误 |
+| 登录 / 注册 / 会话 / 档案 | `public/js/auth.js` —— **app / platform / settings 三处页面的唯一入口**（2026-10-20 起自建账号，不再有云 SDK）。⚠ 分三层：① 纯函数（邮箱规范化 `normalizeEmail`、密码策略 `pwProblem`、错误分类 `classifyAuthError`）可单测 ② `createAuth()` 工厂管状态机 + 节流 + 倒计时 ③ 调用方只按 `error.kind` 翻文案。⚠⚠ **token 走 `x-hm-token` 头，不是 `Authorization`** —— 托管网关会吃掉入站的 Authorization（`/api/hm/play` 上真实踩过：本机全绿、线上每步 401）。token 存在 localStorage 的 `phm_hm_token`，**不在 `settings.js` 的键名白名单里** —— 所以「清空设置」不会把人踢下线 |
+| 账号服务端 | `lib/hm-accounts.mjs`（scrypt 哈希 + 自签 HS256 JWT + 真验签）· `lib/hm-code-routes.mjs`（注册/登录/发码/重置）· `lib/hm-profile-routes.mjs`（档案 / 绑定 / 注销）。⚠ 自签与平台 token 的差别是**能不能验签**：平台密钥在平台手里，服务端只能解析 `sub`，等于谁都能伪造；自签的密钥只在服务端 |
 | 全局错误兜底 | `public/js/guard.js` —— `error` / `unhandledrejection` / 断网三类提示，右上角 toast。**原本全站只有 app.html 接了 rejection，其余 9 页静默无痕**。自包含页 `phm-api.html` 内联一份（改名 `_gcut` 避开重名） |
 | 技能分（难在哪） | public/js/skills.js —— 把 feats 的 39 个特征重组为 stamina/dexterity/reading/precision 四技能。纯展示层：不改数值、不动 ENGINE_VER、不进 k-NN 的 REF_DIMS，所以不需要重算缓存。⚠ 只在「刚分析完」的响应里给 —— phm_charts 表没有 feats 字段，缓存行算不出来 |
 | 谱面包 / 资源打包下载 | `public/js/chartfiles.js` + `public/js/chartfiles-core.mjs` —— 页面 `/packs`。**零中转**：服务器只代理 JSON 元数据，曲绘/音乐/chart 文件一律**浏览器直连 Phira CDN**，`.pez` 在浏览器本地用 `rulechart.js` 导出的 `zipStore` 打包。⚠ 纯函数层必须在 `public/js/` 不能放 `lib/` —— `lib/` 不在静态白名单里 |

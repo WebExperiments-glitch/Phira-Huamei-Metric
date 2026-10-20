@@ -269,6 +269,9 @@ js/i18n/settings.js ← 设置页（set.*）
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
 | 身份 / 账号 | `lib/hm.mjs` + `lib/hm-accounts.mjs` + `lib/hm-code-routes.mjs` | huamei 身份校验；自建账号（scrypt + 自签 HS256）；验证码路由（发码 / 验码 / 重置） | 不把平台 token 当可信身份；不用登录密码碰 Phira |
+| 兜底层 | `lib/resilience.mjs` | 进程级 `uncaughtException`/`unhandledRejection` 兜底 + `guardRequest()` 包住请求处理（同步抛 / async reject / 头已发出的迟抛 / res 自身 error）。⚠ 内部全 try/catch，**兜底自己不许抛**；60 秒内兜 50 次就主动退出让平台重启 | 单进程服务死在一次未捕获异常上；真踩过三次 |
+| 账号档案 / 注销 | `lib/hm-profile-routes.mjs` | `GET/PUT/DELETE /api/hm/profile` + `POST /api/hm/touch` + 只读聚合代理 `/api/plays`。sub **只从已验签 token 取**，不接受前端传 | 不让前端说"我是谁"；`phm_plays` 匿名聚合不需要登录 |
+| 登录 / 注册门面（前端） | `public/js/auth.js` | 状态机 + 错误分类 + 节流 + 重发倒计时 + 会话恢复；token 存 `phm_hm_token`、走 `x-hm-token` 头 | 登录表单只存在一份（/app），其余页面只读状态 |
 | 成绩校验 | `lib/hm.mjs` 的 `validatePlay()` | 用 `phiraScore()` 重算 acc/score，只告警不拒收 | 不信客户端报的 score/accuracy |
 | 限流 | `lib/ratelimit.mjs` | 进程内预筛 + DB `hm_rate_hit` 权威计数；身份优先、IP 兜底、全局兜底 | **不读 X-Forwarded-For**（源码级禁用，测试守着） |
 | 贡献准入 | `lib/contribute-ticket.mjs` + `lib/contribute-routes.mjs` | 给 /api/contribute 签/验 5 分钟 HMAC 凭证；换票只查 Phira 元数据、不下载谱面；未持票请求在解析 body 前拒绝 | 不把「匿名可写」当默认；无写凭据时 fail-closed |

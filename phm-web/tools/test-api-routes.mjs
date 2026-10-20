@@ -75,6 +75,15 @@ const CASES = [
   ['POST', '/api/hm/send-code',  { email: 'bad-email', purpose: 'register' }, '发码（非法邮箱）'],
   ['POST', '/api/hm/reset-password', { email: 'route-probe@example.invalid', password: 'x' }, '重置（缺码）'],
   ['POST', '/api/hm/play',       { chart_id: 1 },      '上报（缺 token，应 401）'],
+  /* 自建账号的档案四条（2026-10-20 收敛时新增）。
+     全部**不带 token**：期望 401，而不是 5xx。
+     ⚠ 不能带真 token —— 这套测试跑在任意环境，
+       不该依赖「此刻恰好有一个注册好的账号」。 */
+  ['GET',  '/api/hm/profile',    null,            '读档案（缺 token，应 401）'],
+  ['PUT',  '/api/hm/profile',    { phiraUid: 1 }, '写档案（缺 token，应 401）'],
+  ['DELETE', '/api/hm/profile',  null,            '注销（缺 token，应 401）'],
+  ['POST', '/api/hm/touch',      null,            '活跃 +1（缺 token，应 401）'],
+  ['GET',  '/api/plays',         null,            '活跃聚合（缺 name，应 400）'],
 ];
 
 console.log('\n【1】逐个打路由：不许 5xx / 不许连不上');
@@ -82,6 +91,34 @@ for (const [method, path, body, label] of CASES) {
   const st = await hit(method, path, body);
   const bad = st && st.err ? st.err : (st >= 500 ? 'HTTP ' + st : null);
   T(`${method} ${path} — ${label}`, !bad, bad || '');
+}
+
+/* ▲ 上面那组只验「不返回 5xx」，不验状态码。
+   档案路由的**鉴权语义**在这里单独钉 ——
+   它们是「不接受前端告诉我"我是谁"」的唯一保证。 */
+console.log('\n【1.5】档案路由的鉴权语义');
+{
+  const st1 = await hit('GET', '/api/hm/profile', null);
+  T('无 token 读档案 → 401', st1 === 401, 'got ' + st1);
+
+  const st2 = await hit('DELETE', '/api/hm/profile', null);
+  T('无 token 注销 → 401', st2 === 401, 'got ' + st2);
+
+  const st3 = await hit('GET', '/api/plays', null);
+  T('缺 name 的 /api/plays → 400', st3 === 400, 'got ' + st3);
+
+  /* 假 token：不能被当成已登录，必须是 401 token_invalid */
+  const r = await fetch(BASE + '/api/hm/profile', { headers: { 'x-hm-token': 'not.a.real.token' } });
+  const j = await r.json().catch(() => ({}));
+  T('假 token → 401 token_invalid',
+    r.status === 401 && j.error === 'token_invalid',
+    r.status + ' ' + JSON.stringify(j).slice(0, 60));
+
+  /* 拿 ?sub= 冒充别人（老式「前端说我是谁」）必须无效 */
+  const r2 = await fetch(BASE + '/api/hm/profile?sub=1001', {
+    headers: { 'x-hm-token': 'not.a.real.token' },
+  });
+  T('带 ?sub= 也不能免验签', r2.status === 401, 'got ' + r2.status);
 }
 
 console.log('\n【2】写面认证：/api/contribute 必须持服务端签发的贡献凭证');

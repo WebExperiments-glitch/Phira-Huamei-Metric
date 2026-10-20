@@ -117,8 +117,11 @@ const ATTR_RE = /data-i18n(?:-html|-ph|-title)?="([^"]+)"/g;
      ['diff', 'ch.sort.diff'].map(([k, l]) => t(l))
      t(currentLang() === 'zh' ? 'foot.lang' : 'foot.lang.back')
    所以再补一条宽松规则：**任何**看起来像词条名的字符串字面量都算引用。
-   宁可漏报僵尸词条，也不要误报 —— 误报会让人开始忽略这个检查。 */
-const LIT_RE = new RegExp(`'(${SEG}(?:\\.${SEG}){1,4})'`, 'g');
+   宁可漏报僵尸词条，也不要误报 —— 误报会让人开始忽略这个检查。
+   ⚠ 单引号与双引号都要认。早先只写了单引号，而 `app.html` 全篇是双引号，
+   于是 `{ short: "app.pw.short" }` 这种间接引用全被当成没人用，
+   `app.pw.*` 四条被误报成僵尸词条 —— 引号风格不该影响检查结果。 */
+const LIT_RE = new RegExp(`['"](${SEG}(?:\\.${SEG}){1,4})['"]`, 'g');
 const used = new Map();     /* key → Set(相对路径) */
 const addUse = (k, rel) => { if (!used.has(k)) used.set(k, new Set()); used.get(k).add(rel); };
 

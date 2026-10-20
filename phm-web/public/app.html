@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.21.1.3">
+<meta name="app-version" content="V0.21.3.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -38,8 +38,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.21.1.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.3.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.3.0">
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -533,17 +533,12 @@ font-size:11px;color:var(--fg3);line-height:1.65}
       <button type="button" id="asignout" class="alink" data-i18n="app.auth.signout">退出登录</button>
     </div>
     <div class="abind" id="abind"></div>
+    <!-- 「改密码」走**验证码重置**，不是「旧密码 + 新密码」。
+         自建账号体系里没有 verifyOldPassword 这种接口 —— 密码是 scrypt 哈希，
+         校验只发生在登录时。硬做一个"输入旧密码"的表单等于假装有这能力。
+         这里的按钮直接跳到「找回密码」流程，语义一致（证明是本人 = 收到邮件）。 -->
     <div class="achpw">
       <button type="button" id="achpwBtn" class="alink" data-i18n="app.auth.chpw">修改密码</button>
-      <div id="achpwForm" style="display:none">
-        <form id="afChpw" novalidate>
-        <div class="afield"><label for="aold" data-i18n="app.auth.old">当前密码</label>
-          <input id="aold" type="password" autocomplete="current-password"></div>
-        <div class="afield"><label for="anew" data-i18n="app.auth.new">新密码</label>
-          <input id="anew" type="password" autocomplete="new-password" data-i18n-ph="app.auth.pw.ph" placeholder="至少 10 位，建议字母+数字"></div>
-        <button type="submit" id="achpwGo" class="aprimary" data-i18n="app.auth.chpw.go">确认修改</button>
-        </form>
-      </div>
     </div>
     <div class="amsg" id="amsg2"></div>
   </div>
@@ -633,26 +628,22 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 
 <!-- ═════════ UI ═════════ -->
 <!-- UI 工具层已并入下方主 module（拆分作用域会导致跨脚本取不到函数） -->
-<!-- ═════════ 数据飞轮：匿名打卡（CloudBase）═════════ -->
-<!-- 云 SDK：固定版本 + SRI
-     第三方脚本跑在同源页面里，拥有与应用代码完全相同的权限（DOM / localStorage /
-     账号 session）。此前用的是 @dev 浮动标签 —— CDN 上任何一次更新都会直接进入所有
-     用户的浏览器，而账号 session 就存在 localStorage 里。
-     现在钉死 0.1.3（npm latest）并加 integrity：内容对不上浏览器会拒绝执行。 -->
-<script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
-  integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
-  crossorigin="anonymous"></script>
+<!-- ═════════ 数据飞轮：匿名打卡 ═════════ -->
+<!-- ⚠ 这里原来引了一个第三方云 SDK（固定版本 + SRI）。
+     2026-10-20 起**整页不再加载任何第三方脚本**：账号走自建 /api/hm/*，
+     数据走本站 /api/*。少一个 CDN 依赖 = 少一个能拖慢首屏、
+     也能在用户浏览器里执行任意代码的外部来源。 -->
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.21.1.3';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.21.3.0';
 
 /* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
    文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
-import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.21.1.3';
-import { initCloud, currentUser } from '/js/cloud.js?v=V0.21.1.3';
-import { installGuard } from '/js/guard.js?v=V0.21.1.3';
-import { initDeepLink } from '/js/deeplink.js?v=V0.21.1.3';
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.21.3.0';
+import { createAuth, authErrorKey } from '/js/auth.js?v=V0.21.3.0';
+import { installGuard } from '/js/guard.js?v=V0.21.3.0';
+import { initDeepLink } from '/js/deeplink.js?v=V0.21.3.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -1061,7 +1052,6 @@ async function handleFiles(files){
           if(res&&!res.skipped){
             r.contributed=res;
             csMsg(t("app.contrib.ok",{name:esc(res.name)}),"ok");
-            if(typeof renderStats==="function") renderStats();
           }
         }catch(e){}
         await new Promise(function(s){ setTimeout(s,600); });
@@ -1146,17 +1136,16 @@ document.addEventListener("click",async function(e){
     if(el.closest("#abindgo")){ await authBind(); return; }
     if(el.closest("#aunbind")){ await authUnbind(); return; }
     if(el.closest("#asignout")){
-      try{ await cloud.auth.signOut(); }catch(err){}
-      AUTH.user=null; await authRender();
+      await HM_AUTH.signOut();
+      await authRender();
       csMsg(t("app.auth.signout.done"),"ok");
       return;
     }
     if(el.closest("#achpwBtn")){
-      const f=document.getElementById("achpwForm");
-      if(f) f.style.display=(f.style.display==="none"?"":"none");
+      authSetMode("reset");
+      aMsg(t("app.auth.chpw.hint"),"ok","amsg2");
       return;
     }
-    if(el.closest("#achpwGo")){ await authChangePw(); return; }
     /* ── 设置面板 ── */
     if(el.closest("#setBtn")){
       const sp=document.getElementById("setPanel");
@@ -1238,7 +1227,6 @@ document.addEventListener("keydown",async function(e){
   if(!e.target||e.key!=="Enter") return;
   try{
     if(e.target.id==="aemail"||e.target.id==="apw"||e.target.id==="acode"){ await authSubmit(); return; }
-    if(e.target.id==="aold"||e.target.id==="anew"){ await authChangePw(); return; }
     if(e.target.id==="csrch"){ await chartSearch(); return; }
     if(e.target.id==="pacc"){ const box=e.target.closest(".punch");
       if(box) await submitPunch(+(box.getAttribute("data-i")||STATE.sel)); }
@@ -1276,23 +1264,11 @@ document.addEventListener("input",function(e){
   }catch(err){}
 });
 
-/* publicConfig（仅公开值：endpoint + publishableKey） */
-const CLOUD_CFG={endpoint:"https://phm.app.workbuddy.host",
-  publishableKey:"wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b"};
-let cloud=null, cloudDB=null;
-/* ⚠ 下面这段**曾经是同步的**（SDK 没到就直接放弃），那是错的：
-   云 SDK 是 <script defer src="cdn">，本页面主逻辑是 <script type="module">，
-   两者都 defer 但内联 module 没有依赖图可以等 —— CDN 一慢，module 先跑完，
-   cloud=null，然后下面那句 `if(!cloudDB) return;` 把**会话恢复整段跳过**，
-   表现是「用户每次刷新都要重新登录」，而且界面上没有任何异常提示。
-   现在统一走 js/cloud.js 的 initCloud()：等 SDK 就绪（带上限），
-   失败时通过 PHM.status().cloudError 如实暴露，不静默降级成「未登录」。 */
-const CLOUD_READY = initCloud(CLOUD_CFG).then(function(r){
-  cloud=r.cloud; cloudDB=r.db;
-  if(r.error){ cloudInitError=r.error; }
-  return r;
-});
-let cloudInitError=null;
+/* ⚠ 这里原来有一段**云 SDK 初始化**（cloud.js + CLOUD_READY + cloudDB）。
+   2026-10-20 起账号体系收敛到自建（js/auth.js → /api/hm/*）：
+   平台 token 是 HS256、密钥在平台手里，服务端只能解析不能验签 ——
+   等于任何人都能手搓一个 JWT 把 sub 写成别人的。自建 token 密钥只在服务端。
+   现在页面**不再加载任何云 SDK**：账号走 /api/hm/*，数据走 /api/*。 */
 
 /* 运行状态自检 —— 便于线上排查，也让「说好的行为」可被验证。
    在浏览器控制台执行 PHM.status() 即可看到各部件是否就绪。
@@ -1309,12 +1285,10 @@ window.PHM.status = function(){
     sharecard: typeof exportCard === "function" ? "ok" : "missing",
     refCom: REF_COM_STATE === "ok" ? ("ok/" + REF_COM_N)
       : REF_COM_STATE === "fail" ? "failed(退回首屏官谱参照)" : "idle(尚未需要)", 
-    sdk: typeof window.WorkBuddyCloud,
-    cloud: cloud ? "ok" : "null",
-    cloudDB: cloudDB ? "ok" : "null",
-    /* ⚠ 云初始化为什么失败（timeout=等太久 / missing=SDK 没来 / init=创建抛错 / null=正常）。
-       没有这个字段时，"一直要重新登录"这件事在控制台里看不出任何线索。 */
-    cloudError: cloudInitError || null,
+    /* 账号：signed-in / idle；authError 是最近一次失败的 kind，便于排查 */
+    auth: HM_AUTH.state.phase,
+    authError: (HM_AUTH.state.error && HM_AUTH.state.error.kind) || null,
+    tokenSaved: !!HM_AUTH.state.token,
     autoUpload: OPTN(),
     noticeAgreed: noticeAgreed(),
     ownDeclared: __SET.own.list().length,
@@ -1409,7 +1383,7 @@ async function submitPunch(idx){
     msg.innerHTML+='<br><span style="color:var(--fg3)">'+esc(t("app.punch.noupload"))+'</span>';
     return;
   }
-  if(!cloudDB){
+  if(!AUTH.user){
     msg.innerHTML+='<br><span style="color:var(--red)">'+esc(t("app.punch.nocloud"))+'</span>';
     return;
   }
@@ -1615,13 +1589,16 @@ function txtOrNull(s,max){
 const CHART_CACHE={};                  /* chart_id → {ref_const, ps_score, ...} */
 async function loadChartCache(ids){
   /* 合并式加载 —— 绝不能清空：清空会把刚算好的定数一起抹掉（曾是这样，已修） */
-  if(!cloudDB||!ids||!ids.length) return;
+  if(!ids||!ids.length) return;
+  /* ⚠ 走服务端 `/api/charts?ids=`（它本来就给前端用，见 js/ui.js 的 loadChartCache）。
+     以前这里直连云 SDK 查 phm_charts —— 那需要云端会话，
+     账号收敛到自建之后就没有了，而且它本来就只是**读公开缓存**。 */
   try{
-    const res=await cloudDB.from("phm_charts")
-      .select("chart_id,ref_const,ps_score,nps,speed_peak,engine_ver")
-      .in("chart_id",ids);
-    if(res.error) return;
-    (res.data||[]).forEach(function(x){ CHART_CACHE[x.chart_id]=x; });
+    const r=await fetchTO("/api/charts?ids="+ids.slice(0,60).join(","),15000);
+    if(!r||!r.ok) return;
+    const j=await r.json();
+    const rows=(j&&(j.charts||j.rows||j))||{};
+    Object.keys(rows).forEach(function(k){ if(rows[k]) CHART_CACHE[k]=rows[k]; });
   }catch(e){}
 }
 /* 缓存里的定数（有就返回 number，否则 null） */
@@ -1648,7 +1625,18 @@ function fetchTO(url,ms,opts){
 
 /* ═════ P.H.M. 专属账号：邮箱注册/登录 · 绑定 Phira · 活跃统计 ═════
    边界：Web 端仅支持邮箱（手机短信 / 微信登录只在小程序里提供） */
-const AUTH={mode:"login",pending:null,resetChallenge:null,user:null,sessionError:false};
+/* 门面在 js/auth.js（自建账号，token 走 x-hm-token）。
+   AUTH 是**给页面其它地方读的兼容层** —— 真正的状态在 HM_AUTH.state。 */
+const HM_AUTH = createAuth({
+  onChange: function (st) { syncAuthState(st); },
+  onSignedIn: async function () {
+    try { await HM_AUTH.touch(); } catch (e) {}
+    fillSignedIn();
+    await renderBind();
+  },
+  onSignedOut: function () { authRender(); },
+});
+const AUTH = { mode: "login", user: null, sessionError: false, error: null, busy: false, resendIn: 0, resetStep: 0 };
 
 /* ── 记住邮箱（只为了"下次不用重打"）──
  * ⚠ 只存邮箱，绝不存密码、也不自己存 token：token 由云 SDK 管
@@ -1677,259 +1665,243 @@ function aMsg(t,kind,which){
   const el=document.getElementById(which||"amsg"); if(!el) return;
   el.textContent=t||""; el.className="amsg"+(kind?" "+kind:"");
 }
-function authSetMode(m){
-  AUTH.mode=m; AUTH.resetChallenge=null; AUTH.pending=null;
-  ["login","signup","reset"].forEach(function(k){
-    const b=document.getElementById("atab-"+k);
-    if(b) b.classList.toggle("on",k===m);
-  });
-  const pwW=document.getElementById("apwWrap"), cdW=document.getElementById("acodeWrap");
-  const pwL=document.getElementById("apwLabel"), sub=document.getElementById("asubmit");
-  const pwInp=document.getElementById("apw");
-  if(m==="login"){
-    pwW.style.display=""; cdW.style.display="none";
-    pwL.textContent=t("app.auth.pw");
-    /* ⚠ 登录**不校验强度**（老账号可能是短密码，拦了就登不进来）——
-       placeholder 也必须换掉，否则会误导老用户以为「至少 10 位」是硬要求 */
-    if(pwInp){ pwInp.setAttribute("autocomplete","current-password"); pwInp.setAttribute("placeholder",t("app.auth.pw.login.ph")); }
-    sub.textContent=t("app.auth.submit.login");
-  }else if(m==="signup"){
-    pwW.style.display=""; cdW.style.display="";
-    pwL.textContent=t("app.auth.pw.set");
-    if(pwInp){ pwInp.setAttribute("autocomplete","new-password"); pwInp.setAttribute("placeholder",t("app.auth.pw.ph")); }
-    sub.textContent=t("app.auth.submit.signup");
-  }else{
-    pwW.style.display=""; cdW.style.display="none";
-    pwL.textContent=t("app.auth.pw.new");
-    if(pwInp){ pwInp.setAttribute("autocomplete","new-password"); pwInp.setAttribute("placeholder",t("app.auth.pw.ph")); }
-    sub.textContent=t("app.auth.submit.reset");
+/* 把门面状态投影到界面。
+ * ⚠ 按钮禁用**只由这里改** —— 之前是每个失败分支手动 `btn.disabled=false`，
+ *   12 处里漏一处按钮就永久禁用，用户只能刷新页面。 */
+function syncAuthState(st) {
+  AUTH.user = st.user;
+  AUTH.error = st.error;
+  AUTH.busy = st.busy;
+  AUTH.resendIn = st.resendIn;
+  const btn = document.getElementById("asubmit");
+  if (btn) { btn.disabled = !!st.busy; }
+  const send = document.getElementById("asend");
+  if (send) {
+    if (st.resendIn > 0) { send.disabled = true; send.textContent = t("app.auth.resend.in", { n: st.resendIn }); }
+    else { send.disabled = false; send.textContent = t("app.auth.send"); }
   }
-  aMsg(""); aMsg("","" ,"amsg2");
+  if (st.error) aMsg(authErrText(st.error), "err");
+  else if (st.busy) aMsg(t("app.auth.working"));
+  if (st.phase === "signed-in") authRender();
 }
-async function authSend(){
-  const email=(document.getElementById("aemail").value||"").trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ aMsg(t("app.auth.err.email"),"err"); return; }
-  const btn=document.getElementById("asend");
-  btn.disabled=true; aMsg(t("app.auth.sending"));
-  try{
-    const sent=await cloud.auth.sendOtp({email:email});
-    if(sent.error){ aMsg(t("app.auth.send.fail",{e:(sent.error.message||t("app.auth.err.retry"))}),"err"); btn.disabled=false; return; }
-    AUTH.pending={email:email,verificationId:sent.data.verificationId,
-                  isExistingUser:sent.data.isExistingUser};
-    aMsg(t("app.auth.send.ok",{email:email}),"ok");
-    let n=60; btn.textContent=n+"s";
-    const timer=setInterval(function(){
-      n--;
-      if(n<=0){ clearInterval(timer); btn.textContent=t("app.auth.send"); btn.disabled=false; }
-      else btn.textContent=n+"s";
-    },1000);
-  }catch(e){ aMsg(t("app.auth.send.fail",{e:(e&&e.message||t("app.err.net"))}),"err"); btn.disabled=false; }
+
+/** 错误 kind → 用户看得懂的一句话。
+ *  ⚠ 绝不显示原始 error.message（那是给开发者看的，可能是 SDK 长句）。 */
+/* 错误 kind → 完整词条名。
+   ⚠ **写成字面量表，不要在 t() 里拼字符串**：lint-i18n 只认字面量，
+     拼出来的键它看不见，这 8 条会被误报成僵尸词条（然后有人真去删掉）。
+   ⚠ 键用 authErrorKey() 归一后的尾段 —— 它把 'rate-limited' 变成 'rateLimited'，
+     否则 `app.auth.err.rate-limited` 与词条名对不上，
+     症状是"操作太频繁"显示成"未知错误"，而且**不报错**（t() 原样返回键名）。 */
+const AUTH_ERR_KEYS = {
+  network: 'app.auth.err.network',
+  invalid: 'app.auth.err.invalid',
+  rateLimited: 'app.auth.err.rateLimited',
+  expired: 'app.auth.err.expired',
+  conflict: 'app.auth.err.conflict',
+  weakPw: 'app.auth.err.weakPw',
+  unavailable: 'app.auth.err.unavailable',
+  unknown: 'app.auth.err.unknown',
+};
+
+function authErrText(e) {
+  const k = (e && e.kind) || "unknown";
+  const d = (e && e.detail) || "";
+  if (k === "weak-pw") return pwText(d);
+  const key = AUTH_ERR_KEYS[authErrorKey(k)] || AUTH_ERR_KEYS.unknown;
+  return t(key);
 }
-/* 密码强度检查 —— 只在「设置新密码」时用（注册 / 重置 / 改密）。
-   ⚠ 登录路径故意不走这里：老账号可能是 6 位密码，登录时必须放行。
-   返回空串 = 通过，否则返回给用户看的原因。 */
-function pwWarn(pw){
-  if(pw.length<10) return t("app.pw.short");
-  if(/^\d+$/.test(pw)) return t("app.pw.digits");
-  if(/^[a-z]+$/.test(pw)) return t("app.pw.lower");
-  return "";
+
+/** 密码策略 code → 文案 */
+function pwText(code) {
+  const map = { short: "app.pw.short", digits: "app.pw.digits", lower: "app.pw.lower", upper: "app.pw.upper" };
+  const key = map[code];
+  return key ? t(key) : t("app.pw.short");
 }
-/* 只读测试钩子：让 verify-pages.mjs 能真的断言密码策略，而不是靠 grep 源码。
-   纯函数、无副作用、不含任何敏感信息（策略本身就写在 placeholder 上）。 */
-window.PHM_PW = Object.freeze({ min: 10, check: pwWarn });
-async function authSubmit(){
-  const email=(document.getElementById("aemail").value||"").trim();
-  const pw=document.getElementById("apw").value||"";
-  const code=(document.getElementById("acode").value||"").trim();
-  const btn=document.getElementById("asubmit");
-  if(!email){ aMsg(t("app.auth.need.email"),"err"); return; }
-  btn.disabled=true; aMsg(t("app.auth.working"));
-  try{
-    if(AUTH.mode==="login"){
-      const r=await cloud.auth.signInWithPassword({email:email,password:pw});
-      if(r.error){ aMsg(t("app.auth.login.fail"),"err"); btn.disabled=false; return; }
-      await authAfterSignIn(r.data&&r.data.user);
-    }else if(AUTH.mode==="signup"){
-      const p=AUTH.pending;
-      if(!p||p.email!==email){ aMsg(t("app.auth.need.send"),"err"); btn.disabled=false; return; }
-      if(!code){ aMsg(t("app.auth.need.code"),"err"); btn.disabled=false; return; }
-      const _w=pwWarn(pw); if(_w){ aMsg(_w,"err"); btn.disabled=false; return; }
-      const r=await cloud.auth.verifyOtp({
-        email:p.email, verificationId:p.verificationId,
-        isExistingUser:p.isExistingUser, token:code,
-        password:p.isExistingUser?undefined:pw
-      });
-      if(r.error){ aMsg(t("app.auth.verify.fail",{e:(r.error.message||t("app.auth.code.wrong"))}),"err"); btn.disabled=false; return; }
-      AUTH.pending=null;
-      await authAfterSignIn(r.data&&r.data.user);
-      if(p.isExistingUser) aMsg(t("app.auth.existing"),"ok");
-    }else{
-      if(!AUTH.resetChallenge){
-        const st=await cloud.auth.resetPasswordForEmail(email);
-        if(st.error){ aMsg(t("app.auth.send.fail",{e:(st.error.message||t("app.auth.err.retry"))}),"err"); btn.disabled=false; return; }
-        AUTH.resetChallenge=st.data;
-        document.getElementById("acodeWrap").style.display="";
-        aMsg(t("app.auth.reset.sent"),"ok");
-        btn.disabled=false; return;
+
+function authSetMode(m) {
+  AUTH.mode = m;
+  AUTH.resetStep = 0;
+  HM_AUTH.setMode(m);
+  ["login", "signup", "reset"].forEach(function (k) {
+    const b = document.getElementById("atab-" + k);
+    if (b) b.classList.toggle("on", k === m);
+  });
+  const pwW = document.getElementById("apwWrap"), cdW = document.getElementById("acodeWrap");
+  const pwL = document.getElementById("apwLabel"), sub = document.getElementById("asubmit");
+  const pwInp = document.getElementById("apw");
+  if (m === "login") {
+    pwW.style.display = ""; cdW.style.display = "none";
+    pwL.textContent = t("app.auth.pw");
+    /* ⚠ 登录**不校验强度**（老账号可能是短密码，拦了就登不进来）——
+       placeholder 也必须换掉，否则会误导老用户 */
+    if (pwInp) { pwInp.setAttribute("autocomplete", "current-password"); pwInp.setAttribute("placeholder", t("app.auth.pw.login.ph")); }
+    sub.textContent = t("app.auth.submit.login");
+  } else if (m === "signup") {
+    pwW.style.display = ""; cdW.style.display = "";
+    pwL.textContent = t("app.auth.pw.set");
+    if (pwInp) { pwInp.setAttribute("autocomplete", "new-password"); pwInp.setAttribute("placeholder", t("app.auth.pw.ph")); }
+    sub.textContent = t("app.auth.submit.signup");
+  } else {
+    pwW.style.display = ""; cdW.style.display = "none";
+    pwL.textContent = t("app.auth.pw.new");
+    if (pwInp) { pwInp.setAttribute("autocomplete", "new-password"); pwInp.setAttribute("placeholder", t("app.auth.pw.ph")); }
+    sub.textContent = t("app.auth.submit.reset");
+  }
+  aMsg("");
+}
+
+/* 发验证码。注册与找回密码共用（purpose 区分）。 */
+async function authSend() {
+  const email = (document.getElementById("aemail").value || "").trim();
+  if (!email) { aMsg(t("app.auth.need.email"), "err"); return; }
+  const r = await HM_AUTH.requestCode(email, AUTH.mode === "reset" ? "reset" : "register");
+  if (!r.ok) return;                       /* 错误由 syncAuthState 统一显示 */
+  if (AUTH.mode === "reset" && AUTH.resetStep === 0) {
+    /* 找回密码第一步完成：把输入区切成「验证码 + 新密码」 */
+    AUTH.resetStep = 1;
+    document.getElementById("acodeWrap").style.display = "";
+    document.getElementById("asubmit").textContent = t("app.auth.submit.reset2");
+    aMsg(t("app.auth.reset.sent"), "ok");
+  } else {
+    aMsg(t("app.auth.send.ok", { email: email }), "ok");
+  }
+}
+
+async function authSubmit() {
+  const email = (document.getElementById("aemail").value || "").trim();
+  const pw = document.getElementById("apw").value || "";
+  const code = (document.getElementById("acode").value || "").trim();
+  if (!email) { aMsg(t("app.auth.need.email"), "err"); return; }
+  const btn = document.getElementById("asubmit");
+  btn.disabled = true;                     /* 立刻禁用，防连点（syncAuthState 会接手） */
+  aMsg(t("app.auth.working"));
+  try {
+    let r;
+    if (AUTH.mode === "login") {
+      r = await HM_AUTH.signIn(email, pw);
+    } else if (AUTH.mode === "signup") {
+      if (!code) { aMsg(t("app.auth.need.code"), "err"); return; }
+      r = await HM_AUTH.signUp(email, code, pw);
+    } else {
+      if (AUTH.resetStep === 0) {
+        r = await HM_AUTH.requestReset(email);
+        if (r.ok) {
+          AUTH.resetStep = 1;
+          document.getElementById("acodeWrap").style.display = "";
+          btn.textContent = t("app.auth.submit.reset2");
+          aMsg(t("app.auth.reset.sent"), "ok");
+        }
+      } else {
+        if (!code) { aMsg(t("app.auth.reset.needcode"), "err"); return; }
+        r = await HM_AUTH.confirmReset(email, code, pw);
+        if (r.ok && r.needSignIn) {
+          /* ⚠ 重置成功不等于登录成功：重置接口只回 sub，不发凭据。
+             让用户用新密码登一次 —— 多一步，但不会「改完密码反而进不去」。 */
+          aMsg(t("app.auth.reset.done"), "ok");
+          authSetMode("login");
+          document.getElementById("apw").value = "";
+          return;
+        }
       }
-      if(!code){ aMsg(t("app.auth.reset.needcode"),"err"); btn.disabled=false; return; }
-      const _w=pwWarn(pw); if(_w){ aMsg(_w,"err"); btn.disabled=false; return; }
-      const done=await AUTH.resetChallenge.updateUser({nonce:code,password:pw});
-      if(done.error){ aMsg(t("app.auth.reset.fail",{e:(done.error.message||t("app.auth.code.wrong2"))}),"err"); btn.disabled=false; return; }
-      AUTH.resetChallenge=null;
-      await authAfterSignIn(done.data&&done.data.user);
-      aMsg(t("app.auth.reset.done"),"ok");
     }
-  }catch(e){ aMsg(t("app.auth.fail",{e:(e&&e.message||t("app.err.net"))}),"err"); btn.disabled=false; }
+    if (r && r.ok && AUTH.mode !== "reset") {
+      const u = HM_AUTH.state.user || {};
+      rememberLoginEmail(u.email || email);
+      const line = u.email ? t("app.auth.loggedin.email", { email: u.email }) : t("app.auth.loggedin");
+      aMsg(line, "ok");
+      aMsg(line, "ok", "amsg2");
+    }
+  } finally {
+    /* ⚠ 兜底复位：即使上面某个分支 return 了也要恢复按钮。
+       syncAuthState 也会管，但它在异步回调里，可能晚一拍。 */
+    btn.disabled = false;
+  }
 }
-/* 登录后：写档案（活跃统计）+ 刷新界面 */
-async function authAfterSignIn(user){
-  AUTH.user=user||null;
-  await touchProfile();
-  await authRender();
-  const e=(user&&user.email)||"";
-  const line=e?t("app.auth.loggedin.email",{email:e}):t("app.auth.loggedin");
-  aMsg(line,"ok");
-  aMsg(line,"ok","amsg2");
-}
-async function touchProfile(){
-  if(!cloudDB||!AUTH.user) return;
-  try{
-    /* 原子递增：RPC 内部是 INSERT ... ON CONFLICT DO UPDATE visits = visits + 1。
-       此前是「读 → +1 → 写」，两个标签页同时开着会互相覆盖，visits 少计。 */
-    await cloudDB.rpc("phm_touch");
-  }catch(e){}
-}
-async function authRender(){
-  const guest=document.getElementById("aguest"), box=document.getElementById("auser");
-  const label=document.getElementById("authBtnLabel");
-  if(AUTH.user){
-    guest.style.display="none"; box.style.display="";
-    const email=AUTH.user.email||t("app.auth.loggedin");
-    document.getElementById("auname").textContent=email.split("@")[0];
-    document.getElementById("aumeta").textContent=t("app.auth.meta",
-      {email:email, id:String(AUTH.user.id||"").slice(0,8)});
-    if(label) label.textContent=email.split("@")[0];
+
+async function authRender() {
+  const guest = document.getElementById("aguest"), box = document.getElementById("auser");
+  const label = document.getElementById("authBtnLabel");
+  if (!guest || !box) return;
+  if (AUTH.user) {
+    guest.style.display = "none"; box.style.display = "";
+    fillSignedIn();
     await renderBind();
-  }else{
-    guest.style.display=""; box.style.display="none";
-    if(label) label.textContent=t("c.login");
-    /* ⚠ 「云服务读不到会话」和「你没登录」是两回事：
-       前者让用户反复重新登录却找不到原因，后者照常登录即可。
-       所以这里必须显式提示，不能只显示一个"登录"按钮让人干瞪眼。 */
-    if(AUTH.sessionError) aMsg(t("app.auth.err.session"),"err","amsg2");
+  } else {
+    guest.style.display = ""; box.style.display = "none";
+    if (label) label.textContent = t("c.login");
+    if (AUTH.sessionError) aMsg(t("app.auth.err.unavailable"), "err", "amsg2");
     else fillRememberedEmail();
   }
 }
-async function renderBind(){
-  const el=document.getElementById("abind"); if(!el) return;
-  /* Phira 账号取自「设置里存的上次查询」（/user 页查完会写进去）。
-     ⚠ 以前这里读的是 PF.user —— 那来自已删除的玩家面板，恒为 null，
-     于是「绑定 Phira 账号」按钮永远提示"先点「连接 Phira」查一次"，
-     而那个入口早就不存在了。绑定路径实际是断的，顺手接上。 */
-  const _pf=__SET.phira.get();
-  const uid=(+_pf.uid)||null, name=_pf.name||null;
-  let bound=null;
-  try{ const r=await cloudDB.from("phm_profiles").select("phira_uid,phira_name").maybeSingle();
-       if(r&&r.data) bound=r.data; }catch(e){}
-  if(bound&&bound.phira_uid){
-    el.innerHTML=t("app.auth.bind.bound",{name:esc(bound.phira_name||""),uid:bound.phira_uid})
-      +'<br><button type="button" class="alink" id="aunbind">'+esc(t("app.auth.bind.unbind"))+'</button>';
-  }else if(uid){
-    el.innerHTML=t("app.auth.bind.found",{name:esc(name),uid:uid})
-      +'<br><button type="button" class="aprimary" id="abindgo">'+esc(t("app.auth.bind.go"))+'</button>';
-  }else{
-    el.innerHTML=t("app.auth.bind.none");
+
+/** 已登录面板上的名字/邮箱/ID。 */
+function fillSignedIn() {
+  const u = AUTH.user;
+  if (!u) return;
+  const label = document.getElementById("authBtnLabel");
+  const email = u.email || t("app.auth.loggedin");
+  const nm = document.getElementById("auname"), mt = document.getElementById("aumeta");
+  if (nm) nm.textContent = String(email).split("@")[0];
+  if (mt) mt.textContent = t("app.auth.meta", { email: email, id: String(u.id || "").slice(0, 8) });
+  if (label) label.textContent = String(email).split("@")[0];
+}
+
+async function renderBind() {
+  const el = document.getElementById("abind"); if (!el) return;
+  /* Phira 账号取自「设置里存的上次查询」（/user 页查完会写进去）。 */
+  const _pf = __SET.phira.get();
+  const uid = (+_pf.uid) || null, name = _pf.name || null;
+  const r = await HM_AUTH.readProfile();
+  const bound = (r.ok && r.profile && r.profile.phiraUid) ? r.profile : null;
+  if (bound) {
+    el.innerHTML = t("app.auth.bind.bound", { name: esc(bound.phiraName || ""), uid: bound.phiraUid })
+      + '<br><button type="button" class="alink" id="aunbind">' + esc(t("app.auth.bind.unbind")) + '</button>';
+  } else if (uid) {
+    el.innerHTML = t("app.auth.bind.found", { name: esc(name), uid: uid })
+      + '<br><button type="button" class="aprimary" id="abindgo">' + esc(t("app.auth.bind.go")) + '</button>';
+  } else {
+    el.innerHTML = t("app.auth.bind.none");
   }
 }
-async function authBind(){
-  if(!AUTH.user){ csMsg(t("app.auth.bind.needlogin"),"warn"); return; }
-  const _pf=__SET.phira.get();
-  const uid=(+_pf.uid)||null, nm=_pf.name||null;
-  if(!uid){ csMsg(t("app.auth.bind.needlookup"),"warn"); return; }
-  const r=await cloudDB.from("phm_profiles")
-    .upsert({phira_uid:numOrNull(uid,1,null),phira_name:txtOrNull(nm,60),
-             last_seen:new Date().toISOString()},{onConflict:"owner_id"});
-  if(r.error){ csMsg(t("app.auth.bind.fail",{e:esc(r.error.message||t("app.err.net"))}),"err"); return; }
-  csMsg(t("app.auth.bind.done",{name:esc(nm),uid:uid}),"ok");
-  await renderBind();
-}
-async function authUnbind(){
-  const r=await cloudDB.from("phm_profiles")
-    .upsert({phira_uid:null,phira_name:null,last_seen:new Date().toISOString()},{onConflict:"owner_id"});
-  if(r.error){ csMsg(t("app.auth.unbind.fail",{e:esc(r.error.message||t("app.err.net"))}),"err"); return; }
-  csMsg(t("app.auth.unbind.done"),"ok");
-  await renderBind();
-}
-async function authChangePw(){
-  const o=document.getElementById("aold").value||"", n=document.getElementById("anew").value||"";
-  if(!o||!n){ aMsg(t("app.auth.chpw.need"),"err","amsg2"); return; }
-  const _w=pwWarn(n); if(_w){ aMsg(_w,"err","amsg2"); return; }
-  const r=await cloud.auth.resetPasswordForOld({oldPassword:o,newPassword:n});
-  if(r.error){ aMsg(t("app.auth.chpw.fail",{e:(r.error.message||t("app.auth.chpw.badold"))}),"err","amsg2"); return; }
-  aMsg(t("app.auth.chpw.ok"),"ok","amsg2");
-  document.getElementById("achpwForm").style.display="none";
-}
-/* 公开统计（只显示聚合数，不暴露个体） */
-async function renderStats(){
-  const el=document.getElementById("pstats"); if(!el) return;
-  try{
-    const r=await fetchTO("/api/stats",15000);          /* 走服务端网关 */
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const s=await r.json();
-    if(!s||s.error) throw new Error("stats error");
-    /* 只展示**有真实数据**的项。
-       「账号 0 个 · 今日活跃 0」不是透明，是负面社交证明 ——
-       还没有人用的阶段把它摆出来只会劝退访客。有人用了自然会显示。 */
-    const parts=[];
-    if(s.profiles>0)      parts.push(t("app.stats.profiles",{n:s.profiles}));
-    if(s.active_7d>0)     parts.push(t("app.stats.active",{n:s.active_7d}));
-    if(s.phira_bound>0)   parts.push(t("app.stats.bound",{n:s.phira_bound}));
-    if(s.scores>0)        parts.push(t("app.stats.scores",{n:s.scores}));
-    if(s.charts>0)        parts.push(t("app.stats.charts",{n:s.charts}));
-    if(!parts.length){ el.style.display="none"; return; }
-    /* ⚠ 样本量必须写出来。产品定位就是「不吹牛」，那展示聚合数字时也一样 ——
-       成绩样本还少的时候，平均/中位波动很大，不标清楚等于在暗示它很硬。 */
-    const thin=(s.scores||0)<200;
-    el.innerHTML=t("app.stats.head")+parts.join(" · ")
-      +(thin?t("app.stats.thin",{n:(s.scores||0)}):"");
-    el.style.display="";
-  }catch(e){ el.style.display="none"; }
-}
-/* 初始化：等 SDK → 恢复会话 → 观察登录态变化
- *
- * ⚠ 两处与旧版不同，都是为了「不用反复登录」：
- *  ① **必须等 CLOUD_READY**。旧版开头就 `if(!cloudDB) return;` ——
- *     CDN 慢时 cloud 还是 null，于是整段静默跳过，用户每次刷新都要重新登录，
- *     而且看不到任何错误。现在等 SDK 就绪再谈会话。
- *  ② **区分「未登录」与「读不出来」**。旧版 catch 里什么都不做，
- *     网络抖动和"你没登录"在界面上长得一模一样。现在 reason==='unavailable'
- *     会明确告诉用户是系统侧的问题，别让人以为是自己账号掉了。
- */
-(async function(){
-  await CLOUD_READY;
-  if(!cloudDB){
-    /* SDK 没起来：如实说明，而不是伪装成「未登录」。 */
-    authRender();
+
+async function authBind() {
+  if (!AUTH.user) { csMsg(t("app.auth.bind.needlogin"), "warn"); return; }
+  const _pf = __SET.phira.get();
+  const uid = (+_pf.uid) || null, nm = _pf.name || null;
+  if (!uid) { csMsg(t("app.auth.bind.needlookup"), "warn"); return; }
+  const r = await HM_AUTH.writeProfile({ phiraUid: uid, phiraName: nm });
+  if (!r.ok) {
+    csMsg(t("app.auth.bind.fail", { e: esc(authErrText(HM_AUTH.state.error)) }), "err");
     return;
   }
-  const r = await currentUser(cloud);
-  AUTH.user = r.user;
-  AUTH.sessionError = (r.reason === 'unavailable') ? true : false;
-  /* 记住邮箱：下次打开登录面板直接填好，用户不用重打一遍。
-     ⚠ 只在有用户时写 —— 「读不出来」不代表知道是谁。 */
-  try{
-    if(r.user && (r.user.email || r.user.username)) rememberLoginEmail(r.user.email || r.user.username);
-  }catch(e){}
+  csMsg(t("app.auth.bind.done", { name: esc(nm), uid: uid }), "ok");
+  await renderBind();
+}
+
+async function authUnbind() {
+  const r = await HM_AUTH.writeProfile({ clear: true });
+  if (!r.ok) {
+    csMsg(t("app.auth.unbind.fail", { e: esc(authErrText(HM_AUTH.state.error)) }), "err");
+    return;
+  }
+  csMsg(t("app.auth.unbind.done"), "ok");
+  await renderBind();
+}
+
+/* 初始化：auth.js 构造时自己会跑 restore()，这里只等它并把界面画出来。
+ * ⚠ 旧版是「等云 SDK → getSession」，SDK 慢一拍就整段跳过，用户每次刷新都要重登。
+ *   现在 token 在 localStorage，恢复只走一次 /api/hm/profile。 */
+(async function () {
+  const r = await HM_AUTH.ready;
+  AUTH.sessionError = (r && r.error === 'network') ? true : false;
+  if (r && r.ok) {
+    const u = HM_AUTH.state.user || {};
+    try { rememberLoginEmail(u.email); } catch (e) {}
+  }
+  AUTH.mode = "login";
+  authSetMode("login");
   await authRender();
-  if(AUTH.user) await touchProfile();
-  try{ cloud.auth.onAuthStateChange(function(ev,sess){
-    AUTH.user=(sess&&sess.user)||null;
-    AUTH.sessionError=false;
-    try{ if(AUTH.user&&(AUTH.user.email||AUTH.user.username)) rememberLoginEmail(AUTH.user.email||AUTH.user.username); }catch(e){}
-    authRender();
-  }); }catch(e){}
-  renderStats();
 })();
 
 /* 同步设置面板里的自动上传开关状态 */
@@ -1948,7 +1920,7 @@ async function contributeChart(rep){
      于是「首次上传前会弹一次告知」这句承诺其实从未兑现：开关默认开着，
      用户拖一张谱就静默上传了。文案与行为不一致，必须按行为修。 */
   if(!ensureNotice()) return null;
-  if(!cloudDB||!rep||rep.error||!rep.name) return null;
+  if(!rep||rep.error||!rep.name) return null;
   const rc=rep.knn&&rep.knn.ref;
   if(rc==null) return null;
   try{
@@ -2004,11 +1976,13 @@ async function contributeChart(rep){
    走 phm_plays 聚合 RPC：只拿「条数/均值/中位/极值」，不接触任何 UID、用户名、client_id。
    （此前直读 phm_scores 全表，等于把每个贡献者的身份暴露给任何访客） */
 async function loadPlayStats(name){
-  if(!cloudDB||!name) return null;
+  if(!name) return null;
   try{
-    const r=await cloudDB.rpc("phm_plays",{name_in:String(name).slice(0,120)});
-    if(r.error||!r.data||!(r.data.n>0)) return null;
-    const d=r.data;
+    /* 走服务端 /api/plays 代理（只读聚合，不需要登录） */
+    const rr=await fetchTO("/api/plays?name="+encodeURIComponent(String(name).slice(0,120)),15000);
+    if(!rr||!rr.ok) return null;
+    const d=await rr.json();
+    if(!d||!(d.n>0)) return null;
     return {
       n:d.n, avg:+d.avg, min:+d.min, max:+d.max,
       med:(d.med!=null?+d.med:+d.avg),
@@ -2192,7 +2166,6 @@ onLangChange(function(){
   render();              /* 结果卡片 + 难度 chips */
   renderChartSearch();   /* 谱面搜索结果列表 */
   authRender();          /* 账号面板 + 顶栏按钮 */
-  renderStats();         /* 公开统计条 */
 });
 </script>
 </body>

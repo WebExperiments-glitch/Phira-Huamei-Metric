@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.21.1.3';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.21.1.3';
+import { PHIRA_API } from './phira.js?v=V0.21.3.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.21.3.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -38,6 +38,10 @@ const NAV = [
   ['/data', 'nav.data', 'data'],
   ['/settings', 'nav.settings', 'settings'],
   ['/platform', 'nav.platform', 'platform'],
+  /* ⚠ /status 之前**根本不在导航里** —— 页面做得再好，没人找得到等于没做
+     （用户原话：「这个我们都不知道在哪里」）。放在下载之前：
+     它和下载一样是"偶尔才看"的页，所以靠后；但必须**可见**。 */
+  ['/status', 'nav.status', 'status'],
   /* 下载放最后 —— 它是一次性的动作，不是常来的页面。
      ⚠ 顺序就是**设置之后**，别往中间插：导航顺序是用户的空间记忆，
      挪一个位置会让所有人找错一次。 */
