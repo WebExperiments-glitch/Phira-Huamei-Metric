@@ -260,6 +260,26 @@ console.log('\n【2.9】鉴权头解析（网关注入 Authorization 的回归�
     `status=${usage.status} ${usage.text}`);
 }
 
+/* 【许可证】正文必须**真的能送出去**
+   ────────────────────────────────────────────────────────────
+   2026-10-20 合并 PR #27 时发现的：三份许可证正文进了仓库，但 `SAFE_EXT` 不含 `.txt`、
+   `uqr-LICENSE` 连扩展名都没有 → 线上全是 404。而 MIT 要求声明随**副本**附上、
+   OFL 要求许可随字体一同提供 —— 浏览器拿到的 woff2 / uqr.mjs 就是那份副本。
+   所以这里钉两件事：该送的能送、**不该送的仍然送不了**。 */
+console.log('\n【许可证】正文可达性');
+for (const p of ['/fonts/OFL-LXGWWenKai.txt', '/fonts/OFL-NotoSerifSC.txt', '/vendor/uqr-LICENSE']) {
+  const r = await fetch(BASE + p);
+  const txt = r.ok ? await r.text() : '';
+  T('可达 ' + p, r.status === 200 && txt.length > 200, r.status + ' len=' + txt.length);
+}
+
+/* 反向：跨过白名单的文件仍然不能送。不设这条，下一个人会为了「省事」
+   直接往 SAFE_EXT 加 `.txt` —— 那个面大得多。 */
+{
+  const r = await fetch(BASE + '/fonts/README.md');
+  T('未放行的 public/ 文件仍 404（白名单没被放宽）', r.status === 404, 'got ' + r.status);
+}
+
 console.log('\n【3】★ 打完这些，服务必须还活着');
 /* 这一条是整测试的核心：上面任何一条让进程崩掉，这里都会连不上。
    `node --check` 查不出「运行时缺标识符」，页面冒烟又不走这些 POST —— 
