@@ -12,7 +12,7 @@
 ## uqr
 
 - Upstream: https://github.com/unjs/uqr
-- License: MIT
+- License: MIT (see `uqr-LICENSE`)
 - Version: 0.1.2
 - 单文件 ESM（`dist/index.mjs` 原样放入，未改写）。
 - Usage: `const { encode } = await import("/vendor/uqr.mjs"); const { size, data } = encode("https://…", { ecc: "M" });`

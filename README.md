@@ -289,6 +289,10 @@ node phm-web/tools/audit-baselines.mjs --split created
 
 **一切以官方为基线**：定数与谱面特征均来自游戏本体提取，非第三方转录。
 
+> 📄 **第三方素材与再分发边界**：[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)
+> —— vendored 库、字体、源码片段各自的许可证与正文位置，以及数据的再分发边界
+> （⚠ 官谱数据的再分发问题**尚未解决**，见 issue）。
+
 ---
 
 ## 本工具不做的事
