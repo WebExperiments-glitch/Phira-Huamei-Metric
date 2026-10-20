@@ -33,7 +33,9 @@ import { appIdFromKey, makeWhoami, validatePlay } from './lib/hm.mjs';
 import {
   register as hmRegister, login as hmLogin, verifyOwnToken, claimsOwnIssuer,
   sendCode as hmSendCode, verifyCode as hmVerifyCode, resetPassword as hmResetPassword,
-} from './lib/hm-accounts.mjs';
+  getProfile as hmGetProfile, putProfile as hmPutProfile, touchProfile as hmTouchProfile,
+  deleteAccount as hmDeleteAccount } from './lib/hm-accounts.mjs';
+import { makeProfileRoutes } from './lib/hm-profile-routes.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
 /* 贡献凭证：/api/contribute 的准入能力票（见 lib/contribute-ticket.mjs 顶部）。 */
 import {
@@ -404,6 +406,9 @@ const apiRoutes = makeApiRoutes({
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
 const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+/* 档案路由：token 从 x-hm-token 读（托管网关会吃掉 Authorization，真踩过）。 */
+const profileRoutes = makeProfileRoutes({ send, gate, gateRead: gateStats, gateWriteId, whoami: hmWhoami,
+  getProfile: hmGetProfile, putProfile: hmPutProfile, touchProfile: hmTouchProfile, deleteAccount: hmDeleteAccount, dbFetch });
 /* 详情页模板只在启动时读一次 —— 每请求读盘是纯浪费（模板不随请求变）。 */
 const chartTpl = fs.readFileSync(path.join(WEB_ROOT, 'chart.html'), 'utf8');
 const pageRoutes = makePageRoutes({ secHeaders: SEC_HEADERS, send, send404,
@@ -530,6 +535,8 @@ const server = http.createServer(async (req, res) => {
         '尝试太频繁，请一分钟后再试（每邮箱每分钟最多 ' + RL.loginEmail + ' 次）'))) return;
     return codeRoutes.accountRoute(res, p, body, ip);
   }
+
+  if (await profileRoutes(req, res, p, url)) return;
 
   if (p === '/api/hm/play') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
@@ -867,15 +874,9 @@ const server = http.createServer(async (req, res) => {
   if (!isPublicPath(rel)) return send404(res);
   const fp = path.resolve(WEB_ROOT, rel);
   if (!fp.startsWith(WEB_ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain; charset=utf-8');
-  /* js/css/图片内容稳定且前端用版本化 URL 引用 → 可以长缓存 */
-  /* ⚠ 只有**带 ?v=** 的请求才长缓存。
-     ES 模块之间是用相对路径互相 import 的（`./ui.js`），那些 URL 没有查询串。
-     如果它们也被长缓存，会有两个后果：
-       1. 模块更新后用户一直吃旧版本；
-       2. 更隐蔽的：同一个模块被"带版本"和"不带版本"两种 URL 加载时，
-          浏览器会当成**两个不同的模块**，于是两份状态（语言、设置）分裂。
-          这个真踩过 —— 设置页切了语言，ui.js 里的导航不跟着变。
-     无查询串的 js / json 走 no-cache：每次协商，命中就是 304，开销很小。 */
+  /* ⚠ 只有**带 ?v=** 的请求才长缓存。ES 模块之间用相对路径互相 import，
+     那些 URL 没有查询串 —— 若也长缓存，会出现「同一模块被两种 URL 加载 =
+     两个模块实例」，于是语言/设置状态分裂（真踩过）。其余走 no-cache。 */
   const hasVer = /[?&]v=/.test(req.url || '');
   const longCache = hasVer && /\.(js|css|png|svg|ico|webp|woff2|json)$/i.test(rel);
   /* 页面 HTML 一律 no-cache（sendFile 内部按扩展名判断），

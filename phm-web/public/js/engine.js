@@ -22,12 +22,12 @@
  *     引擎本身不认识 fetch，也不认识 fs。
  * ============================================================ */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.21.1.3';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.21.2.0';
 /* 技能分：把 39 个特征重组为四技能维度。
    ⚠ skills.js 是**纯函数、无副作用**，所以引擎可以安全 import 它 ——
       浏览器与 Node 服务端都走同一份，不存在两份实现漂移。
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
-import { skillScores } from './skills.js?v=V0.21.1.3';
+import { skillScores } from './skills.js?v=V0.21.2.0';
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
  * com-trim15-v0.5.0：聚合从「加权下中位」换成「加权截尾均值（15%）」——
  *   中位误差 0.500→0.453、均值误差 0.820→0.816，输出分辨率 104→1332 个不同值。

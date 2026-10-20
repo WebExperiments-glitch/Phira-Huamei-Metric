@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.21.1.3">
+<meta name="app-version" content="V0.21.2.0">
 <title>设置 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. 设置：隐私与数据、账号管理、外观与语言、本机存储。">
@@ -18,8 +18,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    键名与 /js/settings.js 的 KEYS.font / KEYS.size 一致。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f);el.setAttribute("data-size",z);})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.21.1.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.1.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.21.2.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.2.0">
 <style>
 /* ══════════════════════════════════════════════════════════════
    设置页布局 —— 左栏分组导航 + 右侧行式条目
@@ -129,9 +129,6 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 
 <!-- 云 SDK：固定版本 + SRI。第三方脚本拥有与应用代码相同的权限，
      所以既钉版本也钉内容（内容对不上浏览器会拒绝执行）。 -->
-<script defer src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@0.1.3/lib/index.global.js"
-  integrity="sha384-z77MUA3IAqENYJOfGtmBKISLXkWlqVx8VWWQn9qxPwllJp6t43aKUFFMei2TYJWM"
-  crossorigin="anonymous"></script>
 
 <div class="wrap">
 
@@ -270,18 +267,19 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
           </div>
           <div class="sc" id="bindActions"></div>
         </div>
-        <!-- ── 注销：**自助删数据** ──
+        <!-- ── 注销：**自助删账号** ──
              ⚠ 能删什么、不能删什么，必须和 /privacy 第 5 节一字不差 ——
-             政策里承诺了做不到的事，比不写更糟。这里如实分成两块：
-               能删 = phm_profiles 那一行（Phira 绑定 / 显示名 / 访问计数）
-               删不掉 = 登录邮箱本身（在平台认证系统里，本站没有删除权限）
-             数据库侧已加 DELETE 策略（owner_id = auth.uid()），所以只会删到自己那行。 -->
+             政策里承诺了做不到的事，比不写更糟。自建账号后范围是：
+               能删 = 账号本身（邮箱 + 密码哈希）、Phira 绑定、访问计数、未用的验证码
+               不删 = 贡献的成绩（本来就匿名，不挂在账号上）
+             删除走 DELETE /api/hm/profile，sub 只从已验签的 token 里取 ——
+             所以只会删到自己那个账号。 -->
         <div class="srow">
           <div class="sl">
             <b data-i18n="set.acct.del">注销账号</b>
-            <span data-i18n-html="set.acct.del.desc">删除本站云端资料（Phira 绑定与显示名）。<b>登录邮箱需另行申请</b>。</span>
+            <span data-i18n-html="set.acct.del.desc">删除账号、绑定与访问计数。<b>不可撤销</b>。贡献的成绩是匿名的，不会被删。</span>
           </div>
-          <div class="sc"><button class="sbtn danger" type="button" id="acctDel" data-i18n="set.acct.del.go">删除本站资料…</button></div>
+          <div class="sc"><button class="sbtn danger" type="button" id="acctDel" data-i18n="set.acct.del.go">注销账号…</button></div>
         </div>
       </div>
       <div class="status" id="acctMsg"></div>
@@ -383,12 +381,12 @@ code.k{font-family:var(--mono);font-size:11.2px;color:var(--fg3);
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.21.1.3';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.21.2.0';
 
-import { initCloud, currentUser as cloudCurrentUser } from '/js/cloud.js?v=V0.21.1.3';
-import * as S from '/js/settings.js?v=V0.21.1.3';
-import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.21.1.3';
-import { installGuard } from '/js/guard.js?v=V0.21.1.3';
+import { createAuth, authErrorKey } from '/js/auth.js?v=V0.21.2.0';
+import * as S from '/js/settings.js?v=V0.21.2.0';
+import { t, applyStatic, currentLang, setLang, onLangChange } from '/js/i18n.js?v=V0.21.2.0';
+import { installGuard } from '/js/guard.js?v=V0.21.2.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -507,32 +505,27 @@ $('#noticeReset').addEventListener('click', function () {
    （邮箱验证码、找回密码、改密、强度校验），再写一份必然漂移。
    设置页负责「看状态 + 执行关键操作」，登录/注册按钮直接把人送过去。 */
 
-const CLOUD_CFG = {
-  endpoint: 'https://phm.app.workbuddy.host',
-  publishableKey: 'wbpk_TRm3Cbt5VeYHHDwUL854jr_5Xi69EqYG18sPzQnMMJhJr08x67NoE3b',
-};
-let cloud = null, cloudDB = null;
-/* ⚠ 与 app.html / platform.html 同一个坑：SDK 是 `<script defer src="cdn">`，
-   本页主逻辑也是 defer —— CDN 慢一点就先跑完，于是 cloud=null，
-   账号区永远显示"未登录"。统一走 js/cloud.js 等它就绪。 */
-const CLOUD_READY = initCloud(CLOUD_CFG).then(function (r) {
-  cloud = r.cloud; cloudDB = r.db; cloudInitError = r.error || null; return r;
-});
-let cloudInitError = null;
-
 /* ⚠ 这里**不再自己实现一份**取用户逻辑（曾经有，被 lint-slop 的
    「重复函数定义」抓到）：两份实现必然漂移，最后一个改了一个没改，
    症状是「/app 显示已登录、/settings 显示未登录」这种极难查的错位。
-   统一用 js/cloud.js 的 cloudCurrentUser()，本文件只做「结果 → 页面文案」的翻译。 */
-let lastUserError = false;
-/* 名字**故意不叫** currentUser —— 那是 cloud.js 里的名字，
-   lint-slop 的「重复函数定义」按名字判（不看实现），
+   现在统一走 js/auth.js —— 登录表单只存在 /app 一份，本页只做
+   「读状态 → 翻译成页面文案」和「执行关键操作」。 */
+const AUTH = createAuth({});
+
+/* 名字**故意不叫** currentUser —— lint-slop 的「重复函数定义」按名字判（不看实现），
    同名就得把两份实现都拖下水。 */
 async function loadAccount() {
-  await CLOUD_READY;
-  const r = await cloudCurrentUser(cloud);
-  lastUserError = (r.reason === 'unavailable');
-  return r.user;
+  await AUTH.ready;
+  return AUTH.state.user;
+}
+/* 错误 → 文案。⚠ 键名与 /app 共用同一套前缀（set.auth.err.*），
+   两边说法不能不一样 —— 同一个错误在两页显示不同原因是最费解的。 */
+function acctErrText(e) {
+  if (!e) return '';
+  /* ⚠ 键名内联拼在 t() 里（不先存变量）是为了让 lint-i18n 能看见这个前缀。
+     —— 它把 `t('set.' + …)` 认出「动态前缀」，整片 set.* 不做僵尸判定，
+        所以这 8 条不会被误报。手机号式的最简做法，别改成先存变量。 */
+  return t('set.auth.err.' + authErrorKey(e.kind || 'unknown'), { e: e.detail || '' });
 }
 
 function mkBtn(label, cls, handler, id) {
@@ -551,7 +544,11 @@ async function paintAccount() {
   box.innerHTML = '';
   const user = await loadAccount();
   if (!user) {
-    st.textContent = t('set.acct.loggedout.desc');
+    /* ⚠「读不到状态」与「没登录」是两件事，不能都说成未登录：
+       网络抖动的人看到"未登录"会以为自己的账号丢了。 */
+    st.textContent = AUTH.state.offline
+      ? t('set.acct.offline')
+      : t('set.acct.loggedout.desc');
     const go = document.createElement('a');
     go.className = 'sbtn primary';
     go.href = '/app#account';
@@ -559,13 +556,11 @@ async function paintAccount() {
     box.appendChild(go);
     return;
   }
-  st.textContent = String(user.email || user.username || user.id || '');
+  st.textContent = String(user.email || user.id || '');
   box.appendChild(mkBtn(t('c.logout'), 'danger', async function () {
-    try {
-      if (cloud && cloud.auth && cloud.auth.signOut) await cloud.auth.signOut();
-      acctMsg(t('c.logout') + ' ✓', 'ok');
-      paintAccount(); paintBind();
-    } catch (e) { acctMsg(String((e && e.message) || e), 'err'); }
+    await AUTH.signOut();
+    acctMsg(t('c.logout') + ' ✓', 'ok');
+    paintAccount(); paintBind();
   }, 'logoutBtn'));
 }
 
@@ -573,38 +568,32 @@ async function paintBind() {
   const box = $('#bindActions'), st = $('#bindState');
   if (!box || !st) return;
   box.innerHTML = '';
-  let bound = null;
-  if (cloudDB) {
-    try {
-      const r = await cloudDB.from('phm_profiles').select('phira_uid,phira_name').maybeSingle();
-      if (r && r.data) bound = r.data;
-    } catch (e) { /* 未登录 / 不可读都走这里 */ }
-  }
+  const user = await loadAccount();
   const local = S.phira.get();
 
-  if (bound && bound.phira_uid) {
-    st.textContent = (bound.phira_name || '') + ' #' + bound.phira_uid;
+  /* 只有登录了才去读档案 —— 没登录就发请求 = 每次打开设置页一个必败的 401 */
+  let bound = null;
+  if (user) {
+    const r = await AUTH.readProfile();
+    if (r.ok && r.profile && r.profile.phiraUid) bound = r.profile;
+  }
+
+  if (bound) {
+    st.textContent = (bound.phiraName || '') + ' #' + bound.phiraUid;
     box.appendChild(mkBtn(t('set.acct.unbind'), 'danger', async function () {
-      if (!cloudDB) return;
-      const r = await cloudDB.from('phm_profiles')
-        .upsert({ phira_uid: null, phira_name: null, last_seen: new Date().toISOString() },
-                { onConflict: 'owner_id' });
-      if (r && r.error) { acctMsg(String(r.error.message || 'error'), 'err'); return; }
+      const r = await AUTH.writeProfile({ clear: true });
+      if (!r.ok) { acctMsg(acctErrText(AUTH.state.error), 'err'); return; }
       acctMsg(t('set.acct.unbind') + ' ✓', 'ok');
       paintBind();
     }));
-  } else if (local.uid) {
+  } else if (local.uid && user) {
     st.textContent = t('set.acct.bindhint');
     box.appendChild(mkBtn(t('set.acct.bind'), 'primary', async function () {
-      if (!cloudDB) { acctMsg('Cloud not connected', 'err'); return; }
-      const user = await loadAccount();
-      if (!user) { acctMsg(t('set.acct.loggedout.desc'), 'warn'); return; }
-      const r = await cloudDB.from('phm_profiles').upsert({
-        phira_uid: Number(local.uid) || null,
-        phira_name: local.name || null,
-        last_seen: new Date().toISOString(),
-      }, { onConflict: 'owner_id' });
-      if (r && r.error) { acctMsg(String(r.error.message || 'error'), 'err'); return; }
+      const r = await AUTH.writeProfile({
+        phiraUid: Number(local.uid) || null,
+        phiraName: local.name || null,
+      });
+      if (!r.ok) { acctMsg(acctErrText(AUTH.state.error), 'err'); return; }
       acctMsg(t('set.acct.binddone') + ' ✓', 'ok');
       paintBind();
     }));
@@ -680,36 +669,28 @@ $('#expBtn').addEventListener('click', function () {
   } catch (e) { msg(esc(t('set.storage.exportfail', { e: (e && e.message) || '' })), 'err'); }
 });
 
-/* ── 注销：删除本站云端资料 + 登出 ──
-   ⚠ 范围只到「本站资料」：
-     · 删 phm_profiles 那一行（Phira 绑定、显示名、访问计数）
-     · **删不掉登录邮箱** —— 它在平台认证系统里，客户端没有这个权限。
-       所以文案与 /privacy 第 5 节都写明「邮箱需另行申请」，不能含糊。
-     · 贡献的成绩**不在注销范围**：它本来就是匿名的（表里没有 owner_id），
-       不挂在账号上，删账号也不会带走它。
-   失败时不假装成功 —— 把错误显示出来，并给出邮件兜底渠道。 */
+/* ── 注销：删除账号 + 本站资料 + 登出 ──
+   ⚠ 范围已经比过去大了一圈，这是自建账号换来的**实质能力**：
+     用平台云 SDK 时登录邮箱在平台认证系统里，客户端没有删除权限 ——
+     「注销账号」只能删掉本站资料，邮箱必须另发邮件申请。
+     自建之后 hm_accounts 在我们自己的库里，删除是一条语句的事。
+   仍然**不删**的只有一样：贡献的成绩。它本来就匿名（表里没有 owner_id），
+   不挂在账号上，删账号也不该带走它。
+   失败时不假装成功 —— 显示错误，并给邮件兜底渠道。 */
 $('#acctDel').addEventListener('click', async function () {
   const user = await loadAccount();
   if (!user) { acctMsg(t('set.acct.del.nologin'), 'warn'); return; }
   if (!window.confirm(t('set.acct.del.confirm'))) return;
-  if (!cloudDB) { acctMsg(t('set.acct.del.nocloud'), 'err'); return; }
   const btn = this;
   btn.disabled = true;
-  try {
-    /* RLS 已经限定 owner_id = auth.uid()，这里再显式带上 uid，语义更清楚 */
-    const r = await cloudDB.from('phm_profiles').delete().eq('owner_id', user.id);
-    if (r && r.error) {
-      acctMsg(t('set.acct.del.fail', { e: String(r.error.message || r.error) }), 'err');
-      btn.disabled = false;
-      return;
-    }
-    acctMsg(t('set.acct.del.done'), 'ok');
-    try { if (cloud && cloud.auth && cloud.auth.signOut) await cloud.auth.signOut(); } catch (e) {}
-    setTimeout(function () { location.reload(); }, 1200);
-  } catch (e) {
-    acctMsg(t('set.acct.del.fail', { e: String((e && e.message) || e) }), 'err');
+  const r = await AUTH.destroyAccount();
+  if (!r.ok) {
+    acctMsg(t('set.acct.del.fail', { e: acctErrText(AUTH.state.error) }), 'err');
     btn.disabled = false;
+    return;
   }
+  acctMsg(t('set.acct.del.done'), 'ok');
+  setTimeout(function () { location.reload(); }, 1200);
 });
 
 $('#cidReset').addEventListener('click', function () {
@@ -722,8 +703,8 @@ $('#clearBtn').addEventListener('click', function () {
   let ok = false;
   try {
     ok = confirm(currentLang() === 'en'
-      ? 'Clear all P.H.M. settings stored in this browser?\n\nRemoves: upload toggle, notice consent, autofill username/UID, "this is mine" declarations, anonymous ID.\n\nDoes NOT remove: the cloud sign-in session (you stay signed in), or anything on the server.\n\nAfterwards everything returns to defaults — which means auto-upload is ON again.'
-      : '清空本站的全部设置？\n\n会删掉：上传开关、告知确认、自动填充的用户名/UID、本人账号声明、匿名标识\n\n不会删：云服务的登录会话（你不会被登出）\n不会删：服务器上的任何数据\n\n清空后所有设置回到默认值（默认是「开启上传」）。');
+      ? 'Clear all P.H.M. settings stored in this browser?\n\nRemoves: upload toggle, notice consent, autofill username/UID, "this is mine" declarations, anonymous ID.\n\nDoes NOT remove: your sign-in credential (you stay signed in), or anything on the server.\n\nAfterwards everything returns to defaults — which means auto-upload is ON again.'
+      : '清空本站的全部设置？\n\n会删掉：上传开关、告知确认、自动填充的用户名/UID、本人账号声明、匿名标识\n\n不会删：你的登录凭据（不会被登出）\n不会删：服务器上的任何数据\n\n清空后所有设置回到默认值（默认是「开启上传」）。');
   } catch (e) { ok = false; }
   if (!ok) return;
   S.clearAll();
