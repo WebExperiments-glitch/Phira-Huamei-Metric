@@ -20,6 +20,15 @@
 
 export const RELEASES = [
   {
+    v: 'V0.21.3.0', date: '2026-10-20',
+    zh: ['<b>服务更不容易挂了</b>：以前一次意外错误就能让整站下线（真的发生过三次），现在单个请求出错只影响那一个请求。'
+      + '<b>账号绑定 / 注销 / 状态页 30 天视图已全部打通</b>（数据库权限补齐，实测跑通）。'],
+    en: ['<b>Much harder to knock over</b>: one unexpected error used to take the whole site down '
+      + '(it happened three times); now a bad request only affects that request. Account linking, '
+      + 'deletion and the 30-day status history now all work end to end.'],
+  },
+
+  {
     v: 'V0.21.2.0', date: '2026-10-20',
     zh: ['登录/注册<b>换成本站自己的账号系统</b>。好处是三件：'
       + '<b>不再依赖第三方 CDN</b>（首页更快、少一个外部来源）、'
