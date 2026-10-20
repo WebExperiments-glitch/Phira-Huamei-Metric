@@ -165,7 +165,8 @@ if (PROD) {
     } catch (e) { return { err: String(e && e.message || e).slice(0, 90) }; }
   };
 
-  for (const p of ['/', '/app', '/chart', '/status', '/packs', '/settings', '/platform', '/developers']) {
+  /* ⚠ `/chart` 是**参数路由**（`/chart/<id>`），裸路径本来就 404 —— 用真实 id 探。 */
+  for (const p of ['/', '/app', '/chart/1', '/status', '/packs', '/settings', '/platform', '/developers']) {
     const r = await get(p);
     if (r.status === 200) ok(p + ' 200'); else bad(p + ' 不是 200', r.err || String(r.status));
   }
@@ -182,10 +183,14 @@ if (PROD) {
   else if (mj.service !== pkg.version) bad('/api/v1/meta 的 service 与 package.json 不一致', mj.service);
   else ok('/api/v1/meta service = ' + mj.service);
 
-  /* 白名单：这几个必须 404，一次都不许例外 */
+  /* 白名单：**只要不是 2xx/3xx 就是安全**。
+     ⚠ 别写成「必须 404」—— 线上前面还有一层平台网关，它会对 `.git/`、`/db/`
+     这类路径直接回 **403**（比我们的 404 更早一步）。两种都不是泄露。
+     判据应该是「拿得到内容吗」，不是「状态码是不是恰好 404」。 */
   for (const p of ['/server.mjs', '/lib/cloud.mjs', '/write-secret.txt', '/db/api-v2/20.sql', '/.git/config']) {
     const r = await get(p);
-    if (r.status === 404) ok(p + ' 正确 404');
+    if (r.status === 404) ok(p + ' 正确 404（本站白名单）');
+    else if (r.status === 403) ok(p + ' 403（平台网关拦截，同样拿不到内容）');
     else bad(p + ' 竟然可达（' + r.status + '）', '源码 / 凭据泄露');
   }
 
