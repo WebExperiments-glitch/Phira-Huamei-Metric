@@ -143,8 +143,13 @@ if (process.argv.includes('--check')) {
   let bad = 0;
   const cur = fs.existsSync(pOfficial) ? fs.readFileSync(pOfficial, 'utf8') : '';
   const curCom = fs.existsSync(pCom) ? fs.readFileSync(pCom, 'utf8') : '';
-  if (cur !== officialJs) { console.log('✗ ref-official.js 与真源不同步'); bad = 1; }
-  if (curCom !== comJson) { console.log('✗ ref-com.json 与真源不同步'); bad = 1; }
+  /* ⚠ 比较前统一行尾：Windows 上 checkout 出来的是 CRLF（core.autocrlf=true），
+     而生成器写的是 LF —— 逐字节比会永远不相等，在 Windows 上假报
+     「ref-official.js 与真源不同步」。内容完全一样，只有行尾不同。
+     归一化后再比：真·内容不同仍会报出来，行尾不同不再误报。 */
+  const nl = s => s.replace(/\r\n/g, '\n');
+  if (nl(cur) !== nl(officialJs)) { console.log('✗ ref-official.js 与真源不同步'); bad = 1; }
+  if (nl(curCom) !== nl(comJson)) { console.log('✗ ref-com.json 与真源不同步'); bad = 1; }
   if (!bad) console.log(`✓ 两份参照集均与真源同步（官谱 ${official.length} / 社区 ${community.length}）`);
   process.exit(bad);
 }

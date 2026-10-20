@@ -107,6 +107,97 @@ console.log('[4] 模块清单');
   }
 }
 
+/* 5) README 的「目录结构」树里列的路径必须真实存在
+   ────────────────────────────────────────────────────────────
+   【为什么加这条】README 里的「目录结构」是最容易腐烂的一节：
+   文件改名（phm/P.H.M..html → phm/PHM-Standard.html）之后，
+   那一行还写着旧名字，读的人双击打开会「文件不存在」。
+   之前的死链检查只管 *.md 链接，管不到这种纯文本树。
+
+   做法：把 README「## 目录结构」代码块里的树按缩进还原成路径，逐个查存在性。
+   ⚠ 少数目录是**按需生成 / 不入库**的（data/charts/ 是 31GB 语料，
+     _research/ 是本地调研素材），它们在仓库里本来就不存在 —— 列入忽略表。 */
+console.log('[5] README 目录结构树');
+{
+  const IGNORED = new Set([
+    'data/charts', 'data/.stages', 'data/_backup_before_consolidate',
+    '_research', 'reports', 'phm/gui/data', 'phira-huamei', '发布',
+  ]);
+  const readmePath = path.join(REPO, 'README.md');
+  if (!fs.existsSync(readmePath)) {
+    bad('找不到根 README.md');
+  } else {
+    const md = fs.readFileSync(readmePath, 'utf8');
+    const s = md.indexOf('## 目录结构');
+    const e = s >= 0 ? md.indexOf('\n## ', s + 2) : -1;
+    const section = s >= 0 ? md.slice(s, e < 0 ? undefined : e) : '';
+    if (!section) {
+      bad('README 找不到「## 目录结构」一节');
+    } else {
+      const fence = section.match(/```[\s\S]*?```/);
+      if (!fence) {
+        bad('README「目录结构」里没有代码块');
+      } else {
+        const stack = [];          /* 每层的目录名 */
+        let entries = 0;
+        for (const line of fence[0].split('\n')) {
+          const m = line.match(/^([\s│]*)(?:├──|└──)\s+(.+?)\s*$/);
+          if (!m) continue;
+          /* 缩进单位 = 4 列（"│   " 或 "    "）。
+             ⚠ 别把 │ 剔掉再数长度 —— 剔掉后每层都变成 0，
+               层级全塌成一级，路径就只剩文件名（这个坑踩过一次）。 */
+          const level = Math.floor(m[1].length / 4);
+          const name = m[2];
+          /* 树里形如 "core.py    #   注释" 要去掉行尾注释 */
+          const clean = name.split('#')[0].trim();
+          if (!clean) continue;
+          stack.length = level;
+          const isDir = clean.endsWith('/');
+          const seg = isDir ? clean.slice(0, -1) : clean;
+          stack.push(seg);
+          const rel = stack.join('/');
+          entries++;
+          if (IGNORED.has(rel) || IGNORED.has(rel.split('/')[0])) continue;
+          if (/[（(]/.test(seg)) continue;             /* 树里的说明性条目 */
+          const abs = path.join(REPO, rel);
+          if (!fs.existsSync(abs)) bad(`README 目录树列了不存在的路径：${rel}`);
+          else ok('tree ' + rel);
+        }
+        if (entries === 0) bad('README 目录树里没解析出任何条目（格式变了？）');
+      }
+    }
+  }
+}
+
+/* 6) 旧文件名黑名单：改名过的东西不该再被文档引用
+   ────────────────────────────────────────────────────────────
+   【为什么】phm/P.H.M..html 改名为 phm/PHM-Standard.html 之后，
+   README 和若干文档里还留着旧名字。改名时没人发现，因为没有检查会看它。
+   规则：改名要同时把旧名字登记进这张表（并在文档里换掉），
+   以后谁再写回旧名字，检查会当场报出来。 */
+console.log('[6] 旧文件名黑名单');
+{
+  const STALE = [
+    { name: 'P.H.M..html', reason: '单文件 GUI 已改名为 phm/PHM-Standard.html' },
+  ];
+  /* 只查「当前文档」：docs/历史/ 里的旧记录保留原样是**故意的** */
+  const isCurrent = f => {
+    const rel = path.relative(REPO, f);
+    if (rel === 'README.md') return true;
+    if (rel.startsWith('phm-web' + path.sep + 'docs' + path.sep)) return true;
+    if (rel.startsWith('docs' + path.sep)) return !rel.includes(path.sep + '历史' + path.sep);
+    return false;
+  };
+  const files = walk(REPO).filter(f => f.endsWith('.md')).filter(isCurrent);
+  for (const f of files) {
+    const txt = fs.readFileSync(f, 'utf8');
+    for (const s of STALE) {
+      if (txt.includes(s.name)) bad(`${path.relative(REPO, f)} 还在用旧名 ${s.name}（${s.reason}）`);
+      else ok('no ' + s.name);
+    }
+  }
+}
+
 console.log('\n────────');
 console.log(`文档同步检查：${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);

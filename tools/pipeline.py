@@ -56,6 +56,19 @@ def run(script, *args, **kw):
     print(f"[ok] {script}  {el:.1f}s")
 
 
+def run_node(script, *args):
+    """执行一个 Node 脚本（phm-web/tools/ 下的审计工具），失败即中止"""
+    path = os.path.join(ROOT, "phm-web", "tools", script)
+    print(f"\n$ node tools/{script} {' '.join(args)}")
+    t0 = time.time()
+    r = subprocess.run(["node", path] + list(args), cwd=os.path.join(ROOT, "phm-web"))
+    el = time.time() - t0
+    if r.returncode != 0:
+        print(f"[FAIL] {script} 退出码 {r.returncode}（{el:.1f}s）", file=sys.stderr)
+        sys.exit(r.returncode)
+    print(f"[ok] {script}  {el:.1f}s")
+
+
 def exists(p):
     return os.path.exists(p)
 
@@ -120,6 +133,12 @@ def stage_calibrate(args):
     run("calibrate_engine.py", "--data", src)
     # 浏览器端是独立实现，必须证明它与引擎输出逐谱相同（防止悄悄漂移）
     run("verify_gui_parity.py")
+    # 天花板与基线审计：k-NN 到底比笨基线好多少 / 结构能解释多少 /
+    # 换更新的谱还准不准（时间外推下界）。改引擎或改参照集后必跑。
+    if exists(os.path.join(ROOT, "data", "community.jsonl")):
+        run_node("audit-baselines.mjs")
+    else:
+        print("[skip] data/community.jsonl 不存在，跳过基线审计（先跑 pipeline.py community）")
 
 
 STAGES_MAP = {
