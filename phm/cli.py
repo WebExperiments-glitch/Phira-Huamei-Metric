@@ -43,6 +43,10 @@ def make_report(vd, r, peer_median=None, exclude=None):
     diff = r.get("difficulty") or 0
 
     lo, hi, mid, conf, basis = vd.reference_range(nps, hr, notes, stair, lv)
+    # 全跨度带（min/max）：与网页版引擎口径一致，是**可以当区间读**的那一栏。
+    # lo/hi 是加权 P25/P75（四分位距），只盖住一半质量 —— 两者语义不同，别混。
+    band_lo, band_hi = vd.full_span_band(nps, hr, notes, stair, lv)
+    k_near = vd.point_estimate(nps, hr, notes, stair, lv)["k"] or 0
     feats = vd.compare(nps, hr, notes, stair, lv)
     similar = vd.similar_official(nps, hr, notes, lv, top=5,
                                   stair_speed=stair, exclude=exclude)
@@ -65,7 +69,10 @@ def make_report(vd, r, peer_median=None, exclude=None):
     A("─" * 68)
     if lo is not None:
         A(f"  ★ 建议定数     {mid:.1f}")
-        A(f"    不确定带     {lo:.1f} ~ {hi:.1f}（近邻定价的四分位）")
+        A(f"    区间（可读） {band_lo:.1f} ~ {band_hi:.1f}"
+          f"（{k_near} 个近邻定价的全跨度 min/max）")
+        A(f"    四分位带     {lo:.1f} ~ {hi:.1f}"
+          f"（IQR，只盖住近邻的一半质量 —— **不是区间**，别当区间读）")
         A(f"    估计误差     中位 0.5 级 / p90 1.5 级"
           f"（官谱留一法实测，n={vd.n_official}）")
         A(f"    依据         {basis}")
@@ -217,11 +224,19 @@ def main():
             flags = [c for c in vd.hard_checks(
                 r.get("difficulty") or 0, r.get("level") or "")
                 if not c["pass"]]
+            band_lo, band_hi = vd.full_span_band(
+                r.get("nps") or 0,
+                (r.get("t_hold") or 0) / max(r.get("notes_real", 1), 1),
+                r.get("notes_real") or 0,
+                r.get("stair_speed_avg") or 0,
+                r.get("level") or "")
             idx.append({
                 "id": r["id"], "name": r.get("name"),
                 "level": r.get("level"),
                 "difficulty": r.get("difficulty"),
                 "range": [lo, hi], "mid": mid, "conf": conf,
+                # range = 四分位带（IQR，不是区间）；band = 全跨度带（可当区间读）
+                "band": [band_lo, band_hi],
                 "flags": len(flags),
                 "nps": r.get("nps"), "notes": r.get("notes_real"),
             })

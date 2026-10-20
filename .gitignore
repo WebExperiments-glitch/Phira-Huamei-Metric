@@ -11,6 +11,10 @@
 data/charts/
 data/.stages/
 data/_backup_before_consolidate/
+# Phira 公开谱面列表（含每张谱的 created 上传时间）——
+# 由 tools/fetch_chart_list.py 生成，可随时重拉，不入库。
+# 用它做「按上传时间」的留出验证：node phm-web/tools/audit-baselines.mjs --split created
+data/chart-list.jsonl
 
 # ── 外部素材（Phira 源码、竞品工具、APK 等）──
 _research/

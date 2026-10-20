@@ -7,10 +7,22 @@
  *
  * 第 ③ 条最后一项是重点：`verifyOwnToken` 遇到 `iss=phm-huamei` 但签名不对的
  * token 必须拒绝，绝不回退到「不验签也认」—— 否则身份又变回可伪造。 */
-import {
+
+/* ⚠ 本机没配密钥时补一个**一次性测试密钥**，再导入模块。
+   原因：lib/hm-accounts.mjs 的 TOKEN_SECRET 是**导入时**解析一次的
+   （resolveTokenSecret()：环境变量 → .env → 从写入凭据派生 → 都没有就空值）。
+   干净克隆上三路都没有 → 密钥是空串 → signJwt 用空密钥签、
+   verifyOwnToken 必然拒 → 「能验回来」「email 也带回来」两条断言假失败，
+   而这跟被测代码没关系。
+   ⚠ 只在本机缺密钥时补，且只进环境变量：不落盘、不写 .env、不碰生产路径。
+   ⚠ 必须是**动态导入**：静态 import 会被提前求值，那时环境变量还没设上。 */
+if (!(process.env.PHM_TOKEN_SECRET || '').trim()) {
+  process.env.PHM_TOKEN_SECRET = 'test-only-token-secret-not-real';
+}
+const {
   validateEmail, validatePassword, signJwt, verifyOwnToken,
   hashPassword, verifyPassword, tokenSecretSource,
-} from '../lib/hm-accounts.mjs';
+} = await import('../lib/hm-accounts.mjs');
 
 let pass = 0, fail = 0;
 const T = (name, cond, extra = '') => {

@@ -180,7 +180,21 @@ class Verdict:
         """点估计 + 不确定带。
 
         返回 dict：point（近邻定数的核加权中位）、lo/hi（加权 P25/P75）、
-        basis（依据说明）、k（近邻数）、spread（= hi - lo）。
+        basis（依据说明）、k（近邻数）、spread（= hi - lo），
+        以及 **band_lo/band_hi**（近邻定数的全跨度 min/max）。
+
+        ⚠⚠ **两种带语义不同，不要混用**（这是本项目已犯过的错，务必看这里）：
+          - `lo/hi` = **加权 P25/P75（四分位距 IQR）**。按定义只盖住近邻分布
+            的一半质量 → **不能当区间读**。留一法实测覆盖率 55.4%，
+            这不是模型不准，是 IQR 的数学性质。
+          - `band_lo/band_hi` = 20 个近邻定数的 **min/max 全跨度**。
+            网页版引擎（phm-web/public/js/engine.js）用的就是这一种，
+            留出实测覆盖率 **90.9%**（社区参照集，n=1,394）；
+            本引擎官谱留一法实测 **92.8%** → **可以当区间读**。
+          两套引擎过去各用一种、文档也没写清，导致「44.6% 的官谱落在自己区间外」
+          被当成「官方标注噪声 2.8 级」的证据。**那个推断是错的。**
+          （复现：node phm-web/tools/audit-baselines.mjs；
+            本引擎的口径见 tools/calibrate_engine.py 的两行覆盖率）
 
         注意：这里不返回近邻明细 —— 需要展示时调用 similar_official()，
         两者都基于同一个 neighbors()，不重复实现。
@@ -189,21 +203,42 @@ class Verdict:
                               level, k, exclude_idx=exclude_idx)
         if not near:
             return {"point": self.global_med, "lo": None, "hi": None,
+                    "band_lo": None, "band_hi": None,
+                    "band_basis": "全局兜底（无近邻）",
                     "basis": "全局兜底（无近邻）", "k": 0, "spread": None}
         scale = max(near[-1][0], 1e-6)
         pairs = [(self._Y[i], math.exp(-(d / scale) ** 2 * KNN_BW))
                  for d, i in near]
         lo = wquantile(pairs, 0.25)
         hi = wquantile(pairs, 0.75)
+        vals = [self._Y[i] for _, i in near]
         return {
             "point": round(wquantile(pairs, 0.50), 3),
             "lo": round(lo, 2),
             "hi": round(hi, 2),
             "spread": round(hi - lo, 2),
+            # ↓ 全跨度带（与网页版引擎口径一致）
+            "band_lo": round(min(vals), 2),
+            "band_hi": round(max(vals), 2),
+            "band_basis": (f"{len(near)} 首最相似官谱的定价全跨度（min/max）"
+                           f"——★ 这一栏才是可以当区间读的"),
             "basis": (f"{len(near)} 首最相似官谱的定价中位"
                       f"（同难度标签内检索；特征 NPS/长条占比/物量/纵连）"),
             "k": len(near),
         }
+
+    def full_span_band(self, nps, hold_ratio, notes_real, stair_speed=0,
+                       level=None, k=KNN_K, exclude_idx=None):
+        """返回 (lo, hi)：近邻定数的**全跨度**（min/max），与网页版引擎口径一致。
+
+        ★ 为什么单独开一个方法：桌面引擎原先只有「加权 P25/P75」那一种带，
+          而它是四分位距 —— 覆盖约一半质量，**不能当区间读**。
+          网页版用的是 min/max，留出实测覆盖率 90.9%。两个口径不写清，
+          就会被读成「连官谱自己都对不齐」（一个已作废的结论）。
+        """
+        pe = self.point_estimate(nps, hold_ratio, notes_real, stair_speed,
+                                 level, k, exclude_idx=exclude_idx)
+        return pe.get("band_lo"), pe.get("band_hi")
 
     # ---------------- 1. 参考区间 ----------------
     def reference_range(self, nps, hold_ratio, notes_real, stair_speed,

@@ -53,6 +53,9 @@ def main():
     band = {"high": 0, "mid": 0, "low": 0, "none": 0}
     hit = 0
     got = 0
+    span_hit = 0
+    span_got = 0
+    span_half = []
     for i in range(n):
         sub = rows[:i] + rows[i + 1:]
         vd = Verdict(rows=sub)          # 直接传行，避免磁盘 IO
@@ -67,6 +70,15 @@ def main():
             got += 1
             if lo <= r["difficulty"] <= hi:
                 hit += 1
+        # 全跨度带（min/max）：与网页版引擎口径一致，才是能当区间读的那一栏
+        blo, bhi = vd.full_span_band(
+            r["nps"], hr, r["notes_real"],
+            r.get("stair_speed_avg") or 0, r.get("level"))
+        if blo is not None:
+            span_got += 1
+            span_half.append((bhi - blo) / 2)
+            if blo <= r["difficulty"] <= bhi:
+                span_hit += 1
 
     errs.sort()
     q = lambda p: errs[min(int(n * p), n - 1)]
@@ -80,9 +92,15 @@ def main():
           f"   ≤1.5 {sum(1 for e in errs if e <= 1.5)/n*100:.1f}%")
     print(f"  置信分布 {band}")
     print()
-    print(f"  区间覆盖率 {hit}/{got} = {hit/max(got,1)*100:.1f}%")
-    print(f"    → 官谱自身有 {100-hit/max(got,1)*100:.1f}% 落在「自己的同类区间」之外")
-    print(f"    → 因此「落在区间外」不构成虚标证据（官方也会）")
+    span_half.sort()
+    print(f"  四分位带（加权 P25/P75）覆盖率 {hit}/{got} = "
+          f"{hit/max(got,1)*100:.1f}%")
+    print(f"    → 这是**四分位距**，按定义只盖住近邻分布的一半质量。"
+          f"它**不是置信区间**，不能当区间读。")
+    print(f"  全跨度带（min/max，与网页版同口径）覆盖率 {span_hit}/{span_got} = "
+          f"{span_hit/max(span_got,1)*100:.1f}%"
+          f"   半宽中位 ±{span_half[len(span_half)//2]:.2f} 级")
+    print(f"    → 这一栏才是可以当区间读的（网页版引擎用的就是它）。")
     return 0
 
 
