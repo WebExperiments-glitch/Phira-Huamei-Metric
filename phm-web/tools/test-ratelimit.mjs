@@ -208,9 +208,20 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
      预筛本来就是为了省一次 DB 往返。所以「DB 真的在计数」这件事
      必须在**另一个进程**里验：那里内存是空的，只有 DB 还记得。 */
 {
-  const SKIP_DB = process.env.PHM_RL_FORCE_DB_DOWN === '1';
+  /* ⚠ 本机没有可用数据库时**优雅跳过**这一段，而不是假失败。
+     真实 DB 路径（跨进程计数）本来只能在有库的环境里验；没有库时
+     limit() 会走内存兜底（via='memory'），下面那几条断言必然挂 ——
+     那是环境缺东西，不是代码坏了。 */
+  let SKIP_DB = process.env.PHM_RL_FORCE_DB_DOWN === '1';
+  if (!SKIP_DB) {
+    const probe = await limit(['probe-db-' + Date.now()], 3, 120_000);
+    if (probe.via !== 'db') {
+      SKIP_DB = true;
+      console.log('  - 跳过真实 DB 断言（本机没有可用数据库，探测 via=' + probe.via + '）');
+    }
+  }
   let K;
-  if (SKIP_DB) console.log('  - 跳过真实 DB 断言（CI 无写入凭据；本地发版前会跑真实 DB 路径）');
+  if (SKIP_DB) console.log('  - 跳过真实 DB 断言（CI 无写入凭据 / 本机无数据库；本地发版前会跑真实 DB 路径）');
   else {
   K = 'test-db-' + Date.now();
   const seq = [];
