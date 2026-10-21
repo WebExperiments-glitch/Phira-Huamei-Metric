@@ -177,10 +177,30 @@ if (PROD) {
     } catch (e) { return { err: String(e && e.message || e).slice(0, 90) }; }
   };
 
-  /* ⚠ `/chart` 是**参数路由**（`/chart/<id>`），裸路径本来就 404 —— 用真实 id 探。 */
-  for (const p of ['/', '/app', '/chart/1', '/status', '/packs', '/settings', '/platform', '/developers']) {
+  /* ⚠ 页面清单**别再写死** —— 2026-10-21 站点收敛后，写死的那份把 /status、/settings
+     等已下线页面当成故障，一连报 7 条红，而它们回 410 恰恰是对的。
+     和上一节同一个教训：**闸门必须跟着站点实际是什么走**，否则它自己就成了噪音源。
+     现在从 lib/pages.mjs 的 CLEAN（仍在运营）与 lib/retired.mjs 的 RETIRED_PAGES
+     （已撤回）各自推期望值。 */
+  const liveSrc = read('lib/pages.mjs');
+  const cleanBlock = (liveSrc.match(/export const CLEAN = \{([\s\S]*?)\};/) || [])[1] || '';
+  const livePages = [...cleanBlock.matchAll(/'(\/[^']*)'\s*:/g)].map((m) => m[1]).concat(['/']);
+  const retSrc = read('lib/retired.mjs');
+  const retBlock = (retSrc.match(/RETIRED_PAGES = \{([\s\S]*?)\};/) || [])[1] || '';
+  const gonePages = [...retBlock.matchAll(/'(\/[^']*)'\s*:/g)].map((m) => m[1]);
+  const goneApi = ((retSrc.match(/RETIRED_API = \[([\s\S]*?)\]/) || [])[1] || '').includes('/api/v1');
+
+  for (const p of livePages) {
     const r = await get(p);
-    if (r.status === 200) ok(p + ' 200'); else bad(p + ' 不是 200', r.err || String(r.status));
+    if (r.status === 200) ok('在营 ' + p + ' 200'); else bad(p + ' 不是 200', r.err || String(r.status));
+  }
+  for (const p of gonePages) {
+    const r = await get(p);
+    if (r.status === 410) ok('已撤 ' + p + ' 410'); else bad(p + ' 不是 410', 'got ' + (r.status || r.err));
+  }
+  if (goneApi) {
+    const r = await get('/api/v1/charts?size=1');
+    if (r.status === 410) ok('已撤 API /api/v1/* 410'); else bad('/api/v1/charts 不是 410', String(r.status));
   }
 
   const home = await get('/');
@@ -189,11 +209,14 @@ if (PROD) {
   else if (live[1] !== VER) bad('线上版本与本地不一致（部署没生效或缓存）', '线上 ' + live[1] + ' ≠ ' + VER);
   else ok('线上版本 = ' + VER);
 
-  const meta = await get('/api/v1/meta');
-  let mj = null; try { mj = JSON.parse(meta.text); } catch (_) {}
-  if (!mj || !mj.service) bad('/api/v1/meta 读不到 service');
-  else if (mj.service !== pkg.version) bad('/api/v1/meta 的 service 与 package.json 不一致', mj.service);
-  else ok('/api/v1/meta service = ' + mj.service);
+  /* 横幅的去向必须真的指出去 —— 这是本次收敛用户唯一会主动看的一行 */
+  const retired = await get('/retired');
+  const rt = retired.text || '';
+  if (!/github\.com\/WebExperiments-glitch/.test(rt)) {
+    bad('/retired 上的「继续使用请到」没有指到目标地址');
+  } else {
+    ok('/retired 指向目标地址（GitHub 仓库）');
+  }
 
   /* 白名单：**只要不是 2xx/3xx 就是安全**。
      ⚠ 别写成「必须 404」—— 线上前面还有一层平台网关，它会对 `.git/`、`/db/`
@@ -206,10 +229,6 @@ if (PROD) {
     else bad(p + ' 竟然可达（' + r.status + '）', '源码 / 凭据泄露');
   }
 
-  /* 部署后最常见的整体故障是"匿名 API 全部 401" */
-  const anon = await get('/api/v1/charts?size=1');
-  if (anon.status === 200) ok('匿名 API 仍 200');
-  else bad('匿名 API 不可用', String(anon.status));
 }
 
 console.log('\n────────');
