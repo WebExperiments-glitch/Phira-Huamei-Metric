@@ -121,6 +121,9 @@ const COLOR_OK = [
   /^public\/404\.html$/,
   /^tools\/make-og\.mjs$/,               // 生成分享图（离屏渲染，不走 CSS 主题）
   /^public\/js\/sharecard\.js$/,         // 同上：导出的是图片，颜色必须写死
+  /* 邮件正文：**邮件客户端不支持 CSS 变量**（Gmail/Outlook 会把 var(--x) 丢掉），
+     颜色只能写字面十六进制。渲染目标不在我们自己的主题体系里，与上面两项同理。 */
+  /^lib\/mail-tpl\.mjs$/,
 ];
 const COLOR_OK_INLINE = [
   /data:image\/svg\+xml/,                // favicon 的 data URI，只能是字面色

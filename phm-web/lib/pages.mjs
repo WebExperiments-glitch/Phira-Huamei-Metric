@@ -22,6 +22,7 @@
  *   动态生成 + 内存缓存 10 分钟：库里有 661 张也不会每请求都打 DB。
  * ============================================================ */
 
+import { STATIC_ONLY, RETIRED_PAGES } from './retired.mjs';
 import { dbFetch } from './cloud.mjs';
 
 const SITE = 'https://phm.app.workbuddy.host';
@@ -30,13 +31,20 @@ const PHIRA_API = 'https://api.phira.cn';
 /* 页面映射：干净 URL → 实际文件。
    ⚠ **显式白名单，不是通配** —— 将来加页面必须同时加进 PUBLIC_FILES，
      不会因为忘了写路由就把文件暴露出去。 */
-/* ⚠ 2026-10-21 收敛：只留静态三件套 + 法务页。
-   被撤的路径走 lib/retired.mjs 回 410，**不要**在这里给它们映射 ——
-   否则文件还在磁盘上，等于下线没生效。 */
+/* 全功能站的完整映射；静态站（腾讯那块指路牌）再按 RETIRED_PAGES 减掉。
+   ⚠ 两个站共用一份代码，所以这里不能写死"只有静态三件套" —— 那会让新站
+   的账号/成绩/数据页全部 404。收放统一由 lib/retired.mjs 的 STATIC_ONLY 决定。 */
 export const CLEAN = {
-  '/app': 'app.html', '/rulechart': 'rulechart.html', '/packs': 'packs.html',
+  '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
+  '/data': 'data.html', '/settings': 'settings.html',
   '/privacy': 'privacy.html', '/terms': 'terms.html',
+  '/version': 'version.html', '/download': 'download.html',
+  '/developers': 'developers.html', '/platform': 'platform.html',
+  '/developer': 'platform.html',   /* 旧链接兼容 */
+  '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',
+  '/status': 'status.html', '/packs': 'packs.html',
 };
+if (STATIC_ONLY) for (const k of Object.keys(RETIRED_PAGES)) delete CLEAN[k];
 
 /** HTML 属性转义。曲名/谱师是**用户可提交的内容**，直接拼进 title
     会被 `"` 截断属性、被 `<` 注入标签 —— 这是最典型的一类 XSS 入口。 */

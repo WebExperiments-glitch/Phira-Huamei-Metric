@@ -1,22 +1,15 @@
-/* P.H.M. Standard —— 静态前端 + 轻量 Node 服务
- * 零依赖（只用 Node 内置模块），沙箱里装不上任何东西也能跑。
+/* P.H.M. Standard —— 前端 + 轻量 Node 服务
  *
- * 职责边界（刻意做小）：
- *   1. 托管静态前端（index.html / robots.txt）
- *   2. 对外提供受限的写入网关 /api/*：校验 → 限流 → 转发到云数据库
- *   3. 服务端自有的持久化（JSON 文件），用于限流计数与可信统计
+ * 依赖：**默认零依赖**（只用 Node 内置模块）。唯一例外是数据库驱动 `pg` ——
+ * 只有配了 PHM_NEON_URL（新站）才需要，静态站（腾讯那块指路牌）完全用不到。
+ * 见 lib/db-pg.mjs 与 lib/retired.mjs 的 STATIC_ONLY。
  *
- * 为什么需要它：前端直连数据面时，任何规则都能被绕过；这里把「写」收归一处，
- * 至少做到校验与限流。
+ * 职责边界（刻意做小）：托管静态前端、提供受限的 /api/* 网关（校验 → 限流 → 落库）。
  *
- * ⚠ 权限真相（实测过，别再想当然）：
- *   网关与浏览器持同一把 publishableKey、同为 anon，连 Referer 都能被非浏览器客户端伪造，
- *   所以**网关无法在数据库层面被区分出来**。因此最初「网关是唯一写入口」只是**规范**，
- *   不是防线 —— 攻击者绕开网关直连 REST 一样能写能改（实测 201/204）。
- *
- *   真正的封堵靠 **phm_put_chart()**（SECURITY DEFINER + 写入凭据）：
- *   已对 anon / authenticated 撤销 phm_charts 的 INSERT/UPDATE/DELETE，
- *   数据库侧只剩「带凭据的 RPC」这一条写路径。凭据只在本进程内，不进前端产物。
+ * ⚠ 权限真相（实测过，别再想当然）：网关与浏览器持同一把 key、同为 anon，
+ *   所以"网关是唯一写入口"只是**规范**不是防线。真正的封堵靠
+ *   phm_put_chart()（SECURITY DEFINER + 写入凭据）：表已对 anon 撤销写权限，
+ *   库侧只剩"带凭据的 RPC"这一条路。凭据只在本进程内，不进前端产物。
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -38,7 +31,7 @@ import {
 import { makeProfileRoutes } from './lib/hm-profile-routes.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
 import { installFaultGuards, guardRequest } from './lib/resilience.mjs';
-import { retiredGate } from './lib/retired.mjs';
+import { retiredGate, STATIC_ONLY, RETIRED_HTML, stripBanner } from './lib/retired.mjs';
 /* 贡献凭证：/api/contribute 的准入能力票（见 lib/contribute-ticket.mjs 顶部）。 */
 import {
   ticketAvailable, issueTicket, verifyTicket, ticketCovers,
@@ -191,13 +184,16 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
-/* ⚠ 已下线的页面不在这里：文件还在仓库里（git 随时能回来），但不放行 → 404/410 */
-const PUBLIC_FILES = new Set(['index.html', 'app.html', 'robots.txt', 'favicon.ico',
-  'privacy.html', 'terms.html', '404.html', 'og.png', 'rulechart.html', 'packs.html',
+/* 完整白名单；静态站按 RETIRED_HTML 减掉（同一份代码两个站，见 lib/retired.mjs） */
+const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
+  'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
+  '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
+  'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
+  'status.html', 'packs.html',
   /* 末尾三个是许可证正文：按**名字**放行，别往 SAFE_EXT 加 .txt（见 docs/README「许可证」） */
   'fonts/OFL-LXGWWenKai.txt', 'fonts/OFL-NotoSerifSC.txt', 'vendor/uqr-LICENSE']);
-/* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
-   只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
+if (STATIC_ONLY) for (const f of RETIRED_HTML) PUBLIC_FILES.delete(f);
+/* ⚠ 加页面必须同时改 PUBLIC_FILES（放行文件）与 CLEAN（干净 URL），漏一处就 404。 */
 
 /* 注：曾经还有一个独立的英文页 en.html。i18n 上线后它是**冗余**的 ——
    全站一套代码两种语言，再留一个手写的英文页就变成两份必然漂移的实现，
@@ -879,7 +875,13 @@ const server = http.createServer(guardRequest(async (req, res) => {
   const longCache = hasVer && /\.(js|css|png|svg|ico|webp|woff2|json)$/i.test(rel);
   /* 页面 HTML 一律 no-cache（sendFile 内部按扩展名判断），
      所以干净 URL 不需要额外处理缓存头。 */
-  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache, req);
+  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) {
+    /* 全功能站要把公告横幅摘掉 —— 那句"本站已停止运行"在新站上是假话 */
+    if (!STATIC_ONLY && rel.endsWith('.html')) {
+      return send(res, 200, stripBanner(fs.readFileSync(fp, 'utf8')), 'text/html; charset=utf-8');
+    }
+    return sendFile(res, fp, longCache, req);
+  }
   return send404(res);
 }), softFault);
 
