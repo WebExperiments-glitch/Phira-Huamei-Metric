@@ -121,6 +121,15 @@ console.log('\n[3] 生成物 / 迁移脚本');
  * ══════════════════════════════════════════════════════════ */
 console.log('\n[4] 数据库契约（迁移是否真的执行过）');
 {
+  /* ⚠ 2026-10-21 站点收敛为静态工具后，这一节要能自己判断「还需不需要查库」。
+     否则会出现这样的荒谬场面：腾讯 CloudBase 的库被隔离了，而站点根本不再用它，
+     闸门却红了四条 —— 看着像发布前发现了问题，其实在检查一件已经无关的事。
+     判据：lib/retired.mjs 的 RETIRED_API 里有没有 /api/v1（有 = API 面已撤 = 不需要库）。
+     ⚠ 别写成手工开关：那又是「记得就开、忘了就没」的老路。 */
+  const retiredSrc = read('lib/retired.mjs');
+  const apiBlock = (retiredSrc.match(/RETIRED_API = \[([\s\S]*?)\]/) || [])[1] || '';
+  const dbNeeded = !apiBlock.includes('/api/v1');
+
   const REQUIRED = [
     ['hm_profile_get', { p_sub: '0' }, '档案读取 GET /api/hm/profile'],
     ['hm_touch', { p_sub: '0', p_email: null }, '活跃计数 POST /api/hm/touch'],
@@ -130,7 +139,10 @@ console.log('\n[4] 数据库契约（迁移是否真的执行过）');
   let mod = null;
   try { mod = await import('../lib/cloud.mjs'); } catch (_) { mod = null; }
   const secret = mod && mod.WRITE_SECRET;
-  if (!secret) {
+  if (!dbNeeded) {
+    console.log('  ⚠ 跳过数据库契约：站点已收敛为静态工具，API 面撤回，不再依赖任何数据库');
+    skip += 1;
+  } else if (!secret) {
     warn('本机没有写入凭据，跳过数据库检查（CI / 新克隆的正常情况）');
   } else {
     for (const [fn, args, why] of REQUIRED) {
