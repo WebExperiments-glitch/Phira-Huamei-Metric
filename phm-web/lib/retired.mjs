@@ -33,7 +33,11 @@ const VER = (() => {
 })();
 
 /** 「继续使用请到」的地址。⚠ 换地址只改这一行。 */
-export const RETIRE_URL = 'https://example.com/';   /* ⚠ 占位地址，待用户提供；已登记进 HANDOVER 待办 */
+export const RETIRE_URL = 'https://github.com/WebExperiments-glitch/Phira-Huamei-Metric';
+/* ↑ 「继续使用请到」的地址。⚠ **全站只有这一处**（横幅、410 页、说明页都读它），
+   换地址只改这一行。2026-10-21 定成 GitHub 仓库：用户没有现成的后继站，
+   而仓库是「这个项目继续存在」最稳的落点 —— 不依赖数据库、不依赖托管平台，
+   代码与说明都在。要换成别的地方（比如以后真做出一个后继站），改这一行即可。 */
 
 /** 被撤回的页面路径 → 一句话原因（会显示在 410 页上）。
     ⚠ `/chart/<id>` 是**参数路由**，必须用前缀匹配 —— 只写 `/chart` 拦不住
