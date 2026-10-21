@@ -53,6 +53,14 @@ export const RETIRED_PAGES = {
   '/chart': '谱面详情页',
 };
 
+/** 被撤回的**文件名**（public/ 下的 html）。文件留在仓库里，但不放行。
+    review-gate 用它来判断「这个 html 不在白名单是**故意的**还是漏了」。 */
+export const RETIRED_HTML = [
+  'user.html', 'data.html', 'charter.html', 'status.html', 'settings.html',
+  'platform.html', 'developers.html', 'phm-api.html', 'download.html',
+  'version.html', 'chart.html',
+];
+
 /** 被撤回的 API 前缀（整段关掉，不是逐条）。 */
 export const RETIRED_API = [
   '/api/v1', '/api/hm', '/api/stats', '/api/charts',
