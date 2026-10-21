@@ -205,28 +205,19 @@ function cmpVer(a, b) {
 
 /* 每条路由要检查的东西。⚠ 站点拆页之后**每一页都要走一遍** ——
    真实事故形态是「首页没事、别的页面白屏」。 */
+/* ⚠ 2026-10-21 站点收敛：只留静态三件套 + 法务页。
+   被撤的页面由 lib/retired.mjs 回 **410 Gone**，断言在下面「下线闸门」一节。
+   别把那几条加回来 —— 加了就等于下线没生效，而用户只会看到 503。 */
 const ROUTES = [
-  { path: '/', name: '首页', sel: ['#stats', '#verfoot'], mod: 'ui' },
+  { path: '/', name: '首页', sel: ['#verfoot'], mod: 'ui' },
   { path: '/app', name: '工作台', sel: ['#drop', '#file', '#msg', '#out', '#csrch'], mod: 'engine' },
   { path: '/rulechart', name: '规则写谱', sel: ['#rcGo', '#preview', '#rcPez', '#rcReport'], mod: 'rulechart' },
-  { path: '/user', name: '玩家页', sel: ['#q', '#go', '#out', '#cands'], mod: 'phira' },
-  { path: '/charter', name: '谱师页', sel: ['#q', '#go', '#out'], mod: 'phira' },
-  { path: '/data', name: '数据管理', sel: ['#sum', '#tbl', '#pgwrap', '#q'], mod: 'data' },
-  { path: '/settings', name: '设置', sel: ['#optin', '#inv', '#ownList', '#stMsg', '#abVer'], mod: 'settings' },
-  { path: '/version', name: '版本历史', sel: ['#list', '#cnt', '#verfoot'], mod: 'ui' },
-  /* 状态页：⚠ 必须验「横幅文案非空」而不是只验节点存在。
-     这个页面的全部意义就在那一行结论上（正常/降级/中断/采集中），
-     而它恰好是最容易渲染成空白的地方 ——
-     overall 是 unknown 时文案走的是另一条分支，那条没被走到就等于没测。 */
-  { path: '/status', name: '运行状态', sel: ['#banner', '#bTitle', '#bMeta', '#groups', '#range'], mod: 'ui' },
   { path: '/packs', name: '谱面包', sel: ['#q', '#lv', '#sort', '#list', '#more'], mod: 'ui',
     ready: `!!document.querySelector('#list .card2')` },
-  /* 下载页要额外守两件事（见下面 /download 的专用断言）：
-     ① 主按钮的 href 真的指向可下载的地址；② 哈希与 release.js 一致。 */
-  { path: '/download', name: '下载客户端', sel: ['#dlbtn', '#hash', '#mf', '#verfoot'], mod: 'release' },
-  { path: '/developers', name: '开发者文档', sel: ['.api-side', '.api-main'], mod: 'ui' },
-  { path: '/platform', name: 'API 开放平台', sel: ['#authGate', '#app'], mod: 'ui' },
-  { path: '/phm-api', name: '单文件 API 客户端', sel: ['#apiKey', '#chartId', '#dlSelf'], mod: 'ui', standalone: true },
+  /* 法务页是自带 <nav> 的静态正文页（不用 JS 生成导航），所以 standalone。 */
+  { path: '/privacy', name: '隐私', sel: ['h1'], mod: 'ui', standalone: true },
+  { path: '/terms', name: '服务条款', sel: ['h1'], mod: 'ui', standalone: true },
+  { path: '/retired', name: '下线说明页', sel: ['h1'], mod: 'ui' },
 ];
 
 for (const R of ROUTES) {
@@ -312,7 +303,9 @@ for (const R of ROUTES) {
   ok('导航已渲染', info.hasNav === true);
   /* 导航入口数 = NAV 数组长度（首页/算定数/谱师/玩家/数据/设置/下载）。
      写死具体数字是有意的：**少一个入口是回归**，而"≥6"这种松断言拦不住它。 */
-  ok('导航含 9 个入口', (info.navLinks || []).length >= 9, JSON.stringify(info.navLinks));
+  /* ⚠ 数字跟着 NAV 走：2026-10-21 收敛后只剩 4 个入口（首页/工作台/规则写谱/谱面包）。
+     写死具体数字是有意的 —— ">=N" 这种松断言拦不住「少了一个入口」这种回归。 */
+  ok('导航含 4 个入口', (info.navLinks || []).length >= 4, JSON.stringify(info.navLinks));
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
@@ -676,6 +669,45 @@ for (const R of ROUTES) {
   const newErr = errors.length - before;
   ok('本页无运行时报错', newErr === 0, newErr + ' 条' + (newErr ? '：' + errors.slice(before).join(' | ').slice(0, 200) : ''));
 }
+
+/* ══════════════════════════════════════════════════════════
+ * 下线闸门（2026-10-21）
+ * ────────────────────────────────────────────────────────────
+ * 站点收敛为静态工具，被撤的页面 / API 必须回 **410 Gone**。
+ * 为什么单开一节：那些文件**没有删**，只是从 PUBLIC_FILES 里移除 ——
+ * 哪天有人把它们加回白名单（或在 CLEAN 里重新映射），下线就静默失效了，
+ * 而用户点进去只看到 503，接着以为网站坏了。这条断言就是防那个。
+ * ══════════════════════════════════════════════════════════ */
+console.log('\n[下线闸门] 被撤的路径必须 410');
+{
+  const GONE = ['/user', '/data', '/charter', '/status', '/settings', '/platform',
+    '/developers', '/phm-api', '/download', '/version', '/chart/1', '/chart/80281',
+    '/api/v1/charts', '/api/hm/profile', '/api/stats', '/api/plays', '/api/scores'];
+  for (const g of GONE) {
+    const r = await fetch(BASE + g, { redirect: 'manual' });
+    ok('410 Gone  ' + g, r.status === 410, 'got ' + r.status);
+  }
+  const r = await fetch(BASE + '/retired');
+  const t = r.ok ? await r.text() : '';
+  ok('/retired 说明页可达', r.status === 200 && t.includes('停止运营'), 'status=' + r.status);
+  ok('/api/health 仍通', (await fetch(BASE + '/api/health')).ok);
+  /* 裸文件路径是**另一种**正确行为：文件还在磁盘上，但不在 PUBLIC_FILES 白名单里
+     → 404。干净 URL（/user）才是 410。两条都钉住，别混。 */
+  for (const f of ['/user.html', '/data.html', '/settings.html', '/status.html']) {
+    const r = await fetch(BASE + f, { redirect: 'manual' });
+    ok('裸文件 404  ' + f, r.status === 404, 'got ' + r.status);
+  }
+}
+
+/* 横幅不许依赖 JS：直接读 HTML 源（不执行任何模块）——
+   这是「模块链一环失败整页就没文字」最坏的形态，而横幅是最该守的一条。 */
+console.log('\n[横幅] 站点公告写死在 HTML 里');
+{
+  const html = await (await fetch(BASE + '/app')).text();
+  ok('横幅文案在 HTML 源里', html.includes('本网站已停止运行'));
+  ok('横幅链接指向 /retired', html.includes('href="/retired"'));
+}
+
 
 /* ── 法务文档页：不在主导航里，但必须可访问、且是**浅色阅读版式** ──
    为什么单独检查颜色：长文（隐私政策 / 用户协议）跟产品界面走深色是错的 ——

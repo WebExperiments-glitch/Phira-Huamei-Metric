@@ -59,6 +59,13 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </style>
 </head>
 <body>
+<!-- ⚠ 2026-10-21：站点收敛为静态工具。这段是**写死的中文兜底** ——
+     不许清成 <div data-i18n="retire.text"></div>，模块链一环失败整页就没这句了。
+     链接指向 /retired（服务端渲染，不依赖任何 JS / 数据库）。 -->
+<div class="retire-banner" role="region" aria-label="站点公告">
+  <span data-i18n="retire.text">本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。</span>
+  <a class="retire-banner-link" href="/retired" data-i18n="retire.link">继续使用请到 →</a>
+</div>
 <div class="wrap"><nav id="nav"></nav></div>
 <div class="wrap rc-wrap">
   <section class="rc-hero">

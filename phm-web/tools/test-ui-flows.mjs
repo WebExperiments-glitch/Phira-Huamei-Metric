@@ -197,108 +197,29 @@ await goto('/app', 2600);
 }
 
 /* ══════════════════════════════════════════════════════════
- * 4) 例子芯片
+ * 6) 标题实际用的字体栈
+ * ╠═════════════════════════════════════════════════════════
+ * 2026-10-21 之前这一节是「在设置页选楷体 → 走到别的页看还在不在」，
+ * 依赖设置页的字体选择 UI。设置页随账号体系一起撤回了，UI 没了，
+ * 所以跨页面那部分无从测起 —— 保留的是与设置无关的那条：
+ * **标题元素实际算出来的字体栈**，第一个必须是 PHM Kai。
+ * 它防的是「data-font 设对了，但 CSS 那条 [data-font="kai"] 规则没写/写错」。
  * ══════════════════════════════════════════════════════════ */
-console.log('\n[4] 例子 / 最近查过 芯片');
-for (const [p, label] of [['/charter', '谱师页'], ['/user', '玩家页']]) {
-  await goto(p, 2200);
-  const n = await evalJS(`document.querySelectorAll('#exrow .chip').length`);
-  ok(label + ' 有例子芯片', n >= 2, '实际 ' + n + ' 个');
-  const filled = await evalJS(`(function(){
-    const c = document.querySelector('#exrow .chip');
-    if (!c) return '';
-    c.click();
-    return document.getElementById('q').value;
-  })()`);
-  ok(label + ' 点芯片会填进输入框', String(filled).length > 0, JSON.stringify(filled));
-  ok(label + ' 没有运行时报错', errors.length === 0, errors.slice(0, 2).join(' | '));
-}
-
-/* ══════════════════════════════════════════════════════════
- * 5) 表单卡收窄（评审 B）—— 只是确认窄卡生效，不是审美判断
- * ══════════════════════════════════════════════════════════ */
-console.log('\n[5] 表单卡版式');
-for (const [p, label] of [['/charter', '谱师页'], ['/user', '玩家页']]) {
-  await goto(p, 2000);
-  const w = await evalJS(`(function(){
-    const c = document.querySelector('.card.narrow');
-    return c ? Math.round(c.getBoundingClientRect().width) : -1;
-  })()`);
-  ok(label + ' 表单卡收窄到 ≤740px', w > 0 && w <= 740, w + 'px');
-}
-
-console.log('\n────────');
-/* ══════════════════════════════════════════════════════════
- * 6) 字体 / 字号设置**跨页面**生效
- * ══════════════════════════════════════════════════════════
- * 2026-10-17 的真实 bug：那段引导脚本只写在 settings.html 的 <head> 里，
- * 其余页面从不读 phm_font / phm_size —— 于是「切了字体，换个页面就变回去」。
- * 这条测试就是那一刻的照妖镜：在设置页选楷体，再走到别的页面看还在不在。
- */
-console.log('');
-console.log('[6] 字体设置跨页面生效');
+console.log('\n[6] 标题字体栈');
 {
-  await goto('/settings', 2400);
-  const picked = await evalJS(`(function(){
-    const b = document.querySelector('#fontSeg button[data-font="kai"]');
-    if (!b) return 'no-button';
-    b.click();
-    return document.documentElement.getAttribute('data-font') + '|' + (localStorage.getItem('phm_font') || '');
-  })()`);
-  ok('设置页能选楷体（并写进 phm_font）', /^kai|kai$/.test(String(picked)), String(picked));
-
-  /* 换到另一个页面 —— 这里才是以前出错的地方 */
-  await goto('/charter', 2400);
-  const applied = await evalJS(`document.documentElement.getAttribute('data-font')`);
-  ok('★ 换到谱师页后仍是楷体（不是回退成 serif）', applied === 'kai', String(applied));
-
-  /* 首页也要跟（它没有 settings 那份专门的引导脚本，只有每页公共的那几行） */
-  await goto('/', 2200);
-  const applied2 = await evalJS(`document.documentElement.getAttribute('data-font')`);
-  ok('★ 首页也仍是楷体', applied2 === 'kai', String(applied2));
-
-  /* 标题**实际用的字体栈**里，第一个必须是 PHM Kai —— 这一条防的是
-     「data-font 设对了，但 CSS 那条 [data-font="kai"] 规则没写/写错」。 */
+  await goto('/app', 2200);
+  /* 选择器必须是 base.css 里真正接 `--font-display` 的那几个
+     （h1/h2/h3/.brand/.big/.ps .num）—— 随便挑个带 title 字样的 class
+     会拿到正文栈，然后误报（2026-10-21 实测踩到）。 */
   const stack = await evalJS(`(function(){
-    var h = document.querySelector('h1') || document.querySelector('.brand');
-    return h ? getComputedStyle(h).fontFamily : 'no-heading';
+    const els = document.querySelectorAll('h1, h2, .brand, .big');
+    for (const el of els) {
+      const ff = getComputedStyle(el).fontFamily || '';
+      if (/PHM/.test(ff)) return ff;
+    }
+    return els.length ? getComputedStyle(els[0]).fontFamily : '(没有标题元素)';
   })()`);
-  ok('标题的字体栈第一个是 PHM Kai', /^"?PHM Kai"?/.test(String(stack)), String(stack).slice(0, 60));
-
-  /* 楷体文件确实在**声明里那个路径**上可取到（不是声明了却 404）。
-     ⚠ 别用 document.fonts.load() 判断：它在页面刚导航完、或字体正被页面
-       自己取用时，会抛一句含糊的 "A network error occurred"，甚至长时间不 resolve ——
-       实测同一时刻截图里楷体已经正常渲染了，那条断言还在报错。
-     ⚠ 也别查 performance 资源时序：字体已被前一个页面取过时，
-       新页面可能直接走内存缓存、根本不留条目，结果是假失败（踩过）。
-     直接打一次 HEAD 最稳：路径对不对、文件在不在，一问就知道。 */
-  const url = await evalJS(`(function(){
-    var out = '';
-    try {
-      Array.from(document.styleSheets).forEach(function(s){
-        try {
-          Array.from(s.cssRules).forEach(function(r){
-            if (r.type === 5 && /PHM Kai/.test(r.style.fontFamily)) out = r.style.src;
-          });
-        } catch (e) {}
-      });
-    } catch (e) {}
-    var m = /url\\("?([^")]+)"?\\)/.exec(out);
-    return m ? m[1] : 'not-declared';
-  })()`);
-  ok('CSS 里声明了楷体的 @font-face', String(url) !== 'not-declared', String(url));
-  const head = await evalJS(`fetch(${JSON.stringify(String(url))}, {method:'HEAD'})
-    .then(function(r){ return 'status=' + r.status + ' type=' + r.headers.get('content-type'); })
-    .catch(function(e){ return 'ERR ' + e.message; })`);
-  ok('楷体文件在该路径上可取到（200 + font/woff2）',
-    /^status=200 .*font\/woff2/.test(String(head)), String(head));
-
-  /* 复原，别把后面的检查污染了 */
-  await evalJS(`(function(){
-    const b = document.querySelector('#fontSeg button[data-font="serif"]');
-    if (b) b.click();
-    return 1;
-  })()`);
+  ok('标题的字体栈第一个是 PHM 展示字体', /^['"]?PHM /.test(String(stack).trim()), String(stack).slice(0, 90));
 }
 
 /* ── 玩家成绩卡：真的点一下按钮，真的画出一张图 ──

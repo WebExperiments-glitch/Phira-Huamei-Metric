@@ -30,15 +30,12 @@ const PHIRA_API = 'https://api.phira.cn';
 /* 页面映射：干净 URL → 实际文件。
    ⚠ **显式白名单，不是通配** —— 将来加页面必须同时加进 PUBLIC_FILES，
      不会因为忘了写路由就把文件暴露出去。 */
+/* ⚠ 2026-10-21 收敛：只留静态三件套 + 法务页。
+   被撤的路径走 lib/retired.mjs 回 410，**不要**在这里给它们映射 ——
+   否则文件还在磁盘上，等于下线没生效。 */
 export const CLEAN = {
-  '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
-  '/data': 'data.html', '/settings': 'settings.html',
+  '/app': 'app.html', '/rulechart': 'rulechart.html', '/packs': 'packs.html',
   '/privacy': 'privacy.html', '/terms': 'terms.html',
-  '/version': 'version.html', '/download': 'download.html',
-  '/developers': 'developers.html', '/platform': 'platform.html',
-  '/developer': 'platform.html',   /* 旧链接兼容 */
-  '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',
-  '/status': 'status.html', '/packs': 'packs.html',
 };
 
 /** HTML 属性转义。曲名/谱师是**用户可提交的内容**，直接拼进 title

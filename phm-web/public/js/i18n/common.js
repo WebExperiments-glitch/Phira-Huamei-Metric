@@ -23,6 +23,8 @@ export default {
     'nav.search.ph': '曲名 / 谱师 / 标签',
     'nav.settings': '设置',
     'nav.platform': 'API 开放平台',
+    'retire.text': '本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。',
+    'retire.link': '继续使用请到 →',
     'nav.status': '状态',
     'nav.download': '下载',
 
@@ -149,6 +151,8 @@ export default {
     'nav.search.ph': 'title / charter / tag',
     'nav.settings': 'Settings',
     'nav.platform': 'API Platform',
+    'retire.text': 'This site has been shut down; accounts, scores and data features are withdrawn.',
+    'retire.link': 'Continue using →',
     'nav.status': 'Status',
     'nav.download': 'Download',
 
