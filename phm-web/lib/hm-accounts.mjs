@@ -29,6 +29,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dbFetch, WRITE_SECRET } from './cloud.mjs';
+import { sendMail, mailReady } from './mail.mjs';
+import { codeMail } from './mail-tpl.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
@@ -304,6 +306,20 @@ const AUTH_HEADERS = {
   'referer': 'https://phm.app.workbuddy.host/',
 };
 const CODE_PURPOSES = new Set(['register', 'reset']);
+
+/** 验证码的哈希。用 HMAC + 写入凭据当密钥 —— 6 位数字的搜索空间只有一百万，
+ *  单纯 sha256 被拖库后一秒就能撞完；加个密钥之后拖库也没用。 */
+function codeHash(email, purpose, code) {
+  return crypto.createHmac('sha256', WRITE_SECRET || 'no-secret')
+    .update(email + '|' + purpose + '|' + code).digest('hex');
+}
+
+/** 定长比较，避免按字节提前返回泄露前缀信息 */
+function safeEqual(a, b) {
+  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+  if (x.length !== y.length) return false;
+  return crypto.timingSafeEqual(x, y);
+}
 const CODE_TTL_SECONDS = 600;   /* 平台给的窗口就是 10 分钟 */
 
 /** 让平台给这个邮箱发一封验证码，并把 verification_id 存进我们的库。
@@ -327,6 +343,28 @@ export async function sendCode(email, purpose) {
     }
   }
 
+  /* ── 优先自己发（lib/mail.mjs）──
+     2026-10-21：平台那个发信服务随数据库一起挂了，注册彻底断掉。
+     配了 PHM_MAIL_PROVIDER 就自己生成 6 位码、只把 HMAC 存进库里、自己发信；
+     没配就退回平台那条老路（它已经不通，但保留是为了代码可回退）。 */
+  if (mailReady()) {
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    const vid = 'own:' + codeHash(e, purpose, code);
+    const exp = Math.floor(Date.now() / 1000) + CODE_TTL_SECONDS;
+    const put0 = await rpc('hm_code_put', { p_email: e, p_purpose: purpose, p_vid: vid, p_exp: exp });
+    if (!put0.ok) return { error: 'store_failed', detail: String(put0.body || put0.error || '').slice(0, 160) };
+
+    const mins = Math.round(CODE_TTL_SECONDS / 60);
+    const sent = await sendMail(Object.assign({ to: e }, codeMail(code, mins)));
+    if (!sent.ok) {
+      /* 发不出去就把这条码作废，别留一个"有效但用户没收到"的码占着位置 */
+      await rpc('hm_code_consume', { p_email: e, p_purpose: purpose });
+      console.warn('[hm/send-code] 自建发信失败:', sent.error);
+      return { error: 'send_failed' };
+    }
+    return { ok: true, ttl: CODE_TTL_SECONDS };
+  }
+
   let vid;
   try {
     const r = await fetch(AUTH_BASE + '/verification', {
@@ -347,7 +385,7 @@ export async function sendCode(email, purpose) {
   if (!vid) return { error: 'send_failed' };
 
   const exp = Math.floor(Date.now() / 1000) + CODE_TTL_SECONDS;
-  const put = await rpc('hm_code_put', { p_email: e, p_purpose: purpose, p_vid: vid, p_exp: exp });
+  const put = await rpc('hm_code_put', { p_email: e, p_purpose: purpose, p_vid: 'plt:' + vid, p_exp: exp });
   if (!put.ok) return { error: 'store_failed', detail: String(put.body || put.error || '').slice(0, 160) };
   return { ok: true, ttl: CODE_TTL_SECONDS };
 }
@@ -374,11 +412,22 @@ export async function verifyCode(email, purpose, code) {
     return { error: map[j.reason] || 'code_invalid' };
   }
 
+  const vid = String(j.vid || '');
+
+  /* 自己发的码：库里存的是 HMAC，直接比对（不需要网络，也没有平台依赖） */
+  if (vid.startsWith('own:')) {
+    if (!safeEqual(vid.slice(4), codeHash(e, purpose, c))) return { error: 'code_wrong' };
+    const c2 = await rpc('hm_code_consume', { p_email: e, p_purpose: purpose });
+    if (!c2.ok) console.warn('[hm/verify-code] 作废失败（不影响本次通过）:', String(c2.body || '').slice(0, 120));
+    return { ok: true };
+  }
+
+  /* 平台发的码（老路，vid 可能带 plt: 前缀，也可能是不带前缀的历史行） */
   let ok = false;
   try {
     const r = await fetch(AUTH_BASE + '/verification/verify', {
       method: 'POST', headers: AUTH_HEADERS,
-      body: JSON.stringify({ verification_id: j.vid, verification_code: c }),
+      body: JSON.stringify({ verification_id: vid.replace(/^plt:/, ''), verification_code: c }),
       signal: AbortSignal.timeout(15000),
     });
     ok = r.ok;

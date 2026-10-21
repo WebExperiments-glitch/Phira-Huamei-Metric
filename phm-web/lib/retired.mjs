@@ -105,7 +105,31 @@ function retiredPage() {
  * 下线闸门。**在任何其他路由之前调用**。
  * @returns true 表示已处理（调用方应直接 return）
  */
+/* ⚠ 2026-10-21 起「撤不撤」是可切换的 —— 同一份代码要跑两个站：
+     · 腾讯那个 = **静态指路牌**（账号/成绩/API 全撤，只见横幅与三个本地功能）
+     · 新站      = **全功能**（数据库已搬到 Neon，见 lib/db-pg.mjs）
+   切换用**标记文件**而不是环境变量：部署工具上传的是整个目录，
+   我这边没有配环境变量的入口，但「目录里有没有这个文件」是确定的。
+   本文件所在目录（lib/）的上一级根目录下出现 `.static-only` 即视为静态站。 */
+export const STATIC_ONLY = (() => {
+  if (process.env.PHM_STATIC_ONLY === '1') return true;
+  if (process.env.PHM_STATIC_ONLY === '0') return false;
+  try {
+    return fs.existsSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.static-only'));
+  } catch { return false; }
+})();
+
 export function retiredGate(p, req, res, send) {
+  /* 全功能站（新站）：整道闸门不生效，连 /retired 也不需要 */
+  if (!STATIC_ONLY && p !== '/retired') return false;
+  if (!STATIC_ONLY && p === '/retired') {
+    /* 全功能站上 /retired 没有意义 —— 首页还在，说明"本站已停止运营"就是假话。
+       ⚠ 这里的 send() 只有 4 个参数（code/body/type），带不了头 ——
+       要跳转就得自己 writeHead。 */
+    res.writeHead(302, { location: '/', 'cache-control': 'no-store' });
+    res.end();
+    return true;
+  }
   /* 说明页自己永远可达 */
   if (p === '/retired') {
     send(res, 200, retiredPage(), 'text/html; charset=utf-8');
@@ -142,4 +166,16 @@ export function retiredGate(p, req, res, send) {
   }
 
   return false;
+}
+
+/** 全功能站要把公告横幅**从 HTML 里摘掉** —— 那句话说"本站已停止运行"，
+    而在新站上它是假话。静态站原样保留（写死在 HTML 里，模块链断了也还在）。 */
+export function stripBanner(html) {
+  if (STATIC_ONLY) return html;
+  /* 从注释头到 banner 的闭合 </div>。⚠ 三处细节都是踩过的：
+     ① `-->` 与 `<div` 之间**有换行**（模板里是 ` 数据库）。 -->\n<div…`），
+        中间必须允许 `\s*`，否则整条正则一次都不匹配（实测：长度一字未变）；
+     ② 非贪婪 `[\s\S]*?`，否则会一路吃到页脚；
+     ③ 锚定注释开头，别用"删第一个 div" —— 那会连带吃掉 .wrap。 */
+  return html.replace(/<!-- ⚠ 2026-10-21：[\s\S]*?-->\s*<div class="retire-banner"[\s\S]*?<\/div>/, '');
 }

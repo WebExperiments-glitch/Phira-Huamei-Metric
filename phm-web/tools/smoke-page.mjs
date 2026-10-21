@@ -305,7 +305,9 @@ for (const R of ROUTES) {
      写死具体数字是有意的：**少一个入口是回归**，而"≥6"这种松断言拦不住它。 */
   /* ⚠ 数字跟着 NAV 走：2026-10-21 收敛后只剩 4 个入口（首页/工作台/规则写谱/谱面包）。
      写死具体数字是有意的 —— ">=N" 这种松断言拦不住「少了一个入口」这种回归。 */
-  ok('导航含 4 个入口', (info.navLinks || []).length >= 4, JSON.stringify(info.navLinks));
+  /* 导航条目数与站点模式无关 —— 静态站也保留完整清单（点进去是 410 说明页），
+     所以这里只验「到底渲染出几个」。写死数字是有意的：少一个入口是回归。 */
+  ok('导航含 11 个入口', (info.navLinks || []).length >= 11, JSON.stringify(info.navLinks));
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
@@ -662,8 +664,26 @@ for (const R of ROUTES) {
       for (const h of hrefs) { try { res[h] = (await fetch(h, {method:'GET'})).status; } catch(e){ res[h] = 'ERR'; } }
       return res;
     })()`);
-    const bad = Object.entries(links || {}).filter(([, s]) => s !== 200);
-    ok('导航每个入口都返回 200', bad.length === 0, JSON.stringify(links));
+    /* ⚠ 2026-10-21：同一份代码跑两个站，**静态站**上账号/成绩/数据那几个入口
+       是故意 410 的（见 lib/retired.mjs）。所以判据不是"必须 200"，而是
+       **"要么能用，要么明确告诉你为什么不能用"**：
+       非 200 只允许 410，且响应体里必须有"已停止运营"。
+       这样既不会因为收敛而假红，也能抓住真正的 404/500。 */
+    const nonOk = Object.entries(links || {}).filter(([, s]) => s !== 200);
+    const notGone = nonOk.filter(([, s]) => s !== 410);
+    ok('导航入口没有 404/500（410 是已下线，允许）', notGone.length === 0,
+      notGone.length ? JSON.stringify(notGone) : ('已下线 ' + nonOk.length + ' 个'));
+    if (nonOk.length) {
+      const gone = await evalJS(`(async function(){
+        const out = [];
+        for (const h of ${JSON.stringify(nonOk.map(([h]) => h))}) {
+          const t = await (await fetch(h)).text();
+          if (!t.includes('已停止运营')) out.push(h);
+        }
+        return out;
+      })()`);
+      ok('410 的入口都给了「已停止运营」说明', (gone || []).length === 0, JSON.stringify(gone));
+    }
   }
 
   const newErr = errors.length - before;

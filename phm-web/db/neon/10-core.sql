@@ -308,15 +308,34 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
-/* 返回数组形状（同 hm_account_lookup 的理由）：调用方会 JSON.parse 后取 [0] 或判断长度 */
+/* ⚠ 返回值是**对象**不是数组 —— 调用方（lib/hm-accounts.mjs 的 verifyCode）
+   解析的是 `{ok:true, vid}` / `{ok:false, reason}`：
+     j.ok !== true → 按 reason 翻成 not_found / expired / used / too_many
+   我第一版按 hm_account_lookup 的形状写成了「返回数组」，结果代码永远拿到
+   `j.ok === undefined` → 一律 code_invalid，而且**不会报错**。
+   （再次印证：跨层形状不匹配是最难查的一类 bug，只有真跑一遍才暴露。） */
 create or replace function public.hm_code_get(p_secret text, p_email text, p_purpose text)
 returns jsonb
-language sql security definer set search_path = public, pg_temp as $$
-  select coalesce(jsonb_agg(jsonb_build_object('vid', vid, 'exp', exp, 'used', used)), '[]'::jsonb)
-  from hm_email_codes
-  where email = lower(p_email) and purpose = p_purpose and not used
-    and p_secret = (select v from phm_secrets where k='writer');
-$$;
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare r public.hm_email_codes;
+begin
+  if p_secret is null or p_secret <> (select v from phm_secrets where k='writer') then
+    raise exception 'unauthorized writer' using errcode = '42501';
+  end if;
+  select * into r from hm_email_codes
+   where email = lower(p_email) and purpose = p_purpose
+   order by created_at desc limit 1;
+  if r.email is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_found');
+  end if;
+  if r.used then
+    return jsonb_build_object('ok', false, 'reason', 'used');
+  end if;
+  if r.exp < extract(epoch from clock_timestamp()) then
+    return jsonb_build_object('ok', false, 'reason', 'expired');
+  end if;
+  return jsonb_build_object('ok', true, 'vid', r.vid, 'exp', r.exp);
+end $$;
 
 create or replace function public.hm_code_consume(p_secret text, p_email text, p_purpose text)
 returns jsonb

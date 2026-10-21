@@ -28,13 +28,22 @@ export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}
      /settings 设置（上传偏好 / Phira 连接 / 本机存储）
    全部是**独立页面**而不是一个页面里的面板：面板方案下，链接没法直接
    指向"某人的成绩"，而分享链接恰恰是这个工具最主要的传播方式。 */
-/* ⚠ 2026-10-21 收敛：账号/成绩/数据/API/状态页全部撤回（见 lib/retired.mjs），
-   导航只剩静态三件套。被撤的页面文件还在仓库里，想恢复就把条目加回来。 */
+/* ⚠ 2026-10-21：同一份代码跑两个站（见 lib/retired.mjs 的 STATIC_ONLY）。
+   导航恢复成**完整清单** —— 新站要全功能。
+   静态站（腾讯那块指路牌）上，被撤的入口点进去会看到 410 说明页；
+   顶部横幅已经把"本站已停止运行"说清楚了，比"链接凭空消失"更诚实。 */
 const NAV = [
   ['/', 'nav.home', 'home'],
   ['/app', 'nav.app', 'app'],
   ['/rulechart', 'nav.rulechart', 'rulechart'],
+  ['/charter', 'nav.charter', 'charter'],
+  ['/user', 'nav.user', 'user'],
   ['/packs', 'nav.packs', 'packs'],
+  ['/data', 'nav.data', 'data'],
+  ['/settings', 'nav.settings', 'settings'],
+  ['/platform', 'nav.platform', 'platform'],
+  ['/status', 'nav.status', 'status'],
+  ['/download', 'nav.download', 'download'],
 ];
 
 /* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */
