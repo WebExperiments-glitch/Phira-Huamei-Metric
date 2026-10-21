@@ -664,8 +664,26 @@ for (const R of ROUTES) {
       for (const h of hrefs) { try { res[h] = (await fetch(h, {method:'GET'})).status; } catch(e){ res[h] = 'ERR'; } }
       return res;
     })()`);
-    const bad = Object.entries(links || {}).filter(([, s]) => s !== 200);
-    ok('导航每个入口都返回 200', bad.length === 0, JSON.stringify(links));
+    /* ⚠ 2026-10-21：同一份代码跑两个站，**静态站**上账号/成绩/数据那几个入口
+       是故意 410 的（见 lib/retired.mjs）。所以判据不是"必须 200"，而是
+       **"要么能用，要么明确告诉你为什么不能用"**：
+       非 200 只允许 410，且响应体里必须有"已停止运营"。
+       这样既不会因为收敛而假红，也能抓住真正的 404/500。 */
+    const nonOk = Object.entries(links || {}).filter(([, s]) => s !== 200);
+    const notGone = nonOk.filter(([, s]) => s !== 410);
+    ok('导航入口没有 404/500（410 是已下线，允许）', notGone.length === 0,
+      notGone.length ? JSON.stringify(notGone) : ('已下线 ' + nonOk.length + ' 个'));
+    if (nonOk.length) {
+      const gone = await evalJS(`(async function(){
+        const out = [];
+        for (const h of ${JSON.stringify(nonOk.map(([h]) => h))}) {
+          const t = await (await fetch(h)).text();
+          if (!t.includes('已停止运营')) out.push(h);
+        }
+        return out;
+      })()`);
+      ok('410 的入口都给了「已停止运营」说明', (gone || []).length === 0, JSON.stringify(gone));
+    }
   }
 
   const newErr = errors.length - before;
