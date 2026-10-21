@@ -57,12 +57,26 @@ async function dbHit(key, max, windowMs) {
     return null;
   }
   if (!WRITE_SECRET) return null;
-  const r = await dbFetch('/rpc/hm_rate_hit', {
+  const call = () => dbFetch('/rpc/hm_rate_hit', {
     method: 'POST',
     body: JSON.stringify({
       p_secret: WRITE_SECRET, p_key: key, p_max: max, p_window_ms: windowMs,
     }),
   }, 8000, 2048);
+
+  let r = await call();
+  /* ⚠ **超时要重试一次**，而且只在超时的时候。
+     2026-10-21 换到 Neon 之后才知道：免费档空闲 5 分钟就把 compute 缩到零，
+     下一个请求要等它唤醒（实测 1.7~13 秒）。8 秒的 dbHit 超时会撞上这件事，
+     于是 via 变成 db-down —— 而 db-down 在我们的语义里是**回归**（单测会红），
+     真实用户那边则是 fail-open（限流静默放行）。
+     一次"根本没送到库里"的超时重试是安全的：计数器没被写过，不会重复计数。
+     真正的数据库错误（42501 / 语法 / 连接被拒）照旧立刻返回，不重试。 */
+  const timedOut = !r.ok && (r.status === 504 || /TIMEOUT|db timeout/i.test(String(r.body || r.error || '')));
+  if (timedOut) {
+    await new Promise(res => setTimeout(res, 1200));
+    r = await call();
+  }
   if (!r.ok) {
     console.warn('[ratelimit] DB 计数失败，退回进程内：', r.status,
       String(r.body || r.error || '').slice(0, 160));

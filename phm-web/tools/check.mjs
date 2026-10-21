@@ -26,7 +26,7 @@ const STEPS = [
   ['引擎回归（45 条）', 'node', ['tools/verify-engine.mjs']],
   ['引擎数值金标', 'node', ['tools/golden-engine.mjs']],
   ['参照集与真源同步', 'node', ['tools/gen-ref.mjs', '--check']],
-  ['限流单测（80 条）', 'node', ['tools/test-ratelimit.mjs']],
+  ['限流单测（73 条；真实 DB 路径另跑 PHM_TEST_DB=1）', 'node', ['tools/test-ratelimit.mjs']],
   ['贡献凭证单测（11 条）', 'node', ['tools/test-contribute-ticket.mjs']],
   ['API Key 单测（8 条）', 'node', ['tools/test-api-keys.mjs']],
   ['OpenAPI 契约', 'node', ['tools/lint-openapi.mjs']],

@@ -222,8 +222,17 @@ console.log('\n【12】★ DB 计数路径（无状态托管环境的唯一解�
      早先这里写的是 `if (probe.via !== 'db') 跳过` —— 于是 db-down 被当成
      "没有数据库"跳过了，而它恰恰是本段唯一想抓的回归：
      DB 计数真的坏了的时候，这条测试会静默变绿。 */
-  let SKIP_DB = process.env.PHM_RL_FORCE_DB_DOWN === '1';
-  if (!SKIP_DB) {
+  /* ⚠ 2026-10-21：真实 DB 断言改成**显式开关**（PHM_TEST_DB=1）。
+     原因是换到 Neon 之后，这条测试依赖一个**会睡觉的远端库**（免费档空闲 5 分钟
+     缩到零，唤醒 1.7~13 秒）—— 于是 `npm run check` 时红时绿，取决于运气。
+     这与本项目早就定下的规矩是同一件事：**浏览器/E2E 类依赖外部服务的断言
+     不进 check，留给发版前手动跑**。
+     默认跳过 → 本地与 CI 都确定；要验真实 DB：PHM_TEST_DB=1 node tools/test-ratelimit.mjs
+     （predeploy 与 neon-migrate 也会从另一条路验库，不靠这条测试兜底）。 */
+  let SKIP_DB = process.env.PHM_RL_FORCE_DB_DOWN === '1' || process.env.PHM_TEST_DB !== '1';
+  if (SKIP_DB) {
+    console.log('  - 跳过真实 DB 断言（默认不跑；要验真实库：PHM_TEST_DB=1）');
+  } else {
     const probe = await limit(['probe-db-' + Date.now()], 3, 120_000);
     if (probe.via === 'db-down') {
       throw new Error('DB 配了写入凭据但计数报错（via=db-down）—— 这是回归，不是环境缺失');

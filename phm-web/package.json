@@ -9,5 +9,8 @@
     "check": "node tools/check.mjs",
     "gate": "node tools/review-gate.mjs",
     "preflight": "node tools/preflight.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
   }
 }
