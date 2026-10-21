@@ -126,10 +126,20 @@ for (const [f, url] of Object.entries(PARAM_ROUTES)) {
     fail('PARAM_ROUTES 里的 ' + f + ' 声称走 ' + url + '，但 lib/pages.mjs 里没有渲染它');
   }
 }
+/* ⚠ 2026-10-21 站点收敛：一批页面**故意**不在白名单里（见 lib/retired.mjs）。
+   文件留在仓库（git 随时能回来），但不放行 → 裸访问 404、干净 URL 410。
+   这条豁免必须显式列出来，否则「把文件加回白名单」和「漏了没加」长得一模一样。 */
+const retiredSrc = fs.readFileSync(path.join(WEB, 'lib', 'retired.mjs'), 'utf8');
+const retiredBlock = (retiredSrc.match(/RETIRED_HTML = \[([\s\S]*?)\]/) || [])[1] || '';
+const RETIRED_FILES = new Set([...retiredBlock.matchAll(/'([^']+)'/g)].map((m) => m[1]));
+/* retired.html 是服务端模板（lib/retired.mjs 读它替换占位符），同样不放行。 */
+RETIRED_FILES.add('retired.html');
+
 const topHtml = fs.readdirSync(path.join(WEB, 'public')).filter((f) => f.endsWith('.html'));
 for (const f of topHtml) {
+  if (RETIRED_FILES.has(f)) continue;   /* 已下线，故意不放行 */
   if (!publicFiles.has(f)) fail('public/' + f + ' 不在 PUBLIC_FILES');
-  if (!['404.html', 'index.html'].includes(f) && !cleanTargets.has(f) && !PARAM_ROUTES[f]) {
+  if (!['404.html', 'index.html'].includes(f) && !cleanTargets.has(f) && !PARAM_ROUTES[f] && !RETIRED_FILES.has(f)) {
     fail('public/' + f + ' 没有干净 URL（CLEAN）');
   }
 }

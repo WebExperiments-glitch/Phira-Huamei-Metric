@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 版本号由服务端替换（__APP_VER__）——与各页 <meta name="app-version"> 同源 -->
+<meta name="app-version" content="__APP_VER__">
+<meta name="robots" content="noindex">
+<title>本网站已停止运营 · P.H.M.</title>
+<!-- 主题防闪烁：必须**同步内联**在样式表之前。键名与 js/settings.js 的 KEYS 一致。
+     （lint-slop 对 .html 里的这段有专门豁免，别改成模块 —— 模块是异步的，会闪一帧。） -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=__APP_VER__">
+<link rel="stylesheet" href="/css/ui-kit.css?v=__APP_VER__">
+</head>
+<body>
+<!-- ⚠ 2026-10-21：站点收敛为静态工具。这段是**写死的中文兜底** ——
+     不许清成 <div data-i18n="retire.text"></div>，模块链一环失败整页就没这句了。 -->
+<div class="retire-banner" role="region" aria-label="站点公告">
+  <span data-i18n="retire.text">本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。</span>
+  <a class="retire-banner-link" href="/retired" data-i18n="retire.link">继续使用请到 →</a>
+</div>
+<div class="wrap">
+<nav id="nav"></nav>
+<main style="max-width:640px;margin:8vh auto;padding:0 20px;line-height:1.75">
+  <h1 style="font-size:1.5rem;margin:0 0 14px">本网站已停止运营</h1>
+  <p>谱面分析、规则写谱、谱面包这三个<b>不依赖数据库</b>的功能仍可正常使用；
+     账号、成绩、数据管理、状态页与开放 API 已全部撤回。</p>
+  <p>继续使用请到：<a href="__RETIRE_URL__" rel="noopener">__RETIRE_URL__</a></p>
+  <p style="margin-top:26px">
+    <a class="btn" href="/app">去谱面分析</a>
+    <a class="btn ghost" href="/rulechart" style="margin-left:8px">规则写谱</a>
+    <a class="btn ghost" href="/packs" style="margin-left:8px">谱面包</a>
+  </p>
+</main>
+</div>
+<script type="module">
+  import { renderNav, applyStatic } from '/js/ui.js?v=__APP_VER__';
+  renderNav(); applyStatic();
+</script>
+</body>
+</html>

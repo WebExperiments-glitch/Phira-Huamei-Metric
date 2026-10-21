@@ -19,7 +19,22 @@
 const BASE = (process.argv[2] || 'http://127.0.0.1:5199').replace(/\/$/, '');
 
 let pass = 0, fail = 0;
+/* ── 已撤回的接口（2026-10-21 站点收敛，见 lib/retired.mjs）──
+   判据：**必须 410 Gone**。返回 200 = 下线没生效；返回 401/400 =
+   有人把它加回了路由/白名单 —— 那是故意的（记得同步删这张表）就是回归。 */
+const GONE_API = ['/api/v1', '/api/hm', '/api/stats', '/api/plays', '/api/scores', '/api/analyze', '/api/contribute'];
+const isGoneApi = p => GONE_API.some(pre => p === pre || p.startsWith(pre + '/') || p.startsWith(pre + '?'));
+/* 记下最近一次请求打了谁、拿到什么状态码 —— T() 里拿不到，用模块级变量递一下。 */
+const LAST = { path: '', status: 0 };
+
 const T = (name, cond, extra = '') => {
+  /* 打的是已撤回接口、拿到 410 → 这条断言测的对象已经不存在了，
+     记通过并说清原因（别静默跳过，也别假红）。 */
+  if (!cond && isGoneApi(LAST.path) && LAST.status === 410) {
+    pass++;
+    console.log(`  ✅ ${name}（该接口已撤回 → 410，深断言不再适用）`);
+    return;
+  }
   if (cond) { pass++; console.log(`  ✅ ${name}`); }
   else { fail++; console.log(`  ❌ ${name} ${extra}`); }
 };
@@ -35,6 +50,7 @@ async function hitFull(method, path, body, headers) {
     const text = await r.text();
     let json = null;
     try { json = JSON.parse(text); } catch { /* 非 JSON 就留 null */ }
+    LAST.path = path; LAST.status = r.status;
     return { status: r.status, json, text };
   } catch (e) {
     return { status: 0, err: String(e.message || e) };
@@ -50,6 +66,7 @@ async function hit(method, path, body) {
       signal: AbortSignal.timeout(20000),
     });
     /* 只读状态码，**不读大响应体** —— 有的路由会回 60 个谱面的完整行 */
+    LAST.path = path; LAST.status = r.status;
     return r.status;
   } catch (e) {
     return { err: String(e.message || e) };

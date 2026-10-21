@@ -215,6 +215,10 @@ for (const [name, hits] of fnSeen) {
   const SPEC = /(?:import\s*\(|from)\s*['"]((?:\.{1,2}\/|\/js\/)[^'"]*?\.js)(\?v=[^'"]*)?['"]/g;
   for (const f of FILES) {
     if (!/^public\/.*\.(html|js)$/.test(f.rel)) continue;
+    /* ⚠ retired.html 是**服务端模板**：`?v=__APP_VER__` 由 lib/retired.mjs 在
+       送出前替换成真版本号。用户永远拿不到带占位符的 URL，所以它不该参与
+       「串值唯一」的比较 —— 否则每次发版都在这儿假报一条。 */
+    if (f.rel === 'public/retired.html') continue;
     const src = readFileSync(f.abs, 'utf8');
     const lines = src.split('\n');
     let m;

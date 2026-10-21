@@ -28,24 +28,13 @@ export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}
      /settings 设置（上传偏好 / Phira 连接 / 本机存储）
    全部是**独立页面**而不是一个页面里的面板：面板方案下，链接没法直接
    指向"某人的成绩"，而分享链接恰恰是这个工具最主要的传播方式。 */
+/* ⚠ 2026-10-21 收敛：账号/成绩/数据/API/状态页全部撤回（见 lib/retired.mjs），
+   导航只剩静态三件套。被撤的页面文件还在仓库里，想恢复就把条目加回来。 */
 const NAV = [
   ['/', 'nav.home', 'home'],
   ['/app', 'nav.app', 'app'],
   ['/rulechart', 'nav.rulechart', 'rulechart'],
-  ['/charter', 'nav.charter', 'charter'],
-  ['/user', 'nav.user', 'user'],
   ['/packs', 'nav.packs', 'packs'],
-  ['/data', 'nav.data', 'data'],
-  ['/settings', 'nav.settings', 'settings'],
-  ['/platform', 'nav.platform', 'platform'],
-  /* ⚠ /status 之前**根本不在导航里** —— 页面做得再好，没人找得到等于没做
-     （用户原话：「这个我们都不知道在哪里」）。放在下载之前：
-     它和下载一样是"偶尔才看"的页，所以靠后；但必须**可见**。 */
-  ['/status', 'nav.status', 'status'],
-  /* 下载放最后 —— 它是一次性的动作，不是常来的页面。
-     ⚠ 顺序就是**设置之后**，别往中间插：导航顺序是用户的空间记忆，
-     挪一个位置会让所有人找错一次。 */
-  ['/download', 'nav.download', 'download'],
 ];
 
 /* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */

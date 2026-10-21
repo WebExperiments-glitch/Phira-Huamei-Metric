@@ -387,3 +387,61 @@ node tools/smoke-page.mjs https://phm.app.workbuddy.host
 
 **同名版本部署两次**造成的问题，**唯一的解就是换版本号**（URL 变了，旧副本自动绕过）。
 别去教用户"强刷一下" —— `immutable` 的年代强刷也没用，而且那个坑我们已经埋掉了。
+
+---
+
+# 附：2026-10-21 站点收敛为静态工具
+
+## 发生了什么
+
+腾讯云 CloudBase 把数据库隔离（`DATABASE_RESOURCE_ISOLATED`），
+登录 / 成绩 / 数据接口全断。根因是 `hm_rate` 表只增不减吃爆额度
+（详见 `.workbuddy/memory/2026-10-20.md`）。决定：**不再依赖云数据库**，
+站点收敛成一个静态的谱面分析工具。
+
+## 现在的形态
+
+- **保留**：`/app` 谱面分析、`/rulechart` 规则写谱、`/packs` 谱面包
+  （三者都不碰数据库：分析与写谱在浏览器本地算，谱面包浏览器直连 Phira CDN）。
+- **撤回**：账号体系、`/user` `/data` `/charter` `/status` `/platform`
+  `/developers` `/phm-api` `/settings` `/download` `/version` `/chart/<id>`，
+  以及 `/api/v1` `/api/hm` `/api/stats` `/api/charts` `/api/plays` `/api/scores`
+  `/api/contribute` `/api/analyze`。
+- **怎么撤的**：`lib/retired.mjs` 一道闸门挡在所有路由之前，命中就回
+  **410 Gone**（不是 404 —— 410 的语义是"以前有、现在没了、别再来"）。
+  页面文件**没有删**，只是从 `PUBLIC_FILES` 里移除 → 裸文件访问 404。
+  想恢复：把文件加回白名单、从 `RETIRED_PAGES`/`RETIRED_API` 删掉对应项即可。
+
+## ⚠ 待办（欠用户一个东西）
+
+**`lib/retired.mjs` 里的 `RETIRE_URL` 还是占位地址 `https://example.com/`。**
+用户说过"继续使用请到另一个站点"，但还没给地址。拿到后：
+① 改 `lib/retired.mjs` 的 `RETIRE_URL`（**只有这一处**，横幅/410页/说明页都读它）；
+② 本页这条待办删掉。
+
+## 关于换数据库（用户已决定脱离腾讯云）
+
+选型结论记在 `.workbuddy/memory/2026-10-20.md`：主推 **Neon**（空闲自动唤醒、
+100 项目、1GB/项目），备选 Supabase。**在 `RETIRE_URL` 与静态化落地之前，
+这件事不排优先级** —— 静态站点本来就不需要数据库。
+
+## Neon 已接上（2026-10-21 下午）
+
+用户给了新加坡（ap-southeast-1）项目的连接串，已存进 `phm-web/.env`（**gitignored**）：
+`PHM_NEON_URL`（池化）、`PHM_NEON_URL_NOCHBIND`、`PHM_NEON_HOST`。
+
+实测结论（本机，`pg` 驱动）：
+
+| 用法 | 端点 | 结果 |
+|---|---|---|
+| 池化 + `channel_binding=require`（原样） | `…-pooler.c-3…` | ✅（首次 13.7s = 冷启动唤醒） |
+| 池化 + `sslmode=require` | 同上 | ✅ 1.9s |
+| **直连**（迁移用） | `…az4say68.c-3…`（无 `-pooler`） | ✅ 3.5s |
+
+- PostgreSQL **18.6**，`user=neondb_owner`，`db=neondb`，`public` schema 目前 **0 张表**。
+- ⚠ `channel_binding=require` node-postgres 居然也认（原样可用）；保险起见 `.env` 里另存了去掉它的变体。
+- ⚠ **迁移必须走直连端点**（不带 `-pooler`）：`SET search_path` / DDL / `pg_dump`
+  在 PgBouncer 事务模式下会出各种诡异错误（Neon 官方 skill 的 gotcha 一节明写）。
+  运行期查询才用池化端点。
+- Neon skills 已装到 `~/.workbuddy/skills/{neon,neon-postgres}`（官方 `npx neon skills`
+  因为 `insteadOf` 代理 504 而失败，改用过滤版 git 配置手动 clone 拿到）。
