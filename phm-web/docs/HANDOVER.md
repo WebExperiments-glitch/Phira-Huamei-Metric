@@ -412,12 +412,12 @@ node tools/smoke-page.mjs https://phm.app.workbuddy.host
   页面文件**没有删**，只是从 `PUBLIC_FILES` 里移除 → 裸文件访问 404。
   想恢复：把文件加回白名单、从 `RETIRED_PAGES`/`RETIRED_API` 删掉对应项即可。
 
-## ⚠ 待办（欠用户一个东西）
+## 横幅的去向已定（2026-10-21）
 
-**`lib/retired.mjs` 里的 `RETIRE_URL` 还是占位地址 `https://example.com/`。**
-用户说过"继续使用请到另一个站点"，但还没给地址。拿到后：
-① 改 `lib/retired.mjs` 的 `RETIRE_URL`（**只有这一处**，横幅/410页/说明页都读它）；
-② 本页这条待办删掉。
+用户说「我自己也没有，自己去获取嘛」—— 没有现成的后继站，让我自己定。
+定成 **GitHub 仓库** `WebExperiments-glitch/Phira-Huamei-Metric`：
+它是「这个项目继续存在」最稳的落点，不依赖数据库、不依赖托管平台。
+`lib/retired.mjs` 的 `RETIRE_URL` 是**全站唯一一处**，要换地方改那一行即可。
 
 ## 关于换数据库（用户已决定脱离腾讯云）
 
