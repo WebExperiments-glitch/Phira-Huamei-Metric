@@ -50,6 +50,7 @@
 | `/platform` | `platform.html` | **API 开放平台**：默认用量信息 + API Key 管理 + 资源入口；`/developer` 为旧链接别名 |
 | `/phm-api` | `phm-api.html` | **单文件 API 客户端**：下载后双击即用，填 API Key 查询/分析；零依赖 |
 | `/chart/<id>` | `chart.html` | **谱面详情页（SEO 落地页）**：服务端注入 title / description / canonical / OG / JSON-LD （**爬虫不执行 JS**，客户端渲染等于没做），客户端再填定数、曲绘与元数据。数据源 `phm_charts` 缓存 + 上游 `/chart/{id}`，两者各套短超时，任一挂了仍返回 200 + 通用 meta |
+| `/retired` | `retired.html`（**服务端模板**） | 下线说明页：告诉用户哪些功能撤了、还能用什么、去哪继续。由 `lib/retired.mjs` 读模板并替换 `__APP_VER__` / `__RETIRE_URL__` 后送出；文件本身**不在** `PUBLIC_FILES` 里，裸访问 404 |
 | `/packs` | `packs.html` | **谱面包**：浏览 Phira 公开谱面库，把任意谱面（曲绘 / 音乐 / chart JSON）在**浏览器本地**打成 `.pez` 包并下载。零中转 —— 服务器只代理 JSON 元数据，文件一律浏览器直连 Phira CDN（不烧我们的带宽、也不替上游再分发） |
 | `/status` | `status.html` | **运行状态**：9 个目标每 60s 自检一次，报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
@@ -269,6 +270,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
 | 身份 / 账号 | `lib/hm.mjs` + `lib/hm-accounts.mjs` + `lib/hm-code-routes.mjs` | huamei 身份校验；自建账号（scrypt + 自签 HS256）；验证码路由（发码 / 验码 / 重置） | 不把平台 token 当可信身份；不用登录密码碰 Phira |
+| 下线闸门 | `lib/retired.mjs` | 被撤的路径一律 410 Gone（页面/API 一张表 `RETIRED_PAGES`/`RETIRED_API`）；说明页 `/retired` 与「继续使用请到」的地址 `RETIRE_URL` 都只有这一处。⚠ 文件**不删**，只从 `PUBLIC_FILES` 移除 → 恢复就是加回去 |
 | 兜底层 | `lib/resilience.mjs` | 进程级 `uncaughtException`/`unhandledRejection` 兜底 + `guardRequest()` 包住请求处理（同步抛 / async reject / 头已发出的迟抛 / res 自身 error）。⚠ 内部全 try/catch，**兜底自己不许抛**；60 秒内兜 50 次就主动退出让平台重启 | 单进程服务死在一次未捕获异常上；真踩过三次 |
 | 账号档案 / 注销 | `lib/hm-profile-routes.mjs` | `GET/PUT/DELETE /api/hm/profile` + `POST /api/hm/touch` + 只读聚合代理 `/api/plays`。sub **只从已验签 token 取**，不接受前端传 | 不让前端说"我是谁"；`phm_plays` 匿名聚合不需要登录 |
 | 登录 / 注册门面（前端） | `public/js/auth.js` | 状态机 + 错误分类 + 节流 + 重发倒计时 + 会话恢复；token 存 `phm_hm_token`、走 `x-hm-token` 头 | 登录表单只存在一份（/app），其余页面只读状态 |

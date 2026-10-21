@@ -38,6 +38,7 @@ import {
 import { makeProfileRoutes } from './lib/hm-profile-routes.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
 import { installFaultGuards, guardRequest } from './lib/resilience.mjs';
+import { retiredGate } from './lib/retired.mjs';
 /* 贡献凭证：/api/contribute 的准入能力票（见 lib/contribute-ticket.mjs 顶部）。 */
 import {
   ticketAvailable, issueTicket, verifyTicket, ticketCovers,
@@ -190,12 +191,11 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
-const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
-  'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
-  '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
-  'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
+/* ⚠ 已下线的页面不在这里：文件还在仓库里（git 随时能回来），但不放行 → 404/410 */
+const PUBLIC_FILES = new Set(['index.html', 'app.html', 'robots.txt', 'favicon.ico',
+  'privacy.html', 'terms.html', '404.html', 'og.png', 'rulechart.html', 'packs.html',
   /* 末尾三个是许可证正文：按**名字**放行，别往 SAFE_EXT 加 .txt（见 docs/README「许可证」） */
-  'status.html', 'packs.html', 'fonts/OFL-LXGWWenKai.txt', 'fonts/OFL-NotoSerifSC.txt', 'vendor/uqr-LICENSE']);
+  'fonts/OFL-LXGWWenKai.txt', 'fonts/OFL-NotoSerifSC.txt', 'vendor/uqr-LICENSE']);
 /* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
    只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
 
@@ -420,14 +420,12 @@ const softFault = installFaultGuards();   /* 最后一层兜底，见 lib/resili
 const server = http.createServer(guardRequest(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
-  /* ── 客户端身份（限流键用）──
-     ⚠⚠ 只用 `req.socket.remoteAddress`，**不采信 X-Forwarded-For**。
-        2026-10-16 实测：托管平台给**每个请求**注入不同的 XFF
-        （同一秒内打到 DB 里的键是 125.94.247.208 / 125.94.248.102 /
-         1.71.146.239 …），于是 per-IP 限额永远撞不到上限 —— 70 连发全 200。
-        而 socket 真实对端是稳定的（实测 3 次全是 49.233.240.214）。
-     顺带修掉白帽报告里那条「XFF 可伪造」：客户端可以随便写这个头，
-        拿它当限流键等于把钥匙交给攻击方。 */
+  if (retiredGate(p, req, res, send)) return;   /* 下线闸门：被撤的一律 410，放在最前 */
+
+  /* ── 客户端身份（限流键用）── ⚠⚠ 只用 socket 真实对端，**不采信 XFF**：
+     2026-10-16 实测平台给每个请求注入不同的 XFF → per-IP 限额永远撞不到上限
+     （70 连发全 200）；而 socket 对端稳定。且 XFF 客户端可伪造，
+     拿它当限流键等于把钥匙交给攻击方（白帽报告同一条）。 */
   const ip = req.socket.remoteAddress || 'unknown';
 
   /* API v1：独立模块处理（认证 / 配额 / 用量 / Key 管理）。 */

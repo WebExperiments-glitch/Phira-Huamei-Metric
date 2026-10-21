@@ -68,7 +68,14 @@ console.log('[2] 版本号一致');
   for (const p of pages) {
     const html = fs.readFileSync(path.join(ROOT, 'public', p), 'utf8');
     const mm = html.match(/name="app-version" content="V([0-9.]+)"/);
-    if (!mm) { if (p !== 'privacy.html' && p !== 'terms.html') bad(`${p} 缺 app-version meta`); continue; }
+    /* retired.html 是服务端模板：版本号由 lib/retired.mjs 替换 __APP_VER__ 后送出，
+       文件里那个占位符不是真版本号，所以这里放过它（lint-slop 的同名豁免同理）。 */
+    if (!mm) {
+      if (p !== 'privacy.html' && p !== 'terms.html' && p !== 'retired.html') {
+        bad(`${p} 缺 app-version meta`);
+      }
+      continue;
+    }
     if (mm[1] !== pkg.version) bad(`${p} meta ${mm[1]} ≠ ${pkg.version}`);
     else ok(p);
   }

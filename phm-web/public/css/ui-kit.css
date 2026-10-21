@@ -239,3 +239,27 @@ button.primary:hover {
 @media (max-width: 760px) {
   .phm-guard { top: auto; bottom: 12px; left: 12px; right: 12px; max-width: none; }
 }
+
+/* ── 站点公告横幅（2026-10-21 收敛为静态工具）──
+   放在 <body> 之后、.wrap 之前，不参与下面已有布局。
+   ⚠ 浅色底盘 + 琥珀文字，与全站一致（不许用深色底）。 */
+.retire-banner {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  font-size: 0.86rem; line-height: 1.5;
+  color: var(--amber);
+  background: color-mix(in srgb, var(--warn) 12%, var(--card));
+  border-bottom: 1px solid color-mix(in srgb, var(--warn) 35%, var(--card));
+}
+.retire-banner-link {
+  font-weight: 600; color: var(--link); white-space: nowrap;
+}
+.retire-banner-link:hover { text-decoration: underline; }
+
+/* ── 2026-10-21 收敛：账号入口整体隐藏 ──
+   工作台的登录按钮与登录面板（#authBtn / #authpanel）不再显示 —— 账号体系已撤回。
+   ⚠ 用 CSS 隐藏而不是删 HTML/JS：app.html 的模块脚本有 ~1500 行，
+   动它就是动全站最重要的页面，收益却只是"少一块看不见的 DOM"。
+   js/auth.js 仍会跑（它的 fetch 现在拿 410），只是没人看得见 —— 已登记进 HANDOVER 待办。 */
+#authBtn, #authpanel { display: none !important; }
