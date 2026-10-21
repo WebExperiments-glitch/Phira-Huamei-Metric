@@ -445,3 +445,63 @@ node tools/smoke-page.mjs https://phm.app.workbuddy.host
   运行期查询才用池化端点。
 - Neon skills 已装到 `~/.workbuddy/skills/{neon,neon-postgres}`（官方 `npx neon skills`
   因为 `insteadOf` 代理 504 而失败，改用过滤版 git 配置手动 clone 拿到）。
+
+---
+
+# 附：新站后端搬上 Neon（2026-10-21 晚）
+
+## 一句话
+
+**旧的六张核心表在仓库里从来没有过**（`git log -S"create table …phm_charts"` 全历史为空），
+所以不是"导出来再灌"，是**按代码重建**。现在 Neon 上已经有完整可用的库。
+
+## 迁移链（`node tools/neon-migrate.mjs`）
+
+```
+db/neon/00-roles.sql   ← 补齐 anon / authenticated 两个角色（纯 Postgres 上没有）
+db/neon/10-core.sql    ← 重建 6 张核心表 + 10 个 RPC（**每一列都标了代码依据**）
+db/api-v1.sql          ← API Key（历史迁移）
+db/api-v2/01..21.sql   ← 档案 / 状态历史 / 限流（历史迁移，单文件才是真源）
+```
+
+实测：**131 条语句 / 0 失败**。⚠ 合并版 `db/api-v2.sql` 已经落后（缺 profiles/status/rate），
+别拿它当全集。
+
+凭据：`node tools/neon-secret.mjs` 把 `write-secret.txt` 写进 `phm_secrets`。凭据**不入仓**。
+
+## 驱动：`lib/db-pg.mjs`
+
+用 `pg` 直连，但**对外保持 PostgREST 的调用形状**，于是 `lib/` 下 7 个模块一行没改。
+判据是"有没有配 `PHM_NEON_URL`"，不靠人记着改开关。
+
+踩到的四个坑（都已修，且都留了注释）：
+1. **numeric 默认回字符串** → `12.3` 变 `"12.3"`，前端算术得 NaN 且不报错。
+2. **无参函数**拼成 `fn($1)` → `function phm_stats(unknown) does not exist`；
+   而"查不到函数"和"函数无参"在 `proargnames` 上看一模一样，必须分开判。
+3. **超时定时器没取消** → `Promise.race` 输的那一半 reject 变成 unhandledRejection，**打挂进程**。
+4. **预热与请求各自建连** → 两个连接同时唤醒缩到零的 compute，一个被掐断，
+   表面症状是"限流失效"（其实是连库失败退回内存）。
+
+## 运行期端点：用**直连**，不用池化
+
+`PHM_NEON_URL` 已改成直连（去掉 `-pooler`）。理由：单进程 + 8 条连接，
+PgBouncer 除了多一层故障源什么也没带来 —— 实测池化端点会莫名
+`Connection terminated unexpectedly`，改直连后首次 1.75s、之后 78ms。
+**迁移/DDL 本来就只能用直连**（官方 gotcha），现在统一成一个端点，少记一件事。
+
+## ⚠ 冷启动
+
+Neon 免费档空闲 **5 分钟**把 compute 缩到零。实测唤醒 **1.7~13 秒**（不是文档说的几百毫秒）。
+`lib/db-pg.mjs` 在启动时预热一次，把账记在启动日志上；**不做心跳**（100 CU-hours/月，常驻会超）。
+
+## 验证过的路径
+
+register → login → 错密码 → 重复邮箱（23505 → `email_taken`）→ 注销 → 查不到；
+`phm_put_chart` 写入 → 读回（数字是数字不是字符串）→ `phm_stats` → `phm_plays`；
+**跨进程限流**（子进程打同一把钥匙被 DB 挡下）—— 这条证明 DB 是权威的。
+`npm run check` 23/23（真实连库）。
+
+## 新增依赖
+
+`pg`（14 个包）。**这是项目第一个运行期依赖** —— 静态站不需要它，
+但新站的数据库必须靠它。零依赖的洁癖让步给"能用标准协议连 Postgres"。
