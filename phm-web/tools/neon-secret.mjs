@@ -47,7 +47,13 @@ function localSecret() {
   } catch { return ''; }
 }
 
-const mask = s => (s ? s.slice(0, 4) + '…' + s.slice(-2) + ` (${s.length} 字符)` : '（空）');
+/* ⚠ 只报**长度**，不报任何字符。
+   第一版是 `前 4 位…后 2 位 (N 字符)`，看着像掩码，其实把凭据的一头一尾
+   打进了日志 —— CodeQL 直接标了 Clear-text logging（它不认你的 mask 函数，
+   它只看见"环境变量的值流进了 console.log"）。
+   而且它是对的：日志会进 CI 输出、终端回滚、截图。长度已经足够判断
+   "两边一不一样"，一个字符都不该露。 */
+const shape = s => (s ? `（${s.length} 字符）` : '（空）');
 
 (async () => {
   const e = env();
@@ -62,8 +68,8 @@ const mask = s => (s ? s.slice(0, 4) + '…' + s.slice(-2) + ` (${s.length} 字�
   const inDb = cur.rows[0] ? cur.rows[0].v : null;
 
   if (process.argv.includes('--show')) {
-    console.log('库里：' + mask(inDb));
-    console.log('本地：' + mask(localSecret()));
+    console.log('库里：' + shape(inDb));
+    console.log('本地：' + shape(localSecret()));
     await c.end();
     return;
   }
@@ -75,7 +81,7 @@ const mask = s => (s ? s.slice(0, 4) + '…' + s.slice(-2) + ` (${s.length} 字�
     process.exit(1);
   }
   if (inDb === want) {
-    console.log('✅ 库里与本地凭据一致，无需改动  ' + mask(want));
+    console.log('✅ 库里与本地凭据一致，无需改动  ' + shape(want));
     await c.end();
     return;
   }
@@ -85,6 +91,6 @@ const mask = s => (s ? s.slice(0, 4) + '…' + s.slice(-2) + ` (${s.length} 字�
      on conflict (k) do update set v = excluded.v`,
     [want],
   );
-  console.log((inDb ? '♻️  已更新' : '✅ 已写入') + ' phm_secrets.writer  ' + mask(want));
+  console.log((inDb ? '♻️  已更新' : '✅ 已写入') + ' phm_secrets.writer  ' + shape(want));
   await c.end();
 })().catch(e => { console.error('崩溃：', e.message); process.exit(1); });
