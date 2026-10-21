@@ -30,3 +30,8 @@ public/fonts/.cache-*
 #     node tools/gen-release.mjs
 downloads/*.exe
 .shots/
+
+# 一次性脚本（跑完就删，但常常忘）—— 绝不入仓
+tools/_tmp*.py
+tools/_tmp*.mjs
+tools/_tmp*.sh
