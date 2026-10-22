@@ -26,7 +26,7 @@ export const RELEASES = [
     v: 'V0.21.4.0', date: '2026-10-21',
     zh: ['<b>本站收敛为静态的谱面分析工具</b>：账号、成绩、数据管理、状态页与开放 API 全部撤回，'
       + '只保留<b>不依赖数据库</b>的三件事 —— 谱面分析、规则写谱、谱面包。'
-      + '被撤的地址会回 <code>410 已停止运营</code> 并指路。'],
+      + '被撤的地址会回 <code>410 Gone</code> 并指路。'],
     en: ['<b>This site is now a static chart-analysis tool</b>: accounts, scores, data management, '
       + 'status page and the public API are all withdrawn. Only the three features that never needed '
       + 'a database remain — chart analysis, rule charting, chart packs. Withdrawn URLs return '

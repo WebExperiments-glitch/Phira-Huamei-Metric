@@ -123,7 +123,7 @@ button.primary:hover {
   max-width: 72ch;
   margin: 10px 0 0;
 }
-.note.mono-inline { font-family: var(--font-mono); }
+.note.mono-inline { font-family: var(--mono); }
 
 /* ── 警告 callout ──
    评审：最该被看到的「样本量还小，仅供参考」反而最不起眼。
@@ -141,8 +141,11 @@ button.primary:hover {
 .callout b { color: var(--fg); }
 
 /* 等宽样式只给英文（.exe / 路径 / 字段名）——
-   中文套等宽会回退成小号宋体，和周围黑体不一致。 */
-.mono-en { font-family: var(--font-mono); font-size: .95em; }
+   中文套等宽会回退成小号宋体，和周围黑体不一致。
+   ⚠ 变量名是 `--mono`（base.css 定义），**不是** `--font-mono`。
+     这里曾经写成 `--font-mono` —— 未定义变量会让整条声明静默失效，
+     于是这两个类的"等宽"从来没生效过，而且浏览器不报任何错。 */
+.mono-en { font-family: var(--mono); font-size: .95em; }
 
 /* ── 字体 / 字号切换（评审 H）──
    ⚠ 只覆盖变量、不改任何具体选择器 —— 全站所有用到 --font-display 的地方
@@ -190,6 +193,9 @@ button.primary:hover {
   padding: 3px 11px; border-radius: 999px;
   border: 1px solid var(--line2); background: transparent; color: var(--fg2);
   cursor: pointer;
+  /* ⚠ 同 .navq：ui-kit 的 `button{min-height:40px}` 会把这个芯片撑成 40px，
+     而设计意图是 ~26px 的紧凑标签。芯片是"一段可点的文字"，不是表单按钮。 */
+  min-height: 0; line-height: 1.5;
   transition: border-color .12s, color .12s, background .12s;
   max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -239,23 +245,6 @@ button.primary:hover {
 @media (max-width: 760px) {
   .phm-guard { top: auto; bottom: 12px; left: 12px; right: 12px; max-width: none; }
 }
-
-/* ── 站点公告横幅（2026-10-21 收敛为静态工具）──
-   放在 <body> 之后、.wrap 之前，不参与下面已有布局。
-   ⚠ 浅色底盘 + 琥珀文字，与全站一致（不许用深色底）。 */
-.retire-banner {
-  display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center;
-  justify-content: center;
-  padding: 9px 16px;
-  font-size: 0.86rem; line-height: 1.5;
-  color: var(--amber);
-  background: color-mix(in srgb, var(--warn) 12%, var(--card));
-  border-bottom: 1px solid color-mix(in srgb, var(--warn) 35%, var(--card));
-}
-.retire-banner-link {
-  font-weight: 600; color: var(--link); white-space: nowrap;
-}
-.retire-banner-link:hover { text-decoration: underline; }
 
 /* ── 2026-10-21 收敛：账号入口整体隐藏 ──
    工作台的登录按钮与登录面板（#authBtn / #authpanel）不再显示 —— 账号体系已撤回。

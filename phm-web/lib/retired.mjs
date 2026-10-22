@@ -91,8 +91,8 @@ const TPL = (() => {
   } catch (e) {
     /* 读不到也得给人一句话 —— 但别把异常吞得无声无息 */
     console.error('[retired] 读不到 public/retired.html，用兜底文案：', e && e.message);
-    return '<!DOCTYPE html><meta charset="utf-8"><title>已停止运营</title>'
-      + '<body><h1>本网站已停止运营</h1><p>继续使用请到 __RETIRE_URL__</p></body>';
+    return '<!DOCTYPE html><meta charset="utf-8"><title>功能未启用</title>'
+      + '<body><h1>该功能在当前部署中未启用</h1><p>继续使用请到 __RETIRE_URL__</p></body>';
   }
 })();
 
@@ -123,7 +123,7 @@ export function retiredGate(p, req, res, send) {
   /* 全功能站（新站）：整道闸门不生效，连 /retired 也不需要 */
   if (!STATIC_ONLY && p !== '/retired') return false;
   if (!STATIC_ONLY && p === '/retired') {
-    /* 全功能站上 /retired 没有意义 —— 首页还在，说明"本站已停止运营"就是假话。
+    /* 全功能站上 /retired 没有意义 —— 首页还在，说明"整站不可用"就是假话。
        ⚠ 这里的 send() 只有 4 个参数（code/body/type），带不了头 ——
        要跳转就得自己 writeHead。 */
     res.writeHead(302, { location: '/', 'cache-control': 'no-store' });
@@ -143,11 +143,11 @@ export function retiredGate(p, req, res, send) {
     send(res, 410, `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="app-version" content="${VER}">
-<meta name="robots" content="noindex"><title>已停止运营</title>
+<meta name="robots" content="noindex"><title>功能未启用</title>
 <link rel="stylesheet" href="/css/base.css?v=${VER}">
 </head><body><main style="max-width:560px;margin:16vh auto;padding:0 20px;line-height:1.7">
-<h1 style="font-size:1.3rem">「${esc(why)}」已停止运营</h1>
-<p>本网站已收敛为静态谱面分析工具，该功能随账号体系一起撤回了。</p>
+<h1 style="font-size:1.3rem">「${esc(why)}」在当前部署中未启用</h1>
+<p>这个部署是静态版：账号 / 成绩 / 数据这类需要数据库的功能不在其中。</p>
 <p>继续使用请到 <a href="${esc(RETIRE_URL)}">${esc(RETIRE_URL)}</a>，
 或看看 <a href="/retired">还能用什么</a>。</p>
 <p><a class="btn" href="/app">去谱面分析</a></p>
@@ -166,16 +166,4 @@ export function retiredGate(p, req, res, send) {
   }
 
   return false;
-}
-
-/** 全功能站要把公告横幅**从 HTML 里摘掉** —— 那句话说"本站已停止运行"，
-    而在新站上它是假话。静态站原样保留（写死在 HTML 里，模块链断了也还在）。 */
-export function stripBanner(html) {
-  if (STATIC_ONLY) return html;
-  /* 从注释头到 banner 的闭合 </div>。⚠ 三处细节都是踩过的：
-     ① `-->` 与 `<div` 之间**有换行**（模板里是 ` 数据库）。 -->\n<div…`），
-        中间必须允许 `\s*`，否则整条正则一次都不匹配（实测：长度一字未变）；
-     ② 非贪婪 `[\s\S]*?`，否则会一路吃到页脚；
-     ③ 锚定注释开头，别用"删第一个 div" —— 那会连带吃掉 .wrap。 */
-  return html.replace(/<!-- ⚠ 2026-10-21：[\s\S]*?-->\s*<div class="retire-banner"[\s\S]*?<\/div>/, '');
 }

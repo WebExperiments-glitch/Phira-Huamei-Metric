@@ -36,6 +36,11 @@ var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStora
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=V0.21.4.0">
 <link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.4.0">
+<!-- 动效层：必须在 ui-kit 之后（它要覆盖少量 hover 的时长）。
+     ⚠ 脚本放 head —— module 自带 defer，会在 DOM 解析完、首帧绘制前执行，
+     这样首屏入场不会闪。详见 js/motion.js 顶部「零闪烁」一节。 -->
+<link rel="stylesheet" href="/css/motion.css?v=V0.21.4.0">
+<script type="module" src="/js/motion.js?v=V0.21.4.0"></script>
 <style>
 .hero{text-align:center;padding:22px 0 6px}
 .hero h1{font-size:30px;font-weight:400;letter-spacing:.5px;line-height:1.32}
@@ -55,7 +60,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .dcard{background:var(--card2);border-radius:12px;padding:14px 16px;border:1px solid var(--line)}
 .dcard .k{font-size:11.5px;color:var(--fg3);letter-spacing:.04em}
 .dcard .v{font-size:34px;font-variant-numeric:tabular-nums;line-height:1.15;margin:3px 0}
-.dcard.a{border-color:rgba(232,163,61,.45)} .dcard.a .v{color:var(--amber)}
+.dcard.a{border-color:var(--brand-line)} .dcard.a .v{color:var(--amber)}
 .dcard.b .v{color:var(--fg2)}
 .dcard .n{font-size:11.5px;color:var(--fg3);line-height:1.6}
 
@@ -89,6 +94,11 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 @keyframes hdropShake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 @media(max-width:520px){.hdrop{font-size:12.5px}.hdrop .hdroptip{display:none}}
 
+/* 例子芯片在 hero 里必须居中：`.exrow` 默认是左对齐的
+   （/charter、/user 的表单卡里左对齐才对），而这里是居中的 hero ——
+   不覆盖的话三颗芯片会孤零零甩在屏幕左边。 */
+.hero .exrow{justify-content:center}
+
 /* ── 首页统一搜索框（V0.20.5.0）──
    宽度跟着内容走但封顶，圆角与站内按钮一致；移动端占满一行。
    ⚠ 只用令牌，不写死颜色。 */
@@ -97,7 +107,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   background:var(--card);border:1px solid var(--line2);border-radius:10px}
 .hfind input::placeholder{color:var(--fg3)}
 .hfind input:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
-.hfind button{flex:0 0 auto;height:44px;padding:0 22px;font-size:15px;font-weight:600;color:#fff;
+.hfind button{flex:0 0 auto;height:44px;padding:0 22px;font-size:15px;font-weight:600;color:var(--brand-ink);
   background:var(--brand);border:0;border-radius:10px;cursor:pointer}
 .hfind button:hover{background:var(--brand-hover)}
 .hfind-hint{text-align:center;font-size:12.5px;color:var(--fg3);margin:8px 0 0}
@@ -106,19 +116,12 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </style>
 </head>
 <body>
-<!-- ⚠ 2026-10-21：站点收敛为静态工具。这段是**写死的中文兜底** ——
-     不许清成 <div data-i18n="retire.text"></div>，模块链一环失败整页就没这句了。
-     链接指向 /retired（服务端渲染，不依赖任何 JS / 数据库）。 -->
-<div class="retire-banner" role="region" aria-label="站点公告">
-  <span data-i18n="retire.text">本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。</span>
-  <a class="retire-banner-link" href="/retired" data-i18n="retire.link">继续使用请到 →</a>
-</div>
 <div class="wrap">
 
 <nav id="nav"></nav>
 
-<div class="hero">
-  <h1 data-i18n-html="home.h1">给 Phira 谱面一个<b>可审计</b>的难度参考</h1>
+<div class="hero" data-mv-group>
+  <h1 data-mv="title" data-i18n-html="home.h1">给 Phira 谱面一个<b>可审计</b>的难度参考</h1>
   <p data-i18n-html="home.sub">拖入谱面包，浏览器里算出它的结构定数——<b>两个标度都告诉你</b>，<br>
   连同这个数字有多准。<b>谱面文件不会上传</b>，也不需要登录。</p>
   <!-- ── 统一搜索框（V0.20.5.0）──
@@ -128,13 +131,20 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <form class="hfind" id="hfind" role="search">
     <input id="hq" type="search" data-i18n-ph="home.srch.ph" maxlength="40" autocomplete="off"
            placeholder="搜歌名 / 谱师名 / 玩家 UID，例如 Pandemic" enterkeyhint="search">
-    <button type="submit" data-i18n="home.srch.btn">查</button>
+    <button type="submit" data-i18n="home.srch.btn" data-mv="magnet">查</button>
   </form>
   <p class="hfind-hint" id="hhint" data-i18n="home.srch.tip"></p>
+  <!-- 例子芯片 —— 文案承诺了"试试点下面的例子"，这里就必须真的有例子。
+       ⚠ 必须是**真实存在**且点得动的值：点了搜不到，比没有例子更糟。
+         Pandemic 是 placeholder 里那个曲名；Magazet 是 /charter 回归测试
+         用的谱师；属性 在 /app 搜索测试里验证过有结果。
+       ⚠ 不放 UID 例子：静态站上 /user 是 410，点了会撞说明页。
+         真实用户想查 UID 时自己会输（框里本来就写了"玩家 UID"）。 -->
+  <div class="exrow" id="hex"></div>
 
   <div class="row" style="justify-content:center;margin-top:14px">
-    <a class="btn primary" href="/app" style="padding:10px 22px;font-size:15px"><span data-i18n="home.cta1">算定数</span> →</a>
-    <a class="btn" href="/charter" style="padding:10px 18px;font-size:15px"><span data-i18n="home.cta2">查谱师作品</span></a>
+    <a class="btn primary" href="/app" data-mv="magnet" style="height:46px;padding:0 24px;font-size:15px"><span data-i18n="home.cta1">算定数</span> →</a>
+    <a class="btn" href="/charter" style="height:46px;padding:0 20px;font-size:15px"><span data-i18n="home.cta2">查谱师作品</span></a>
   </div>
   <!-- 首页接力区：用户往往已经把 .pez 拖到窗口上了，让他能就地松手，
        而不是"松手 → 点按钮 → 到了 /app 再拖一次"。
@@ -148,7 +158,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <input type="file" id="hfile" accept=".pez,.zip" hidden>
 </div>
 
-<div class="tiles">
+<div class="tiles" data-mv-group>
   <a class="tile" href="/app">
     <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M9 9.5v10M15 9.5v10"/></svg></div>
     <div class="t" data-i18n="home.tile1.t">算定数</div>
@@ -169,18 +179,18 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   </a>
 </div>
 
-<div class="card">
+<div class="card" data-mv="up">
   <h2 data-i18n="home.why.t">为什么是两个数字</h2>
   <div class="sub" data-i18n-html="home.why.sub">同一个谱面结构，在两份参照集上会得到两个值——这不是"其中一个算错了"，而是两把不同的尺子。</div>
   <div class="demo">
     <div class="dcard a">
       <div class="k" data-i18n="home.dc.com.k">社区共识</div>
-      <div class="v">15.6</div>
+      <div class="v" data-count>15.6</div>
       <div class="n" data-i18n-html="home.dc.com.n">9,508 张 Phira 社区谱里最相近的 20 张<br>→ 站内谱师实际定价的共识</div>
     </div>
     <div class="dcard b">
       <div class="k" data-i18n="home.dc.off.k">官谱标度</div>
-      <div class="v">16.1</div>
+      <div class="v" data-count>16.1</div>
       <div class="n" data-i18n-html="home.dc.off.n">换成 1,037 张 Phigros 官谱<br>→ 与官方一致的绝对标度</div>
     </div>
   </div>
@@ -197,7 +207,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   </div>
 </div>
 
-<div class="card">
+<div class="card" data-mv="up">
   <div class="row" style="justify-content:space-between;align-items:baseline">
     <h2 style="margin:0" data-i18n="home.stats.t">站点数据</h2>
     <span class="dim2" style="font-size:12px" id="statNote" data-i18n="c.loading">读取中…</span>
@@ -235,7 +245,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER, applyStatic, t, onLangChange, currentLang, setLang, fmtInt } from '/js/ui.js?v=V0.21.4.0';
+import { renderNav, esc, APP_VER, applyStatic, t, onLangChange, currentLang, setLang, fmtInt, chipRow } from '/js/ui.js?v=V0.21.4.0';
 
 import { stash } from '/js/handoff.js?v=V0.21.4.0';
 import { installGuard } from '/js/guard.js?v=V0.21.4.0';
@@ -277,6 +287,33 @@ renderNav('home');
 /* 首页 hero / 入口卡片是静态 HTML，靠 data-i18n 批量替换 */
 applyStatic();
 
+/* ── 例子芯片 ──
+ * 起因：hint 写着「不知道搜什么？试试点下面的例子」，而下面从来没有例子
+ * —— 文案承诺了一个不存在的控件。这类"说了但没做"比没有这句话更伤，
+ * 用户会以为是自己没看见。
+ * 复用 ui.js 的 chipRow（/charter、/user 用的是同一份，改一处三页同步）。
+ * ⚠ 点击后**直接提交**，不是只填进输入框：用户的意图是"我想看这个"，
+ *   让他再按一次回车等于把一步拆成两步。 */
+(function () {
+  var box = document.getElementById('hex');
+  var form = document.getElementById('hfind');
+  var input = document.getElementById('hq');
+  if (!box || !form || !input) return;
+  chipRow(box, {
+    examples: ['Pandemic', 'Magazet', '属性'],
+    recent: [],
+    labelEx: '',
+    onPick: function (v) {
+      input.value = v;
+      /* 先让 hint 跟着变（"按歌名/谱师搜谱面"），再提交 —— 顺序反了
+         用户会看到一瞬的旧提示。 */
+      input.dispatchEvent(new Event('input'));
+      if (form.requestSubmit) form.requestSubmit();
+      else form.dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+  });
+})();
+
 /* 页脚版本号 —— ⚠ 这里踩过一个坑：原来初始化写了一句硬编码中文
    `verfoot.textContent = '版本 …（开发者测试版）'`，而 i18n 只在**语言变化时**
    才更新它。于是英文用户刷新页面（onLangChange 不会触发）就会看到
@@ -312,7 +349,7 @@ paintVer();
 let STATS = null;      /* null = 还没取到；取到后才允许重画，免得把骨架屏冲掉 */
 function paintStats() {
   const s = STATS;
-  const cell = (v, k) => '<div class="st"><div class="v">' + v + '</div><div class="k">' + esc(k) + '</div></div>';
+  const cell = (v, k) => '<div class="st"><div class="v" data-count>' + v + '</div><div class="k">' + esc(k) + '</div></div>';
   document.getElementById('stats').innerHTML =
     /* ⚠ 这四个数是**数量**，要走千分位。以前是原样插进去的 ——
        于是同一页上文案写「9,508 张」、磁贴却显示「9508」，两套写法并存。 */
@@ -320,6 +357,13 @@ function paintStats() {
     + cell(s && s.refN ? fmtInt(s.refN) : '—', t('home.stats.com'))
     + cell(s && s.officialN ? fmtInt(s.officialN) : '—', t('home.stats.off'))
     + cell(s && s.scores != null ? s.scores : '—', t('home.stats.scores'));
+  /* 数字滚动：这四格是**异步**填进来的，motion.js 初始化时它们还是骨架屏，
+     所以必须在插入之后主动交一次给它。
+     ⚠ 必须判 !!window.PHM_MOTION —— 用户开了减弱动效时那个模块**不注册**，
+       直接调会抛 TypeError，而这个函数在语言切换时也会跑，会连累整个重绘。 */
+  if (window.PHM_MOTION) {
+    document.querySelectorAll('#stats .v[data-count]').forEach(function (el) { window.PHM_MOTION.count(el); });
+  }
   document.getElementById('statNote').textContent = (s && s.ok)
     ? t('home.stats.live')
     : t('home.stats.down');

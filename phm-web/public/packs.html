@@ -14,6 +14,8 @@ var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStora
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=V0.21.4.0">
 <link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.4.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.21.4.0">
+<script type="module" src="/js/motion.js?v=V0.21.4.0"></script>
 <style>
 /* ── 卡片网格 ──
    grid 而非 flex：卡片等高，且窗口变窄时自动降列。
@@ -105,20 +107,16 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </style>
 </head>
 <body>
-<!-- ⚠ 2026-10-21：站点收敛为静态工具。这段是**写死的中文兜底** ——
-     不许清成 <div data-i18n="retire.text"></div>，模块链一环失败整页就没这句了。
-     链接指向 /retired（服务端渲染，不依赖任何 JS / 数据库）。 -->
-<div class="retire-banner" role="region" aria-label="站点公告">
-  <span data-i18n="retire.text">本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。</span>
-  <a class="retire-banner-link" href="/retired" data-i18n="retire.link">继续使用请到 →</a>
-</div>
 <div class="wrap">
 
 <nav id="nav"></nav>
 
 <div class="card">
   <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px">
-    <h2 style="margin:0" data-i18n="pk.title">谱面包</h2>
+    <!-- 这一页的标题用 h1：每页必须有一个一级标题，而「谱面包」正是这一页的标题。
+         字号仍按原来的 18px（--t-lg）—— 换成 h1 后浏览器默认的 2em 会把它
+         放大到 28px，那是改版不是修 bug。 -->
+    <h1 style="margin:0;font-size:var(--t-lg)" data-i18n="pk.title">谱面包</h1>
     <span class="dim2" style="font-size:12px" id="cnt"></span>
   </div>
   <div class="sub" data-i18n-html="pk.sub">
@@ -329,7 +327,7 @@ function render() {
       + esc(t('pk.noResult')) + '</p><p class="dim2" style="margin:0;font-size:12px">'
       + esc(t('pk.noResultHint')) + '</p></div>';
   } else {
-    $('list').innerHTML = '<div class="grid">' + list.map(cardHtml).join('') + '</div>';
+    $('list').innerHTML = '<div class="grid" data-mv-list>' + list.map(cardHtml).join('') + '</div>';
   }
 
   $('more').style.display = S.items.length < S.total ? '' : 'none';
