@@ -667,8 +667,9 @@ for (const R of ROUTES) {
     /* ⚠ 2026-10-21：同一份代码跑两个站，**静态站**上账号/成绩/数据那几个入口
        是故意 410 的（见 lib/retired.mjs）。所以判据不是"必须 200"，而是
        **"要么能用，要么明确告诉你为什么不能用"**：
-       非 200 只允许 410，且响应体里必须有"已停止运营"。
-       这样既不会因为收敛而假红，也能抓住真正的 404/500。 */
+       非 200 只允许 410，且响应体里必须有「未启用」的说明。
+       （措辞在 2026-10-22 从"已停止运营"改成"未启用" —— 站点复活了，
+        再说整站停止运营就是假话；410 本身仍然是对爬虫的正确信号。） */
     const nonOk = Object.entries(links || {}).filter(([, s]) => s !== 200);
     const notGone = nonOk.filter(([, s]) => s !== 410);
     ok('导航入口没有 404/500（410 是已下线，允许）', notGone.length === 0,
@@ -678,11 +679,11 @@ for (const R of ROUTES) {
         const out = [];
         for (const h of ${JSON.stringify(nonOk.map(([h]) => h))}) {
           const t = await (await fetch(h)).text();
-          if (!t.includes('已停止运营')) out.push(h);
+          if (!t.includes('未启用')) out.push(h);
         }
         return out;
       })()`);
-      ok('410 的入口都给了「已停止运营」说明', (gone || []).length === 0, JSON.stringify(gone));
+      ok('410 的入口都给了「未启用」说明', (gone || []).length === 0, JSON.stringify(gone));
     }
   }
 
@@ -709,7 +710,7 @@ console.log('\n[下线闸门] 被撤的路径必须 410');
   }
   const r = await fetch(BASE + '/retired');
   const t = r.ok ? await r.text() : '';
-  ok('/retired 说明页可达', r.status === 200 && t.includes('停止运营'), 'status=' + r.status);
+  ok('/retired 说明页可达', r.status === 200 && t.includes('未启用'), 'status=' + r.status);
   ok('/api/health 仍通', (await fetch(BASE + '/api/health')).ok);
   /* 裸文件路径是**另一种**正确行为：文件还在磁盘上，但不在 PUBLIC_FILES 白名单里
      → 404。干净 URL（/user）才是 410。两条都钉住，别混。 */
@@ -719,13 +720,22 @@ console.log('\n[下线闸门] 被撤的路径必须 410');
   }
 }
 
-/* 横幅不许依赖 JS：直接读 HTML 源（不执行任何模块）——
-   这是「模块链一环失败整页就没文字」最坏的形态，而横幅是最该守的一条。 */
-console.log('\n[横幅] 站点公告写死在 HTML 里');
+/* 「本网站已停止运行」横幅已于 2026-10-22 整体删除（站点已复活，那句话是假话）。
+   这里改为**反向断言**：它不许再出现在任何页面的 HTML 源里 ——
+   否则哪天有人从旧分支捞回一段模板，横幅会悄悄回来，而没人会发现。 */
+console.log('\n[横幅] 「已停止运行」不许再出现');
 {
-  const html = await (await fetch(BASE + '/app')).text();
-  ok('横幅文案在 HTML 源里', html.includes('本网站已停止运行'));
-  ok('横幅链接指向 /retired', html.includes('href="/retired"'));
+  const pages = ['/', '/app', '/packs', '/rulechart', '/privacy', '/terms'];
+  const leaked = [];
+  for (const p of pages) {
+    const html = await (await fetch(BASE + p)).text();
+    if (html.includes('本网站已停止运行') || html.includes('retire-banner')) leaked.push(p);
+  }
+  ok('页面 HTML 源里没有「已停止运行」横幅', leaked.length === 0, JSON.stringify(leaked));
+  /* 410 页仍然要给一句人话（只是措辞改成中性的"未启用"） */
+  const gone = await (await fetch(BASE + '/user')).text();
+  ok('410 页仍说明原因（用「未启用」而不是「停止运营」）',
+    gone.includes('未启用') && !gone.includes('停止运营'));
 }
 
 

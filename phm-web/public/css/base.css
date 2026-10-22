@@ -7,9 +7,12 @@
  *   按钮样式就是必然会漂移的债。所以令牌与通用组件收在这里，
  *   各页只写自己特有的部分。
  *
- * 深色单一主题（不做浅色切换：这个工具的使用场景是夜里看谱，而且
- * 分享卡片也是深色的，浅色页面会让导出图显得突兀）。
- * —— 这一点和 Kimi 官网一致：它的界面也只有单一深色，没有浅色变体。
+ * 双主题（深色为默认）。浅色主题的令牌在下面 :root[data-theme="light"] 里，
+ * 键名与深色**完全一致**、只换值，所以页面代码一行都不用改。
+ * ⚠ 这里原来写着「深色单一主题（不做浅色切换）」—— 那是**加入浅色主题之前**
+ *   的说法，早就过期了。设计文档里那句「不做浅色主题」指的不再是代码，
+ *   而是**分享卡（sharecard.js）只导深色版**：导出图要能贴在任何主题的
+ *   帖子里，深底最稳。两件事别混。
  *
  * ══════════════════════════════════════════════════════════════
  * 视觉三原则（对着 DeepSeek / Kimi / z.ai 的设计体系抄回来的）
@@ -123,9 +126,30 @@
   --sh1: 0 1px 2px rgba(0,0,0,.35);
   --sh2: 0 6px 20px rgba(0,0,0,.45);
   --sh-card: 0 1px 2px rgba(0,0,0,.22);   /* 深色靠亮度阶梯分面，阴影只是补一点点 */
+  /* 悬停抬升（elevation 第 2 档，见 css/motion.css 的 .mv-lift）。
+     深色下阴影几乎看不出，起作用的是"位移"本身 + 边框变亮；
+     所以这里不给它夸张的模糊半径 —— 那是浅色主题才需要的手段。 */
+  --sh-lift: 0 6px 18px rgba(0,0,0,.5);
 
-  /* ── 动效：统一时长与缓动 ── */
+  /* ── 动效：统一时长与缓动 ────────────────────────────────
+     按**用途**分两套，不是两个随便挑的曲线：
+
+       --ease      微交互（hover / focus / 展开）—— Material 标准曲线，
+                   起步快、收尾稳。0.14–0.24s 区间用它最"跟手"。
+       --ease-out  入场 / 揭示 —— easeOutExpo（iOS 同款）。前 1/3 走完
+                   大半位移，剩下的时间用来"停住"，所以看起来是**落下来**
+                   而不是"匀速飘过去"。这是"说不出哪里好但就是舒服"的来源。
+
+     ⚠ 两者不能互换：把 expo 用在 hover 上会显得迟滞（0.14s 还没走完一半），
+       把 Material 曲线用在标题揭示上会"停不住"，像被切断。
+     ⚠ 时长令牌只有四档。**新增动效先问：删掉它，用户理解信息会变难吗？**
+       答"不会"就别加 —— 见 docs/DESIGN.md §2。 */
   --ease: cubic-bezier(.4, 0, .2, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --dur-1: 140ms;   /* 悬停 / 聚焦反馈 */
+  --dur-2: 240ms;   /* 展开 / 收起 / 状态切换 */
+  --dur-3: 520ms;   /* 卡片入场（配合 stagger） */
+  --dur-4: 900ms;   /* 标题遮罩揭示（一页只该有一个） */
 
   /* 滚动条滑块（深浅两套要分开，见下方 .scrollbar 规则） */
   --scroll-thumb: #262320;
@@ -227,6 +251,9 @@
   /* 卡片的"浮起感"：白卡和米底本身太接近，光靠一条 0.10 的描边分不出层次。
      加一层**几乎看不见**的暖色阴影就够 —— 不要做成投影，那是另一套语言。 */
   --sh-card: 0 1px 2px rgba(40,25,5,.05), 0 0 0 1px rgba(40,25,5,.03);
+  /* 浅色下"浮起来"只能靠阴影 —— 白卡在米底上位移 2px 肉眼几乎看不出，
+     必须同时给它一层柔和的投影，否则悬停等于没反馈。 */
+  --sh-lift: 0 10px 26px rgba(40,25,5,.10), 0 1px 2px rgba(40,25,5,.06);
 
   --scroll-thumb: rgba(40,25,5,.22);
   --nav-veil: rgba(246,243,238,.88);
@@ -367,6 +394,11 @@ a:hover { text-decoration-thickness: 2px; }
 .nav .navq {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; margin-left: 4px; padding: 0; border: 0;
+  /* ⚠ 必须显式清掉 min-height：ui-kit.css 给**所有** button 设了
+     `min-height:40px`（那是为了和输入框等高），而它优先于 height ——
+     于是这个 26px 的图标按钮实际被撑成 40px，还把顶栏撑高了一截。
+     全局规则越强，越要给例外的控件写清楚"我不是那种按钮"。 */
+  min-height: 0;
   border-radius: 7px; background: none; color: var(--fg3); cursor: pointer;
   transition: color .14s, background .14s;
 }
@@ -419,7 +451,12 @@ a:hover { text-decoration-thickness: 2px; }
   background: var(--brand); color: var(--brand-ink);
   border-color: var(--brand); font-weight: 600;
 }
-.btn.primary:hover:not(:disabled) { background: #f7bd5a; border-color: #f7bd5a; }
+/* ⚠ 这里曾经写死 #f7bd5a。深色主题下它恰好等于 --brand-hover，看不出问题；
+   浅色主题下 --brand-ink 是 #ffffff，白字压在这个亮琥珀上只有 **1.70:1**——
+   而作者自己的 check-contrast 没抓到这个，因为它只算令牌之间的静态配对，
+   算不到「悬停态」。改成令牌后：深色 10.44:1 / 浅色 6.40:1。
+   防回归：tools/check-design.mjs 专门盯着 :hover 里的字面色。 */
+.btn.primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
 .btn.sm { padding: 4px 10px; font-size: var(--t-sm); border-radius: var(--r-sm); }
 .btn.ghost { background: transparent; }
 
@@ -448,10 +485,15 @@ td.r, th.r { text-align: right; }
   display: inline-block; padding: 1px 8px; border-radius: 20px; font-size: 11.5px;
   border: 1px solid var(--line2); color: var(--fg2); background: var(--card2);
 }
-.pill.amber { color: var(--amber); border-color: rgba(232,163,61,.4); }
-.pill.green { color: var(--green); border-color: rgba(76,195,138,.4); }
-.pill.red { color: var(--red); border-color: rgba(229,83,75,.4); }
-.pill.purple { color: var(--purple); border-color: rgba(201,140,232,.4); }
+/* ⚠ 边框色必须从**语义令牌**派生，不能写死 rgbs。
+   这里原来写的 rgba(232,163,61) / (76,195,138) / (229,83,75) / (201,140,232)
+   是 2026-10 之前那套配色的 rgb —— 主色后来改成 #f0b03f，这四行没跟上。
+   结果：深色主题下 pill 的文字是令牌色、边框是旧色，两者色相已经不同。
+   color-mix 让边框永远等于文字色的 40% 透明版本，改主色时自动跟。 */
+.pill.amber { color: var(--amber); border-color: var(--brand-line); }
+.pill.green { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+.pill.red { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+.pill.purple { color: var(--purple); border-color: color-mix(in srgb, var(--purple) 40%, transparent); }
 
 /* ── 状态条 ───────────────────────────────────────────────
    以前是 `border-left: 3px solid <彩色>` —— 那种彩色左边框是
@@ -525,7 +567,7 @@ details summary:hover { color: var(--fg); }
   font-family:inherit;font-variant-numeric:tabular-nums}
 .pg:hover:not(:disabled){border-color:var(--amber);color:var(--fg)}
 .pg:disabled{opacity:.35;cursor:not-allowed}
-.pg.on{background:var(--amber);color:#201705;border-color:var(--amber);font-weight:600}
+.pg.on{background:var(--amber);color:var(--brand-ink);border-color:var(--amber);font-weight:600}
 .pgecl{color:var(--fg3);padding:0 2px}
 .pgsel{background:var(--card2);border:1px solid var(--line2);color:var(--fg2);
   border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit}
@@ -539,14 +581,44 @@ details summary:hover { color: var(--fg); }
 .gloss dd{color:var(--fg2);margin:3px 0 0;line-height:1.72}
 .gloss summary{font-size:13px}
 
-/* ── 档位徽标（能识别就上色，识别不了显示「未标注」而不是 ?）── */
+/* ── 档位徽标（能识别就上色，识别不了显示「未标注」而不是 ?）──
+   ⚠ 文字色必须走 --on-color，不能写死 #0d1117：
+     那个冷黑正是 DESIGN.md §3.2 明确禁止的（"暖底上压冷黑会显脏"）。
+     而且双主题下它还错一半：浅色主题的档位底色是**深色**
+     （--ok #1a7f37 / --info #0969da …），压冷黑会糊成一团。
+     --on-color 的深色值是 #201705（暖褐）、浅色值是 #ffffff，两个方向都对。 */
 .tier{display:inline-block;min-width:24px;text-align:center;padding:1px 5px;border-radius:5px;
-  font-size:10.5px;font-weight:600;color:#0d1117}
+  font-size:10.5px;font-weight:600;color:var(--on-color)}
 
 /* ── 骨架屏 ───────────────────────────────────────────── */
 .skel { background: linear-gradient(90deg, var(--card2) 25%, var(--card3) 50%, var(--card2) 75%);
   background-size: 200% 100%; animation: sk 1.3s infinite; border-radius: 6px; height: 13px; }
 @keyframes sk { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
+
+/* ── 仅供屏幕阅读器 ──────────────────────────────────────
+   用途：给"视觉上不需要标题、但语义上必须有"的地方补一个 h1
+   （每个页面都该有一个一级标题，否则读屏用户无法判断自己在哪一页）。
+   ⚠ 不要用 display:none / visibility:hidden —— 那样读屏软件也读不到，
+     等于没写。必须是"视觉上移出视口、仍在无障碍树里"这套写法。 */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@media (max-width: 760px) {
+  /* ── 窄屏顶栏 ────────────────────────────────────────────
+     11 个入口在手机上必然换行（375px 实测两行、占视口 20%）。
+     这里压紧到"两行但每行更矮"，**不删入口** —— 删掉谁都是
+     "这个地方到不了"，而 410 说明页至少还解释了自己。
+     ⚠ 只动 padding 与字号，不动字号档位令牌：顶栏是索引，不是正文，
+       允许比正文小一档（这也是全站唯一允许这么做的地方）。 */
+  .nav { padding: 8px 0 10px; margin-bottom: 16px; }
+  .nav .links a { padding: 4px 8px; font-size: 12.5px; }
+  /* 版本号是**状态**不是导航：手机上藏起它不影响任何操作，
+     而页脚仍然能点进版本历史。 */
+  .nav .ver { display: none; }
+}
 
 @media (max-width: 560px) {
   body { padding: 14px 12px 44px; }

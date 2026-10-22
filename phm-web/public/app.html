@@ -40,6 +40,8 @@ var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStora
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=V0.21.4.0">
 <link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.4.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.21.4.0">
+<script type="module" src="/js/motion.js?v=V0.21.4.0"></script>
 <style>
 /* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
    否则拆成多页后会有四五份 :root 各自漂移。 */
@@ -88,7 +90,7 @@ border-left:3px solid var(--fg3);background:var(--card);color:var(--fg2)}
 .cdl{display:inline-flex;align-items:center;gap:4px;text-decoration:none;
 border:1px solid var(--amber);color:var(--amber);background:var(--card);
 border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;white-space:nowrap}
-.cdl:hover{background:rgba(232,163,61,.12)}
+.cdl:hover{background:var(--brand-soft)}
 .gh svg{display:block;flex:none}
 .gh button,.gh{cursor:pointer}
 /* ── 连接 Phira 面板 ── */
@@ -143,7 +145,7 @@ border-radius:999px;padding:1px 8px}
 .pmrows .a,.pmrows .l,.pmrows .s{font-variant-numeric:tabular-nums;flex:none}
 .pmrows .s{color:var(--amber);width:42px;text-align:right}
 .pmrows .more{color:var(--fg3);font-size:11px}
-.pmwarn{margin:0 0 9px;padding:8px 11px;border-radius:8px;background:rgba(232,163,61,.1);
+.pmwarn{margin:0 0 9px;padding:8px 11px;border-radius:8px;background:var(--brand-soft);
 border-left:3px solid var(--amber);font-size:11.5px;color:var(--fg2);line-height:1.65}
 .pmwarn b{color:var(--amber)}
 .pmnote{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
@@ -295,7 +297,7 @@ border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;lin
 .calcbtn{border:1px solid var(--amber);background:transparent;color:var(--amber);
 border-radius:6px;padding:1px 10px;font:inherit;font-size:12px;font-weight:700;
 cursor:pointer;line-height:1.6;white-space:nowrap}
-.calcbtn:hover{background:rgba(232,163,61,.13)}
+.calcbtn:hover{background:var(--brand-soft)}
 .calcbtn:disabled{opacity:.45;cursor:default}
 .csfoot{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
 font-size:11.5px;color:var(--fg3);line-height:1.6}
@@ -482,16 +484,13 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 </style>
 </head>
 <body>
-<!-- ⚠ 2026-10-21：站点收敛为静态工具。这段是**写死的中文兜底** ——
-     不许清成 <div data-i18n="retire.text"></div>，模块链一环失败整页就没这句了。
-     链接指向 /retired（服务端渲染，不依赖任何 JS / 数据库）。 -->
-<div class="retire-banner" role="region" aria-label="站点公告">
-  <span data-i18n="retire.text">本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。</span>
-  <a class="retire-banner-link" href="/retired" data-i18n="retire.link">继续使用请到 →</a>
-</div>
 <div class="wrap">
 <nav id="nav"></nav>
 <div class="apphead">
+  <!-- 语义标题：视觉上这页直接以标语开场（工作台要尽快把拖放区送到眼前），
+       但每页必须有一个 h1 —— 否则读屏用户不知道自己在哪一页。
+       用 .sr-only 而不是 display:none：后者连读屏软件也读不到，等于没写。 -->
+  <h1 class="sr-only" data-i18n="app.head.h1">算定数 · 谱面难度工作台</h1>
   <div class="slogan" data-i18n-html="app.head.slogan">拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br><b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。</div>
   <div class="hsearch">
     <input id="csrch" data-i18n-ph="app.head.search.ph" maxlength="40" autocomplete="off" placeholder="搜谱面：曲名 / 谱师">

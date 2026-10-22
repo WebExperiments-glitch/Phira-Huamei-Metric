@@ -13,6 +13,8 @@ var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStora
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=V0.21.4.0">
 <link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.4.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.21.4.0">
+<script type="module" src="/js/motion.js?v=V0.21.4.0"></script>
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -59,17 +61,10 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </style>
 </head>
 <body>
-<!-- ⚠ 2026-10-21：站点收敛为静态工具。这段是**写死的中文兜底** ——
-     不许清成 <div data-i18n="retire.text"></div>，模块链一环失败整页就没这句了。
-     链接指向 /retired（服务端渲染，不依赖任何 JS / 数据库）。 -->
-<div class="retire-banner" role="region" aria-label="站点公告">
-  <span data-i18n="retire.text">本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。</span>
-  <a class="retire-banner-link" href="/retired" data-i18n="retire.link">继续使用请到 →</a>
-</div>
 <div class="wrap"><nav id="nav"></nav></div>
 <div class="wrap rc-wrap">
   <section class="rc-hero">
-    <h1>导入 MP3，<b>自动写谱</b></h1>
+    <h1 data-mv="title">导入 MP3，<b>自动写谱</b></h1>
     <p>自动提取 BPM、时长、拍点、踩音点和段落能量，按规则排成 EZ / HD / IN / AT 谱面。<br>生成 <b>.pez</b> 或 <b>.zip</b>；音频与谱面全程在本地处理，不上传。</p>
   </section>
 

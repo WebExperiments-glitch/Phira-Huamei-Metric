@@ -8,9 +8,12 @@
  * ============================================================ */
 export default {
   zh: {
-    /* ── 页头：标语 + 顶部搜索 ── */
-    'app.head.slogan':
-      '拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br>'
+    /* ── 页头：标语 + 顶部搜索 ──
+       `app.head.h1` 是这一页的**语义标题**（见 app.html 里那个 .sr-only h1）：
+       视觉上这页直接以标语开场，但它需要有一个一级标题，否则读屏用户
+       无法判断自己在哪一页。等 UI 重设计时再把它提升成可见标题。 */
+    'app.head.h1': '算定数 · 谱面难度工作台',
+    'app.head.slogan': '拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br>'
       + '<b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。',
     'app.head.search.ph': '搜谱面：曲名 / 谱师',
     'app.head.search.btn': '搜索',
@@ -386,7 +389,11 @@ export default {
   },
 
   en: {
-    /* ── header: slogan + top search ── */
+    /* ── header: slogan + top search ──
+       `app.head.h1` is this page's semantic heading (rendered as the .sr-only h1
+       in app.html): visually the page opens with the slogan, but it still needs a
+       level-1 heading so screen-reader users know which page they are on. */
+    'app.head.h1': 'Analyze · chart difficulty workbench',
     'app.head.slogan':
       'Drop a chart pack in → get <b>both difficulty scales</b> (community consensus + official scale).<br>'
       + '<b>No sign-in · chart files are never uploaded</b> · parsing runs entirely in your browser.',

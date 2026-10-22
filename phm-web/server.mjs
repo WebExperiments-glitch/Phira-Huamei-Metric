@@ -31,7 +31,7 @@ import {
 import { makeProfileRoutes } from './lib/hm-profile-routes.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
 import { installFaultGuards, guardRequest } from './lib/resilience.mjs';
-import { retiredGate, STATIC_ONLY, RETIRED_HTML, stripBanner } from './lib/retired.mjs';
+import { retiredGate, STATIC_ONLY, RETIRED_HTML } from './lib/retired.mjs';
 /* 贡献凭证：/api/contribute 的准入能力票（见 lib/contribute-ticket.mjs 顶部）。 */
 import {
   ticketAvailable, issueTicket, verifyTicket, ticketCovers,
@@ -876,10 +876,6 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* 页面 HTML 一律 no-cache（sendFile 内部按扩展名判断），
      所以干净 URL 不需要额外处理缓存头。 */
   if (fs.existsSync(fp) && fs.statSync(fp).isFile()) {
-    /* 全功能站要把公告横幅摘掉 —— 那句"本站已停止运行"在新站上是假话 */
-    if (!STATIC_ONLY && rel.endsWith('.html')) {
-      return send(res, 200, stripBanner(fs.readFileSync(fp, 'utf8')), 'text/html; charset=utf-8');
-    }
     return sendFile(res, fp, longCache, req);
   }
   return send404(res);
