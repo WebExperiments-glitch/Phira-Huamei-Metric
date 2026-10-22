@@ -210,8 +210,16 @@ export function makePgFetch(url) {
         const body = init && init.body ? JSON.parse(init.body) : {};
         const names = await argNames(p, fn);
         if (names === null) throw Object.assign(new Error(`function ${fn} 不存在`), { code: '42883' });
-        /* 按函数声明的参数顺序取值 —— 用 JSON 的键名对，不靠调用方保证顺序 */
-        const args = names.map(n => (body[n] === undefined ? null : body[n]));
+        /* 按函数声明的参数顺序取值 —— 用 JSON 的键名对，不靠调用方保证顺序。
+           ⚠ 对象/数组必须**先 JSON.stringify**：node-postgres 默认把 JS 数组
+           序列化成 Postgres 的数组字面量 `{...}`，喂给 jsonb 参数就是
+           `invalid input syntax for type json` —— 而这条路径是**批量写成绩**，
+           也就是"数据飞轮"那个按钮，线上一直是坏的，只是没人报告过。
+           （判据：对象/数组 → 序列化；字符串/数字/布尔原样传。） */
+        const args = names.map(n => {
+          const v = body[n] === undefined ? null : body[n];
+          return (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+        });
         const holes = names.filter(n => body[n] === undefined);
         if (holes.length) console.warn(`[db-pg] /rpc/${fn} 少传参数：${holes.join(',')}（按 null 处理）`);
         const sql = `select * from public.${quoteIdent(fn)}(${args.map((_, i) => '$' + (i + 1)).join(',')})`;
