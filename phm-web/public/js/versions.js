@@ -19,9 +19,21 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.21.4.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.21.5.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.21.5.0', date: '2026-10-22',
+    zh: ['<b>界面开始「动」起来了</b>：新增一层克制的动效（进入、悬停、列表逐渐显现），'
+      + '并且尊重系统的「减少动态效果」设置。',
+      '<b>删掉了那条公告横幅</b> —— 站点已经恢复，那句话说"本站已停止运行"已经不成立。'
+      + '被关掉的功能现在会说"在当前部署中未启用"，不再说"网站死了"。'],
+    en: ['<b>The interface moves now</b> — a restrained motion layer (enter, hover, staggered lists) '
+      + 'that respects the system "reduce motion" setting.',
+      '<b>The shutdown banner is gone.</b> The site is back, so "this site has been shut down" '
+      + 'was no longer true. Disabled features now say "not enabled in this deployment" instead.'],
+  },
+
   {
     v: 'V0.21.4.0', date: '2026-10-21',
     zh: ['<b>本站收敛为静态的谱面分析工具</b>：账号、成绩、数据管理、状态页与开放 API 全部撤回，'
