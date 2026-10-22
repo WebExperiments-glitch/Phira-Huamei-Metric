@@ -75,6 +75,7 @@ phm-web/
 │   ├── css/
 │   │   ├── base.css           ← 底座：令牌 / reset / 排版 / 布局骨架 / 导航 / 卡片 / 表格
 │   │   ├── ui-kit.css         ← 组件：控件 / 按钮 / callout / 芯片 / 字体与字号档位
+│   │   ├── motion.css         ← 动效层：入场揭示 / 悬停抬升 / 进度条 / 噪点 / 跨页转场
 │   │   ├── docs.css           ← 法务长文版式（privacy / terms）
 │   │   └── api.css            ← 开发者文档 / API 开放平台版式
 │   └── js/
@@ -82,6 +83,7 @@ phm-web/
 │       ├── audio-analysis.js  ← ★ 浏览器音频提取：BPM / 拍点 / 踩音点 / 段落
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
 │       ├── ui.js              ← 导航 / 格式化 / 缓存读取 / P.H.M. RKS
+│       ├── motion.js          ← ★ 动效运行时（零依赖；减弱动效时整份不执行）
 │       ├── settings.js        ← ★★ 用户设置的**唯一真源**：键名 / 默认值 / 读写 / 清理
 │       ├── handoff.js         ← 首页 → /app 的 IndexedDB 文件接力
 │       ├── i18n.js + i18n/    ← 双语：10 个页面分片，中英写在同一个文件

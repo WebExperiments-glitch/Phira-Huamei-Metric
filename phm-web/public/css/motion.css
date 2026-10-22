@@ -1,0 +1,189 @@
+/* ══════════════════════════════════════════════════════════════
+ * css/motion.css —— 动效层（2026-10-21）
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么单独一个文件，而不是塞进 base.css / ui-kit.css】
+ *   base.css 是**底座**（令牌 / 排版 / 骨架），ui-kit.css 是**组件**
+ *   （控件长什么样）。动效是**第三件事**：它描述"元素怎么出现"，
+ *   而且它的失效方式与前两者完全不同 —— 动效写坏了页面还能用，
+ *   但**初始态写坏了页面会白**。混进去会让"白屏"这种事故
+ *   在一份 500 行的文件里找不出来。
+ *
+ * 【三条铁律】
+ *   1. **不许让内容依赖 JS 才可见。** 所有隐藏初始态都挂在 `.mv-on`
+ *      这个根类上，由 js/motion.js 在确认「非 reduced-motion + 支持
+ *      IntersectionObserver」之后才加。模块 404 / 语法错 / 被 CSP 挡 /
+ *      用户开了减弱动效 —— 以上任一情况，`.mv-on` 不存在，
+ *      下面的 `opacity:0` 一条都不生效，页面**照常可读**。
+ *   2. **只动 transform 与 opacity**（外加 clip-path）。
+ *      动 width / height / top / box-shadow 会触发布局或重绘，
+ *      在 1000 行谱面表格上就是直接掉帧。
+ *   3. **删掉它，用户理解信息不能变难。** 所以这里的每一项都是
+ *      "让已经存在的信息按顺序出现"，没有一项在**新增**信息。
+ *
+ * 【依赖的令牌】（都在 base.css，本文件不定义任何颜色/时长）
+ *   --ease-out / --dur-1..4 / --brand / --fg / --card / --sh-lift
+ *
+ * ⚠ 本文件必须**在 ui-kit.css 之后**引用：它要盖掉少量 hover 的
+ *   transition 时长，顺序反了会被 ui-kit 的 `transition: background .15s` 抢回。
+ * ══════════════════════════════════════════════════════════════ */
+
+/* ── 滚动进度条 ──────────────────────────────────────────────
+   零 JS：直接绑在 document 的滚动时间轴上。
+   ⚠ 不支持 animation-timeline 的浏览器里，它保持 scaleX(0) ——
+     也就是**不存在**。这比"用 JS 监听 scroll 每帧算百分比"好：
+     那种写法在长列表页会和列表渲染抢主线程。 */
+#mvbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px;
+  transform: scaleX(0); transform-origin: 0 50%;
+  background: var(--brand); opacity: .9;
+  z-index: 30; pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  #mvbar {
+    animation: mv-bar linear both;
+    animation-timeline: scroll(root block);
+  }
+  @keyframes mv-bar { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+}
+
+/* ── 噪点层 ──────────────────────────────────────────────────
+   为什么加：纯色大面积（尤其深色）在屏幕上"太干净"，像塑料；
+   一层 4% 的纸纹颗粒会让它显出手感。这是印刷品的底噪，
+   不是"特效" —— 看不出它存在，只感觉得到画面不空。
+   ⚠ 三点必须同时成立，否则它会变成灾难：
+     · pointer-events: none —— 否则整站点不动
+     · z-index 低于 .nav(20) —— 顶栏毛玻璃下面不该有颗粒感
+     · 只放 body::after 一处 —— 每加一层都在叠加模糊
+   SVG 里只用 feTurbulence 生成灰度噪声，**不含任何色值**。 */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 3;
+  pointer-events: none; opacity: var(--mv-noise, .05);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"] { --mv-noise: .035; }
+
+/* ── 入场揭示 ────────────────────────────────────────────────
+   两种形态，用途不同：
+     .mv      上移 14px + 淡入 —— 用于成组出现的内容（段落/卡片）
+     .mv-title 遮罩揭示        —— 用于首屏主标题，一页只该有一个
+   ⚠ 位移只有 14px。位移越大越像"广告落地页"，越小越像"内容本来就该
+     在那儿，只是刚刚到位"。这是高级感和廉价感的实际分界线。 */
+html.mv-on .mv {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    transform var(--dur-3) var(--ease-out);
+  /* stagger：同组内第 i 个延后 i×70ms。上限在 JS 里夹到 8，
+     否则 30 张谱面包卡片会排到 2.1 秒后 —— 那时用户已经滚过去了。 */
+  transition-delay: calc(var(--mv-i, 0) * 70ms);
+}
+html.mv-on .mv.mv-in { opacity: 1; transform: none; }
+
+/* 标题遮罩：从下往上擦出。
+   ⚠ 用 clip-path 而不是 overflow:hidden + 内层位移，是因为后者需要
+     在 DOM 里套一层 span —— 而 h1 的内容会被 i18n 的 applyStatic
+     整体替换成 innerHTML，套进去的 span 下次切语言就没了。
+     clip-path 只在 CSS 层，DOM 一个字节都不动。
+   ⚠ 天然降级：浏览器不认识 clip-path 时会忽略这条声明，
+     元素保持可见 —— 不会出现"标题永远藏起来"。 */
+html.mv-on .mv-title {
+  clip-path: inset(0 0 102% 0);
+  transform: translate3d(0, 10px, 0);
+  transition:
+    clip-path var(--dur-4) var(--ease-out),
+    transform var(--dur-4) var(--ease-out);
+}
+html.mv-on .mv-title.mv-in { clip-path: inset(0 0 -6% 0); transform: none; }
+
+/* ── 悬停抬升（elevation 的第 2 档）─────────────────────────
+   ⚠ 只给**可点**的卡片。给不可点的卡片加抬升等于在骗用户"这个能点"，
+     那是比"没动效"更糟的体验。所以这是显式类，由页面逐个标。 */
+html.mv-on .mv-lift {
+  transition:
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    border-color var(--dur-1) var(--ease);
+}
+html.mv-on .mv-lift:hover {
+  transform: translate3d(0, -2px, 0);
+  box-shadow: var(--sh-lift);
+}
+
+/* ── 磁吸按钮 ────────────────────────────────────────────────
+   指针靠近时按钮朝指针挪最多 6px，离开弹回。
+   ⚠ 只对 `pointer:fine` 生效 —— 触屏没有"悬停"，mousemove 在触屏上
+     要么不触发、要么是点击后补发的，那会让按钮跳一下。
+   ⚠ 位移由 JS 写进 inline transform；这里只负责**回去**的那段缓动。
+     按下时把时长压到 60ms（.mv-hot），否则松手后按钮会"慢慢地"跟手，
+     看起来像卡了。 */
+@media (pointer: fine) {
+  html.mv-on .mv-magnet {
+    transition: transform var(--dur-2) var(--ease-out);
+    will-change: transform;
+  }
+  html.mv-on .mv-magnet.mv-hot { transition-duration: 70ms; }
+}
+
+/* ── 列表交错入场 ────────────────────────────────────────────
+   给 JS 动态渲染出来的列表用（谱面包 / 搜索结果）。由 motion.js 的
+   MutationObserver 自动打标，页面代码不用管。 */
+html.mv-on [data-mv-list] > * {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  transition:
+    opacity var(--dur-3) var(--ease-out),
+    transform var(--dur-3) var(--ease-out);
+  transition-delay: calc(var(--mv-i, 0) * 45ms);
+}
+html.mv-on [data-mv-list] > .mv-in { opacity: 1; transform: none; }
+
+/* ── 数字滚动 ────────────────────────────────────────────────
+   ⚠ 这里**故意不写**数字本身的样式：`.num` 的 tabular-nums 已经在
+     base.css 里了。动效层只负责"什么时候变"，不负责"长什么样"。
+   滚动过程中数字宽度会变，靠 tabular-nums 才不会抖 —— 所以
+   motion.js 在开始滚动前会补一个 .num，结束时保留。 */
+
+/* ── 跨页转场：**刻意不做** ────────────────────────────────
+   2026-10-22 试过 `@view-transition { navigation: auto; }`（一行启用 MPA
+   交叉淡入，语法上很诱人），实测**必须撤掉**：
+
+     1. 导航到 410 页面、或在同一帧里连续两次 `location.href` 时，浏览器会
+        直接抛未捕获异常 `InvalidStateError: Transition was aborted because
+        of invalid state. ViewTransition opt-in disabled`。
+        这是浏览器内部行为，CSS 层拦不住 —— 只能在控制台里留一堆红字。
+     2. test-ui-flows 把它抓了出来（"成绩卡流程没有运行时报错" 变红）。
+        一个会让回归测试变红的装饰，没有任何保留的理由。
+
+   工具站的页间切换是**功能切换**（查定数 / 查谱包 / 写谱），不是叙事推进，
+   转场并不帮用户理解任何东西。按「删掉它，理解信息会变难吗」这条尺子量，
+   答案是"不会" —— 那就删。 */
+
+/* ── 减弱动效：全部关掉，并且**强制可见** ───────────────────
+   ⚠ 这一段是安全网：即使 .mv-on 已经被加上（比如用户在页面打开后
+     才改系统设置，或 JS 判断与 CSS 媒体查询不同步），内容也必须是
+     可见的。所以这里不是"把时长调成 0"，而是**把初始态一起清掉** ——
+     transition-duration:0 只让动画瞬间完成，opacity:0 依然是 0。 */
+@media (prefers-reduced-motion: reduce) {
+  html.mv-on .mv,
+  html.mv-on [data-mv-list] > * {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html.mv-on .mv-title {
+    clip-path: none !important;
+    transform: none !important;
+  }
+  #mvbar { display: none; }
+  body::after { display: none; }
+}
+
+/* ── 打印：动效和颗粒都不该上纸 ──────────────────────────── */
+@media print {
+  #mvbar, body::after { display: none !important; }
+  html.mv-on .mv,
+  html.mv-on .mv-title,
+  html.mv-on [data-mv-list] > * {
+    opacity: 1 !important; transform: none !important; clip-path: none !important;
+  }
+}
