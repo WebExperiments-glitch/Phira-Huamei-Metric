@@ -303,7 +303,10 @@ const train = all.filter((_, i) => !testIdx.has(i));
 const test = all.filter((_, i) => testIdx.has(i));
 console.log(`  训练 ${train.length} / 测试 ${test.length}`);
 
-const featsAll = pickFeatures(all);
+/* --only a,b,c：只跑这几维（用来验证"真正要上线的那一版"的收益，
+   而不是跑一个靠引擎算不出来的维度堆出来的漂亮数字） */
+const ONLY = val('only') ? val('only').split(',').map(x => x.trim()).filter(Boolean) : null;
+const featsAll = ONLY || pickFeatures(all);
 console.log(`  特征：全部 ${featsAll.length} 个，线上用的是 ${DIMS8.length} 个`);
 
 const yTr = train.map(r => r.y), yTe = test.map(r => r.y);

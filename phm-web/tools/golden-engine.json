@@ -1,5 +1,5 @@
 {
-  "engineVer": "com-trim15-v0.5.0",
+  "engineVer": "com-trim15-37dim-v0.6.0",
   "parse": {
     "notes": 5,
     "real": 5,
@@ -57,104 +57,104 @@
     }
   },
   "knnOff": {
-    "ref": 3.1726241725126196,
+    "ref": 3.8153633396768343,
     "tier": "EZ",
     "basis": "official",
-    "lo": 2,
-    "hi": 7,
+    "lo": 0.5,
+    "hi": 12.6,
     "q1": 2.5,
-    "q3": 3.5,
-    "spread": 5,
+    "q3": 6,
+    "spread": 12.1,
     "n20": 20,
     "selfExcluded": false,
     "near": [
       {
-        "name": "dB doll",
+        "name": "Message",
+        "level": "EZ",
+        "diff": 3
+      },
+      {
+        "name": "What do you want more than a Happy ending?",
+        "level": "EZ",
+        "diff": 0.5
+      },
+      {
+        "name": "Engine x Start!! (melody mix)",
         "level": "HD",
-        "diff": 3.5
-      },
-      {
-        "name": "Colorful Days♪",
-        "level": "EZ",
-        "diff": 5
-      },
-      {
-        "name": "Xep+ion",
-        "level": "EZ",
-        "diff": 2.5
-      },
-      {
-        "name": "Dash",
-        "level": "EZ",
-        "diff": 2.5
+        "diff": 8.3
       },
       {
         "name": "Engine x Start!! (melody mix)",
         "level": "EZ",
         "diff": 2.5
+      },
+      {
+        "name": "もぺもぺ",
+        "level": "EZ",
+        "diff": 2
       }
     ]
   },
   "knn": {
-    "ref": 3.1726241725126196,
+    "ref": 3.8153633396768343,
     "tier": "EZ",
     "basis": "official",
-    "lo": 2,
-    "hi": 7,
+    "lo": 0.5,
+    "hi": 12.6,
     "q1": 2.5,
-    "q3": 3.5,
-    "spread": 5,
-    "d1": 5.228538578519038,
-    "dMean": 5.645524871998986,
+    "q3": 6,
+    "spread": 12.1,
+    "d1": 25.701441620428795,
+    "dMean": 30.016180550192665,
     "n20": 20,
     "selfExcluded": false,
     "dvals": [
+      0.5,
+      1.5,
+      1.5,
       2,
       2,
       2.5,
       2.5,
-      2.5,
-      2.5,
-      2.5,
-      3,
-      3,
-      3,
       3,
       3,
       3.5,
       3.5,
-      3.5,
-      3.5,
+      4,
       5,
-      5.5,
-      5.5,
-      7
+      5,
+      6,
+      6,
+      7,
+      7.5,
+      8.3,
+      12.6
     ],
     "near": [
       {
-        "name": "dB doll",
+        "name": "Message",
+        "level": "EZ",
+        "diff": 3
+      },
+      {
+        "name": "What do you want more than a Happy ending?",
+        "level": "EZ",
+        "diff": 0.5
+      },
+      {
+        "name": "Engine x Start!! (melody mix)",
         "level": "HD",
-        "diff": 3.5
-      },
-      {
-        "name": "Colorful Days♪",
-        "level": "EZ",
-        "diff": 5
-      },
-      {
-        "name": "Xep+ion",
-        "level": "EZ",
-        "diff": 2.5
-      },
-      {
-        "name": "Dash",
-        "level": "EZ",
-        "diff": 2.5
+        "diff": 8.3
       },
       {
         "name": "Engine x Start!! (melody mix)",
         "level": "EZ",
         "diff": 2.5
+      },
+      {
+        "name": "もぺもぺ",
+        "level": "EZ",
+        "diff": 2
       }
     ]
   }
