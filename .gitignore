@@ -76,3 +76,6 @@ phira-huamei/
 
 # ── 发布产物（exe 包等，二进制、可重建）──
 发布/
+
+# 抓取的玩家成绩（Phira ToS 禁止再分发，只做本地研究）
+data/scores/
