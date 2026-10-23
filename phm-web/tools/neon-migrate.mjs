@@ -113,7 +113,14 @@ async function main() {
   const host = URL.split('@')[1]?.split('/')[0] || '?';
   console.log('[neon-migrate] 目标：' + host);
 
-  const c = new Client({ connectionString: URL, ssl: { rejectUnauthorized: true } });
+  const c = new Client({
+    connectionString: URL,
+    ssl: { rejectUnauthorized: true },
+    /* ⚠ 必须设连接超时。不设的话 pg 会**无限等** ——
+       2026-10-23 就有一个 --list 进程挂了 33 小时才拿到 ECONNRESET。
+       当时我误判成"切分函数死循环"，实际上是 TCP 连接一直挂着。 */
+    connectionTimeoutMillis: 30000,
+  });
   await c.connect();
 
   if (flag('status')) {
