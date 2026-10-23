@@ -29,7 +29,11 @@ import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.22.0.
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
 import { skillScores } from './skills.js?v=V0.22.0.0';
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
- * com-trim15-37dim-v0.6.0：参照维度 8 → 37（2026-10-23）。
+ * com-trim15-v0.6.0：参照维度 8 → 37（2026-10-23）。
+ *   ⚠ 维度信息**不写进版本串** —— 它是给机器解析的（缓存对账靠它比对），
+ *     形态由 smoke 守卫（`^[a-z0-9]+-[a-z0-9]+-v\d+\.\d+\.\d+$`）。
+ *     第一版写成 com-trim15-37dim-v0.6.0，多一段直接把 CI 打红。
+ *     聚合方式没变（还是 trim15），所以前缀不动，只进版本号。
  *   实测 中位 0.487→0.470、均值 0.846→0.813、≤1档 80.2%→81.8%、R² 0.433→0.464。
  *   ⚠ 扩维前做过逐维对账（tools/verify-features.mjs）：37 维全部一致，最大偏差 0。
  *   代价：ref-official.js 75KB → 211KB（浏览器要下载）。
@@ -37,7 +41,7 @@ import { skillScores } from './skills.js?v=V0.22.0.0';
  *   中位误差 0.500→0.453、均值误差 0.820→0.816，输出分辨率 104→1332 个不同值。
  * ⚠ 版本号一变，历史缓存里 ref_const 与新区间的可比性就断了，
  *   必须重算（tools/warm-cache.mjs --force + tools/reconcile-cache.mjs）。 */
-export const ENGINE_VER = 'com-trim15-37dim-v0.6.0';
+export const ENGINE_VER = 'com-trim15-v0.6.0';
 /* 官谱参照（向后兼容既有调用方：攻坚测试探针、tools/*.mjs 都在用它） */
 const OFFICIAL_REF = REF_OFFICIAL;
 export { REF_DIMS, REF_OFFICIAL, ROW_LABELS };
