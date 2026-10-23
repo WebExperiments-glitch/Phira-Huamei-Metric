@@ -203,7 +203,14 @@ if (!ARG.includes('--combine')) {
   }
 }
 
-/* ── 模式二：关键实验 —— 应变特征能不能加信息 ───────────────── */
+/* ── 模式二：关键实验 —— 新特征能不能给现有 37 维加信息 ───────
+ * 两组候选：
+ *   A. 应变特征（逐物件 strain 派生的 8 个汇总）—— 已验证无增益，留作对照
+ *   B. 结构特征（jack / trill / 变速 / 密度变异）—— 这次要测的
+ *
+ * 判据只有一个：**加进去之后 R² 涨不涨**。
+ * 单独跑得好看没有意义 —— 一个标量当然比不过 37 维。
+ */
 if (ARG.includes('--combine')) {
   const DIMS37 = ['real_notes_per_second', 'real_core_notes_per_second', 'notes_real',
     'strain_p99', 'iv_mean', 'above_avg_density_mean', 'note_clutter_ratio', 'cross_hand_density',
@@ -214,41 +221,155 @@ if (ARG.includes('--combine')) {
     'stair_density', 'pattern_switch_rate', 'type_switch_per_sec', 'tempo_change_count',
     'hold_ratio', 'jline_rotate_density', 'drag_per_sec', 'position_entropy', 'bpm', 'lines'];
 
+  /* ── 结构特征：从音符序列表里"形状"，不是强度 ──────────────
+     这些和现有特征的关键区别：现有全是"多少/多快"，
+     这里问的是"怎么排"。同一批音符换个排法，强度一样、难度不一样。 */
+  function structFeatures(notes) {
+    /* 按时间分组（chord 为一组） */
+    const groups = [];
+    for (const n of notes) {
+      const last = groups[groups.length - 1];
+      if (last && Math.abs(last.sec - n.sec) < 0.006) last.notes.push(n);
+      else groups.push({ sec: n.sec, notes: [n] });
+    }
+    const X = 36;                       /* 位置量化：450*2/36 ≈ 25 单位一档 */
+    const key = n => n.line * 1000 + Math.round(n.x / X);
+
+    /* 1) jack：同一条"轨道"上连续出现 —— 采样最短间隔与最长连续数 */
+    let jackRunMax = 0, jackGapMin = 9, jackRuns = 0;
+    {
+      let run = 1, prevSec = null;
+      for (let i = 1; i < groups.length; i++) {
+        const a = groups[i - 1].notes, b = groups[i].notes;
+        const shared = b.some(y => a.some(x => key(x) === key(y)));
+        if (shared) {
+          run++;
+          const gap = groups[i].sec - groups[i - 1].sec;
+          if (gap < jackGapMin) jackGapMin = gap;
+          if (run >= 3) jackRuns++;
+        } else {
+          if (run > jackRunMax) jackRunMax = run;
+          run = 1;
+        }
+        prevSec = groups[i].sec;
+      }
+      if (run > jackRunMax) jackRunMax = run;
+      if (jackGapMin > 8) jackGapMin = 8;
+    }
+
+    /* 2) trill：两组位置交替（A-B-A-B），统计最长交替长度 */
+    let trillRunMax = 0;
+    {
+      let run = 1;
+      for (let i = 2; i < groups.length; i++) {
+        const k0 = groups[i - 2].notes.map(key).sort().join(',');
+        const k1 = groups[i - 1].notes.map(key).sort().join(',');
+        const k2 = groups[i].notes.map(key).sort().join(',');
+        if (k0 === k2 && k0 !== k1) run++;
+        else { if (run > trillRunMax) trillRunMax = run; run = 1; }
+      }
+      if (run > trillRunMax) trillRunMax = run;
+    }
+
+    /* 3) 密度变异：把曲目切 1 秒，看每格音符数的变异系数
+          —— 峰值型（爆发）与均匀型在这条上分得开，现有特征只有均值/分位 */
+    let densityCV = 0, densityMaxRatio = 0;
+    {
+      const t0 = groups[0].sec, dur = Math.max(groups[groups.length - 1].sec - t0, 1);
+      const bins = Math.max(1, Math.floor(dur));
+      const cnt = new Array(bins).fill(0);
+      for (const g of groups) {
+        const b = Math.min(bins - 1, Math.floor(g.sec - t0));
+        cnt[b] += g.notes.length;
+      }
+      const mean = cnt.reduce((s, v) => s + v, 0) / bins;
+      const varr = cnt.reduce((s, v) => s + (v - mean) ** 2, 0) / bins;
+      densityCV = mean > 0 ? Math.sqrt(varr) / mean : 0;
+      const sorted = [...cnt].sort((a, b) => b - a);
+      const med = sorted[Math.floor(bins / 2)] || 1;
+      densityMaxRatio = (sorted[0] || 0) / Math.max(med, 1);
+    }
+
+    /* 4) 变速：相邻组间隔的比值分布 —— 恒速谱比值集中在 1，变速谱散开 */
+    let intervalEntropy = 0, intervalMad = 0;
+    {
+      const dts = [];
+      for (let i = 1; i < groups.length; i++) dts.push(groups[i].sec - groups[i - 1].sec);
+      const ok = dts.filter(d => d > 0.01);
+      if (ok.length > 10) {
+        const mx = Math.max(...ok);
+        const BINS = 24, hist = new Array(BINS).fill(0);
+        for (const d of ok) hist[Math.min(BINS - 1, Math.floor((d / mx) * BINS))]++;
+        const tot = ok.length;
+        for (const h of hist) if (h) intervalEntropy -= (h / tot) * Math.log2(h / tot);
+        const med = [...ok].sort((a, b) => a - b)[ok.length >> 1];
+        intervalMad = ok.reduce((s, d) => s + Math.abs(d - med), 0) / ok.length / (med || 1);
+      }
+    }
+
+    /* 5) 跨手：相邻组的主要位置是否分居两侧 */
+    let crossHandRate = 0;
+    {
+      let cross = 0;
+      for (let i = 1; i < groups.length; i++) {
+        const ax = groups[i - 1].notes.reduce((s, n) => s + n.x, 0) / groups[i - 1].notes.length;
+        const bx = groups[i].notes.reduce((s, n) => s + n.x, 0) / groups[i].notes.length;
+        if (ax * bx < 0 && Math.abs(ax - bx) > 200) cross++;
+      }
+      crossHandRate = groups.length > 1 ? cross / (groups.length - 1) : 0;
+    }
+
+    return [jackRunMax, jackGapMin, jackRuns / Math.max(groups.length, 1),
+      trillRunMax, densityCV, densityMaxRatio, intervalEntropy, intervalMad, crossHandRate];
+  }
+
+  /* 应变特征（对照组，已验证无增益） */
+  function strainFeaturesOf(secs) {
+    const sorted = [...secs].sort((a, b) => b - a);
+    const mx = sorted[0] || 1;
+    const mean = secs.reduce((a, b) => a + b, 0) / secs.length;
+    let run = 0, best = 0;
+    for (const v of secs) { if (v > mx * 0.7) { run++; if (run > best) best = run; } else run = 0; }
+    return [mx, mean,
+      sorted.slice(0, 12).reduce((a, b) => a + b, 0) / Math.min(12, sorted.length),
+      secs.filter(v => v > mx * 0.8).length / secs.length,
+      best * (SEC_MS / 1000), secs.length,
+      sorted[Math.floor(sorted.length * 0.5)] || 0, (mx - mean) / (mean || 1)];
+  }
+
   const data = [];
   for (const r of sample) {
     const c = loadNotes(r.id);
     if (!c) continue;
     const secs = summarize(strainCurve(c.notes)).sections.map(s => s.v);
     if (!secs.length) continue;
-    const sorted = [...secs].sort((a, b) => b - a);
-    const mx = sorted[0] || 1;
-    const mean = secs.reduce((a, b) => a + b, 0) / secs.length;
-    let run = 0, best = 0;
-    for (const v of secs) { if (v > mx * 0.7) { run++; if (run > best) best = run; } else run = 0; }
-    const strainFeats = [
-      mx,
-      mean,
-      sorted.slice(0, 12).reduce((a, b) => a + b, 0) / Math.min(12, sorted.length),
-      secs.filter(v => v > mx * 0.8).length / secs.length,
-      best * (SEC_MS / 1000),
-      secs.length,
-      sorted[Math.floor(sorted.length * 0.5)] || 0,
-      (mx - mean) / (mean || 1),
-    ];
     const base = DIMS37.map(k => Math.log1p(Math.max(0, +r[k] || 0)));
     if (!base.every(isFinite)) continue;
-    data.push({ base, strain: strainFeats, y: +r.difficulty });
+    data.push({
+      base,
+      strain: strainFeaturesOf(secs),
+      struct: structFeatures(c.notes),
+      y: +r.difficulty,
+    });
   }
   console.log(`\n[combine] 可用样本 ${data.length} 张`);
 
-  let sd = 7;
-  const rr = () => (sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296;
-  const order = data.map((_, i) => i);
-  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
-  const nT = Math.floor(data.length * 0.2);
-  const teSet = new Set(order.slice(0, nT));
-  const tr = data.filter((_, i) => !teSet.has(i));
-  const ts = data.filter((_, i) => teSet.has(i));
+  /* 多次随机切分：单次 ΔR² 的随机波动可能就有 0.02 量级，
+     不重复几遍根本分不清"特征有用"和"这次切得好"。 */
+  const SEEDS = +(val('seeds') || 6);
+  const splits = [];
+  for (let k = 0; k < SEEDS; k++) {
+    let sd = 7 + k * 1013;
+    const rr = () => (sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296;
+    const order = data.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    const nT = Math.floor(data.length * 0.2);
+    const teSet = new Set(order.slice(0, nT));
+    splits.push({
+      tr: data.filter((_, i) => !teSet.has(i)),
+      ts: data.filter((_, i) => teSet.has(i)),
+    });
+  }
 
   const ridge = (X, y, lam) => {
     const n = X.length, p = X[0].length;
@@ -288,12 +409,12 @@ if (ARG.includes('--combine')) {
     return { tr: f(trX), te: f(teX) };
   };
 
-  const yTr = tr.map(d => d.y), yTe = ts.map(d => d.y);
-  const myY = yTr.reduce((a, b) => a + b, 0) / yTr.length;
-  const myTe = yTe.reduce((a, b) => a + b, 0) / yTe.length;
-  const sst = yTe.reduce((s, y) => s + (y - myTe) ** 2, 0);
-
-  const runModel = (pick, label) => {
+  /* 一次切分上算一个 R²；返回全部切分的数组 */
+  const runModel = (pick) => splits.map(({ tr, ts }) => {
+    const yTr = tr.map(d => d.y), yTe = ts.map(d => d.y);
+    const myY = yTr.reduce((a, b) => a + b, 0) / yTr.length;
+    const myTe = yTe.reduce((a, b) => a + b, 0) / yTe.length;
+    const sst = yTe.reduce((s, y) => s + (y - myTe) ** 2, 0);
     const { tr: Xa, te: Xb } = standardize(tr.map(pick), ts.map(pick));
     let best = -9;
     for (const lam of [1, 10, 30, 100, 300]) {
@@ -303,13 +424,31 @@ if (ARG.includes('--combine')) {
       const v = 1 - sse / sst;
       if (v > best) best = v;
     }
-    console.log(`  ${label.padEnd(24)} R² = ${best.toFixed(4)}`);
     return best;
-  };
+  });
 
-  console.log('  ── 只 37 维  vs  37 维 + 8 条应变特征 ──');
-  const a = runModel(d => d.base, '37 维（现状）');
-  const b = runModel(d => d.base.concat(d.strain), '37 + 8 应变特征');
-  console.log(`\n  ΔR² = ${(b - a >= 0 ? '+' : '')}${(b - a).toFixed(4)}`
-    + (b > a + 0.005 ? '   ← 应变特征带来了新信息' : '   ← 没有新信息，方向要重新想'));
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const std = a => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / a.length); };
+
+  console.log(`
+  ── ${SEEDS} 次随机切分（每次 20% 留出）──`);
+  const base = runModel(d => d.base);
+  const strainR = runModel(d => d.base.concat(d.strain));
+  const structR = runModel(d => d.base.concat(d.struct));
+  const allR = runModel(d => d.base.concat(d.struct).concat(d.strain));
+
+  const show = (rs, label) => {
+    const d = rs.map((v, i) => v - base[i]);
+    const dm = mean(d), ds = std(d);
+    /* 判断"稳定为正"：均值超过 2 倍标准误（不是拍 0.005 这种魔数） */
+    const se = ds / Math.sqrt(d.length);
+    const solid = dm > 2 * se && dm > 0.003;
+    console.log(`  ${label.padEnd(20)} R² ${mean(rs).toFixed(4)} ±${std(rs).toFixed(4)}`
+      + `   ΔR² ${(dm >= 0 ? '+' : '')}${dm.toFixed(4)} ±${se.toFixed(4)}`
+      + (solid ? '   ✅ 稳定有新信息' : '   ⚠ 不显著'));
+  };
+  console.log(`  ${'37 维（现状）'.padEnd(18)} R² ${mean(base).toFixed(4)} ±${std(base).toFixed(4)}`);
+  show(strainR, '+ 8 应变特征');
+  show(structR, '+ 9 结构特征');
+  show(allR, '+ 全部');
 }
