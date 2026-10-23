@@ -168,6 +168,12 @@ async function main() {
         badN++;
         console.log(`  ❌ [${i + 1}] ${head}`);
         console.log(`     ${(e.message || String(e)).slice(0, 220)}`);
+        /* ⚠ **必须停下来**。早期版本是"继续跑剩下所有语句"，于是出现了这样一幕：
+           20-scores-fix.sql 的第 1 条守卫函数喊了「表里有 2 行，拒绝重建」，
+           而第 2 条 `drop table` 照样执行 —— **守卫形同虚设，而且是最危险的那种**：
+           它会让你以为有保护。等价于 psql 的 ON_ERROR_STOP=1。 */
+        console.log(`     ⚠ 本文件剩余 ${stmts.length - i - 1} 条已跳过（失败即停，不再往下执行）`);
+        break;
       }
     }
   }

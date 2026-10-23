@@ -19,9 +19,23 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.21.5.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.22.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.22.0.0', date: '2026-10-23',
+    zh: ['<b>引擎看得更全了</b>：以前只用 8 个维度去比对参照谱，其实引擎一早就算出 37 个，'
+      + '剩下的没被用上。现在全部用上，同档判断从 80.2% 提到 81.8%。',
+      '<b>说明</b>：这次提升是有限的（中位误差 0.487→0.470）。真正的瓶颈是「谱师声明的定数」'
+      + '本身带主观噪声，不是算法不够复杂 —— 我们试过换成梯度提升树，反而更差。'],
+    en: ['<b>The engine now sees more.</b> It was comparing against reference charts using only 8 '
+      + 'dimensions — it had been computing 37 all along. All 37 are now in play; same-tier accuracy '
+      + 'goes from 80.2% to 81.8%.',
+      '<b>An honest note</b>: the gain is modest (median error 0.487 → 0.470). The real ceiling is that '
+      + 'declared chart difficulties are subjective, not that the algorithm is too simple — we tried '
+      + 'gradient-boosted trees and they were worse.'],
+  },
+
   {
     v: 'V0.21.5.0', date: '2026-10-22',
     zh: ['<b>界面开始「动」起来了</b>：新增一层克制的动效（进入、悬停、列表逐渐显现），'

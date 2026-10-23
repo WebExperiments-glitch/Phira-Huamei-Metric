@@ -17,7 +17,7 @@
  *   · 数字必须可读：观众在手机上看的是缩略图，字号小等于没写。
  * ============================================================ */
 
-import { drawQrBadge } from './qr.js?v=V0.21.5.0';
+import { drawQrBadge } from './qr.js?v=V0.22.0.0';
 
 const AMBER = '#e8a33d', BLUE = '#5aa2e8', GREEN = '#4cc38a';
 const FG = '#e6edf3', FG2 = '#9aa7b4', FG3 = '#6b7684', LINE = '#2a313c', CARD = '#161b22';
