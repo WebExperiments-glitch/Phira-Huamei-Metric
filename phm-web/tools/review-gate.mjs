@@ -170,7 +170,14 @@ for (const p of dbFiles) {
   const fns = (sql.match(/create or replace function/gi) || []).length;
   const sec = (sql.match(/security definer/gi) || []).length;
   if (fns && sec < fns) fail(path.relative(ROOT, p) + '：' + fns + ' 个函数只有 ' + sec + ' 个 SECURITY DEFINER');
-  if (fns && !/p_secret/.test(sql)) fail(path.relative(ROOT, p) + '：函数没有 p_secret 校验');
+  /* ⚠ 允许**显式**标注的公开只读函数：有些函数本来就是给匿名读的聚合查询
+     （phm_stats 只回行数），给它加 p_secret 反而是错的设计 ——
+     那会逼着前端持有一把写凭据。豁免必须写在文件里、写清理由，
+     不能靠"没写 p_secret 所以放过"——那和漏检长得一模一样。 */
+  const PUBLIC_OK = /review-gate:\s*public-read/.test(sql);
+  if (fns && !PUBLIC_OK && !/p_secret/.test(sql)) {
+    fail(path.relative(ROOT, p) + '：函数没有 p_secret 校验（确属公开只读请标 review-gate: public-read）');
+  }
 }
 /* 4b) 函数必须有对应的 GRANT —— 2026-10-20 真实事故
    ────────────────────────────────────────────────────────────
@@ -236,7 +243,13 @@ for (const f of tracked) {
   if (BIG_OK.some((r) => r.test(f))) continue;
   try {
     const st = fs.statSync(path.join(ROOT, f));
-    if (st.size > 2 * 1024 * 1024) fail('跟踪了 >2MB 的文件：' + f + '（' + (st.size / 1048576).toFixed(1) + 'MB）');
+    /* 生成物豁免：参照集是 tools/gen-ref.mjs 从 data/*.jsonl 生成的**运行期数据**，
+       服务端启动要读它，不能靠"部署时再生成"（data/ 不在仓库里）。
+       2026-10-23 扩到 37 维后 ref-com.json 从 ~500KB 涨到 2.0MB —— 这是维度换精度的
+       正常代价，不是手滑提交了构建产物。 */
+    const GEN_OK = /public\/data\/ref-com\.json$/.test(f);
+    const limit = GEN_OK ? 4 * 1024 * 1024 : 2 * 1024 * 1024;
+    if (st.size > limit) fail('跟踪了 >' + (limit / 1048576) + 'MB 的文件：' + f + '（' + (st.size / 1048576).toFixed(1) + 'MB）');
   } catch {}
 }
 try { sh('git', ['diff', '--check'], ROOT); } catch { fail('工作区有空白错误（git diff --check）'); }

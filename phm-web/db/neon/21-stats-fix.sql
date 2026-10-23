@@ -12,6 +12,10 @@
 --   因为它不在「写-读」这条主路径上。
 -- ============================================================
 
+/* review-gate: public-read
+   这个函数**故意**没有 p_secret —— 它只回四个行数与最新引擎版本，
+   给首页和 /status 用的公开累计量。给它加写凭据校验等于逼前端持有一把写钥匙，
+   那是把安全模型弄反了。已开 RLS、表本身对 anon 全部 revoke，读不到任何明细。 */
 create or replace function public.phm_stats()
 returns jsonb
 language sql security definer set search_path = public, pg_temp as $$
