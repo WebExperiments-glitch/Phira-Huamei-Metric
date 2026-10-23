@@ -17,7 +17,7 @@
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
-import { analyzeChart } from '../public/js/engine.js';
+import { ENGINE_VER, analyzeChart } from '../public/js/engine.js';
 import { zipStore } from '../public/js/rulechart.js';
 
 let pass = 0, fail = 0;
@@ -166,7 +166,12 @@ console.log('\n[5] skills 不影响定数（纯展示层）');
   ok('两次计算 knn.ref 相同',
      a.knn && b.knn && a.knn.ref === b.knn.ref,
      JSON.stringify([a.knn && a.knn.ref, b.knn && b.knn.ref]));
-  ok('ENGINE_VER 未被改动', a.engineVer === 'com-trim15-v0.5.0', String(a.engineVer));
+  /* ⚠ 别把引擎版本号写死。这条要守的是「技能分是纯展示层，不改变引擎语义」，
+     不是「引擎版本必须永远等于某串字面量」——2026-10-23 扩维把版本改到
+     引擎版本号变了，这条断言红得毫无意义（它本来就不是回归）。
+     正确判据：两次计算之间版本**没变**，而且等于模块导出的那份。 */
+  ok('ENGINE_VER 未被技能分改动',
+    a.engineVer === b.engineVer && a.engineVer === ENGINE_VER, String(a.engineVer));
   ok('report 里有 skills', !!a.skills);
 }
 

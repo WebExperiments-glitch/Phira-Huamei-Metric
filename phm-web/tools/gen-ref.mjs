@@ -25,20 +25,30 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WEB = path.resolve(HERE, '..');
 const REPO = path.resolve(WEB, '..');
 
-/* ── 8 维：由 90 张社区谱 + 800 张社区谱两轮实测选出 ──
-   注意 8 维已经吃掉 12 维的全部收益（8 维 |偏差|均值 0.815 / 12 维 0.810），
-   所以这里刻意停在 8 维：多出来的 4 维只增加体积，不增加精度。 */
+/* ── 37 维（2026-10-23 从 8 维扩上来）──
+   怎么定的：引擎实际产出 39 个特征，其中 37 个同时存在于 data/*.jsonl 里。
+   扩维前先做了**逐维对账**（tools/verify-features.mjs，抽 40 张）：
+   37 维全部一致、最大偏差 0.0000 —— 证明 JS 引擎与离线 Python 管线在同一个坐标空间。
+   没有这一步就扩维，kNN 会在两个不同空间里算距离，不报错、只是变差。
+
+   收益（tools/experiment-engine.mjs，同口径同留出集，训练 8082 / 测试 1426）：
+     8 维  中位 0.487  均值 0.846  p90 1.55  ≤1档 80.2%  R² 0.433
+     37 维 中位 0.470  均值 0.813  p90 1.45  ≤1档 81.8%  R² 0.464
+   ⚠ 收益是**有限的**（中位 −3.5%）。历史上 8→12 维几乎没有变化（0.815→0.810），
+     所以别期待这一改能让误差腰斩 —— 真正的瓶颈在特征本身缺信息，不在维度数量。 */
 export const REF_DIMS = [
-  'real_notes_per_second',
-  'real_core_notes_per_second',
-  'notes_real',
-  'strain_p99',
-  'iv_mean',
-  'above_avg_density_mean',
-  'note_clutter_ratio',
-  'cross_hand_density',
+  'real_notes_per_second', 'real_core_notes_per_second', 'notes_real',
+  'strain_p99', 'iv_mean', 'above_avg_density_mean', 'note_clutter_ratio', 'cross_hand_density',
+  'notes_all', 'duration_s', 'strain_peak', 'strain_p50', 'strain_p90', 'strain_raw_max',
+  'iv_median', 'chord_ratio', 'fast_ratio', 'eff_peak_tps_1s', 'eff_avg_tps_1s',
+  'above_avg_duration_sec', 'above_avg_density_ratio', 'chord_size_entropy', 'avg_chord_size',
+  'weighted_mf_score_per_sec', 'multi_finger_3plus_events', 'stair_speed_avg', 'stair_speed_max',
+  'stair_density', 'pattern_switch_rate', 'type_switch_per_sec', 'tempo_change_count',
+  'hold_ratio', 'jline_rotate_density', 'drag_per_sec', 'position_entropy',
+  'bpm', 'lines',
 ];
-/* 每维保留小数位（体积与精度的折中；参照值本身就是估计量，再多位是假精度） */
+/* 每维保留小数位（体积与精度的折中；参照值本身就是估计量，再多位是假精度）。
+   ⚠ 表里没有的维度走默认 3 位 —— 新增维度时**不用**挨个补，但想省体积就补上。 */
 const ROUND = {
   real_notes_per_second: 3,
   real_core_notes_per_second: 3,
@@ -48,6 +58,16 @@ const ROUND = {
   above_avg_density_mean: 3,
   note_clutter_ratio: 2,
   cross_hand_density: 3,
+  /* 新增的 29 维：整数型的给 0，其余默认 3 */
+  notes_all: 0, duration_s: 1, strain_peak: 3, strain_p50: 3, strain_p90: 3,
+  strain_raw_max: 3, iv_median: 4, chord_ratio: 2, fast_ratio: 2,
+  eff_peak_tps_1s: 2, eff_avg_tps_1s: 2, above_avg_duration_sec: 2,
+  above_avg_density_ratio: 3, chord_size_entropy: 3, avg_chord_size: 3,
+  weighted_mf_score_per_sec: 2, multi_finger_3plus_events: 0,
+  stair_speed_avg: 3, stair_speed_max: 3, stair_density: 2,
+  pattern_switch_rate: 3, type_switch_per_sec: 2, tempo_change_count: 0,
+  hold_ratio: 4, jline_rotate_density: 4, drag_per_sec: 3,
+  position_entropy: 3, bpm: 1, lines: 0,
 };
 const LV_CODE = { EZ: 0, HD: 1, IN: 2, AT: 3, SP: 4 };
 const DIFF_MAX = 19.5;             /* 官方历史最高 18.0；超过 19.5 的声明视为脏数据 */
@@ -88,7 +108,7 @@ function toRow(r, needLevel, id) {
     const v = +r[k];
     /* 缺一维就整行丢弃 —— 宁可少一张参照，也不要留一个 0 当成真值参与距离计算 */
     if (!isFinite(v) || v < 0) return null;
-    vals.push(rn(v, ROUND[k]));
+    vals.push(rn(v, ROUND[k] != null ? ROUND[k] : 3));
   }
   return [diff, lv == null ? 5 : LV_CODE[lv], String(r.name || '').slice(0, 48),
     id || 0, ...vals];

@@ -25,6 +25,10 @@
    ⚠ 加新算子要同时加测试，否则就是个没人验证过的分支。 */
 const OPS = { eq: '=', neq: '<>', gt: '>', gte: '>=', lt: '<', lte: '<=' };
 
+/* 传输层：tcp = 5432（默认，本机/迁移用）；http = 443（平台出网受限时用）。
+   ⚠ 环境变量是 PHM_DB_TRANSPORT，不是隐含在连接串里 —— 排查时要一眼看到。 */
+const TRANSPORT = (process.env.PHM_DB_TRANSPORT || 'tcp').toLowerCase();
+
 let POOL = null;
 let POOL_URL = '';
 let READY = null;      /* 建池 + 预热合成的**单个** promise，见 ready() */
@@ -75,9 +79,9 @@ async function pool(url) {
 /** 函数参数名缓存：`hm_put_chart(p_secret, p_row)` → ['p_secret','p_row'] */
 const ARG_CACHE = new Map();
 
-async function argNames(p, tableOrFn) {
+async function argNames(db, tableOrFn) {
   if (ARG_CACHE.has(tableOrFn)) return ARG_CACHE.get(tableOrFn);
-  const r = await p.query(
+  const r = await db.query(
     `select coalesce(array_agg(a.argname order by a.ord) filter (where a.argname is not null), '{}') as names
        from pg_proc f
        join pg_namespace n on n.oid = f.pronamespace
@@ -166,6 +170,48 @@ function statusFor(e) {
  * 造一个和 `cloud.mjs` 的 dbFetch **同签名同返回**的函数。
  * @param {string} url 连接串（运行期用池化端点即可）
  */
+/* ══════════════════════════════════════════════════════════
+ * HTTPS 传输：不走 5432，走 443
+ * ══════════════════════════════════════════════════════════
+ * 【为什么要有它】
+ *   2026-10-22 晚上线突然全线 502：**部署平台那个进程连不上 Neon**，
+ *   而本机同一个连接串完全正常 —— 直连、池化都试过，都不行。
+ *   判断是平台对 5432 出网的策略变化。
+ *
+ *   Neon 每个库都自带一个 HTTPS 的 SQL 端点：
+ *     POST https://<host>/sql
+ *     Header: Neon-Connection-String: <连接串>
+ *     Body:   {"query": "select $1::text", "params": ["x"]}
+ *   实测（带参数、调 jsonb 函数）完全可用，返回结构与 pg 一致。
+ *
+ *   → 平台只要放行 443（它自己就是 HTTP 服务，必然放行），库就能连上。
+ *   ⚠ 一次请求一条语句、没有事务。我们的用法全是单条（RPC / 单表查询），
+ *     所以没有损失；**别往这条路上塞多语句事务**。
+ * ══════════════════════════════════════════════════════════ */
+function sqlEndpoint(url) {
+  const host = url.split('@')[1].split('/')[0].split('?')[0];
+  return 'https://' + host + '/sql';
+}
+
+async function httpQuery(url, sql, params, timeoutMs) {
+  const r = await fetch(sqlEndpoint(url), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'neon-connection-string': url },
+    body: JSON.stringify({ query: sql, params: params || [] }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const txt = await r.text();
+  if (!r.ok) {
+    let msg = txt.slice(0, 300);
+    try { const j = JSON.parse(txt); msg = j.message || j.error || msg; } catch { /* 原文 */ }
+    const e = new Error(msg);
+    e.code = (() => { try { return JSON.parse(txt).code || 'ERROR'; } catch { return 'ERROR'; } })();
+    throw e;
+  }
+  const j = JSON.parse(txt);
+  return { rows: j.rows || [], fields: j.fields || [], rowCount: j.rowCount || 0 };
+}
+
 export function makePgFetch(url) {
   /* 预热与真实请求**必须共用同一个 promise**。
      ⚠ 第一版是"后台预热 + 请求各连各的"，于是两个连接同时去唤醒已缩到零的
@@ -176,9 +222,15 @@ export function makePgFetch(url) {
   const ready = () => {
     if (!READY) {
       READY = (async () => {
+        /* http 传输：没有连接池，只有"端点通不通"。自检一次，
+           把失败暴露在启动阶段，而不是让第一个真实用户等 30 秒。 */
+        if (TRANSPORT === 'http') {
+          await httpQuery(url, 'select 1 as ok', [], 20000);
+          return { query: (sql, params) => httpQuery(url, sql, params, 30000) };
+        }
         const p = await pool(url);
         await p.query('select 1');
-        return p;
+        return { query: (sql, params) => p.query(sql, params) };
       })().catch((e) => {
         READY = null;                    /* 允许下一次重试 */
         throw e;
@@ -190,9 +242,9 @@ export function makePgFetch(url) {
 
   return async function pgFetch(pathAndQuery, init, timeoutMs = 15000, maxBody = 8192) {
     const t0 = Date.now();
-    let p;
+    let db;
     try {
-      p = await ready();
+      db = await ready();
       const method = (init && init.method) || 'GET';
       const qIdx = pathAndQuery.indexOf('?');
       const path = qIdx < 0 ? pathAndQuery : pathAndQuery.slice(0, qIdx);
@@ -208,15 +260,23 @@ export function makePgFetch(url) {
       if (path.startsWith('/rpc/')) {
         const fn = path.slice(5);
         const body = init && init.body ? JSON.parse(init.body) : {};
-        const names = await argNames(p, fn);
+        const names = await argNames(db, fn);
         if (names === null) throw Object.assign(new Error(`function ${fn} 不存在`), { code: '42883' });
-        /* 按函数声明的参数顺序取值 —— 用 JSON 的键名对，不靠调用方保证顺序 */
-        const args = names.map(n => (body[n] === undefined ? null : body[n]));
+        /* 按函数声明的参数顺序取值 —— 用 JSON 的键名对，不靠调用方保证顺序。
+           ⚠ 对象/数组必须**先 JSON.stringify**：node-postgres 默认把 JS 数组
+           序列化成 Postgres 的数组字面量 `{...}`，喂给 jsonb 参数就是
+           `invalid input syntax for type json` —— 而这条路径是**批量写成绩**，
+           也就是"数据飞轮"那个按钮，线上一直是坏的，只是没人报告过。
+           （判据：对象/数组 → 序列化；字符串/数字/布尔原样传。） */
+        const args = names.map(n => {
+          const v = body[n] === undefined ? null : body[n];
+          return (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+        });
         const holes = names.filter(n => body[n] === undefined);
         if (holes.length) console.warn(`[db-pg] /rpc/${fn} 少传参数：${holes.join(',')}（按 null 处理）`);
         const sql = `select * from public.${quoteIdent(fn)}(${args.map((_, i) => '$' + (i + 1)).join(',')})`;
         let r;
-        try { r = await Promise.race([p.query(sql, args), timeout.promise]); }
+        try { r = await Promise.race([db.query(sql, args), timeout.promise]); }
         finally { timeout.cancel(); }
         /* 标量返回（jsonb/text/int）时 PostgREST 直接把值当 body；
            只有一列且列名等于函数名 → 就是标量。setof 复合类型走 else（数组）。 */
@@ -245,7 +305,7 @@ export function makePgFetch(url) {
       if (wantCount) {
         const ct = raceTimeout(timeoutMs);
         let c;
-        try { c = await Promise.race([p.query(`select count(*)::int as n from ${quoteIdent(table)}${whereSql}`, vals), ct.promise]); }
+        try { c = await Promise.race([db.query(`select count(*)::int as n from ${quoteIdent(table)}${whereSql}`, vals), ct.promise]); }
         finally { ct.cancel(); }
         contentRange = `0-${Math.max(0, c.rows[0].n - 1)}/${c.rows[0].n}`;
       }
@@ -254,7 +314,7 @@ export function makePgFetch(url) {
       if (limit != null) sql += ` limit ${limit}`;
       if (offset) sql += ` offset ${offset}`;
       let r;
-      try { r = await Promise.race([p.query(sql, vals), timeout.promise]); }
+      try { r = await Promise.race([db.query(sql, vals), timeout.promise]); }
       finally { timeout.cancel(); }
       return { ok: true, status: 200, body: JSON.stringify(r.rows).slice(0, maxBody), contentRange };
     } catch (e) {
