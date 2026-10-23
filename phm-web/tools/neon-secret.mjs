@@ -61,7 +61,14 @@ const shape = s => (s ? `（${s.length} 字符）` : '（空）');
   if (!url) { console.error('缺 PHM_NEON_URL_DIRECT'); process.exit(1); }
   if (/-pooler/.test(url)) { console.error('要用直连端点（去掉 -pooler）'); process.exit(1); }
 
-  const c = new Client({ connectionString: url, ssl: { rejectUnauthorized: true } });
+  const c = new Client({
+    connectionString: url,
+    ssl: { rejectUnauthorized: true },
+    /* ⚠ 必须设连接超时。不设的话 pg 会**无限等** ——
+       2026-10-23 就有一个 --list 进程挂了 33 小时才拿到 ECONNRESET。
+       当时我误判成"切分函数死循环"，实际上是 TCP 连接一直挂着。 */
+    connectionTimeoutMillis: 30000,
+  });
   await c.connect();
 
   const cur = await c.query("select v from phm_secrets where k='writer'");

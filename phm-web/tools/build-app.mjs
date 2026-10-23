@@ -54,6 +54,28 @@ for (const item of OPTIONAL) {
   if (fs.existsSync(src)) { fs.cpSync(src, path.join(OUT, item), { recursive: true }); n++; }
 }
 
+/* ★ 关键一步：平台只放行 443，裸 TCP 到 5432 连不上 → 强制走 HTTPS SQL 端点。
+   ⚠ 这行必须写在**构建脚本**里，不能靠人记得往 .env 加：
+     2026-10-23 重建产物时它就丢了一次，表现是"站点活着但所有接口 502"，
+     而且日志里只会看到连接超时，不会告诉你"少了这个配置"。 */
+const envOut = path.join(OUT, '.env');
+if (fs.existsSync(envOut)) {
+  let e = fs.readFileSync(envOut, 'utf8');
+  if (!/^PHM_DB_TRANSPORT=/m.test(e)) {
+    /* ⚠ 用数组 join 拼多行，不要在字符串里写真实换行 ——
+       这次就是被 heredoc/转义坑了一次：`'\n# 注释'` 变成了跨行字符串字面量，
+       整个文件语法错误。多行内容一律走数组。 */
+    e = e.replace(/\s*$/, '') + [
+      '',
+      '# 平台不放行 5432，走 Neon 的 HTTPS SQL 端点（443）',
+      'PHM_DB_TRANSPORT=http',
+      '',
+    ].join('\n');
+    fs.writeFileSync(envOut, e);
+    console.log('  · 已补 PHM_DB_TRANSPORT=http（平台出网限制）');
+  }
+}
+
 /* ★ 关键一步：构建产物**没有** .static-only → 全功能 */
 const flag = path.join(OUT, '.static-only');
 if (fs.existsSync(flag)) fs.rmSync(flag);
