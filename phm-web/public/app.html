@@ -1312,7 +1312,7 @@ window.PHM.status = function(){
     engine: typeof analyzeChart === "function" ? "ok" : "missing",
     sharecard: typeof exportCard === "function" ? "ok" : "missing",
     refCom: REF_COM_STATE === "ok" ? ("ok/" + REF_COM_N)
-      : REF_COM_STATE === "fail" ? "failed(退回首屏官谱参照)" : "idle(尚未需要)", 
+      : REF_COM_STATE === "fail" ? "failed(退回首屏官谱参照)" : "idle(尚未需要)",
     /* 账号：signed-in / idle；authError 是最近一次失败的 kind，便于排查 */
     auth: HM_AUTH.state.phase,
     authError: (HM_AUTH.state.error && HM_AUTH.state.error.kind) || null,

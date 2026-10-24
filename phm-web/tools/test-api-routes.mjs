@@ -299,7 +299,7 @@ for (const p of ['/fonts/OFL-LXGWWenKai.txt', '/fonts/OFL-NotoSerifSC.txt', '/ve
 
 console.log('\n【3】★ 打完这些，服务必须还活着');
 /* 这一条是整测试的核心：上面任何一条让进程崩掉，这里都会连不上。
-   `node --check` 查不出「运行时缺标识符」，页面冒烟又不走这些 POST —— 
+   `node --check` 查不出「运行时缺标识符」，页面冒烟又不走这些 POST ——
    只有「打完再看一眼」能抓。 */
 const alive = await hit('GET', '/', null);
 T('★ 首页仍可访问（进程没崩）', alive === 200, String(alive && alive.err ? alive.err : alive));
