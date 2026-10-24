@@ -226,7 +226,7 @@ def crawl_by_chart(n_charts, n_players, ranked=False):
     acc_report()
 
 
-def crawl_scan(start_uid, limit, workers=6, gap=0.25):
+def crawl_scan(start_uid, limit, workers=6, gap=0.25, stride=0):
     """从 start_uid 起**顺序穷举**用户 ID。
 
     【为什么穷举，而不是随机抽】
@@ -265,7 +265,13 @@ def crawl_scan(start_uid, limit, workers=6, gap=0.25):
         except Exception as e:
             return uid, None, str(e)[:40]
 
-    uids = list(range(state["next_uid"], state["next_uid"] + limit))
+    if stride > 0:
+        # 等距抽样：从 next_uid 起每 stride 取一个。顺序扫只能覆盖最早注册那批人，
+        # 而实测最大 UID 有 435 万，全站玩家分布在整个区间里。
+        uids = list(range(state["next_uid"], state["next_uid"] + limit * stride, stride))
+        print("[scan] 等距抽样 stride=%d，本轮 %d 个" % (stride, len(uids)))
+    else:
+        uids = list(range(state["next_uid"], state["next_uid"] + limit))
     with ThreadPoolExecutor(max_workers=workers) as ex:
         for i, (uid, arr, err) in enumerate(ex.map(probe, uids), 1):
             if err:
@@ -302,11 +308,20 @@ def main():
                     help="只抓已上架(ranked/stable)谱面 —— 只有这些成绩计入 RKS")
     ap.add_argument("--scan", type=int, default=0,
                     help="从 2 起顺序穷举这么多 UID（最保险的覆盖方式，可断点续跑）")
+    ap.add_argument("--stride", type=int, default=0,
+                    help="等距抽样：每 stride 个 UID 取一个。实测最大 UID 435 万，"
+                         "顺序扫只能覆盖最早注册那一批，等距才均匀。")
+    ap.add_argument("--max-uid", type=int, default=4353164)
+    ap.add_argument("--start", type=int, default=2, help="从哪个 UID 起（多轮补缝时错开用）")
+    ap.add_argument("--workers", type=int, default=6, help="并发数（IO 密集，线程即可）")
+    ap.add_argument("--gap", type=float, default=0.25, help="每个请求后的间隔秒数")
     ap.add_argument("--players", type=int, default=500)
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    if args.scan:
-        crawl_scan(2, args.scan)
+    if args.scan and args.stride:
+        crawl_scan(args.start, args.scan, stride=args.stride, workers=args.workers, gap=args.gap)
+    elif args.scan:
+        crawl_scan(args.start, args.scan, workers=args.workers, gap=args.gap)
     elif args.random:
         crawl_random(args.random)
     elif args.ranked:

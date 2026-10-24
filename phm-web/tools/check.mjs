@@ -45,6 +45,7 @@ const STEPS = [
   ['设计令牌纪律（未定义变量 / 令牌外颜色 / 悬停态写死颜色）', 'node', ['tools/check-design.mjs']],
   ['文档与代码同步', 'node', ['tools/lint-docs.mjs']],
   ['仓库卫生（对标 Rust tidy）', 'node', ['tools/lint-hygiene.mjs']],
+  ['拼写（对标 typos-cli）', 'node', ['tools/lint-typos.mjs']],
   ['版本号四处一致', PY, ['tools/bump-version.py', '--check']],
 ];
 
