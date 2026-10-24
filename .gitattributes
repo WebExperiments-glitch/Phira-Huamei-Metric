@@ -1,0 +1,36 @@
+# ============================================================
+# 换行符归一 —— 这是唯一可靠的办法
+# ============================================================
+# 【为什么必须有】
+#   Windows 上 `core.autocrlf=true` 会把仓库里的 LF 转成工作区的 CRLF，
+#   提交时再转回去。听起来没问题，但实测它会**持续制造噪音**：
+#   每次 git add 都打印一堆 `LF will be replaced by CRLF`，
+#   而且一旦有人在未配置 autocrlf 的环境里改了文件，仓库里就会出现混合换行，
+#   diff 变成"整文件重写"，真正的改动被淹掉。
+#   本项目 2026-10 已经因为换行/编码问题返工过多次。
+#
+# 【规矩】仓库里**一律存 LF**，检出时也不做转换（eol=lf 就是"两边都用 LF"）。
+#   编辑器显示成什么样由编辑器决定，与仓库无关。
+* text=auto eol=lf
+
+# 二进制：不要当文本处理（否则 git 会尝试合并它们）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff2 binary
+*.woff binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.pez binary
+*.exe binary
+*.gz binary
+
+# 生成的参照集/数据：不是给人读的，也不该参与 diff 统计
+phm-web/public/data/ref-*.json linguist-generated=true
+phm-web/public/js/versions.js linguist-generated=false
+
+# 第三方原文保持原样
+phm-web/public/fonts/OFL-*.txt -text

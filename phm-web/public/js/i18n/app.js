@@ -218,6 +218,10 @@ export default {
     'app.res.desc.com': 'Phira 社区谱',
     'app.res.desc.off': 'Phigros 官谱',
     'app.res.off.note': '与 Phigros 官方同一标度（{n} 张官谱）',
+    /* 玩家实测：不看谱面文件，只看玩家击打偏差反推的难度。
+       ⚠ 只在知道谱面 id 时出现（深链进来），本地文件没有 id。 */
+    'app.res.behav': '玩家实测',
+    'app.res.behav.tip': '由玩家击打时间偏差反推的难度，与上面两个数方法完全独立（括号内是参与人数）',
     'app.res.off.hi': '　·　社区共识比它高 {d}',
     'app.res.off.lo': '　·　社区共识比它低 {d}',
     /* ⚠ 拆成「引导句 + 三条短列表」：原来是一整段 200 字、里面 ①②③ 三个加粗，
@@ -603,6 +607,8 @@ export default {
     'app.res.desc.com': 'Phira community charts',
     'app.res.desc.off': 'Phigros official charts',
     'app.res.off.note': 'same scale as official Phigros ({n} official charts)',
+    'app.res.behav': 'measured',
+    'app.res.behav.tip': 'derived from how accurately players hit this chart — independent of the two figures above (number of players in brackets)',
     'app.res.off.hi': ' · community consensus sits {d} above it',
     'app.res.off.lo': ' · community consensus sits {d} below it',
     'app.res.vague.lead':

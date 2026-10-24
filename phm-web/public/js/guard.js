@@ -101,11 +101,24 @@ export function installGuard(tFn) {
   window.__PHM_GUARD_ON = true;
   window.__PHM_REPORT = reportOnce;   /* 页面 catch 到错误时可主动上报 */
 
-  /* ① 同步抛错（脚本错误、资源加载失败）。
-       只在**用户能看到的页面**报：<script> 自身报错也走这里，
-       不区分的话自己会被自己吵死。 */
+  /* ① 同步抛错 + 资源加载失败。
+       ⚠ 这两类必须分开：用 capture 监听 window 的 error，**资源加载失败也会进来**
+         （img/script/link 的 error 不冒泡，只有捕获阶段能拿到），
+         而那时 `ev.message` 是空的 → 落到默认的 'script error' →
+         用户看到一条"页面出了点问题"的红条，其实只是某张图 503 了。
+       2026-10-24 用户就是这样被吓到的：控制台里两个 503，页面上一条红条。
+       判据：资源错误的 `ev.target` 是那个元素，JS 错误的 target 是 window。 */
   window.addEventListener('error', function (ev) {
     try {
+      const tgt = ev && ev.target;
+      const isResource = tgt && tgt !== window && tgt.tagName;
+      if (isResource) {
+        /* 资源失败只在控制台留痕，不弹红条 —— 它不影响功能，
+           真正影响功能的会在下面以 JS 异常的形式再报一次。 */
+        const what = (tgt.tagName + (tgt.src ? ' ' + String(tgt.src).slice(0, 80) : '')).slice(0, 120);
+        console.warn('[phm] 资源加载失败（不影响功能，已忽略）：' + what);
+        return;
+      }
       const msg = (ev && ev.message) || 'script error';
       const short = cut(msg);
       reportOnce('err:' + short, say('guard.err', '页面出了点问题，部分功能可能不可用：' + short, { e: short }));
