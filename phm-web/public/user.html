@@ -387,21 +387,53 @@ function render() {
 
   $('#out').innerHTML = h;
 
-  /* 估算 RKS：异步补，失败就静默留空。
-     ⚠ 不阻塞主渲染 —— 这个数是"额外信息"，不该让页面等它。
-     ⚠ 文案必须写"估算"，不能写成 RKS：我们只有最近 20 条记录，
-        不是历史最好 20；而且官方值本身停在 2026-03，两者不是同一个量。 */
-  const estEl = document.querySelector('.rks .est');
-  if (estEl && u.id) {
-    fetch('/api/rks?uid=' + encodeURIComponent(u.id))
+  /* ── 估算 RKS（浏览器端算）──
+     ⚠ 为什么不走我们的 /api/rks：实测部署平台上**服务器出网到 api.phira.cn 会超时**
+        （12 秒 abort，两次一致），和之前连不上 Neon 是同一类问题 ——
+        平台只保证它自己的 HTTP 入口，不让进程自由访问外网。
+        而浏览器是用户自己的网络，直连 Phira 一直是通的（CORS 开放）。
+        → 所以这一步交给浏览器：一次 multi-get 拿定数，本地算。
+
+     公式：单曲 ((ACC*100-55)/45)^2 * 定数；总分 (Σ前19 + 最高) / 实际槽数。
+     ⚠ 分母是实际槽数，不能写死 20 —— 最近 20 条里多数人凑不满 20 张谱。
+     ⚠ 只统计 ranked/stable 谱面（官方规则）。 */
+  (function estimateRks() {
+    const el = document.querySelector('.rks .est');
+    if (!el || !u.id) return;
+    const recs = (STATE.recent || []).filter(x => x && x.chart != null && x.accuracy != null);
+    if (!recs.length) return;
+    const ids = [...new Set(recs.map(x => +x.chart))];
+    fetch('https://api.phira.cn/chart/multi-get?ids=' + ids.join(','), { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => {
-        if (!d || !d.ok) return;
-        estEl.textContent = '估算 ' + d.rks.toFixed(2) + '（近期 ' + d.charts_used + ' 张谱）';
-        estEl.title = d.note || '';
+      .then(list => {
+        const meta = new Map();
+        for (const ch of (Array.isArray(list) ? list : (list.results || []))) {
+          if (ch && ch.id != null) meta.set(+ch.id, ch);
+        }
+        const best = new Map();
+        for (const x of recs) {
+          const c = +x.chart, a = +x.accuracy;
+          if (!best.has(c) || a > best.get(c)) best.set(c, a);
+        }
+        const units = [];
+        for (const [c, a] of best) {
+          const ch = meta.get(c);
+          if (!ch || !(ch.ranked && ch.stable)) continue;
+          const d = +ch.difficulty;
+          if (!isFinite(d) || d <= 0) continue;
+          const acc = a <= 1 ? a * 100 : a;
+          if (acc < 70) continue;
+          units.push(((acc - 55) / 45) ** 2 * d);
+        }
+        if (!units.length) return;
+        units.sort((p, q) => q - p);
+        const top = units.slice(0, 20), head = top.slice(0, 19);
+        const rks = (head.reduce((s, v) => s + v, 0) + top[0]) / (head.length + 1);
+        el.textContent = '估算 ' + rks.toFixed(2) + '（近期 ' + top.length + ' 张谱）';
+        el.title = '按最近游玩记录估算，不是官方 B19（官方值自 2026-03 起停更）';
       })
-      .catch(() => { /* 网络/接口失败就当没这个功能 */ });
-  }
+      .catch(() => { /* 拿不到就当没这个功能 */ });
+  })();
 
   /* 「重新拉取」：重新走一遍 pick()，会真的再请求一次 Phira API。
      按钮只是给用户一个确定性 —— 缓存早在 js/phira.js 里关掉了。 */
