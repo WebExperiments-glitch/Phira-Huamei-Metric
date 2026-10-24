@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.22.1.0">
+<meta name="app-version" content="V0.22.1.1">
 <title>P.H.M. 开发者文档 · API v1</title>
 <meta name="description" content="P.H.M. API v1：查询与分析 Phira / Phigros 谱面难度。免费，支持匿名与 API Key。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.1.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.1.0">
-<link rel="stylesheet" href="/css/api.css?v=V0.22.1.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.22.1.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.1.1">
+<link rel="stylesheet" href="/css/api.css?v=V0.22.1.1">
 </head>
 <body>
 <div class="wrap"><nav id="nav"></nav></div>
@@ -323,8 +323,8 @@ print(r.json())</div>
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.22.1.0';
-import { installGuard } from '/js/guard.js?v=V0.22.1.0';
+import { renderNav } from '/js/ui.js?v=V0.22.1.1';
+import { installGuard } from '/js/guard.js?v=V0.22.1.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
