@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 与各页同源的版本号（bump-version.py 一并改）。smoke 有一条断言盯着它。 -->
-<meta name="app-version" content="V0.22.1.4">
+<meta name="app-version" content="V0.22.1.5">
 <title>隐私政策 · P.H.M. Standard</title>
 <meta name="description" content="P.H.M. Standard 隐私政策：我们收集什么、如何使用、如何存储、你拥有哪些权利。">
 <meta name="robots" content="index,follow">
@@ -20,12 +20,12 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.1.4">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.1.4">
+<link rel="stylesheet" href="/css/base.css?v=V0.22.1.5">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.1.5">
 <!-- ⚠ 必须**先** base.css 再 docs.css：前者给令牌与标题字体，
      后者只负责阅读排版。以前这里只链了 docs.css，
      所以法务页完全在另一套令牌里长大 —— 白底蓝链接，像换了个网站。 -->
-<link rel="stylesheet" href="/css/docs.css?v=V0.22.1.4">
+<link rel="stylesheet" href="/css/docs.css?v=V0.22.1.5">
 </head>
 <body>
 <div class="doc">
@@ -201,8 +201,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.22.1.4';
-import { installGuard } from '/js/guard.js?v=V0.22.1.4';
+import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.22.1.5';
+import { installGuard } from '/js/guard.js?v=V0.22.1.5';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

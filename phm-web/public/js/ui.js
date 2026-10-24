@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.22.1.4';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.22.1.4';
+import { PHIRA_API } from './phira.js?v=V0.22.1.5';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.22.1.5';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
