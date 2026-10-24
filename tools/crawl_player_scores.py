@@ -226,16 +226,88 @@ def crawl_by_chart(n_charts, n_players, ranked=False):
     acc_report()
 
 
+def crawl_scan(start_uid, limit, workers=6, gap=0.25):
+    """从 start_uid 起**顺序穷举**用户 ID。
+
+    【为什么穷举，而不是随机抽】
+      随机抽能拿到玩家，但拿不到**覆盖**：IRT 需要"同一批人打过很多张谱"
+      才能把"谁强"和"哪张难"分开。随机抽的连通性不够，矩阵是碎的。
+      顺序穷举把 ID 空间扫一遍，每个玩家的 20 条记录会把 20 张谱连起来 ——
+      连通性随玩家数线性增长，这才是 IRT 要的形状。
+
+    【断点续跑】
+      进度存在 data/scores/_scan.json（next_uid / 已扫数），
+      每 200 个玩家落一次盘。中断了重跑同一条命令就接着扫。
+    """
+    state_path = os.path.join(OUT, "_scan.json")
+    state = {"next_uid": start_uid, "scanned": 0, "players": 0}
+    if os.path.exists(state_path):
+        try:
+            prev = json.load(open(state_path, encoding="utf-8"))
+            state.update(prev)
+            print("[scan] 续跑：从 uid=%d 继续（已扫 %d）" % (state["next_uid"], state["scanned"]))
+        except Exception:
+            pass
+    else:
+        print("[scan] 新起：从 uid=%d 开始，本轮扫 %d 个" % (start_uid, limit))
+
+    already = existing_players()
+    print("[scan] 已落盘 %d 个玩家" % len(already), flush=True)
+
+    lock = threading.Lock()
+    fout = open(MATRIX, "a", encoding="utf-8")
+    got = empty = errs = 0
+    batch = []
+
+    def probe(uid):
+        try:
+            return uid, api("/record?player=%d" % uid, timeout=25), None
+        except Exception as e:
+            return uid, None, str(e)[:40]
+
+    uids = list(range(state["next_uid"], state["next_uid"] + limit))
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for i, (uid, arr, err) in enumerate(ex.map(probe, uids), 1):
+            if err:
+                errs += 1
+            elif not arr:
+                empty += 1
+            else:
+                with lock:
+                    write_records(fout, arr, "scan")
+                    got += 1
+                    batch.append(uid)
+            state["next_uid"] = uid + 1
+            state["scanned"] += 1
+            state["players"] = got
+            if i % 200 == 0:
+                fout.flush()
+                json.dump(state, open(state_path, "w", encoding="utf-8"))
+                print("    uid %d（%d/%d）有效 %d 空 %d 错 %d"
+                      % (uid, i, len(uids), got, empty, errs), flush=True)
+            time.sleep(gap)
+    fout.close()
+    json.dump(state, open(state_path, "w", encoding="utf-8"))
+    print("\n[scan] 本轮扫 %d 个 ID：有效 %d，无记录 %d，出错 %d"
+          % (state["scanned"], got, empty, errs))
+    print("[scan] 下次从 uid=%d 继续" % state["next_uid"])
+    acc_report()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--random", type=int, default=0, help="随机抽这么多玩家（修正饱和采样）")
     ap.add_argument("--charts", type=int, default=40)
     ap.add_argument("--ranked", action="store_true",
                     help="只抓已上架(ranked/stable)谱面 —— 只有这些成绩计入 RKS")
+    ap.add_argument("--scan", type=int, default=0,
+                    help="从 2 起顺序穷举这么多 UID（最保险的覆盖方式，可断点续跑）")
     ap.add_argument("--players", type=int, default=500)
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    if args.random:
+    if args.scan:
+        crawl_scan(2, args.scan)
+    elif args.random:
         crawl_random(args.random)
     elif args.ranked:
         crawl_by_chart(0, args.players, ranked=True)
