@@ -9,9 +9,9 @@
  * points 后再调用 buildChartFromPoints（预留）。
  * ============================================================ */
 
-import { buildGrid, quantizeOnsets, markTuplets, phraseBounds, quantizeReport } from './rhythm.js?v=V0.22.1.2';
-import { scoreEvents, selectEvents, assignHands, assignNotes, selectionReport } from './salience.js?v=V0.22.1.2';
-import { auditPlayability } from './playability.js?v=V0.22.1.2';
+import { buildGrid, quantizeOnsets, markTuplets, phraseBounds, quantizeReport } from './rhythm.js?v=V0.22.1.3';
+import { scoreEvents, selectEvents, assignHands, assignNotes, selectionReport } from './salience.js?v=V0.22.1.3';
+import { auditPlayability } from './playability.js?v=V0.22.1.3';
 
 const LANES = {
   5: [-405, -202.5, 0, 202.5, 405],
