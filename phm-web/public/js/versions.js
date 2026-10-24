@@ -19,7 +19,7 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.22.2.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.22.2.1';
 
 export const RELEASES = [
   {
