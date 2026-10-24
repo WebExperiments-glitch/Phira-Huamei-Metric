@@ -444,6 +444,39 @@ for (const f of FILES) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+ * 9) 内联 CSS 变量：JS 设了但 CSS 从没 var() 引用
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么】
+ *   2026-10-24 用户截图报「标度条上的字糊成一坨」。查下来是
+ *   `style="--at:0"` / `--at:100"` 写在了 HTML 上，而 CSS 里**从来没有**
+ *   `var(--at)` —— 于是两个绝对定位的刻度标签都落在 left:auto，
+ *   也就是同一个位置，叠成一团乱码。
+ *
+ *   这类错误**不报错、不警告**，浏览器照单全收：变量没人用就当没有。
+ *   和「颜色令牌漏了一处」是同一类问题，靠人眼盯不住。
+ */
+for (const f of FILES.filter(x => x.rel.endsWith('.html'))) {
+  let src;
+  try { src = readFileSync(f.abs, 'utf8'); } catch { continue; }
+  const declared = new Set();
+  for (const m of src.matchAll(/--([a-z0-9-]+)\s*:/g)) declared.add(m[1]);
+  const used = new Set();
+  for (const m of src.matchAll(/var\(--([a-z0-9-]+)/g)) used.add(m[1]);
+  /* 全局令牌定义在 base.css，页面里只引用不定义 —— 不该误报 */
+  let globalTokens = new Set();
+  try {
+    const base = readFileSync(path.join(ROOT, 'public', 'css', 'base.css'), 'utf8');
+    for (const m of base.matchAll(/--([a-z0-9-]+)\s*:/g)) globalTokens.add(m[1]);
+  } catch { /* 没有 base.css 就不豁免 */ }
+  for (const v of declared) {
+    if (used.has(v) || globalTokens.has(v)) continue;
+    add('CSS 变量设了没人用', f.rel, 0, `--${v}`,
+      'JS 里设了自定义属性、CSS 里却没有 var() 引用 —— 那个样式等于没写，'
+      + '而且不报错（标度条刻度叠字就是这么来的）');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
  * 输出
  * ══════════════════════════════════════════════════════════════ */
 if (JSON_OUT) {

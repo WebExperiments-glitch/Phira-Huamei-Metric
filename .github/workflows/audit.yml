@@ -43,6 +43,21 @@ jobs:
         working-directory: phm-web
         run: npm run check
 
+      # ⚠ 依赖漏洞审计只能在这里跑，**本机跑不了**：
+      #   npmmirror（国内镜像）没有实现 /-/npm/v1/security/* 接口，
+      #   本地 `npm audit` 一律返回 NOT_IMPLEMENTED。
+      #   GitHub 的 runner 默认用官方 registry，所以放 CI。
+      #
+      # ⚠ 必须先造 lockfile：package-lock.json 是 gitignore 的（仓库里没有），
+      #   而 `npm audit` 没有锁文件就直接报错退出 —— 第一版没这步，CI 红在
+      #   "Process completed with exit code 1"，日志里一个字都没有，很难查。
+      #   `--package-lock-only` 只解析依赖树、不下载包，几秒钟。
+      - name: Dependency audit (high+)
+        working-directory: phm-web
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm audit --omit=dev --audit-level=high
+
       - name: Set up Chrome
         uses: browser-actions/setup-chrome@v1
         with:

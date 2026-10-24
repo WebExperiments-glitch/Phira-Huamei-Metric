@@ -42,6 +42,8 @@ import { makeContributeRoutes } from './lib/contribute-routes.mjs';
 import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
 import { makeChartAssetRoutes } from './lib/chartassets.mjs';
+import { phiraProxy } from './lib/phira-proxy.mjs';
+import { makeRksRoutes } from './lib/rks-routes.mjs';
 import { CLEAN, makePageRoutes } from './lib/pages.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
@@ -404,6 +406,7 @@ const apiRoutes = makeApiRoutes({
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
 const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+const rksRoutes = makeRksRoutes(SEC_HEADERS);
 /* 档案路由：token 从 x-hm-token 读（托管网关会吃掉 Authorization，真踩过）。 */
 const profileRoutes = makeProfileRoutes({ send, gate, gateRead: gateStats, gateWriteId, whoami: hmWhoami,
   getProfile: hmGetProfile, putProfile: hmPutProfile, touchProfile: hmTouchProfile, deleteAccount: hmDeleteAccount, dbFetch });
@@ -434,6 +437,8 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
   if (p === '/api/status') return statusRoutes(req, res, url);
   if (p.startsWith('/api/phira-illust/') || p.startsWith('/api/phira-file/')) return chartAssets(req, res, url);
+  /* 按近期成绩估 RKS —— 官方 B19 自 2026-03 起停更，这一条给它兜底 */
+  if (p === '/api/rks' && await rksRoutes(req, res, url)) return;
 
   /* ── huamei：取谱代理 ──
      客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。
@@ -454,55 +459,7 @@ const server = http.createServer(guardRequest(async (req, res) => {
     '/terms/',           // 服务条款 / 隐私政策（客户端要读）
     '/music',            // 谱面音频
   ];
-  if (p === '/api/phira' || p.startsWith('/api/phira/')) {
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      return send(res, 403, JSON.stringify({ error: 'only GET/HEAD' }));
-    }
-    if (!(await gate(res, gateProxy({ ip }), 'rate limit'))) return;
-    const sub = p.replace(/^\/api\/phira/, '') || '/';
-    /* 前缀不匹配 → 404，**不要**透传。
-       ⚠ 用 startsWith 而不是正则：前缀是写死的字面量，正则只会引入意外。 */
-    if (!PHIRA_PROXY_PATHS.some(pre => sub === pre || sub.startsWith(pre))) {
-      return send(res, 404, JSON.stringify({ error: 'path not allowed' }));
-    }
-    const target = PHIRA_API + sub + (url.search || '');
-    /* ⚠ 条件请求头必须转发。
-       客户端用 HEAD `/terms/{locale}.txt` + `If-Modified-Since` 判断
-       「服务条款有没有变」—— 只靠响应里的 `Last-Modified`。
-       把这两个头截掉，客户端会直接报
-       `获取服务条款和隐私政策内容失败 / invalid last-modified header`。
-       （实测：代理只回 content-type 时，条款页永远打不开。） */
-    const fwd = {};
-    for (const h of ['if-modified-since', 'if-none-match']) {
-      if (req.headers[h]) fwd[h] = req.headers[h];
-    }
-    try {
-      const up = await fetch(target, {
-        method: req.method,
-        headers: Object.assign({
-          'accept': 'application/json,text/plain,*/*',
-          'accept-language': 'zh-CN,zh;q=0.9',
-          'user-agent': 'phm-huamei/1.0 (+https://phm.app.workbuddy.host)',
-        }, fwd),
-        redirect: 'follow',
-        signal: AbortSignal.timeout(15000),
-      });
-      const buf = Buffer.from(await up.arrayBuffer());
-      /* 回程头白名单 —— **不能只回 content-type**。
-         `last-modified` / `etag` 是条件请求的判据；
-         `content-length` 给 HEAD 用；`accept-ranges` 留给续传。 */
-      const out = { 'content-type': up.headers.get('content-type') || 'application/json; charset=utf-8' };
-      for (const h of ['last-modified', 'etag', 'content-length', 'accept-ranges']) {
-        const v = up.headers.get(h);
-        if (v) out[h] = v;
-      }
-      out['cache-control'] = 'no-store';
-      res.writeHead(up.status, Object.assign(out, SEC_HEADERS));
-      return res.end(req.method === 'HEAD' ? undefined : buf);
-    } catch (e) {
-      return send(res, 502, JSON.stringify({ error: 'upstream: ' + String(e.message || e).slice(0, 120) }));
-    }
-  }
+  if (await phiraProxy(req, res, url, p, ip, gate, gateProxy, send, SEC_HEADERS)) return;
 
   /* ── huamei：成绩接收 ──
      身份 = 用户自己的 huamei token；写入只经 hm_put_play()（SECURITY DEFINER）。 */
@@ -564,6 +521,21 @@ const server = http.createServer(guardRequest(async (req, res) => {
         src: tokenSrc,
         len: token.length,
         dots: token.split('.').length - 1,
+      }));
+    }
+
+    /* ── 必须**验签通过**，不能只看 sub 存不存在 ──
+       ⚠ 2026-10-24 防御审计指出并核实：`hmWhoami` 的正路全挂时会降级到
+         `subFromJwt` —— 那是**本地解析、完全不验签**，只看结构/aud/exp。
+         于是任何人自己造一个 JWT（sub 填别人的 id）就能往那个账号名下写成绩。
+         Key 管理那条路已经要求 `verified === true` 了，成绩写入没有要求，这不一致。
+       → 写库一律要求验签通过。降级身份只允许读，不许写。 */
+    if (who.verified !== true) {
+      return send(res, 401, JSON.stringify({
+        ok: false,
+        error: 'token_unverified',
+        detail: '成绩写入需要验签通过的身份；降级解析不算',
+        variant: who.variant || null,
       }));
     }
 

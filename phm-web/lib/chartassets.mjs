@@ -31,6 +31,41 @@
 const CDN = 'https://phira.5wyxi.com/files/';
 const UA = 'phm-chartassets/1.0 (+https://phm.app.workbuddy.host)';
 
+/* ── 响应体上限：防「慢速超大对象把进程内存顶满」──
+   ⚠ 2026-10-24 审计指出：UUID 白名单挡住了换主机的 SSRF（这一点是对的），
+     但 `arrayBuffer()` 没有字节上限 —— 上游回一个几百 MB 的对象，
+     或者慢速一点点吐，进程内存就跟着涨到 OOM。
+   ⚠ 必须先看 Content-Length（便宜），再按流计数（Content-Length 可以撒谎或缺失）。 */
+const MAX_ILLUS = 8 * 1024 * 1024;      /* 曲绘：实测都是几十 KB 的 WebP */
+const MAX_CHART = 60 * 1024 * 1024;     /* 谱面包：与 lib/review.mjs 的 MAX_ZIP 对齐 */
+
+async function readCapped(up, maxBytes) {
+  const len = Number(up.headers.get('content-length'));
+  if (Number.isFinite(len) && len > maxBytes) {
+    try { await up.body?.cancel(); } catch (e) { /* 已关闭 */ }
+    const err = new Error('upstream_too_large');
+    err.code = 'ELARGE';
+    throw err;
+  }
+  if (!up.body) return Buffer.alloc(0);
+  const reader = up.body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > maxBytes) {
+      try { await reader.cancel(); } catch (e) { /* 已关闭 */ }
+      const err = new Error('upstream_too_large');
+      err.code = 'ELARGE';
+      throw err;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks, total);
+}
+
 /* 1x1 透明 WebP —— 上游挂了时用它，页面不会碎成一块白。 */
 const BLANK = Buffer.from(
   'UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=',
@@ -100,7 +135,7 @@ export function makeChartAssetRoutes(secHeaders) {
           res.end(JSON.stringify({ error: 'upstream ' + up.status }));
           return true;
         }
-        const buf = Buffer.from(await up.arrayBuffer());
+        const buf = await readCapped(up, MAX_CHART);
         res.writeHead(200, Object.assign({
           'content-type': 'application/octet-stream',
           'content-length': buf.length,
@@ -158,7 +193,7 @@ export function makeChartAssetRoutes(secHeaders) {
         return true;
       }
 
-      const buf = Buffer.from(await up.arrayBuffer());
+      const buf = await readCapped(up, MAX_ILLUS);
       const head = {
         /* ⚠⚠ 整条链存在的唯一理由：把 octet-stream 换成 image/webp，
            让 ORB 放行。实测上游曲绘全是 WebP（`RIFF....WEBP`）。 */

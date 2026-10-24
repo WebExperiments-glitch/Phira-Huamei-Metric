@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.22.0.0">
+<meta name="app-version" content="V0.22.2.2">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
@@ -19,8 +19,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.22.2.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.2.2">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -29,6 +29,14 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .pfuser .rks{margin-left:auto;text-align:right}
 .pfuser .rks b{font-size:30px;color:var(--amber);font-variant-numeric:tabular-nums}
 .pfuser .rks span{display:block;font-size:11.5px;color:var(--fg3);max-width:190px}
+.pfuser .rks .est{display:block;font-size:11px;color:var(--fg2);margin-top:2px;font-variant-numeric:tabular-nums}
+.rks-wrap{margin:10px 0 2px}
+.rks-h{font-size:11.5px;color:var(--fg3);margin-bottom:4px}
+.rks-t{width:100%;border-collapse:collapse;font-size:12px}
+.rks-t td{padding:3px 6px;border-bottom:1px solid var(--line)}
+.rks-t td.n{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rks-t td.d,.rks-t td.a,.rks-t td.u{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rks-t td.u{color:var(--amber)}
 
 /* 候选列表：重名时必须让用户自己选，绝不替他挑 */
 .cand{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;
@@ -113,13 +121,13 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager, tierBadge, accCell, constCell, glossaryHTML, loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER, applyStatic, t, onLangChange, currentLang, markJa, chipRow } from '/js/ui.js?v=V0.22.0.0';
+import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager, tierBadge, accCell, constCell, glossaryHTML, loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER, applyStatic, t, onLangChange, currentLang, markJa, chipRow } from '/js/ui.js?v=V0.22.2.2';
 
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
-  from '/js/phira.js?v=V0.22.0.0';
-import { installGuard } from '/js/guard.js?v=V0.22.0.0';
+  from '/js/phira.js?v=V0.22.2.2';
+import { installGuard } from '/js/guard.js?v=V0.22.2.2';
 /* 设置的真源 —— 键名不在这里硬写。见 /js/settings.js 顶部说明。 */
-import * as SET from '/js/settings.js?v=V0.22.0.0';
+import * as SET from '/js/settings.js?v=V0.22.2.2';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -236,7 +244,14 @@ function render() {
     + (joined ? ' · ' + t('u.joined', { d: joined }) : '')
     + (u.bio ? '<br>' + esc(u.bio) : '') + '</div></div>'
     + '<div class="rks"><b>' + f2(officialRks) + '</b>'
-    + '<span>' + t('u.rks.off') + '</span></div></div>';
+    + '<span>' + t('u.rks.off') + '</span>'
+    /* 官方 B19 自 2026-03 起停更，很多人看到的是 0 或七个月前的旧值。
+       这里异步补一个「按最近游玩估算」的数 —— 算不出来就不显示，不占位。 */
+    + '<span class="est" data-rks="' + esc(u.id) + '"></span>'
+    + '</div></div>';
+
+  /* 估算 RKS 的明细表容器（异步填，拿不到就保持 hidden） */
+  h += '<div class="rks-wrap" id="rksDetail" hidden></div>';
 
   /* ── 账号总览：这里是「检测到了没」的正面回答 ── */
   h += '<div class="statgrid">'
@@ -381,6 +396,68 @@ function render() {
   h += '</div>';
 
   $('#out').innerHTML = h;
+
+  /* ── 估算 RKS（浏览器端算）──
+     ⚠ 为什么不走我们的 /api/rks：实测部署平台上**服务器出网到 api.phira.cn 会超时**
+        （12 秒 abort，两次一致），和之前连不上 Neon 是同一类问题 ——
+        平台只保证它自己的 HTTP 入口，不让进程自由访问外网。
+        而浏览器是用户自己的网络，直连 Phira 一直是通的（CORS 开放）。
+        → 所以这一步交给浏览器：一次 multi-get 拿定数，本地算。
+
+     公式：单曲 ((ACC*100-55)/45)^2 * 定数；总分 (Σ前19 + 最高) / 实际槽数。
+     ⚠ 分母是实际槽数，不能写死 20 —— 最近 20 条里多数人凑不满 20 张谱。
+     ⚠ 只统计 ranked/stable 谱面（官方规则）。 */
+  (function estimateRks() {
+    const el = document.querySelector('.rks .est');
+    if (!el || !u.id) return;
+    const recs = (STATE.recent || []).filter(x => x && x.chart != null && x.accuracy != null);
+    if (!recs.length) return;
+    const ids = [...new Set(recs.map(x => +x.chart))];
+    fetch('https://api.phira.cn/chart/multi-get?ids=' + ids.join(','), { cache: 'no-store' })
+      .then(r => r.json())
+      .then(list => {
+        const meta = new Map();
+        for (const ch of (Array.isArray(list) ? list : (list.results || []))) {
+          if (ch && ch.id != null) meta.set(+ch.id, ch);
+        }
+        const best = new Map();
+        for (const x of recs) {
+          const c = +x.chart, a = +x.accuracy;
+          if (!best.has(c) || a > best.get(c)) best.set(c, a);
+        }
+        const units = [];
+        for (const [c, a] of best) {
+          const ch = meta.get(c);
+          if (!ch || !(ch.ranked && ch.stable)) continue;
+          const d = +ch.difficulty;
+          if (!isFinite(d) || d <= 0) continue;
+          const acc = a <= 1 ? a * 100 : a;
+          if (acc < 70) continue;
+          units.push({ u: ((acc - 55) / 45) ** 2 * d, d, acc, name: ch.name || ('#' + c), c });
+        }
+        if (!units.length) return;
+        units.sort((p, q) => q.u - p.u);
+        const top = units.slice(0, 20), head = top.slice(0, 19);
+        const rks = (head.reduce((s, v) => s + v.u, 0) + top[0].u) / (head.length + 1);
+        el.textContent = '估算 ' + rks.toFixed(2) + '（近期 ' + top.length + ' 张谱）';
+        el.title = '按最近游玩记录估算，不是官方 B19（官方值自 2026-03 起停更）';
+        /* 只给一个数等于让用户猜自己强在哪。列出来源：
+           哪 20 张构成这个数、各自的单曲 rks、以及离下一个整数还差多少。
+           ⚠ 表里只放**近期**的谱面，不是历史最好 20 —— 文案必须说清。 */
+        const host = document.getElementById('rksDetail');
+        if (host) {
+          host.innerHTML = '<div class="rks-h">' + t('u.rks.detail') + '</div>'
+            + '<table class="rks-t"><tbody>'
+            + top.map(x => '<tr><td class="n">' + esc(x.name) + '</td>'
+              + '<td class="d">' + f2(x.d) + '</td>'
+              + '<td class="a">' + pct(x.acc, 2) + '</td>'
+              + '<td class="u">' + x.u.toFixed(2) + '</td></tr>').join('')
+            + '</tbody></table>';
+          host.hidden = false;
+        }
+      })
+      .catch(() => { /* 拿不到就当没这个功能 */ });
+  })();
 
   /* 「重新拉取」：重新走一遍 pick()，会真的再请求一次 Phira API。
      按钮只是给用户一个确定性 —— 缓存早在 js/phira.js 里关掉了。 */

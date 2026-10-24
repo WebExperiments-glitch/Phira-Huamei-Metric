@@ -19,9 +19,46 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.22.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.22.2.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.22.2.2', date: '2026-10-24',
+    zh: ['<b>三个数变成一句判断</b>：谱面页原本并排摆着「社区共识 / 官谱标度 / 玩家实测」，'
+      + '谁也不解释谁。现在给出结论——三个数一致就是「没有争议」；引擎高出 0.8 以上是'
+      + '「看着难，其实能打」；玩家实测高出 0.8 以上是「看着简单，手感坑」。'
+      + '这个判断只有我们能做，因为只有我们做了三个独立测量。',
+      '<b>玩家实测覆盖翻倍</b>：从 1,700 张扩到 4,532 张谱面。它不看谱面文件，'
+      + '只看 5 万名玩家打这张谱时的时间偏差——和引擎算的数方法完全独立。'
+      + '把玩家随机劈成两半各算一遍，两次结果一致度 0.949，说明这把尺子本身很稳。',
+      '<b>RKS 列出明细</b>：用户页不再只给一个估算数字，而是列出构成它的 20 张谱。'
+      + '官方 B19 停更后，新账号这是唯一能看到的成绩结构。'],
+    en: ['<b>Three numbers become one verdict.</b> Chart pages used to show "community / official / '
+      + 'measured" side by side without explaining anything. Now there is a conclusion: agreement '
+      + 'means uncontroversial; engine 0.8+ higher means "looks scary, plays fine"; measured 0.8+ '
+      + 'higher means "looks simple, plays nasty". Only possible because we take three independent '
+      + 'measurements.',
+      '<b>Measured difficulty now covers twice as many charts</b> — 1,700 to 4,532. It ignores the '
+      + 'chart file entirely and looks only at how accurately 50,000 players actually hit it. Split '
+      + 'the players in half and the two independent results agree at 0.949.',
+      '<b>RKS now lists its sources.</b> The profile page shows the 20 charts behind the estimate '
+      + 'instead of a single number.'],
+  },
+
+  {
+    v: 'V0.22.1.0', date: '2026-10-24',
+    zh: ['<b>官方 RKS 停了七个月，我们补一个估算</b>：Phira 的 B19 计算从 2026-03 起没有更新，'
+      + '新账号的 RKS 一直是 0。现在 /user 页会在官方数值下面补一行「估算 X.XX（近期 N 张谱）」——'
+      + '用你最近打过的谱，按官方同一套公式算。',
+      '<b>还有个数叫「玩家实测」</b>：谱面页新增一项，不看谱面本身，只看大家打它时的时间偏差，'
+      + '反推这张谱实际有多难。和引擎算的那个数方法完全独立，可以互相印证。'],
+    en: ['<b>Phira stopped updating RKS seven months ago, so we estimate it.</b> B19 has been frozen '
+      + 'since March 2026; new accounts always show 0. The profile page now adds an estimate below '
+      + 'the official number, computed from your recent plays with the same formula.',
+      '<b>A new figure called "measured"</b>: chart pages now show how hard a chart is according to '
+      + 'how accurately players actually hit it — independent of the chart file itself.'],
+  },
+
   {
     v: 'V0.22.0.0', date: '2026-10-23',
     zh: ['<b>引擎看得更全了</b>：以前只用 8 个维度去比对参照谱，其实引擎一早就算出 37 个，'

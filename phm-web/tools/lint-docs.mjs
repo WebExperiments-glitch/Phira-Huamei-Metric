@@ -205,6 +205,36 @@ console.log('[6] 旧文件名黑名单');
   }
 }
 
+/* ══════════════════════════════════════════════════════════════
+ * 根 README 的维度数必须等于参照集的实际维度数
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么】2026-10-24 外部评审说「README 停在旧版本」。版本号那条是误判
+ *   （本仓库刻意不写死版本，指向 CHANGELOG），但**引擎描述**确实过时了：
+ *   8 → 37 维改完之后，README 还写着 8 维。
+ *   散文里的数字没有任何守卫，改代码时没人会想起它 —— 所以抓最容易被引用的
+ *   那一处：加粗的「**N 维**」必须等于参照集的实际维度。
+ */
+{
+  const readme = path.join(ROOT, '..', 'README.md');
+  const refCom = path.join(ROOT, 'public', 'data', 'ref-com.json');
+  if (fs.existsSync(readme) && fs.existsSync(refCom)) {
+    try {
+      const j = JSON.parse(fs.readFileSync(refCom, 'utf8'));
+      const row = (j.rows || [])[0];
+      /* 行格式：[定数, 档位, 曲名, id, ...维度] —— 减去前 4 个就是维度数 */
+      const dims = Array.isArray(row) ? row.length - 4 : 0;
+      const txt = fs.readFileSync(readme, 'utf8');
+      const found = [];
+      for (const m of txt.matchAll(/\*\*(\d+)\s*维\*\*/g)) found.push(Number(m[1]));
+      if (dims > 0) {
+        const wrong = found.filter(n => n !== dims);
+        if (wrong.length) bad('README 写 **' + wrong[0] + ' 维**，参照集实际 ' + dims + ' 维');
+        else ok('README 维度数与参照集一致（' + dims + '）');
+      }
+    } catch (e) { bad('README 维度数检查失败：' + e.message); }
+  }
+}
+
 console.log('\n────────');
 console.log(`文档同步检查：${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);

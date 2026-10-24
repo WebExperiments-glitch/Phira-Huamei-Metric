@@ -165,6 +165,7 @@ phm-web/
 | 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
 | 分享卡上的二维码 | `public/js/qr.js` —— 编码器是 `public/vendor/uqr.mjs`（MIT）。⚠ **模块边长必须整数**：`size/total` 得到小数再逐格 round，格子会在 3/4 像素间交替，看着正常但解码器认不出（实测 132px 的码 jsQR 完全解不开）。另外每模块至少 3–4px。 |
 | `/app?chart=<id>` 深链 | `public/js/deeplink.js` —— 谱面文件由浏览器**直连** Phira CDN（CSP `connect-src` 已放行 `phira.5wyxi.com`）。⚠ 与首页接力互斥，否则会分析两遍。 |
+| 玩家实测难度 | `public/js/behav.js` —— `/data/behavior-diff.json`（1,700 张谱，每张 ≥10 人）。由 17,000 名玩家的 15.8 万条记录按 `log(std)` 双向固定效应反推，**完全不看谱面文件**，所以能跟引擎算的数互相印证。⚠ 只有知道谱面 id 时才有（深链进来），本地拖入的文件没有 id。⚠ JSON 一次会话只拉一次。 |
 | 自动写谱（MP3 → 提取 → RPE v160 .pez/.zip） | `public/js/audio-analysis.js` + `public/js/rulechart.js` —— 浏览器本地提取/排谱，页面 `/rulechart` |
 | 自动写谱 · 时间轴（A） | `public/js/rhythm.js` —— 拍网格 / 相位精调 / **量化（含三连音）** / 乐句边界。⚠ 量化不是「吸到 1/4 网格」：层级 1·2·3·4·6，**故意不含 1/8** —— 三十二分太细，有了它任何位置都能被「对上」，容差就形同虚设。层级代价 `SUBDIV_COST_MS` 保证「简单读法优先」|
 | 自动写谱 · 事件选择（B） | `public/js/salience.js` —— 给每个候选打**音乐显著性**（强度打底 × 拍位 × 声部，乘子结构不是加权求和），再按分数选到目标数量。⚠⚠ **绝不凭空造音符**：候选不够就少给，`shortfall` 如实上报。同一份文件还负责映射判定线（按「哪只手更空」分配，不是 i%2 机械交替）|
