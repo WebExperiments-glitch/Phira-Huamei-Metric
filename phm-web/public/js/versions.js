@@ -23,6 +23,20 @@ import { ARCHIVE } from './versions-archive.js?v=V0.22.1.0';
 
 export const RELEASES = [
   {
+    v: 'V0.22.1.0', date: '2026-10-24',
+    zh: ['<b>官方 RKS 停了七个月，我们补一个估算</b>：Phira 的 B19 计算从 2026-03 起没有更新，'
+      + '新账号的 RKS 一直是 0。现在 /user 页会在官方数值下面补一行「估算 X.XX（近期 N 张谱）」——'
+      + '用你最近打过的谱，按官方同一套公式算。',
+      '<b>还有个数叫「玩家实测」</b>：谱面页新增一项，不看谱面本身，只看大家打它时的时间偏差，'
+      + '反推这张谱实际有多难。和引擎算的那个数方法完全独立，可以互相印证。'],
+    en: ['<b>Phira stopped updating RKS seven months ago, so we estimate it.</b> B19 has been frozen '
+      + 'since March 2026; new accounts always show 0. The profile page now adds an estimate below '
+      + 'the official number, computed from your recent plays with the same formula.',
+      '<b>A new figure called "measured"</b>: chart pages now show how hard a chart is according to '
+      + 'how accurately players actually hit it — independent of the chart file itself.'],
+  },
+
+  {
     v: 'V0.22.0.0', date: '2026-10-23',
     zh: ['<b>引擎看得更全了</b>：以前只用 8 个维度去比对参照谱，其实引擎一早就算出 37 个，'
       + '剩下的没被用上。现在全部用上，同档判断从 80.2% 提到 81.8%。',

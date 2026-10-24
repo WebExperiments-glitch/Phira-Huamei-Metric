@@ -67,6 +67,13 @@
         <div class="v alt" id="refOff">—</div>
         <div class="n">同一算法，参照集换成 1,037 张官谱</div>
       </div>
+      <!-- 玩家实测：完全不用谱面本身，只用"大家打它时的击打偏差"反推。
+           和上面两个数**方法上独立**，所以能互相印证 —— 两个都高，那大概真难。 -->
+      <div class="b">
+        <div class="k">玩家实测</div>
+        <div class="v alt" id="behav">—</div>
+        <div class="n" id="behavN">按玩家击打偏差反推</div>
+      </div>
       <div class="b">
         <div class="k">Phira 标称</div>
         <div class="v alt" id="offical">—</div>
@@ -190,6 +197,19 @@ function paint(m, c) {
     $('#nums').style.display = 'none';
     if (isFinite(+official)) $('#offical').textContent = f2(official);
   }
+
+  /* ── 玩家实测难度 ──
+     数据源与上面两个数**完全独立**：不看谱面，只看"大家打它时的时间偏差"。
+     1.7 万玩家的 9.6 万条记录 → log(std) 双向固定效应（玩家水平与谱面难度同时估）。
+     与谱师声明定数 Spearman 0.684。
+     ⚠ 只有 ≥10 人打过的谱才有值（1,700 张），拿不到就保持"—"。
+     ⚠ 它的标度是**缩放到 8~16 的报告口径**，不要拿它当绝对值比官方定数。 */
+  fetch('/data/behavior-diff.json').then(r => r.json()).then(d => {
+    const e = d && d.charts && d.charts[ID];
+    if (!e) return;
+    $('#behav').textContent = f2(e[0]);
+    $('#behavN').textContent = e[1] + ' 位玩家的击打偏差';
+  }).catch(() => { /* 没有这个文件就当没这项功能 */ });
 
   $('#openApp').href = '/app?chart=' + ID;
   $('#openPacks').href = '/packs?q=' + encodeURIComponent(name);
