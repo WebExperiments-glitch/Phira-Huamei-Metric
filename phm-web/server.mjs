@@ -42,6 +42,7 @@ import { makeContributeRoutes } from './lib/contribute-routes.mjs';
 import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
 import { makeChartAssetRoutes } from './lib/chartassets.mjs';
+import { makeRksRoutes } from './lib/rks-routes.mjs';
 import { CLEAN, makePageRoutes } from './lib/pages.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
@@ -404,6 +405,7 @@ const apiRoutes = makeApiRoutes({
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
 const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+const rksRoutes = makeRksRoutes(SEC_HEADERS);
 /* 档案路由：token 从 x-hm-token 读（托管网关会吃掉 Authorization，真踩过）。 */
 const profileRoutes = makeProfileRoutes({ send, gate, gateRead: gateStats, gateWriteId, whoami: hmWhoami,
   getProfile: hmGetProfile, putProfile: hmPutProfile, touchProfile: hmTouchProfile, deleteAccount: hmDeleteAccount, dbFetch });
@@ -434,6 +436,8 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
   if (p === '/api/status') return statusRoutes(req, res, url);
   if (p.startsWith('/api/phira-illust/') || p.startsWith('/api/phira-file/')) return chartAssets(req, res, url);
+  /* 按近期成绩估 RKS —— 官方 B19 自 2026-03 起停更，这一条给它兜底 */
+  if (p === '/api/rks' && await rksRoutes(req, res, url)) return;
 
   /* ── huamei：取谱代理 ──
      客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。

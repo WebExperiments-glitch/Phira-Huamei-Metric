@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.22.0.0">
+<meta name="app-version" content="V0.22.1.0">
 <title>玩家成绩 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="查 Phira 玩家的成绩、RKS 与最近游玩。数据来自 Phira 公开 API，本页只读、不登录、不需要密码。">
@@ -19,8 +19,8 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.22.1.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.1.0">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -29,6 +29,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .pfuser .rks{margin-left:auto;text-align:right}
 .pfuser .rks b{font-size:30px;color:var(--amber);font-variant-numeric:tabular-nums}
 .pfuser .rks span{display:block;font-size:11.5px;color:var(--fg3);max-width:190px}
+.pfuser .rks .est{display:block;font-size:11px;color:var(--fg2);margin-top:2px;font-variant-numeric:tabular-nums}
 
 /* 候选列表：重名时必须让用户自己选，绝不替他挑 */
 .cand{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;
@@ -113,13 +114,13 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager, tierBadge, accCell, constCell, glossaryHTML, loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER, applyStatic, t, onLangChange, currentLang, markJa, chipRow } from '/js/ui.js?v=V0.22.0.0';
+import { renderNav, esc, f1, f2, pct, lvTag, tierColor, when, pagerHTML, wirePager, tierBadge, accCell, constCell, glossaryHTML, loadChartCache, cachedRow, bestConst, phmRks, accOf, rksNote, APP_VER, applyStatic, t, onLangChange, currentLang, markJa, chipRow } from '/js/ui.js?v=V0.22.1.0';
 
 import { resolveUser, getUserStats, getBestPool, getRecords, getCharts, getChartRecords }
-  from '/js/phira.js?v=V0.22.0.0';
-import { installGuard } from '/js/guard.js?v=V0.22.0.0';
+  from '/js/phira.js?v=V0.22.1.0';
+import { installGuard } from '/js/guard.js?v=V0.22.1.0';
 /* 设置的真源 —— 键名不在这里硬写。见 /js/settings.js 顶部说明。 */
-import * as SET from '/js/settings.js?v=V0.22.0.0';
+import * as SET from '/js/settings.js?v=V0.22.1.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -236,7 +237,11 @@ function render() {
     + (joined ? ' · ' + t('u.joined', { d: joined }) : '')
     + (u.bio ? '<br>' + esc(u.bio) : '') + '</div></div>'
     + '<div class="rks"><b>' + f2(officialRks) + '</b>'
-    + '<span>' + t('u.rks.off') + '</span></div></div>';
+    + '<span>' + t('u.rks.off') + '</span>'
+    /* 官方 B19 自 2026-03 起停更，很多人看到的是 0 或七个月前的旧值。
+       这里异步补一个「按最近游玩估算」的数 —— 算不出来就不显示，不占位。 */
+    + '<span class="est" data-rks="' + esc(u.id) + '"></span>'
+    + '</div></div>';
 
   /* ── 账号总览：这里是「检测到了没」的正面回答 ── */
   h += '<div class="statgrid">'
@@ -381,6 +386,22 @@ function render() {
   h += '</div>';
 
   $('#out').innerHTML = h;
+
+  /* 估算 RKS：异步补，失败就静默留空。
+     ⚠ 不阻塞主渲染 —— 这个数是"额外信息"，不该让页面等它。
+     ⚠ 文案必须写"估算"，不能写成 RKS：我们只有最近 20 条记录，
+        不是历史最好 20；而且官方值本身停在 2026-03，两者不是同一个量。 */
+  const estEl = document.querySelector('.rks .est');
+  if (estEl && u.id) {
+    fetch('/api/rks?uid=' + encodeURIComponent(u.id))
+      .then(r => r.json())
+      .then(d => {
+        if (!d || !d.ok) return;
+        estEl.textContent = '估算 ' + d.rks.toFixed(2) + '（近期 ' + d.charts_used + ' 张谱）';
+        estEl.title = d.note || '';
+      })
+      .catch(() => { /* 网络/接口失败就当没这个功能 */ });
+  }
 
   /* 「重新拉取」：重新走一遍 pick()，会真的再请求一次 Phira API。
      按钮只是给用户一个确定性 —— 缓存早在 js/phira.js 里关掉了。 */
