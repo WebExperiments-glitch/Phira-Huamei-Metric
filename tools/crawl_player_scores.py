@@ -147,6 +147,19 @@ def crawl_random(n_target):
     acc_report()
 
 
+def pick_ranked_charts():
+    """全部已上架谱面。只有 ranked/stable 的成绩计入 RKS，
+    其余谱面抓下来对 RKS 一文不值（实测：全库 9509 张里只有 574 张已上架）。"""
+    out = []
+    with open(os.path.join(ROOT, "data", "community.jsonl"), encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            d = r.get("difficulty")
+            if isinstance(d, (int, float)) and 0 < d <= 19.5 and r.get("ranked") and r.get("stable"):
+                out.append(r)
+    return out
+
+
 def pick_seed_charts(n):
     rows = []
     with open(os.path.join(ROOT, "data", "community.jsonl"), encoding="utf-8") as f:
@@ -162,8 +175,8 @@ def pick_seed_charts(n):
     return [rows[i] for i in range(0, len(rows), step)][:n]
 
 
-def crawl_by_chart(n_charts, n_players):
-    seeds = pick_seed_charts(n_charts)
+def crawl_by_chart(n_charts, n_players, ranked=False):
+    seeds = pick_ranked_charts() if ranked else pick_seed_charts(n_charts)
     print("[chart] 种子谱 %d 张（难度 %.1f ~ %.1f）" % (
         len(seeds), seeds[0]["difficulty"], seeds[-1]["difficulty"]), flush=True)
     already = existing_players()
@@ -217,11 +230,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--random", type=int, default=0, help="随机抽这么多玩家（修正饱和采样）")
     ap.add_argument("--charts", type=int, default=40)
+    ap.add_argument("--ranked", action="store_true",
+                    help="只抓已上架(ranked/stable)谱面 —— 只有这些成绩计入 RKS")
     ap.add_argument("--players", type=int, default=500)
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     if args.random:
         crawl_random(args.random)
+    elif args.ranked:
+        crawl_by_chart(0, args.players, ranked=True)
     else:
         crawl_by_chart(args.charts, args.players)
 
