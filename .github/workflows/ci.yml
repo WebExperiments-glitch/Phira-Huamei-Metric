@@ -26,11 +26,11 @@ jobs:
       # 单测不应打生产数据库：显式走进程内限流路径（lib/ratelimit.mjs 的测试缝）。
       PHM_RL_FORCE_DB_DOWN: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Run all non-browser checks
