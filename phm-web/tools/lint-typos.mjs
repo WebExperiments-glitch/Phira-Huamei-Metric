@@ -94,6 +94,9 @@ function tracked() {
       .filter(f => TEXT.test(f) && !SKIP_DIRS.test(f))
       /* 参照集/数据表是机器生成的，里面全是曲名和数字，拼写检查没有意义 */
       .filter(f => !/public\/data\/ref-|behavior-diff\.json/.test(f))
+      /* ⚠ 排除本文件自己：它的字典**必须**包含错拼（"recieve" → "receive"），
+         不排除的话第一版就会把自己的字典报成错误。 */
+      .filter(f => !/tools\/lint-typos\.mjs$/.test(f))
       .map(f => ({ abs: path.join(REPO, f), rel: f }));
   } catch {
     return [];
