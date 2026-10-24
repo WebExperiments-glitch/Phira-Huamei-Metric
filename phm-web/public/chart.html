@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="V0.22.1.6">
+<meta name="app-version" content="V0.22.2.0">
 <!--seo-->
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/css/base.css?v=V0.22.1.6">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.1.6">
+<link rel="stylesheet" href="/css/base.css?v=V0.22.2.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.2.0">
 <script>
 /* 防闪烁：在首帧之前把主题定下来（与其它页同款） */
 (function(){try{var t=localStorage.getItem("phm_theme")||"auto";var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}})();
@@ -27,6 +27,9 @@
 .cd-num .k{font-size:11.5px;color:var(--fg3);letter-spacing:.03em}
 .cd-num .v{font-family:var(--font-display);font-size:40px;line-height:1.15;color:var(--brand);font-variant-numeric:tabular-nums}
 .cd-num .v.alt{color:var(--fg2);font-size:30px}
+.verdict{margin:14px 0 0;font-size:12.5px;line-height:1.6;color:var(--fg2);border-left:2px solid var(--line2);padding:2px 0 2px 9px}
+.verdict[data-k="agree"]{border-left-color:var(--ok)}
+.verdict[data-k="looksHard"],.verdict[data-k="feelsHard"]{border-left-color:var(--warn)}
 .cd-num .n{font-size:11.5px;color:var(--fg4)}
 .cd-act{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
 .cd-kv{display:grid;grid-template-columns:110px 1fr;gap:8px 14px;font-size:13px;line-height:1.8}
@@ -81,6 +84,10 @@
       </div>
     </div>
 
+    <!-- 三个数的分歧本身就是信息：三列并排却谁也不解释谁，等于把判断丢给用户。
+         这一行给出结论。判定逻辑在下面的 fetch 里。 -->
+    <div class="verdict" id="verdict" hidden></div>
+
     <div class="cd-act">
       <a class="btn primary" id="openApp" href="/app">在分析台打开</a>
       <a class="btn" id="openPacks" href="/packs">找这张谱的文件</a>
@@ -113,9 +120,9 @@
 <script type="module">
 import {
   renderNav, esc, t, applyStatic, onLangChange, APP_VER, loadChartCache, f1, f2,
-} from '/js/ui.js?v=V0.22.1.6';
-import { installGuard } from '/js/guard.js?v=V0.22.1.6';
-import { illustProxy } from '/js/chartfiles-core.mjs?v=V0.22.1.6';
+} from '/js/ui.js?v=V0.22.2.0';
+import { installGuard } from '/js/guard.js?v=V0.22.2.0';
+import { illustProxy } from '/js/chartfiles-core.mjs?v=V0.22.2.0';
 
 try { installGuard(t); } catch (e) {}
 renderNav('');
@@ -200,15 +207,30 @@ function paint(m, c) {
 
   /* ── 玩家实测难度 ──
      数据源与上面两个数**完全独立**：不看谱面，只看"大家打它时的时间偏差"。
-     1.7 万玩家的 9.6 万条记录 → log(std) 双向固定效应（玩家水平与谱面难度同时估）。
-     与谱师声明定数 Spearman 0.684。
-     ⚠ 只有 ≥10 人打过的谱才有值（1,700 张），拿不到就保持"—"。
+     5 万玩家的 47 万条记录 → log(std) 双向固定效应（玩家水平与谱面难度同时估）。
+     对半可靠性 0.949；与谱师声明定数 Spearman 0.697。
+     ⚠ 只有 ≥10 人打过的谱才有值（4,532 张），拿不到就保持"—"。
      ⚠ 它的标度是**缩放到 8~16 的报告口径**，不要拿它当绝对值比官方定数。 */
   fetch('/data/behavior-diff.json').then(r => r.json()).then(d => {
     const e = d && d.charts && d.charts[ID];
     if (!e) return;
     $('#behav').textContent = f2(e[0]);
     $('#behavN').textContent = e[1] + ' 位玩家的击打偏差';
+    /* 三个数的分歧**本身就是信息**，而现在三列并排、谁也不解释谁。
+       判据用「引擎(社区共识) − 玩家实测」的差： */
+    const eng = isFinite(+c.ref_const) && +c.ref_const > 0 ? +c.ref_const : null;
+    const bh = +e[0];
+    if (eng != null && document.getElementById('verdict')) {
+      const gap = eng - bh;
+      const el = document.getElementById('verdict');
+      let key;
+      if (Math.abs(gap) < 0.8) key = 'agree';
+      else if (gap >= 0.8) key = 'looksHard';
+      else key = 'feelsHard';
+      el.dataset.k = key;
+      el.textContent = t('c.verdict.' + key, { d: Math.abs(gap).toFixed(1) });
+      el.hidden = false;
+    }
   }).catch(() => { /* 没有这个文件就当没这项功能 */ });
 
   $('#openApp').href = '/app?chart=' + ID;
