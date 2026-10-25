@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.22.2.2';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.22.2.2';
+import { PHIRA_API } from './phira.js?v=V0.22.4.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.22.4.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -38,6 +38,8 @@ const NAV = [
   ['/', 'nav.home', 'home'],
   ['/app', 'nav.app', 'app'],
   ['/rulechart', 'nav.rulechart', 'rulechart'],
+  ['/write', 'nav.write', 'write'],
+  ['/render', 'nav.render', 'render'],
   ['/charter', 'nav.charter', 'charter'],
   ['/user', 'nav.user', 'user'],
   ['/packs', 'nav.packs', 'packs'],

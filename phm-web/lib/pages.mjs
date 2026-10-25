@@ -43,6 +43,7 @@ export const CLEAN = {
   '/developer': 'platform.html',   /* 旧链接兼容 */
   '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',
   '/status': 'status.html', '/packs': 'packs.html',
+  '/render': 'render.html', '/agent': 'agent.html', '/write': 'write.html',
 };
 if (STATIC_ONLY) for (const k of Object.keys(RETIRED_PAGES)) delete CLEAN[k];
 

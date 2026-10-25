@@ -1,11 +1,11 @@
 {
   "name": "phm-web",
   "private": true,
-  "version": "0.22.2.2",
+  "version": "0.22.4.0",
   "type": "module",
   "description": "P.H.M. Standard — 静态前端 + 轻量 Node 服务（零依赖）",
   "scripts": {
-    "start": "node server.mjs",
+    "start": "node --env-file-if-exists=.env server.mjs",
     "check": "node tools/check.mjs",
     "gate": "node tools/review-gate.mjs",
     "preflight": "node tools/preflight.mjs"

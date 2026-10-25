@@ -41,7 +41,10 @@ fs.mkdirSync(OUT, { recursive: true });
 for (const [name, mode] of [['dark', 'dark'], ['light', 'light']]) {
   await send('Page.navigate', { url: BASE + '/' }); await wait(1200);
   await ev(`try{localStorage.setItem('phm_theme','${mode}');localStorage.setItem('phm_lang','zh')}catch(e){}`);
-  await send('Page.navigate', { url: BASE + PAGE }); await wait(3200);
+  /* ⚠ 3200ms 不够：首页的「站点数据」是异步拉 /api/status 的，
+     截出来是「读取中…」四格破折号 —— 发到 README 上很难看。
+     给到 6 秒，覆盖冷启动时的接口延迟。 */
+  await send('Page.navigate', { url: BASE + PAGE }); await wait(Number(process.argv[5] || 6000));
   const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
   const f = path.join(OUT, 'phm-' + PAGE.replace(/\W/g, '') + '-' + name + '.png');
   fs.writeFileSync(f, Buffer.from(shot.data, 'base64'));

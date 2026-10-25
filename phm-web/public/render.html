@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.22.4.0">
+<title>谱面渲染 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<!-- 防闪烁：必须在样式表之前跑，否则深色模式会先白一帧。
+     属性名 theme/font/size 与 settings.js 保持一致。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.22.4.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.4.0">
+<style>
+.rnd-wrap{max-width:1040px;margin:0 auto;padding:18px 16px 60px}
+.rnd-zone{border:1.5px dashed var(--line2);border-radius:12px;padding:26px 18px;text-align:center;
+  cursor:pointer;background:var(--card);transition:border-color .15s,background .15s}
+.rnd-zone:hover,.rnd-zone.over{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 5%,var(--card))}
+.rnd-zone .big{font-size:15px;color:var(--fg)}
+.rnd-zone .sub{font-size:12px;color:var(--fg3);margin-top:6px;line-height:1.55}
+#canvas{width:100%;display:block;border-radius:10px;margin-top:14px;background:var(--card)}
+.rnd-bar{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+#seek{flex:1;min-width:180px}
+#tt{font-size:12px;color:var(--fg2);font-variant-numeric:tabular-nums;min-width:118px}
+.rnd-info{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--fg2)}
+.rnd-info b{color:var(--fg);font-variant-numeric:tabular-nums;font-weight:600}
+.rnd-msg{color:var(--err);font-size:12.5px;margin-top:10px;min-height:18px}
+.rnd-limit{margin-top:16px;font-size:12px;color:var(--fg3);line-height:1.6;
+  border-left:2px solid var(--line2);padding-left:10px}
+.rnd-audio{margin-top:14px;font-size:12px;color:var(--fg3)}
+.rnd-lint{margin-top:16px;border:1px solid var(--line2);border-radius:10px;padding:12px 14px;background:var(--card)}
+.rnd-lint-h{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:8px}
+.rnd-grade{font-weight:700;font-size:15px;color:var(--brand);font-variant-numeric:tabular-nums}
+.rnd-grade[data-g="A"]{color:var(--ok)}
+.rnd-grade[data-g="C"],.rnd-grade[data-g="F"]{color:var(--err)}
+.rnd-note{font-size:12px;color:var(--fg3)}
+.rnd-stats{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--fg2);
+  margin-bottom:8px;font-variant-numeric:tabular-nums}
+.rnd-stats b{color:var(--fg)}
+.rnd-issues{margin:0;padding-left:18px;font-size:12.5px;color:var(--fg2);line-height:1.7}
+.rnd-issues li.err{color:var(--err)}
+.rnd-issues li.warn{color:var(--warn)}
+.rnd-audio b{color:var(--fg2)}
+</style>
+</head>
+<body>
+<!-- 导航容器必须是 .wrap > nav —— 全站一致。
+     ⚠ 原来这里是 <header id="nav">，没有 .wrap 包着，
+       于是顶栏左边距 20 而不是 127，和别页差一大截（冒烟测出来的）。 -->
+<div class="wrap"><nav id="nav"></nav></div>
+<main class="rnd-wrap">
+  <h1 data-i18n="rnd.h1">谱面渲染预览</h1>
+  <p class="sub" data-i18n="rnd.lead"></p>
+
+  <div class="rnd-zone" id="zone" role="button" tabindex="0">
+    <div class="big" data-i18n="rnd.drop"></div>
+    <div class="sub" data-i18n="rnd.hint"></div>
+  </div>
+  <input type="file" id="file" accept=".json,application/json" hidden>
+
+  <canvas id="canvas" width="960" height="540"></canvas>
+
+  <div class="rnd-bar">
+    <button class="btn primary" id="play" disabled data-i18n="rnd.play">播放</button>
+    <input type="range" id="seek" min="0" max="1000" value="0" disabled aria-label="seek">
+    <span id="tt">0.00 / 0.00 s</span>
+  </div>
+
+  <div class="rnd-info" id="info" hidden>
+    <span><span data-i18n="rnd.notes"></span> <b id="nNotes">—</b></span>
+    <span><span data-i18n="rnd.lines"></span> <b id="nLines">—</b></span>
+    <span><span data-i18n="rnd.schema"></span> <b id="nSchema">—</b></span>
+    <span><span data-i18n="rnd.dur"></span> <b id="nDur">—</b></span>
+  </div>
+
+  <div class="rnd-msg" id="msg"></div>
+
+  <!-- 体检报告：chart-lint.js 的五层校验结果。
+       ⚠ 挂在这里而不是新开页面：它就是「看完谱面顺手看一眼」的东西。 -->
+  <div class="rnd-lint" id="lint" hidden>
+    <div class="rnd-lint-h">
+      <b>体检</b>
+      <span class="rnd-grade" id="lintGrade">—</span>
+      <span class="rnd-note" id="lintNote"></span>
+    </div>
+    <div class="rnd-stats" id="lintStats"></div>
+    <ul class="rnd-issues" id="lintIssues"></ul>
+  </div>
+
+  <div class="rnd-audio">
+    <b data-i18n="rnd.audio"></b>
+    <input type="file" id="audio" accept="audio/*">
+    <span id="audioName"></span>
+    <div data-i18n="rnd.audioHint"></div>
+  </div>
+
+  <div class="rnd-limit" data-i18n-html="rnd.limit"></div>
+</main>
+
+<script type="module" src="/js/render-page.js?v=V0.22.4.0"></script>
+</body>
+</html>

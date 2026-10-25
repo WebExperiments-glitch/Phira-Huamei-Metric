@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.22.2.2">
+<meta name="app-version" content="V0.22.4.0">
 <title>自动写谱 · P.H.M.</title>
-<meta name="description" content="导入 MP3，自动提取 BPM / 时长 / 拍点 / 踩音点，按 EZ/HD/IN/AT 规则生成谱面，下载 .pez 或 .zip。全程本地，音频不上传。">
+<meta name="description" content="导入 MP3，提取 BPM / 拍点 / 段落，用一句话让 AI 写谱，或直接自动生成，下载 .pez。音频全程本地，不上传。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.2.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.2.2">
-<link rel="stylesheet" href="/css/motion.css?v=V0.22.2.2">
-<script type="module" src="/js/motion.js?v=V0.22.2.2"></script>
+<link rel="stylesheet" href="/css/base.css?v=V0.22.4.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.4.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.22.4.0">
+<script type="module" src="/js/motion.js?v=V0.22.4.0"></script>
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -39,6 +39,25 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 .diff{border:1px solid var(--line2);background:var(--card);color:var(--fg2);border-radius:9px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
 .diff:hover{border-color:var(--brand);color:var(--brand)}
 .diff.on{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:600}
+.ai-cfg{margin:10px 0;border:1px solid var(--line2);border-radius:9px;padding:8px 12px;background:var(--card2)}
+.ai-cfg summary{cursor:pointer;font-size:12.5px;color:var(--fg2)}
+.ai-cfg-body{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:10px}
+.ai-cfg-body label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--fg3)}
+.ai-cfg-body .inp{min-width:190px}
+.ai-cfg-hint{flex-basis:100%;font-size:11.5px;color:var(--fg3);line-height:1.6}
+.ai-lamps{flex-basis:100%;display:flex;flex-direction:column;gap:4px;margin-top:8px;
+  font-size:12px;font-family:var(--mono,ui-monospace,monospace)}
+.ai-lamps .row{display:flex;align-items:center;gap:8px}
+.ai-lamps .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.ai-lamps .dot.green{background:var(--ok)}
+.ai-lamps .dot.yellow{background:var(--warn)}
+.ai-lamps .dot.red{background:var(--err)}
+.ai-lamps .nm{flex:1;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai-lamps .st{color:var(--fg3);font-size:11px}
+.ai-prompt{margin-top:10px;width:100%;resize:vertical;min-height:64px;font:inherit}
+.ai-log{margin-top:10px;font-size:12px;color:var(--fg2);font-family:var(--mono,ui-monospace,monospace);
+  max-height:220px;overflow:auto;border-left:2px solid var(--line2);padding-left:10px;white-space:pre-wrap}
+.ai-log .ok{color:var(--ok)} .ai-log .err{color:var(--err)} .ai-log .dim{color:var(--fg3)}
 .rc-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
 #preview{width:100%;height:190px;background:var(--card2);border:1px solid var(--line);border-radius:10px;margin-top:12px}
 .rc-note{font-size:12px;color:var(--fg3);line-height:1.7;margin-top:10px}
@@ -107,6 +126,50 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
       </div>
     </div>
 
+    <!-- ── AI 写谱 ──
+         放在这里而不是新开页面：它是同一个流程的另一种生成方式。
+         音频分析（第 1 步）已经是共用的，AI 只是多一条"怎么用这些拍点"的路子。 -->
+    <div class="rc-card" id="aiCard">
+      <h2>3.5 AI 写谱 <span class="sub" style="font-weight:400">（可选）</span></h2>
+      <div class="sub">
+        用自然语言描述想要的效果，模型会调用命令改谱面。<b>每一步改动都要你确认。</b><br>
+        需要先在第 1 步拖入音频 —— 模型拿到的是分析出来的拍点和段落，不是声音。
+      </div>
+
+      <details class="ai-cfg">
+        <summary>模型设置（Key 只存在你自己的浏览器里）</summary>
+        <div class="ai-cfg-body">
+          <label>API Key
+            <input class="inp" id="aiKey" type="password" placeholder="sk-...（留空则用服务端的）" autocomplete="off">
+          </label>
+          <label>模型
+            <select class="inp" id="aiModel">
+              <option value="deepseek-flash">deepseek-flash（V4.1-Flash-1017）</option>
+              <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+            </select>
+          </label>
+          <button class="btn" id="aiProbe" type="button">检测免费模型</button>
+          <span class="rc-status" id="aiProbeStatus"></span>
+          <div class="ai-lamps" id="aiLamps" hidden></div>
+          <div class="ai-cfg-hint">
+            Key 存在本机 localStorage，请求时随 <code>x-agent-key</code> 头发给本站代理，
+            <b>只在内存里转发，不落盘、不记日志</b>。
+          </div>
+          <button class="btn" id="aiKeySave" type="button">保存</button>
+          <span class="rc-status" id="aiKeyStatus"></span>
+        </div>
+      </details>
+
+      <textarea class="inp ai-prompt" id="aiPrompt" rows="3"
+        placeholder="例如：副歌部分密度加大，判定线跟着鼓点左右摆；主歌用 4 分音符铺底。"></textarea>
+      <div class="rc-actions">
+        <button class="btn primary" id="aiGo" type="button" disabled>AI 写谱</button>
+        <button class="btn" id="aiStop" type="button" disabled>停止</button>
+        <span class="rc-status" id="aiStatus"></span>
+      </div>
+      <div class="ai-log" id="aiLog" hidden></div>
+    </div>
+
     <div class="rc-card">
       <h2>4. 预览 / 下载</h2>
       <div class="sub">.pez 本身就是 ZIP；另提供 .zip 方便解压检查。</div>
@@ -114,7 +177,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
         <div class="rc-stat"><div class="k">音符</div><div class="v" id="rcNotes">—</div></div>
         <div class="rc-stat"><div class="k">NPS</div><div class="v" id="rcNps">—</div></div>
         <div class="rc-stat"><div class="k">难度</div><div class="v" id="rcLevel">—</div></div>
-        <div class="rc-stat"><div class="k">规则校验</div><div class="v" id="rcValid">—</div></div>
+        <div class="rc-stat"><div class="k">可玩性校验</div><div class="v" id="rcValid">—</div></div>
         <div class="rc-stat"><div class="k">ZIP 大小</div><div class="v" id="rcSize">—</div></div>
         <div class="rc-stat"><div class="k">文件</div><div class="v small" id="rcName">—</div></div>
       </div>
@@ -142,7 +205,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   </div>
 
   <div class="rc-card">
-    <h2>规则说明</h2>
+    <h2>它是怎么生成的</h2>
     <div class="rc-note">
       <b>时间轴（A）</b>：拍点与踩音点来自音频分析，再建一条拍网格（BPM + 相位 + 小节）。
       每个音吸附到<b>可读时值</b>上 —— 1/1 · 1/2 · <b>1/3（三连音）</b> · 1/4 · 1/6，偏好简单读法；
@@ -153,7 +216,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
       <b>可玩性（C）</b>：生成后独立审计时间冲突 / 同手过近 / 过密（按时间窗）/ 连续操作负担 /
       异常长串 / 节奏可读性 / 目标难度偏差。硬错误禁止下载，提示项会列在下方。<br>
       2 指自由分散：左右手各占半屏，按「哪只手更空」分配，同侧连续不超过 6 个；单条判定线固定在 X=-300、Y=200。
-      规则细节见 <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/docs/RULECHART.md" target="_blank" rel="noopener">RULECHART.md</a>。
+      底层细节见 <a href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/blob/main/phm-web/docs/RULECHART.md" target="_blank" rel="noopener">RULECHART.md</a>。
     </div>
   </div>
 </div>
@@ -170,11 +233,11 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
    三层报告用 esc() 转义文本，漏了它 → 点「生成谱面」直接 ReferenceError，
    页面表现是「点了没反应」。t 之前也漏了，被 try{installGuard(t)} 吞掉，
    所以守卫其实一直拿到 undefined。 */
-import { renderNav, esc, t } from '/js/ui.js?v=V0.22.2.2';
+import { renderNav, esc, t } from '/js/ui.js?v=V0.22.4.0';
 
-import { analyzeFile } from '/js/audio-analysis.js?v=V0.22.2.2';
-import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.22.2.2';
-import { installGuard } from '/js/guard.js?v=V0.22.2.2';
+import { analyzeFile } from '/js/audio-analysis.js?v=V0.22.4.0';
+import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.22.4.0';
+import { installGuard } from '/js/guard.js?v=V0.22.4.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -255,6 +318,7 @@ async function loadFile(f) {
       + ' · 能量 ' + autoDiff.reason.energy.toFixed(2) + '）';
     $('#rcLevel').textContent = autoDiff.label;
     $('#rcGo').disabled = false;
+    $('#aiGo').disabled = false;
     rcStatusMsg($('#rcStatus'), '分析完成 · ' + analysis.bpm.toFixed(1) + ' BPM · ' + fmtTime(analysis.duration) + ' · ' + analysis.onsets.length + ' 个踩音点', 'ok');
   } catch (e) {
     console.error(e);
@@ -295,11 +359,11 @@ async function generate() {
     rcReport(built.stats);
     if (!built.stats.valid) {
       $('#rcPez').style.display = 'none'; $('#rcZip').style.display = 'none'; $('#rcJson').style.display = 'none';
-      rcStatusMsg($('#rcGenStatus'), '规则校验失败：' + built.stats.violations.slice(0, 3).join('；'), 'err');
+      rcStatusMsg($('#rcGenStatus'), '可玩性校验失败：' + built.stats.violations.slice(0, 3).join('；'), 'err');
       return;
     }
     const wn = (built.stats.warnings || []).length;
-    rcStatusMsg($('#rcGenStatus'), '完成 · ZIP 内 ' + (built.stats.notes) + ' notes · 规则校验 0 违规'
+    rcStatusMsg($('#rcGenStatus'), '完成 · ZIP 内 ' + (built.stats.notes) + ' notes · 可玩性 0 违规'
       + (wn ? ' · ' + wn + ' 条可玩性提醒（见下方）' : ''), 'ok');
   } catch (e) {
     console.error(e);
@@ -359,6 +423,242 @@ input.addEventListener('change', () => { const f = input.files && input.files[0]
 ['dragenter', 'dragover'].forEach(k => drop.addEventListener(k, e => { e.preventDefault(); drop.classList.add('hover'); }));
 ['dragleave', 'drop'].forEach(k => drop.addEventListener(k, e => { e.preventDefault(); drop.classList.remove('hover'); }));
 drop.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadFile(f); });
+
+/* ==============================================================
+ * AI 写谱
+ * --------------------------------------------------------------
+ * 复用第 1 步的音频分析（analysis）—— 模型拿到的是**拍点与段落**，
+ * 不是声音。所以"听起来怎么样"这类判断它做不了，提示词里也这么要求。
+ *
+ * Key 存 localStorage 只为方便，不是安全存储（同源脚本读得到）。
+ * 但它是**用户自己的** Key，不是我们的；我们只转发、不落盘、不记日志。
+ * ============================================================== */
+let aiWriter = null, aiBusy = false;
+
+function aiLog(text, cls) {
+  const el = $('#aiLog');
+  el.hidden = false;
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = text;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+function aiStatus(msg, kind) { rcStatusMsg($('#aiStatus'), msg, kind); }
+function aiKey() { return S.get(S.KEYS.agentKey, '') || ''; }
+
+$('#aiKey').value = aiKey();
+const savedModel = S.get(S.KEYS.agentModel, '');
+if (savedModel) $('#aiModel').value = savedModel;
+
+/* ══════════════════════════════════════════════════════════════
+ * 免费模型 + 三色灯
+ * ──────────────────────────────────────────────────────────────
+ * 绿 = 正常回复   黄 = 排队/限流   红 = 不可用
+ *
+ * ⚠ 为什么黄单独一档：免费池的 429 是**常态**，不是故障。
+ *   标成红会让人以为模型废了，其实等几分钟就好。
+ * ⚠ 探测本身也占配额：只发 max_tokens=1 的 ping，服务端缓存 60 秒，
+ *   前端一次最多查 8 个 —— 不做"点一下全测"。
+ * ══════════════════════════════════════════════════════════════ */
+let freeModels = [];
+
+async function loadFreeModels() {
+  try {
+    const r = await fetch('/api/agent/models');
+    if (!r.ok) return;
+    const j = await r.json();
+    freeModels = j.data || [];
+    if (!freeModels.length) return;
+    const sel = $('#aiModel');
+    const grp = document.createElement('optgroup');
+    grp.label = 'OpenRouter 免费（' + freeModels.length + '）';
+    for (const m of freeModels) {
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = m.id.replace(':free', '') + ' · ' + Math.round(m.context / 1000) + 'k';
+      grp.appendChild(o);
+    }
+    sel.appendChild(grp);
+  } catch { /* 拉不到就只留 DeepSeek 选项，不影响主流程 */ }
+}
+
+function renderLamps(results) {
+  const box = $('#aiLamps');
+  box.hidden = false;
+  box.innerHTML = '';
+  for (const r of results) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const dot = document.createElement('span');
+    dot.className = 'dot ' + (r.state || 'red');
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = r.model;
+    const st = document.createElement('span');
+    st.className = 'st';
+    st.textContent = (r.state === 'green' ? '正常' : r.state === 'yellow' ? '排队' : '不可用')
+      + (r.detail ? ' · ' + r.detail : '') + (r.cached ? ' · 缓存' : '');
+    row.append(dot, nm, st);
+    box.appendChild(row);
+  }
+}
+
+$('#aiProbe').addEventListener('click', async () => {
+  if (!freeModels.length) await loadFreeModels();
+  if (!freeModels.length) { rcStatusMsg($('#aiProbeStatus'), '拿不到免费模型清单', 'err'); return; }
+  /* 一次最多 8 个 —— 服务端也拦，这里先挡住，免得白发请求 */
+  const pick = freeModels.slice(0, 8).map((m) => m.id);
+  rcStatusMsg($('#aiProbeStatus'), '探测中（最多 8 个，约 25 秒）…');
+  $('#aiProbe').disabled = true;
+  try {
+    const r = await fetch('/api/agent/probe', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(aiKey() ? { 'x-agent-key': aiKey() } : {}) },
+      body: JSON.stringify({ models: pick }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw Error(j.message || j.error || ('HTTP ' + r.status));
+    renderLamps(j.results || []);
+    const g = (j.results || []).filter((x) => x.state === 'green').length;
+    rcStatusMsg($('#aiProbeStatus'), g + ' 个可用 / ' + (j.results || []).length + ' 个已测', 'ok');
+  } catch (e) {
+    rcStatusMsg($('#aiProbeStatus'), '探测失败：' + String(e.message || e), 'err');
+  } finally {
+    $('#aiProbe').disabled = false;
+  }
+});
+
+loadFreeModels();
+
+$('#aiKeySave').addEventListener('click', () => {
+  const okKey = S.set(S.KEYS.agentKey, $('#aiKey').value.trim() || null);
+  const okModel = S.set(S.KEYS.agentModel, $('#aiModel').value);
+  aiStatus(okKey && okModel ? '已保存到本机' : '保存失败（浏览器禁用了本地存储）', okKey && okModel ? 'ok' : 'err');
+});
+
+/* 审批：改动之前弹，而不是改完再问。
+   用 confirm 是刻意的 —— 它阻塞、不可绕过、不依赖任何 UI 状态。 */
+function approveChange({ name, kind, plan }) {
+  const p = plan && Object.keys(plan).length ? JSON.stringify(plan, null, 1) : '（无摘要）';
+  return Promise.resolve(window.confirm(
+    (kind === 'danger' ? '⚠ 危险操作：' : '需要确认：') + name + '\n\n' + p));
+}
+
+async function generateAI() {
+  /* ⚠ 忙的时候**不丢消息**：排进队列，当前任务结束后自动接着跑。
+     原来的写法是 `if (aiBusy) return;` —— 用户打了一段话，回车，什么都没发生。 */
+  if (aiBusy && aiWriter) {
+    const r = await aiWriter.run($('#aiPrompt').value.trim());
+    if (r && r.queued) { aiLog('已排队，当前任务结束后自动执行', 'dim'); $('#aiPrompt').value = ''; }
+    return;
+  }
+  if (!analysis) { aiStatus('先在 1 拖入音频', 'err'); return; }
+  const prompt = $('#aiPrompt').value.trim();
+  if (!prompt) { aiStatus('先写一句你想要什么', 'err'); return; }
+
+  aiBusy = true;
+  $('#aiGo').disabled = false;          /* 不收起来 —— 用户随时可以继续排队 */
+  $('#aiGo').textContent = '排队 / 插话';
+  $('#aiStop').disabled = false;
+  $('#aiLog').innerHTML = '';
+  $('#aiLog').hidden = false;
+  aiStatus('模型思考中…');
+
+  const audioBytes = new Uint8Array(await file.arrayBuffer());
+
+  aiWriter = createWriter({
+    model: $('#aiModel').value,
+    apiKey: aiKey(),
+    approve: approveChange,
+    onEvent: (type, d) => {
+      if (type === 'tool-start') aiLog('→ ' + d.name + ' ' + JSON.stringify(d.arguments).slice(0, 90), 'dim');
+      if (type === 'tool-end') {
+        const good = d.result && d.result.ok !== false;
+        aiLog((good ? '✓ ' : '✗ ') + d.name
+          + (d.result && d.result.error ? ' : ' + String(d.result.error).slice(0, 120) : ''),
+          good ? 'ok' : 'err');
+      }
+      if (type === 'assistant-end' && d.text) aiLog(d.text, '');
+      if (type === 'error') aiLog(d.message, 'err');
+      if (type === 'steering') {
+        const el = document.querySelector(`#aiLog [data-sid="${d.id}"]`);
+        if (el) { el.className = 'ok'; el.textContent = '补充说明 · 已送达：' + d.text; }
+        else aiLog('补充说明 · 已送达：' + d.text, 'ok');
+      }
+      if (type === 'compaction-end') aiLog('上下文已压缩 · ' + d.after + ' tokens', 'dim');
+      if (type === 'turn-end') aiStatus((d.status === 'completed' ? '完成' : '未完成')
+        + ' · ' + (d.stats.tools || 0) + ' 次工具调用', d.status === 'completed' ? 'ok' : 'err');
+    },
+    context: () => ({
+      bpm: analysis.bpm,
+      bpmAlt: analysis.bpmAlt,
+      /* beats 可能是 {time} 对象或纯数字，统一成秒数 */
+      beats: (analysis.beats || []).map(b => (typeof b === 'object' ? b.time : b)),
+      sections: analysis.sections || [],
+      duration: analysis.duration,
+      onsets: (analysis.onsets || []).length,
+      song: (file.name || '').replace(/\.[^.]+$/, ''),
+      audioName: file.name,
+      /* chart_export 用这两个：音频字节 + 打包函数。
+         音频只进内存 —— 不上传、不进 localStorage。 */
+      audio: audioBytes,
+      buildPez: async (chart, o) => {
+        const built = buildPez(chart, { audio: o.audio, audioName: o.audioName });
+        const url = URL.createObjectURL(new Blob([built.pez], { type: 'application/zip' }));
+        urls.push(url);
+        const id = built.chartJson.META.id;
+        const pa = $('#rcPez');
+        pa.href = url;
+        pa.download = id + '.pez';
+        pa.style.display = 'inline-flex';
+        drawPreview(built.chartJson);
+        $('#rcNotes').textContent = (built.chartJson.judgeLineList || [])
+          .reduce((n, l) => n + (l.notes ? l.notes.length : 0), 0);
+        $('#rcSize').textContent = (built.pez.length / 1048576).toFixed(2) + ' MB';
+        aiLog('已生成 ' + id + '.pez（' + (built.pez.length / 1048576).toFixed(2) + ' MB）', 'ok');
+        return { pez: built.pez, download: true };
+      },
+    }),
+  });
+
+  try {
+    const r = await aiWriter.run(prompt);
+    if (!r.ok) aiStatus('失败：' + (r.error || ''), 'err');
+  } catch (e) {
+    aiStatus('出错：' + String(e.message || e), 'err');
+  } finally {
+    aiBusy = false;
+    $('#aiGo').disabled = !analysis;
+    $('#aiGo').textContent = 'AI 写谱';
+    $('#aiStop').disabled = true;
+    aiWriter = null;
+  }
+}
+
+/* 忙时点按钮 = 插话（不是排队）。
+   两者语义不同：插话会打断当前这一轮重新规划，排队是等它做完。
+   界面上必须能区分，所以这里用两个事件分别回报。 */
+$('#aiGo').addEventListener('click', async () => {
+  const text = $('#aiPrompt').value.trim();
+  if (aiBusy && aiWriter && text) {
+    const id = aiWriter.steer(text);
+    if (id) {
+      const el = document.createElement('div');
+      el.className = 'dim';
+      el.dataset.sid = id;
+      el.textContent = '补充说明 · 待发送：' + text;
+      $('#aiLog').appendChild(el);
+      $('#aiLog').scrollTop = $('#aiLog').scrollHeight;
+      $('#aiPrompt').value = '';
+      return;
+    }
+  }
+  generateAI();
+});
+$('#aiStop').addEventListener('click', () => {
+  if (aiWriter) { aiWriter.stop(); aiStatus('已停止', 'err'); }
+});
 
 $('#rcGo').addEventListener('click', generate);
 </script>
