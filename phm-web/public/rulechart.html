@@ -238,6 +238,8 @@ import { renderNav, esc, t } from '/js/ui.js?v=V0.22.4.0';
 import { analyzeFile } from '/js/audio-analysis.js?v=V0.22.4.0';
 import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.22.4.0';
 import { installGuard } from '/js/guard.js?v=V0.22.4.0';
+import { createWriter } from '/js/agent.js?v=V0.22.4.0';
+import * as S from '/js/settings.js?v=V0.22.4.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

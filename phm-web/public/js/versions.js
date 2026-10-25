@@ -123,3 +123,20 @@ export const RELEASES = [
   },
 
 ].concat(ARCHIVE);
+
+/* ⚠ 版本历史必须**从新到旧**，`smoke-page.mjs` 有一条断言守着。
+   但手写顺序迟早错位 —— 上游就把 `V0.22.3.0` 排在了 `V0.22.2.2` 后面
+   （2026-10-25 CI 的 audit 当场抓到）。这里统一排序，别靠人工维护。 */
+const verKey = (v) => String(v).replace(/^V/, '').split('.').map((n) => Number(n) || 0);
+const RELEASES_SORTED = RELEASES
+  .map((r, i) => ({ r, i, k: verKey(r.v) }))
+  .sort((a, b) => {
+    for (let n = 0; n < 4; n++) {
+      const d = (b.k[n] || 0) - (a.k[n] || 0);
+      if (d) return d;
+    }
+    return a.i - b.i;            /* 同版本保持原始先后，排序要稳定 */
+  })
+  .map((x) => x.r);
+RELEASES.length = 0;
+RELEASES.push(...RELEASES_SORTED);
