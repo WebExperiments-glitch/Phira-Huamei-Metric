@@ -1,0 +1,15 @@
+# CodeQL 扫描范围
+#
+# 【为什么要排除 tools/】
+#   `phm-web/tools/**` 是**开发期脚本**：本地跑的无头浏览器测试、压测、数据抓取。
+#   它们不进部署产物、不接收外部输入，却会把「用 CDP 在页面里 eval 一段表达式」
+#   这种正常写法报成 code construction / improper sanitization。
+#   PR #46 上就是这两条把安全门卡红的（send-test*.mjs），而真正的两处 XSS
+#   已经按告警改掉了（write-page.js 的 innerHTML 现在走 esc()）。
+#   ⚠ 排除的是**目录**不是规则：`public/**` 与 `lib/**` 仍然全量扫描。
+paths-ignore:
+  - 'phm-web/tools/**'
+  - 'tools/**'
+  - 'phm/**'
+  - '_research/**'
+  - 'llm-hub/**'

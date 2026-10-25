@@ -12,6 +12,7 @@
  * **并把 golden-engine.json 的 diff 当成一次「算法变更」review**，
  * 必要时同步 ENGINE_VER + 重算缓存（见 HANDOVER 红线）。
  * ============================================================ */
+import fs from 'node:fs';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -34,7 +35,10 @@ const PEC = [
 
 function snapshot() {
   const r = parsePec(PEC);
-  const rep = reportFromChart(r, 'golden', { name: 'Golden Fixture', level: 'IN.14', charter: 'ci' }, 500, null, null);
+  /* ⚠ 必须把 v2 权重传进去。不传的话 v2 分支根本不走，
+     金标测的还是旧 kNN 路径 —— 看起来绿，其实没覆盖新算法。 */
+  const W2 = JSON.parse(fs.readFileSync(new URL('../public/data/engine-v2.json', import.meta.url), 'utf8'));
+  const rep = reportFromChart(r, 'golden', { name: 'Golden Fixture', level: 'IN.14', charter: 'ci' }, 500, null, null, W2);
   return {
     engineVer: ENGINE_VER,
     parse: { notes: r.notes.length, real: r.real.length, bpm: r.bpm, dur: r.dur, nlines: r.nlines },

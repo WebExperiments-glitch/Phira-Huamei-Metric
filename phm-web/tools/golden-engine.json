@@ -1,5 +1,5 @@
 {
-  "engineVer": "com-trim15-v0.6.0",
+  "engineVer": "com-ridge37-v1.1.0",
   "parse": {
     "notes": 5,
     "real": 5,
@@ -96,7 +96,7 @@
     ]
   },
   "knn": {
-    "ref": 3.8153633396768343,
+    "ref": 9,
     "tier": "EZ",
     "basis": "official",
     "lo": 0.5,
@@ -156,6 +156,8 @@
         "level": "EZ",
         "diff": 2
       }
-    ]
+    ],
+    "knnRef": 3.8153633396768343,
+    "basis2": "ridge-beta"
   }
 }

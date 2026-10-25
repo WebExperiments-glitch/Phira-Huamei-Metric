@@ -48,6 +48,12 @@ export const KEYS = Object.freeze({
   font:      'phm_font',         /* 标题字体："serif"（默认，思源宋体标题）/ "sans"（全黑体） */
   size:      'phm_size',         /* 字号档位："s" / "m"（默认）/ "l" */
   recent:    'phm_recent',       /* 最近查询：JSON {charter:[名…], user:[名…]} */
+  /* AI 写谱的模型 Key 与模型名。
+     ⚠ **故意不进 PLAIN_KEYS**：那份清单用于「导出设置」与「清空设置」，
+       而 Key 是凭证，不该出现在导出文件里。
+       代价是「清空设置」不会清掉它 —— 对凭证来说这是可接受的方向。 */
+  agentKey:   'phm_agent_key',
+  agentModel: 'phm_agent_model',
 });
 
 /** 固定键（不含 own 前缀键）—— 用于清空与导出。 */

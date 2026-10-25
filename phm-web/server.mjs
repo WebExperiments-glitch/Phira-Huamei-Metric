@@ -38,6 +38,7 @@ import {
   TICKET_TTL_MS, TICKET_MAX_CHARTS,
 } from './lib/contribute-ticket.mjs';
 import { makeContributeRoutes } from './lib/contribute-routes.mjs';
+import { makeAgentRoutes } from './lib/agent-routes.mjs';
 /* API v1 路由（/api/v1/*）—— 独立模块，避免 server.mjs 破 900 行。 */
 import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
@@ -191,7 +192,7 @@ const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.ht
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
   '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
-  'status.html', 'packs.html',
+  'status.html', 'packs.html', 'render.html', 'agent.html', 'write.html',
   /* 末尾三个是许可证正文：按**名字**放行，别往 SAFE_EXT 加 .txt（见 docs/README「许可证」） */
   'fonts/OFL-LXGWWenKai.txt', 'fonts/OFL-NotoSerifSC.txt', 'vendor/uqr-LICENSE']);
 if (STATIC_ONLY) for (const f of RETIRED_HTML) PUBLIC_FILES.delete(f);
@@ -301,10 +302,10 @@ function sendFile(res, fp, longCache, req) {
          · 页面报「does not provide an export named ...」→ 模块链断 → 下半页空白
        改成 1 小时 + must-revalidate：既保住缓存收益，又能**自己好**（最多一小时）。
        配上下面新加的 ETag，重校验是 304，不会重下 730KB 的参照集。 */
+    /* PHM_DEV=1 一律 no-store：开发时改了 js 立刻生效，不用换版本号也不用强刷。 */
     const cc = isHtml ? 'no-cache'
-      : (longCache ? 'public, max-age=3600, must-revalidate'
+      : (process.env.PHM_DEV === '1' ? 'no-store' : longCache ? 'public, max-age=3600, must-revalidate'
         : ((ext === '.js' || ext === '.json') ? 'no-cache' : 'public, max-age=3600'));
-
     /* ETag：由「大小 + mtime」算出（弱校验即可 —— 内容会随 accept-encoding 变）。
        有了它，must-revalidate 的代价从「重下整个文件」降到「一次 304」。
        ⚠ 以前没有 ETag，所以长缓存的资源一旦过期就只能整份重传。 */
@@ -406,6 +407,7 @@ const apiRoutes = makeApiRoutes({
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
 const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+const agentRoutes = makeAgentRoutes({ send, gate, gateAnalyze, readBody });
 const rksRoutes = makeRksRoutes(SEC_HEADERS);
 /* 档案路由：token 从 x-hm-token 读（托管网关会吃掉 Authorization，真踩过）。 */
 const profileRoutes = makeProfileRoutes({ send, gate, gateRead: gateStats, gateWriteId, whoami: hmWhoami,
@@ -590,6 +592,8 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* ── /api/contribute/ticket ── 贡献凭证（见 lib/contribute-routes.mjs）──
      /api/contribute 不再接受匿名直接写入：客户端必须先用真实存在的 chart_id
      换一张 5 分钟有效的 HMAC 凭证。换证只查 Phira 元数据，**不下载谱面**。 */
+  /* agent 的三条路由收在 lib 里 —— server.mjs 已到 900 行硬上限 */
+  if (p.startsWith('/api/agent/')) return agentRoutes.handle(req, res, url, ip);
   if (p === '/api/contribute/ticket') return contributeRoutes.ticketRoute(req, res, ip);
 
   /* 写入网关：校验 + 限流 + 落库 */

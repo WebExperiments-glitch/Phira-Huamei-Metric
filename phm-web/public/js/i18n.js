@@ -24,19 +24,24 @@
  *   社区通用写法，别自己造词 —— 音游玩家看的是社区术语，不是教科书英语。
  * ============================================================ */
 
-import { lang as langStore } from './settings.js?v=V0.22.2.2';
-import common from './i18n/common.js?v=V0.22.2.2';
-import home from './i18n/home.js?v=V0.22.2.2';
-import app from './i18n/app.js?v=V0.22.2.2';
-import charter from './i18n/charter.js?v=V0.22.2.2';
-import user from './i18n/user.js?v=V0.22.2.2';
-import data from './i18n/data.js?v=V0.22.2.2';
-import legal from './i18n/legal.js?v=V0.22.2.2';
-import settings from './i18n/settings.js?v=V0.22.2.2';
-import version from './i18n/version.js?v=V0.22.2.2';
-import status from './i18n/status.js?v=V0.22.2.2';
-import packs from './i18n/packs.js?v=V0.22.2.2';
-import download from './i18n/download.js?v=V0.22.2.2';
+import { lang as langStore } from './settings.js?v=V0.22.4.0';
+import common from './i18n/common.js?v=V0.22.4.0';
+import home from './i18n/home.js?v=V0.22.4.0';
+import app from './i18n/app.js?v=V0.22.4.0';
+import charter from './i18n/charter.js?v=V0.22.4.0';
+import user from './i18n/user.js?v=V0.22.4.0';
+import data from './i18n/data.js?v=V0.22.4.0';
+import legal from './i18n/legal.js?v=V0.22.4.0';
+import settings from './i18n/settings.js?v=V0.22.4.0';
+import version from './i18n/version.js?v=V0.22.4.0';
+import status from './i18n/status.js?v=V0.22.4.0';
+import packs from './i18n/packs.js?v=V0.22.4.0';
+import download from './i18n/download.js?v=V0.22.4.0';
+/* ⚠ 这两个分片是 /write 与 /agent 的文案。合并远端时 i18n.js 取了远端那份，
+   把这两行 import 弄丢了 —— 分片在磁盘上、也在 FRAGMENTS 里，但没人 import，
+   `lint-i18n` 直接报「等于没翻」。 */
+import agent from './i18n/agent.js?v=V0.22.4.0';
+import render from './i18n/render.js?v=V0.22.4.0';
 
 /* ══════════════════════════════════════════════════════════════
  * 字典：按页面分片，在这里合并
@@ -59,6 +64,7 @@ const FRAGMENTS = [
   ['common', common], ['home', home], ['app', app], ['charter', charter],
   ['user', user], ['data', data], ['legal', legal], ['settings', settings],
   ['version', version], ['download', download], ['status', status], ['packs', packs],
+  ['agent', agent], ['render', render],
 ];
 
 const DICT = { zh: {}, en: {} };

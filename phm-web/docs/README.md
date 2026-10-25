@@ -48,6 +48,7 @@ phm-web/
 │   ├── ratelimit.mjs          ← 限流：进程内预筛 + DB hm_rate_hit 权威计数
 │   ├── contribute-ticket.mjs  ← /api/contribute 的 HMAC 贡献凭证（签 / 验）
 │   ├── contribute-routes.mjs  ← 换票路由 + 验票 + 服务端复核后落库
+│   ├── agent-routes.mjs       ← AI 写谱代理：SSE 透传到 DeepSeek，Key 不出服务端
 │   ├── api-keys.mjs           ← API Key 生成 / sha256 哈希 / 掩码（sk-…）
 │   └── download.mjs           ← 下载端点：流式 + Range + ETag
 │
@@ -81,8 +82,20 @@ phm-web/
 │   └── js/
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源（纯计算）
 │       ├── audio-analysis.js  ← ★ 浏览器音频提取：BPM / 拍点 / 踩音点 / 段落
+│       ├── agent.js          ← 写谱 Agent 装配入口：提示词 + 注册表 + 主循环 → createWriter()
+│       ├── agent-page.js     ← /agent 页交互：气泡 / 审批卡片 / 事件流（不含谱面判断）
+│       ├── write-page.js     ← /write 全屏对话：附件（MP3/图片）/ 思考懒渲染 / 插话两态
+│       ├── agent-commands.js  ← ★ 14 条命令 + 三档权限（read / edit / danger），工具定义由注册表生成
+│       ├── agent-runtime.js   ← ★ 主循环：messages / transcript / checkpoint 三数组，失败回滚
+│       ├── agent-prompt.js    ← 写谱 Agent 的系统提示词（领域知识 + 三条诚实条款）
+│       ├── chart-geom.js     ← ★ RPE 谱面几何抽提 + Canvas 绘制（30 种缓和曲线按 phichain 的权威表）
+│       ├── chart-lint.js     ← ★ 谱面体检：五层校验（语法/密度/配置/手序/深度），纯函数
+│       ├── script-eval.js    ← ★ 生成脚本解释器（**不用 eval**：CSP 没开 unsafe-eval，new Function 必被拦）
+│       ├── beat-time.js      ← ★★ 拍 ↔ 秒的**唯一真源**（收 RPE 的 BPMList，变速谱成立；与 rhythm.js 的恒定速度网格版不同物）
+│       ├── render-page.js    ← /render 页交互：拖入解析 / 播放头 / 体检报告渲染
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
 │       ├── ui.js              ← 导航 / 格式化 / 缓存读取 / P.H.M. RKS
+│       ├── markdown.js        ← 极简 markdown（转义优先 + 白名单，无第三方依赖）
 │       ├── motion.js          ← ★ 动效运行时（零依赖；减弱动效时整份不执行）
 │       ├── settings.js        ← ★★ 用户设置的**唯一真源**：键名 / 默认值 / 读写 / 清理
 │       ├── handoff.js         ← 首页 → /app 的 IndexedDB 文件接力

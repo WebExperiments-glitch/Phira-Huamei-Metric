@@ -22,13 +22,19 @@
  *     引擎本身不认识 fetch，也不认识 fs。
  * ============================================================ */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.22.2.2';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.22.4.0';
 /* 技能分：把 39 个特征重组为四技能维度。
    ⚠ skills.js 是**纯函数、无副作用**，所以引擎可以安全 import 它 ——
       浏览器与 Node 服务端都走同一份，不存在两份实现漂移。
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
-import { skillScores } from './skills.js?v=V0.22.2.2';
+import { skillScores } from './skills.js?v=V0.22.4.0';
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
+ * com-ridge37-v1.1.0：**重训权重**（β 标签 4,532 → 12,457，覆盖率 95.9%）。
+ *   算法没变，但数值变了 → 缓存与金标必须跟着换。
+ * com-ridge37-v1.0.0：**聚合方式换了** —— kNN 15 近邻去两端平均 → 岭回归（2026-10-24）。
+ *   根因：trimmed mean 会把极值抹平，输出被压在 8.79~13.00，而真实难度跨度 1~19。
+ *   用 4,532 张谱的 β 学权重后，对 β 的秩相关 0.401 → 0.774，范围 6.91~21.23。
+ *   ⚠ 新旧数字**不可比**，缓存需重算。
  * com-trim15-v0.6.0：参照维度 8 → 37（2026-10-23）。
  *   ⚠ 维度信息**不写进版本串** —— 它是给机器解析的（缓存对账靠它比对），
  *     形态由 smoke 守卫（`^[a-z0-9]+-[a-z0-9]+-v\d+\.\d+\.\d+$`）。
@@ -41,7 +47,7 @@ import { skillScores } from './skills.js?v=V0.22.2.2';
  *   中位误差 0.500→0.453、均值误差 0.820→0.816，输出分辨率 104→1332 个不同值。
  * ⚠ 版本号一变，历史缓存里 ref_const 与新区间的可比性就断了，
  *   必须重算（tools/warm-cache.mjs --force + tools/reconcile-cache.mjs）。 */
-export const ENGINE_VER = 'com-trim15-v0.6.0';
+export const ENGINE_VER = 'com-ridge37-v1.1.0';
 /* 官谱参照（向后兼容既有调用方：攻坚测试探针、tools/*.mjs 都在用它） */
 const OFFICIAL_REF = REF_OFFICIAL;
 export { REF_DIMS, REF_OFFICIAL, ROW_LABELS };
@@ -737,7 +743,35 @@ function psScore(f){
      knnOff   = 官谱参照（1,037 张 Phigros 官谱）→ 与官方一致的绝对标度。
      两者之差是**系统性分布差异**，不是误差 —— 前端必须并列展示并说明来源，
      只报一个数字才是真的误导（"IN 14 算出 11.6"就是只报官谱标度的产物）。 */
-export function reportFromChart(r,name,meta,spPeak,refCom,excludeId){
+export function reportFromChart(r,name,meta,spPeak,refCom,excludeId,weightsV2){
+  /* v2 推理：37 维 log1p → 标准化 → 线性加权 → 尺度映射回定数量纲。
+     ⚠ 权重文件是 public/data/engine-v2.json，由调用方 fetch 后传入。 */
+  function ridgeBeta(f, W) {
+    if (!W || !Array.isArray(W.w)) return null;
+    const dims = W.dims || REF_DIMS;
+    let s = W.ym;
+    for (let i = 0; i < dims.length; i++) {
+      const v = +f[dims[i]];
+      const x = Math.log1p(isFinite(v) && v > 0 ? v : 0);
+      s += ((x - W.mu[i]) / (W.sd[i] || 1)) * W.w[i];
+    }
+    /* 尺度映射：单调分段线性（knots 由 tools/fit_v2.py 用 PAVA 生成）。
+       ⚠ 不能再用 `slope*x+inter` —— 线性映射在低端会把范围压掉。
+       端点**不做人为拉伸**：Phira 全站 p5=11.0/p50=15.1，10 分以下只有 2.5%，
+       引擎输出落在 7.5~17.9 是如实反映，不是缺陷。 */
+    const xs = W.mapX, ys = W.mapY;
+    if (!xs || !ys) return W.slope * s + W.inter;   /* 旧格式兜底 */
+    if (s <= xs[0]) return ys[0];
+    if (s >= xs[xs.length - 1]) return ys[ys.length - 1];
+    let lo = 0, hi = xs.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (xs[mid] <= s) lo = mid; else hi = mid;
+    }
+    const span = xs[hi] - xs[lo];
+    const k = span <= 0 ? 0 : (s - xs[lo]) / span;
+    return ys[lo] + (ys[hi] - ys[lo]) * k;
+  }
   const ts=r.real.map(n=>n.sec), ty=r.real.map(n=>n.type);
   const f=Object.assign({},
     strainFeatures(ts,ty), rhythmFeatures(ts),
@@ -752,9 +786,32 @@ export function reportFromChart(r,name,meta,spPeak,refCom,excludeId){
         归一化函数已按 0 处理，但防御一下比让一次分析失败好。 */
   let skills=null;
   try{ skills=skillScores(f); }catch(e){ skills=null; }
+  /* ── v2：用玩家行为难度（β）学出来的岭回归权重，作为**主数字** ──
+     【为什么换】
+       现役 kNN 取 15 近邻、去掉两端各 3 个再平均 —— **平均把极值抹平**，
+       输出被压在 8.79~13.00，而真实难度跨度是 1~19。
+       一张标称 18.5 的观赏谱，只要邻居里有 12 分的，结果必然被拉向中间。
+       实测 #47544：声明 18.5 / kNN 11.24。
+
+       用 4,532 张谱的 β 拟合岭回归后：
+         对 β 的秩相关   kNN 0.401  →  v2 0.774
+         输出范围        8.79~13.00 →  6.91~21.23
+
+     【为什么改 `knn.ref` 而不是加新字段】
+       下游（页面 / API / 分享卡）读的都是 `knn.ref`。改这里，它们一行不用动。
+       旧值留在 `knn.knnRef`，出问题能对回去 —— 不是覆盖，是**并列保留**。
+
+     【⚠ 纯计算】权重由调用方传入（和 refCom 一样），本文件不碰 fs / 网络。 */
+  const v2 = weightsV2 ? ridgeBeta(f, weightsV2) : null;
+  const knnOut = Object.assign({}, knn);
+  if (v2 != null && knnOut) {
+    knnOut.knnRef = knn.ref;
+    knnOut.ref = v2;
+    knnOut.basis2 = 'ridge-beta';
+  }
   return {name:meta.name||name, level:meta.level||knn.tier||"", charter:meta.charter||"",
-    feats:f, ps:ps, knn:knn, knnOff:knnOff, engineVer:ENGINE_VER, spPeak:sp, bpm:r.bpm,
-    skills:skills};
+    feats:f, ps:ps, knn:knnOut, knnOff:knnOff, engineVer:ENGINE_VER, spPeak:sp, bpm:r.bpm,
+    skills:skills, v2: v2};
 }
 /* ── analyze(fileBytes, fileName[, opts]) → 报告对象数组 ──
    opts.refCom：社区参照集行数组（由调用方读文件/fetch 后传入）。
