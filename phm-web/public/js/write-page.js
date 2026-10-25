@@ -233,12 +233,15 @@ async function pickFiles(files) {
                      weak: ['节拍对齐较差，BPM 建议手动确认', 'var(--err)'] }[g.verdict]
                   || ['节拍对齐未知', 'var(--fg4)'];
         const pct = g.ok ? Math.round(g.score * 100) : null;
-        $('#hintAudio').innerHTML = `音频：${state.audioName} · <b>${bpm}</b> BPM`
+        /* ⚠ 文件名与转码说明都是**外部输入**（用户拖进来的文件、异常消息），
+           拼进 innerHTML 前必须转义 —— CodeQL 在 PR #46 上抓到的就是这两处。
+           其余部分是数字和我们自己写死的文案，不需要转义。 */
+        $('#hintAudio').innerHTML = `音频：${esc(state.audioName)} · <b>${bpm}</b> BPM`
           + (pct == null ? '' : ` · <span style="color:${vt[1]}">${vt[0]}（${pct}%）</span>`)
           + ` · ${(a.beats || []).length} 拍点`
           + (g.devMs == null ? '' : ` · 偏差 ${g.devMs}ms`)
           /* 音频被转换过就**明说**：用户需要知道包里装的不是他那个文件 */
-          + (state.audioNote ? ` · <span style="color:var(--warn)">${state.audioNote}</span>` : '');
+          + (state.audioNote ? ` · <span style="color:var(--warn)">${esc(state.audioNote)}</span>` : '');
       } catch (e) {
         $('#hintAudio').textContent = '音频分析失败：' + String(e.message || e);
         state.analysis = null;
