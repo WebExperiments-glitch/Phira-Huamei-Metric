@@ -40,6 +40,9 @@
 | `/` | `index.html` | 落地页：这是什么、双标度怎么读、三个入口、实时统计 |
 | `/app` | `app.html` | 分析工作台：拖入谱面包 / 搜谱面 / 出定数 / 导出分享卡 |
 | `/rulechart` | `rulechart.html` | **规则写谱**：BPM/时长/难度/轨道 → RPE v160 谱面 + `.pez`，纯本地生成 |
+| `/render` | `render.html` | **谱面预览 + 体检**：拖入 RPE 谱面 JSON/PEZ → 按时间轴画出音符与判定线，同时跑 `chart-lint.js` 五层校验（语法/密度/配置/手序/深度） |
+| `/agent` | `agent.html` | **AI 写谱**：一句话描述 → 模型调用命令写谱 → 五层体检 → 报定数。**每一步改动都要审批**（read 免审 / edit 必审 / danger 永审）。模型走服务端代理，Key 不出服务端 | 没有 Key 时明说「未开启」，不降级成本地规则生成 —— 那会让人以为模型在写 |
+| `/write` | `write.html` | **AI 写谱（对话式）**：全屏对话，拖入 MP3/图片即可开写。思考强度开关 + 档位（OpenRouter 走 reasoning.effort，DeepSeek 走 thinking.type）。命令面与审批复用 agent.js | 对话式比表单式更适合「说不清要什么」的场景；表单式仍留在 /rulechart |
 | `/charter` | `charter.html` | 谱师页：某个谱师的全部作品、档位分布、每张谱的 P.H.M. 定数 |
 | `/user` | `user.html` | 玩家页：成绩、自算 RKS、最近游玩、任意单谱的全部成绩 |
 | `/data` | `data.html` | **数据管理**：全库分页浏览、排序、过滤；每行的双标度与引擎版本 |
@@ -279,6 +282,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | 成绩校验 | `lib/hm.mjs` 的 `validatePlay()` | 用 `phiraScore()` 重算 acc/score，只告警不拒收 | 不信客户端报的 score/accuracy |
 | 限流 | `lib/ratelimit.mjs` | 进程内预筛 + DB `hm_rate_hit` 权威计数；身份优先、IP 兜底、全局兜底 | **不读 X-Forwarded-For**（源码级禁用，测试守着） |
 | 贡献准入 | `lib/contribute-ticket.mjs` + `lib/contribute-routes.mjs` | 给 /api/contribute 签/验 5 分钟 HMAC 凭证；换票只查 Phira 元数据、不下载谱面；未持票请求在解析 body 前拒绝 | 不把「匿名可写」当默认；无写凭据时 fail-closed |
+| AI 写谱代理 | `lib/agent-routes.mjs` | `POST /api/agent/chat`：把 `{model,system,messages,tools}` 转给 DeepSeek，**SSE 原样透传不重组**（重组会丢 usage / reasoning_content）。Key 只在服务端，浏览器拿不到。未配 `PHM_AGENT_KEY` 时 fail-closed 返回 503 并说明原因 | Key 不能进浏览器；没有 Key 绝不"降级成本地规则生成"，那会让用户以为模型在写 |
 | API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、开放平台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
 | API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理 / 轮换；匿名与 Key 配额；scope 校验 | 不写引擎逻辑；认证与用量全走 RPC；契约在 `api/openapi.json` |
 | 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |

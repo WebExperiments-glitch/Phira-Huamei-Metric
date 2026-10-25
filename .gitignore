@@ -79,3 +79,10 @@ phira-huamei/
 
 # 抓取的玩家成绩（Phira ToS 禁止再分发，只做本地研究）
 data/scores/
+
+# RPEN 完整克隆（38MB，含嵌套 .git）—— 只留在本机研究，不入库
+_research/rpe-next-full/
+
+# 真机测试产物（截图 / 抓回的包），不进仓库
+phm-web/shots/
+phm-web/tmp/

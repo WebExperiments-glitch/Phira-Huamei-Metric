@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.22.2.2">
+<meta name="app-version" content="V0.22.4.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -38,456 +38,11 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.2.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.2.2">
-<link rel="stylesheet" href="/css/motion.css?v=V0.22.2.2">
-<script type="module" src="/js/motion.js?v=V0.22.2.2"></script>
-<style>
-/* 主题令牌（:root）全部来自 /css/base.css —— 这里不再重复定义，
-   否则拆成多页后会有四五份 :root 各自漂移。 */
-.apphead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
-.apphead .slogan{font-size:13px;color:var(--fg2);flex:1;min-width:200px}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--fg);font:14px/1.6 "Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:20px}
-/* ⚠ 这里曾经有一条 .wrap{max-width:880px} —— 页面样式在 base.css 之后，
-   所以它静默覆盖掉了全站容器令牌，这一页的顶栏就比别的页窄 120px。
-   容器宽度**只能在 base.css 的 --container 里定义一处**。 */
-header{display:flex;align-items:baseline;gap:12px;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
-header h1{font-size:20px;letter-spacing:.5px}
-header h1 b{color:var(--amber)}
-.ver{font-size:12px;color:var(--fg3)}
-.slogan{font-size:12px;color:var(--fg2);width:100%}
-.slogan b{color:var(--fg)}
-.gh{display:inline-flex;align-items:center;gap:6px;font-size:12px;
-color:var(--fg2);text-decoration:none;border:1px solid var(--line);border-radius:8px;
-padding:5px 11px;transition:.15s;white-space:nowrap;
-background:var(--card2);font:inherit;cursor:pointer;line-height:1.5}
-.gh:hover{color:var(--fg);border-color:var(--fg3);background:var(--card)}
-.gh:active{transform:translateY(1px)}
-/* 顶部常驻搜索（不藏在任何面板里） */
-.hsearch{margin-left:auto;display:flex;gap:7px;align-items:center}
-.hsearch input{width:185px;background:var(--bg);border:1px solid var(--line);
-border-radius:8px;padding:6px 11px;color:var(--fg);font:inherit;font-size:12px;outline:none}
-.hsearch input:focus{border-color:var(--brand-line)}
-.hsearch input::placeholder{color:var(--fg3)}
-.hsearch button{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
-border-radius:8px;padding:6px 14px;font:inherit;font-size:12px;font-weight:600;
-cursor:pointer;white-space:nowrap}
-.hsearch button:hover{border-color:var(--brand-line);color:var(--fg)}
-.hsearch button:disabled{opacity:.5;cursor:default}
-/* 搜索结果区（页面级，独立于面板） */
-.coutbox{margin:0 0 14px;padding:12px 15px;border:1px solid var(--line);
-border-radius:12px;background:var(--card)}
-.coutbox:empty{display:none;margin:0;padding:0;border:0}
-/* 页面级状态条（算定数/导入的进度与错误都显示在这里，不再写进隐藏面板） */
-.csstatus{margin:0 0 14px;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.7;
-border-left:3px solid var(--fg3);background:var(--card);color:var(--fg2)}
-.csstatus b{color:var(--fg)}
-.csstatus.warn{border-left-color:var(--amber)}
-.csstatus.err{border-left-color:var(--red)}
-.csstatus.ok{border-left-color:var(--green)}
-.csstatus a{color:var(--link);text-decoration:none;border-bottom:1px solid var(--link-soft);font-weight:700}
-.cdl{display:inline-flex;align-items:center;gap:4px;text-decoration:none;
-border:1px solid var(--amber);color:var(--amber);background:var(--card);
-border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;white-space:nowrap}
-.cdl:hover{background:var(--brand-soft)}
-.gh svg{display:block;flex:none}
-.gh button,.gh{cursor:pointer}
-/* ── 连接 Phira 面板 ── */
-.pf{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 16px}
-.pf .pfhead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
-.pf .pfx{margin-left:auto;cursor:pointer;color:var(--fg3);padding:0 4px}
-.pf .pfx:hover{color:var(--fg)}
-.pf .pfdesc{font-size:12px;color:var(--fg2);margin:6px 0 10px;line-height:1.6}
-.pf .pfdesc b{color:var(--fg)}
-.pf .pfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.pf input{flex:1;max-width:280px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 11px;color:var(--fg);font:inherit;outline:none}
-.pf input:focus{border-color:var(--brand-line)}
-.pf button{border:0;border-radius:8px;padding:8px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--brand);color:var(--brand-ink)}
-.pf button:disabled{opacity:.5;cursor:default}
-.pf .pfmsg{font-size:12px;color:var(--fg2);margin-top:8px;min-height:1em}
-.pfuser{display:flex;align-items:center;gap:13px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
-.pfuser img{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--card2)}
-.pfuser .nm{font-weight:700;font-size:16px}
-.pfuser .meta{font-size:12px;color:var(--fg2)}
-.pfuser .rks{margin-left:auto;text-align:right}
-.pfuser .rks b{font-size:23px;color:var(--amber)}
-.pfuser .rks span{font-size:11px;color:var(--fg3);display:block}
-.btable{margin-top:10px;width:100%;border-collapse:collapse;font-size:12.5px}
-.btable th{text-align:left;color:var(--fg3);font-weight:400;padding:5px 6px;border-bottom:1px solid var(--line)}
-.btable td{padding:5px 6px;border-bottom:1px solid var(--line)}
-.btable tr:hover td{background:var(--card2)}
-.btable .idx{color:var(--fg3);width:26px}
-.btable .rk{color:var(--amber);font-variant-numeric:tabular-nums}
-.btable .oc{color:var(--fg2);font-variant-numeric:tabular-nums}
-.improw{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.improw .hint{font-size:11.5px;color:var(--fg3)}
-.pfnb{margin-top:11px;padding:9px 12px;border-radius:9px;background:var(--card2);
-border-left:3px solid var(--amber);font-size:12px;color:var(--fg2);line-height:1.65}
-.pfnb b{color:var(--fg)}
-.pfchk{margin:7px 0 0;display:flex;flex-direction:column;gap:4px}
-.pfchk>div{font-size:11.5px;color:var(--fg2)}
-.pfchk>div b{color:var(--fg)}
-.pfchk-tip{margin-top:8px;padding-top:7px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--fg3)}
-/* P.H.M. RKS 卡片 */
-.pmrks{margin-top:11px;border:1px solid var(--line);border-radius:11px;
-background:linear-gradient(180deg,var(--card2),var(--card));padding:12px 14px}
-.pmhead{display:flex;align-items:baseline;gap:9px;font-weight:700;font-size:13px;flex-wrap:wrap}
-.pmhead b{font-size:26px;color:var(--amber);font-variant-numeric:tabular-nums}
-.pmtag{font-size:11px;color:var(--fg3);font-weight:400;border:1px solid var(--line);
-border-radius:999px;padding:1px 8px}
-.pmdesc{font-size:11.5px;color:var(--fg2);margin:7px 0 9px;line-height:1.7}
-.pmdesc b{color:var(--fg)}
-.pmrows{display:flex;flex-direction:column;gap:3px}
-.pmrows>div{display:flex;gap:9px;align-items:baseline;font-size:11.5px;color:var(--fg2)}
-.pmrows .i{color:var(--fg3);width:14px;flex:none}
-.pmrows .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}
-.pmrows .a,.pmrows .l,.pmrows .s{font-variant-numeric:tabular-nums;flex:none}
-.pmrows .s{color:var(--amber);width:42px;text-align:right}
-.pmrows .more{color:var(--fg3);font-size:11px}
-.pmwarn{margin:0 0 9px;padding:8px 11px;border-radius:8px;background:var(--brand-soft);
-border-left:3px solid var(--amber);font-size:11.5px;color:var(--fg2);line-height:1.65}
-.pmwarn b{color:var(--amber)}
-.pmnote{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
-font-size:11px;color:var(--fg3);line-height:1.6}
-/* 表格里的 P.H.M. 定数列 */
-.btable th.pmh{color:var(--amber);font-weight:400}
-.btable .pm b{color:var(--amber);font-variant-numeric:tabular-nums}
-.calcb{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
-border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;line-height:1.6}
-/* 提高优先级，避免被 .pf button 的主按钮样式覆盖成蓝色方块 */
-.pf .calcb{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
-border-radius:6px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer;line-height:1.6}
-.pf .calcb:hover{border-color:var(--amber);color:var(--amber);background:var(--card)}
-.calcb:hover{border-color:var(--amber);color:var(--amber)}
-.calcb:disabled{opacity:.5;cursor:default}
-.pmhint{margin-top:8px;font-size:11px;color:var(--fg3);line-height:1.6}
-.pmhint b{color:var(--fg2)}
-/* 谱面搜索 */
-/* 搜索结果列表 */
-/* 不用 space-between —— 宽屏时提示会被推到最右边，和「找到 N 张」拉得老远，读起来断成两截 */
-.cshead{font-size:11.5px;color:var(--fg3);margin:10px 0 5px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
-.cshead b{color:var(--fg)}
-.cslist{display:flex;flex-direction:column;gap:1px}
-.csrow{display:flex;gap:8px;align-items:center;font-size:11.5px;padding:4px 6px;border-radius:6px}
-.csrow:hover{background:var(--card2)}
-.csid{color:var(--fg3);font-variant-numeric:tabular-nums;flex:none;width:56px}
-.csname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}
-.cslv{color:var(--fg2);flex:none;width:74px;font-size:11px}
-.csdif{color:var(--fg2);flex:none;width:36px;text-align:right;font-variant-numeric:tabular-nums}
-.csflag{flex:none;width:42px;color:var(--fg3);font-size:10.5px}
-.csflag i.ok{color:var(--green);font-style:normal}
-/* 定数 + 按钮列。宽度要放得下最宽的一种组合（「15.40」+ 📤），
-   否则加了分享按钮会把整行挤变形。右对齐让各行的数字纵向对齐。 */
-.cspm{flex:none;width:112px;text-align:right}
-.cspm b{color:var(--amber);font-variant-numeric:tabular-nums}
-/* 分享按钮（搜索结果行内） */
-.shbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
-border-radius:6px;padding:1px 7px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
-.shbtn:hover{border-color:var(--amber);color:var(--amber)}
-/* 分享按钮行（本机解析的结果卡片里） */
-.srow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;
-padding-top:12px;border-top:1px dashed var(--line)}
-.slabel{font-size:11.5px;color:var(--fg3);margin-right:2px}
-.sbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);border-radius:8px;
-padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
-.sbtn:hover{border-color:var(--amber);color:var(--amber);background:var(--card)}
-.sbtn:disabled{opacity:.45;cursor:default}
-/* 不确定度提示：当 20 张参照官谱的定数跨度 ≥3 时出现。
-   目的不是免责，是把「这个数有多硬」如实说出来。 */
-/* ── 双标度并列：主结果高亮 ──
-   之前：社区共识是 54px 的大数字，官谱标度缩在一行灰字里 ——
-   而产品核心恰恰是"两个数字"。现在两张并排的卡，主结果（当前选中的标度）
-   用淡琥珀底高亮。 */
-.scales{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 4px}
-.scalecard{padding:12px 14px;border:1px solid var(--line);border-radius:var(--r2);
-  background:var(--card2)}
-.scalecard .lbl{font-size:11.5px;color:var(--fg3);letter-spacing:.04em}
-.scalecard .v{font-family:var(--font-display);font-weight:600;font-size:30px;
-  line-height:1.1;margin:2px 0 4px;font-variant-numeric:tabular-nums}
-.scalecard .note{font-size:11.5px;color:var(--fg3);line-height:1.6}
-.scalecard.on{background:var(--brand-soft);border-color:var(--brand-line)}
-.scalecard.on .v{color:var(--brand-bright)}
-.scalecard.on .lbl{color:var(--brand)}
-
-/* ── 区间轴：轴 = 不确定范围（lo..hi），两个标度各一根标记 ──
-   两端标出数值；标记很近时 a 的标签在上、b 的标签在下，避免重叠。
-   ⚠ 轨道的对比度不能太弱（评审：像没画完），所以用 inset 描边而不是纯底色。 */
-.meter{--min:0;--max:20;--a:0;--b:0;position:relative;height:10px;
-  border-radius:999px;margin:38px 0 32px;background-color:var(--card3);
-  /* 细刻度：量表 0–20，每一格 = 5% —— 让它看起来**真的是一把尺子**，
-     而不是一根进度条。评审的原话：「分隔线也换成细刻度线，一个主题贯穿」。 */
-  background-image:repeating-linear-gradient(to right,
-    var(--line2) 0 1px, transparent 1px 5%);
-  background-size:100% 6px; background-position:0 100%; background-repeat:no-repeat;
-  box-shadow:inset 0 0 0 1px var(--line2)}
-.meter__range{position:absolute;top:0;bottom:0;border-radius:inherit;
-  left:calc((var(--min) - 0) / 20 * 100%);width:calc((var(--max) - var(--min)) / 20 * 100%);
-  background:var(--brand-soft);border-inline:1px solid var(--brand-line)}
-.meter__pin{position:absolute;top:-5px;bottom:-5px;width:2px;border-radius:2px;
-  background:var(--brand);transform:translateX(-1px)}
-.meter__pin--a{left:calc((var(--a) - 0) / 20 * 100%)}
-.meter__pin--b{left:calc((var(--b) - 0) / 20 * 100%);background:var(--fg2)}
-.meter__label{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);
-  color:var(--brand);font-size:11.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.meter__pin--b .meter__label{top:calc(100% + 6px);bottom:auto;color:var(--fg2)}
-.meter__gap{position:absolute;top:1px;height:8px;pointer-events:none;
-  left:calc((var(--g1) - 0) / 20 * 100%);width:calc((var(--g2) - var(--g1)) / 20 * 100%);
-  border-top:2px dotted var(--brand);opacity:.9}
-.meter__gap::after{content:attr(data-d);position:absolute;left:50%;top:-14px;
-  transform:translateX(-50%);color:var(--brand);font-size:11px;font-weight:600;
-  white-space:nowrap;font-variant-numeric:tabular-nums}
-/* ⚠ 必须有 left —— 刻度值由 JS 写在 style="--at:0 / --at:100" 上，
-   少了这条，两个标签都会落到 left:auto（也就是同一个位置）**叠成一坨**，
-   屏幕上显示成「16图.0」这种糊字。2026-10-24 用户截图报的就是这个。 */
-.meter__tick{position:absolute;top:16px;left:calc(var(--at) * 1%);
-  transform:translateX(-50%);
-  color:var(--fg3);font-size:11px;font-variant-numeric:tabular-nums}
-.meter__tick:first-of-type{transform:none}
-.meter__tick:last-of-type{transform:translateX(-100%)}
-.behav{margin:2px 0 10px;font-size:12px;color:var(--fg2);font-variant-numeric:tabular-nums}
-.behav:empty{display:none}
-
-/* ── 提示框：引导句 + 短列表（每段至多一处加粗）── */
-.callout{padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);
-  background:var(--card2);font-size:12.5px;color:var(--fg2);line-height:1.75}
-.callout ul{margin:0;padding-inline-start:1.3em}
-.callout li{margin:0 0 .2em}
-.callout li::marker{color:var(--fg4)}
-.callout__lead{display:block;margin:0 0 .2em;color:var(--fg);font-weight:600}
-.callout--warn{background:var(--brand-soft);border-color:var(--brand-line)}
-.callout--warn .callout__lead{color:var(--brand)}
-
-/* ── PS 四维度：四根迷你条（label / track / value 各占一列）── */
-.pshead{display:flex;align-items:baseline;gap:8px;margin:16px 0 8px}
-.pshead .lbl{font-size:13px;font-weight:600;color:var(--fg);font-family:var(--font-display)}
-.pshead__note{font-size:11.5px;color:var(--fg3)}
-/* ── 明细分组：13 行长表 → 分组的两列定义列表 ──
-   原来是一张 13 行的平铺长表，从物量一路读到谱师，视线要跨全宽 13 次。
-   分成四组放进两列，页面高度省一半。 */
-.kv-groups{display:grid;gap:14px 26px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-.kv h4{margin:0 0 6px;color:var(--fg3);font-size:11.5px;font-weight:600;letter-spacing:.04em}
-.kv dl{margin:0}
-.kv .row{display:flex;justify-content:space-between;gap:14px;
-  padding:5px 0;border-bottom:1px solid var(--line)}
-.kv dt{color:var(--fg2)}
-.kv dd{margin:0;font-weight:500;font-variant-numeric:tabular-nums;text-align:right}
-.bars{display:grid;gap:7px}
-/* ── 技能分：难在哪（V0.20.4.3）──
-   视觉语言沿用上面的 .bars（同一种迷你条），
-   但用 --info 而不是 --brand，避免和 PS 四维条混为一谈。
-   ⚠ 只用令牌，双主题都能读。 */
-.skillbox{margin-top:12px;padding:11px 13px 9px;border:1px solid var(--line);
-  border-radius:10px;background:var(--card2)}
-.skillbox-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:9px}
-.skillbox-h .t{font-size:12.5px;font-weight:600;color:var(--fg2)}
-.skillbox-h .p{font-size:12px;color:var(--info);font-weight:600}
-.sk{display:grid;grid-template-columns:4.5em 1fr 3.2em;align-items:center;gap:10px;font-size:12.5px}
-.sk+.sk{margin-top:6px}
-.sk-l{color:var(--fg2)}
-.sk-t{height:6px;border-radius:999px;background:var(--card3);overflow:hidden}
-.sk-t i{display:block;height:100%;border-radius:inherit;background:var(--info)}
-.sk-v{color:var(--fg);text-align:right;font-variant-numeric:tabular-nums}
-.skillbox-n{margin:9px 0 0;font-size:11.5px;line-height:1.55;color:var(--fg3)}
-.g{display:grid;grid-template-columns:4.5em 1fr 3.2em;align-items:center;gap:10px;font-size:12.5px}
-.g .lbl{color:var(--fg2)}
-.g .track{height:6px;border-radius:999px;background:var(--card3);overflow:hidden}
-.g .track i{display:block;height:100%;border-radius:inherit;background:var(--brand)}
-.g b{color:var(--fg);text-align:right;font-variant-numeric:tabular-nums}
-/* 下载按钮（搜索结果 / Phira 表共用）：网页端无法直读 Phira CDN，只能下载后拖入 */
-.dlbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
-border-radius:6px;padding:1px 9px;font:inherit;font-size:12px;cursor:pointer;line-height:1.6}
-.dlbtn:hover{border-color:var(--brand-line);color:var(--fg);background:var(--card)}
-/* 「算」主按钮：由服务端下载并计算 —— 搜索页的主路径 */
-.cspm{display:inline-flex;gap:5px;align-items:center;justify-content:flex-end}
-.calcbtn{border:1px solid var(--amber);background:transparent;color:var(--amber);
-border-radius:6px;padding:1px 10px;font:inherit;font-size:12px;font-weight:700;
-cursor:pointer;line-height:1.6;white-space:nowrap}
-.calcbtn:hover{background:var(--brand-soft)}
-.calcbtn:disabled{opacity:.45;cursor:default}
-.csfoot{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
-font-size:11.5px;color:var(--fg3);line-height:1.6}
-.csfoot b{color:var(--fg2)}
-#drop{border:2px dashed var(--line);border-radius:16px;padding:46px 22px;text-align:center;
-color:var(--fg2);cursor:pointer;transition:.15s;background:var(--card);margin-top:6px}
-#drop:hover{border-color:var(--brand-line);background:var(--card2)}
-/* ⚠ 原来 :hover 用 --blue、.hover(拖入中) 用 --amber —— 同一个元素两个强调色，
-   既违反「只有一个主色」原则，视觉上也是两套色系在打架。
-   现在做成同一色系的两档：可点击 = 弱琥珀，正在拖入 = 实琥珀。 */
-#drop.hover{border-color:var(--amber);color:var(--fg);background:var(--card2)}
-#drop .big{font-size:19px;font-weight:700;color:var(--fg);margin-bottom:7px}
-/* 「谱面包是什么」——新用户最容易卡在这（不知道文件从哪来） */
-#drop .what{font-size:11.5px;color:var(--fg3);margin-top:12px;line-height:1.7;
-max-width:440px;margin-left:auto;margin-right:auto}
-#drop .what b{color:var(--fg2)}
-/* 次要说明收进折叠：第一屏只留一句主说明，其余按需展开。
-   之前全铺开会把拖拽区撑得很高，而这段文字新用户看一次就够了。 */
-#drop .whatmore{display:inline-block;margin-top:7px;text-align:left;max-width:440px}
-#drop .whatmore summary{cursor:pointer;color:var(--fg3);list-style:none;display:inline-block}
-#drop .whatmore summary::-webkit-details-marker{display:none}
-#drop .whatmore summary::before{content:"? ";color:var(--brand);font-weight:700}
-#drop .whatmore[open] summary{color:var(--fg2);margin-bottom:4px}
-#drop .whatmore summary:hover{color:var(--fg2)}
-#drop .what code{background:var(--card2);border-radius:4px;padding:1px 4px;font-size:11px}
-#drop input{display:none}
-/* 第二层入口：进阶功能不抢第一屏，但要能一眼发现 */
-.morebar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;
-margin:16px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
-.morebar .mhint{font-size:11.5px;color:var(--fg3);margin-right:4px}
-@media (max-width:820px){.morebar .mhint{display:none}}
-/* 窄屏下旁注收进 title，不为它挤掉按钮本身 */
-.note{font-size:11.5px;color:var(--fg3);margin:10px 2px 0}
-.punch{margin-top:10px;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;background:var(--card2)}
-.punch .ptitle{font-weight:700;font-size:13px;color:var(--fg)}
-.punch .pdesc{font-size:12px;color:var(--fg2);margin:4px 0 8px}
-.punch .pdesc b{color:var(--fg)}
-.punch .prow{display:flex;gap:8px;align-items:center}
-.punch input{width:150px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--fg);font:inherit;outline:none}
-.punch input:focus{border-color:var(--brand-line)}
-.punch button{border:0;border-radius:8px;padding:7px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--brand);color:var(--brand-ink)}
-.punch button:disabled{opacity:.5;cursor:default}
-.punch .popt{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--fg2);margin-top:9px;cursor:pointer;user-select:none;line-height:1.45}
-.punch .popt input{width:auto;margin:2px 0 0;padding:0;accent-color:var(--brand);cursor:pointer}
-.punch .popt b{color:var(--fg)}
-.punch.off .prow{opacity:.9}   /* 勾选状态只影响「是否上传」，不影响本机算 RKS */
-.punch .pmsg{font-size:12px;color:var(--fg2);margin-top:6px;min-height:1em}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
-.card h2{font-size:15px;margin-bottom:2px}
-.card .sub{font-size:12px;color:var(--fg2);margin-bottom:12px}
-.err{border-color:var(--red)}
-/* 刻度条：一条 0–20 的中性轨 + 一段**不确定范围**色带 + 一根中点标记。
-   ⚠ 原来是 `linear-gradient(info,brand,err)` 的彩虹填充 —— 三个色相，
-   既违反「只有一个主色」，又只表达"位置"、不表达"范围有多宽"。
-   现在：范围本身成为可见的信息（带越宽 = 结论越软），且只有一个色相。 */
-.scale{position:relative;height:10px;border-radius:5px;background:var(--card2);margin:16px 0 4px}
-.scale .band{position:absolute;top:0;bottom:0;background:var(--brand-soft);
-  border-left:1px solid var(--brand-line);border-right:1px solid var(--brand-line);border-radius:2px}
-.scale .mk{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--brand);border-radius:1px;
-  transform:translateX(-1px);box-shadow:0 0 0 2px var(--card)}
-.bar i{display:block;height:100%;border-radius:3px}
-.gdensity i{background:var(--density)}.gpattern i{background:var(--pattern)}
-.gcoord i{background:var(--coord)}.gstamina i{background:var(--stamina)}
-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
-td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left}
-td:nth-child(2),th:nth-child(2){text-align:right;color:var(--fg)}
-th{color:var(--fg3);font-weight:500;font-size:11.5px}
-.why{margin-top:10px;font-size:12px;color:var(--fg2)}
-.why summary{cursor:pointer;color:var(--link)}
-.why p{margin:6px 0}
-.mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
-.link{color:var(--link);text-decoration:none;border-bottom:1px solid var(--link-soft)}
-.link:hover{color:var(--fg);border-bottom-color:var(--fg)}
-.tierbadge{display:inline-block;font-size:15px;font-weight:700;
-color:var(--brand-ink);padding:2px 10px;border-radius:8px;margin-right:10px}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
-.chip{background:var(--card);border:1px solid var(--line);color:var(--fg2);
-border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer}
-.chip.on{border-color:var(--amber);color:var(--fg)}
-footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg3);line-height:1.8}
-.badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:8px;border:1px solid var(--line);color:var(--fg2);margin-left:6px}
-footer details{margin-top:6px}
-footer summary{cursor:pointer;color:var(--fg2);font-size:11.5px;outline:none}
-footer summary:hover{color:var(--fg)}
-footer details[open] summary{margin-bottom:5px}
-footer .fd{margin-top:4px}
-
-/* ═════════ 窄屏适配（手机 / 小窗）═════════ */
-@media (max-width:640px){
-  body{padding:12px 12px 20px}
-  header{gap:7px;padding:4px 0 10px;margin-bottom:10px}
-  header h1{font-size:17px}
-  .ver{display:none}
-  .hsearch{order:10;flex:1 1 100%;margin:8px 0 0!important}
-  .hsearch input{flex:1;width:auto;min-width:0;max-width:none}
-  .gh{padding:5px 9px;font-size:11px}
-  .slogan{font-size:11.5px}
-  #drop{padding:24px 14px;border-radius:12px}
-  #drop .big{font-size:15px}
-  #drop>div+div{font-size:11.5px}
-  .punch input{width:118px}
-  .punch .prow{flex-wrap:wrap}
-  .btable th,.btable td{padding:4px 3px;font-size:11px}
-  .cslv,.csflag{display:none}          /* 搜索结果窄屏只留 谱号/曲名/定数/P.H.M. */
-  .csid{width:46px;font-size:10.5px}
-  .csname{font-size:11.5px}
-  .pmrows .l{display:none}
-  .pf .pfrow{flex-wrap:wrap}
-  .pf input{max-width:none;flex:1}
-  .pfuser .rks{margin-left:0;width:100%;text-align:left}
-  .pmhead b{font-size:22px}
-  .coutbox{padding:10px 11px}
-  .csstatus{padding:9px 11px;font-size:11.5px}
-}
-@media (max-width:380px){
-  .gh span{display:none}               /* 极窄屏按钮只留图标 */
-  .pmrows .a{display:none}
-}
-/* ── P.H.M. 账号面板（专属登录）── */
-.authbox{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px 16px}
-.authbox .ahead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:8px}
-.authbox .pfx{margin-left:auto;cursor:pointer;color:var(--fg3);padding:0 4px;font-weight:400}
-.authbox .pfx:hover{color:var(--fg)}
-.authbox .adesc{font-size:12px;color:var(--fg2);line-height:1.7;margin-bottom:10px}
-.authbox .adesc b{color:var(--fg)}
-.atabs{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
-.atabs button{border:1px solid var(--line);background:transparent;color:var(--fg2);
-border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}
-.atabs button.on{border-color:var(--brand);color:var(--fg);background:var(--brand-soft)}
-.afield{margin-bottom:9px}
-.afield label{display:block;font-size:11.5px;color:var(--fg3);margin-bottom:4px}
-.afield input{width:100%;max-width:320px;background:var(--bg);border:1px solid var(--line);
-border-radius:8px;padding:7px 11px;color:var(--fg);font:inherit;font-size:13px;outline:none}
-.afield input:focus{border-color:var(--brand-line)}
-.coderow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.coderow input{flex:1;max-width:180px}
-.coderow button{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
-border-radius:8px;padding:7px 12px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
-.coderow button:disabled{opacity:.5;cursor:default}
-.coderow button:hover:not(:disabled){border-color:var(--brand-line);color:var(--fg)}
-.arow{margin-top:11px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.aprimary{border:0;border-radius:8px;padding:8px 20px;font:inherit;font-size:13px;font-weight:700;
-cursor:pointer;background:var(--brand);color:var(--brand-ink)}
-.aprimary:disabled{opacity:.5;cursor:default}
-.alink{border:0;background:transparent;color:var(--fg3);font:inherit;font-size:12px;
-cursor:pointer;text-decoration:underline;padding:4px}
-.alink:hover{color:var(--fg2)}
-.amsg{font-size:12px;color:var(--fg2);margin-top:9px;min-height:1em;line-height:1.6}
-.amsg.err{color:var(--red)}
-.amsg.ok{color:var(--green)}
-.aurow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.auname{font-weight:700;font-size:15px}
-.aumeta{font-size:11.5px;color:var(--fg3);margin-top:2px}
-.aurow .alink{margin-left:auto}
-.abind{margin:11px 0;padding:10px 13px;border-radius:9px;background:var(--card2);
-font-size:12px;color:var(--fg2);line-height:1.75}
-.abind b{color:var(--fg)}
-.abind button{margin-top:7px}
-.achpw{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
-/* 公开统计条 */
-.pstats{margin:10px 0 0;font-size:11.5px;color:var(--fg3);line-height:1.8}
-.pstats b{color:var(--fg2)}
-/* 设置区（页脚） */
-.setbox{margin-top:9px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.setbox .alink{font-size:12px}
-.setpanel{margin-top:9px;padding:11px 14px;border-radius:9px;background:var(--card2);width:100%}
-.setrow{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--fg2);
-cursor:pointer;line-height:1.5;user-select:none}
-.setrow input{margin:3px 0 0;accent-color:var(--brand);cursor:pointer;flex:0 0 auto}
-.setrow b{color:var(--fg)}
-.setnote{margin-top:8px;padding-top:7px;border-top:1px dashed var(--line);
-font-size:11px;color:var(--fg3);line-height:1.7}
-.setnote b{color:var(--fg2)}
-/* 数据飞轮产出：玩家表现条 */
-.playstat{margin:10px 0 2px;padding:9px 13px;border-radius:9px;background:var(--card2);
-border-left:3px solid var(--brand-line);font-size:12px;color:var(--fg2);line-height:1.65}
-.playstat b{color:var(--fg)}
-/* 水平曲线与残差 */
-.pcurve{margin-top:11px;padding:11px 14px;border-radius:10px;background:var(--card2);
-border-left:3px solid var(--pattern);font-size:12px;color:var(--fg2);line-height:1.75}
-.pcurve b{color:var(--fg)}
-.pcnote{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line);
-font-size:11px;color:var(--fg3);line-height:1.65}
-</style>
+<link rel="stylesheet" href="/css/base.css?v=V0.22.4.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.4.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.22.4.0">
+<script type="module" src="/js/motion.js?v=V0.22.4.0"></script>
+<link rel="stylesheet" href="/css/app.css?v=V0.22.4.0">
 </head>
 <body>
 <div class="wrap">
@@ -652,15 +207,15 @@ font-size:11px;color:var(--fg3);line-height:1.65}
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.22.2.2';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.22.4.0';
 
 /* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
    文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
-import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.22.2.2';
-import { createAuth, authErrorKey } from '/js/auth.js?v=V0.22.2.2';
-import { installGuard } from '/js/guard.js?v=V0.22.2.2';
-import { initDeepLink } from '/js/deeplink.js?v=V0.22.2.2';
-import { fillBehav } from '/js/behav.js?v=V0.22.2.2';
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.22.4.0';
+import { createAuth, authErrorKey } from '/js/auth.js?v=V0.22.4.0';
+import { installGuard } from '/js/guard.js?v=V0.22.4.0';
+import { initDeepLink } from '/js/deeplink.js?v=V0.22.4.0';
+import { fillBehav } from '/js/behav.js?v=V0.22.4.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -750,6 +305,25 @@ async function loadRefCom(){
   }
   return REF_COM;
 }
+/* ── v2 引擎权重（2.5 KB，比参照集小得多，单独加载）──
+   和参照集一样缓存；拿不到就退回 kNN —— **降级不能等于报错**。 */
+let W2 = null, W2_STATE = "";
+async function loadWeightsV2() {
+  if (W2_STATE === "ok" || W2_STATE === "fail") return W2;
+  W2_STATE = "loading";
+  try {
+    const r = await fetch("/data/engine-v2.json?v=" + encodeURIComponent(APP_VER));
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (!j || !Array.isArray(j.w) || j.w.length !== 37) throw new Error("权重结构异常");
+    W2 = j; W2_STATE = "ok";
+  } catch (e) {
+    W2_STATE = "fail";
+    console.warn("[phm] v2 权重加载失败，退回 kNN：" + (e.message || e));
+  }
+  return W2;
+}
+
 /* 空闲时预热参照集：拖入的第一张谱不该等那 750 KB。
    放在 requestIdleCallback 里 —— 不抢首屏的带宽和主线程，
    失败了也无所谓（loadRefCom 自己会退回首屏官谱参照）。 */
@@ -1037,7 +611,7 @@ async function handleFiles(files){
     try{
       const buf=await file.arrayBuffer();
       const refCom=await loadRefCom();
-      const rs=await analyzeChart(buf,file.name,{refCom:refCom});
+      const rs=await analyzeChart(buf,file.name,{refCom:refCom,weightsV2:await loadWeightsV2()});
       rs.forEach(function(r){r.label=file.name;acc.push(r);});
     }catch(e){
       acc.push({label:file.name,file:file.name,
@@ -2140,7 +1714,7 @@ async function computeChart(cid,btn,info){
     csMsg(t("app.calc.dled",{mb:(buf.byteLength/1048576).toFixed(2)}));
     /* ⚠ 这里必须传 excludeId=cid：这张谱就在社区参照集里，
        不排除就是与它自己匹配（距离 0），算出来的等于把 Phira 的标签抄一遍。 */
-    const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid});
+    const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid,weightsV2:await loadWeightsV2()});
     const rep=rs.filter(function(x){return !x.error;})[0];
     if(!rep) throw new Error((rs[0]&&rs[0].error)||t("app.calc.parsefail"));
     const f=rep.feats||{};
@@ -2178,9 +1752,6 @@ async function computeChart(cid,btn,info){
       e:esc(err&&err.message?err.message:"fetch failed")}),"warn");
   }
 }
-
-
-
 
 /* （面板开关与全部按钮绑定已在脚本开头的统一委托块完成） */
 

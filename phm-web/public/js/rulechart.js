@@ -9,9 +9,9 @@
  * points 后再调用 buildChartFromPoints（预留）。
  * ============================================================ */
 
-import { buildGrid, quantizeOnsets, markTuplets, phraseBounds, quantizeReport } from './rhythm.js?v=V0.22.2.2';
-import { scoreEvents, selectEvents, assignHands, assignNotes, selectionReport } from './salience.js?v=V0.22.2.2';
-import { auditPlayability } from './playability.js?v=V0.22.2.2';
+import { buildGrid, quantizeOnsets, markTuplets, phraseBounds, quantizeReport } from './rhythm.js?v=V0.22.4.0';
+import { scoreEvents, selectEvents, assignHands, assignNotes, selectionReport } from './salience.js?v=V0.22.4.0';
+import { auditPlayability } from './playability.js?v=V0.22.4.0';
 
 const LANES = {
   5: [-405, -202.5, 0, 202.5, 405],
@@ -742,7 +742,50 @@ export function clickTrackWav(bpm, duration, sampleRate) {
   return bytes;
 }
 
+/* ── 导出前按 Phira 的 RPE 解析器补齐字段 ──
+   ⚠ 2026-10-25 用户实测：导入报
+     `missing field 'visibleTime' at line 381 column 9`
+   Phira 的 serde 对 `visibleTime` **不给默认值**，缺了就整个包打不开 ——
+   而我们的谱面生成路径从来没写过这个字段（`build-app` 里那份老代码有，源码里丢了）。
+   对照物：`data/charts/<id>/chart.json`（爬来的真实谱面，Phira 认得的那一种）。
+
+   为什么放在 buildPez 而不是每个生成器各写一遍：
+   导出是**唯一**的收口，放这里所有路径（AI 写谱 / 规则写谱 / 后面的 CLI）一次覆盖，
+   以后再加生成器也不可能漏。深拷贝一份再补，不改调用方手里的谱面。 */
+export function normalizeForPhira(chart) {
+  const c = JSON.parse(JSON.stringify(chart));
+  const ctl = (extra) => [
+    { ...extra, easing: 1, x: 0 },
+    { ...extra, easing: 1, x: 9999999 },
+  ];
+  for (const ln of (c.judgeLineList ?? [])) {
+    /* 这四个 control 是 RPE v160 的兼容字段，真实谱面里都有 */
+    ln.alphaControl ??= ctl({ alpha: 1 });
+    ln.posControl ??= ctl({ pos: 1 });
+    ln.sizeControl ??= ctl({ size: 1 });
+    ln.skewControl ??= ctl({ skew: 0 });
+    ln.yControl ??= ctl({ y: 1 });
+    ln.bpmfactor ??= 1;
+    ln.father ??= -1;
+    ln.isCover ??= 1;
+    ln.zOrder ??= 0;
+    for (const n of (ln.notes ?? [])) n.visibleTime ??= 999999;
+    for (const layer of (ln.eventLayers ?? [])) {
+      for (const [k, arr] of Object.entries(layer ?? {})) {
+        if (!k.endsWith('Events') || !Array.isArray(arr)) continue;
+        for (const ev of arr) {
+          ev.easingLeft ??= 0;
+          ev.easingRight ??= 1;
+          ev.linkgroup ??= 0;
+        }
+      }
+    }
+  }
+  return c;
+}
+
 export function buildPez(chart, opts) {
+  chart = normalizeForPhira(chart);
   const o = opts || {};
   const meta = chart.META;
   const audio = o.audio || clickTrackWav(chart.BPMList[0].bpm, meta.duration);

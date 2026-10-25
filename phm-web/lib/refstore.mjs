@@ -32,6 +32,24 @@ export function loadRefCom() {
   return _cache;
 }
 
+const ENGINE_V2 = path.join(ROOT, 'public', 'data', 'engine-v2.json');
+let _w2 = null;
+
+/** v2 引擎权重（37 维岭回归）。与参照集一样：首次读盘，之后走内存。
+    ⚠ 服务端必须和浏览器用**同一份**权重，否则 API 和页面给出两个数。 */
+export function readWeightsV2() {
+  if (_w2) return _w2;
+  try {
+    const j = JSON.parse(fs.readFileSync(ENGINE_V2, 'utf8'));
+    if (!Array.isArray(j.w) || !j.w.length) return null;
+    _w2 = j;
+  } catch (e) {
+    console.warn('[phm] engine-v2.json 读取失败，服务端退回 kNN：' + (e.message || e));
+    _w2 = null;
+  }
+  return _w2;
+}
+
 /** 供诊断/版本校验：参照集元信息 */
 export function refComMeta() {
   const j = JSON.parse(fs.readFileSync(REF_COM, 'utf8'));

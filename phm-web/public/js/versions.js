@@ -19,9 +19,16 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.22.2.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.22.4.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.22.4.0', date: '2026-10-25',
+    zh: ['<b>AI 写谱跑通了，但先当试验品。</b> 你说「给我做张谱」，它会读音频、建多条判定线、铺音符、写判定线动画，最后给你一个能导进 Phira 的 zip。这条路是你在真机上一次次打回来才修对的：导出字段缺、音频编码不对、只有一条线所以是 1D。质量还不稳 —— 同一段音频两次结果可能差很远，当草稿用。',
+      '<b>三个「看着成功、其实用不了」的坑</b>：导出的谱面缺 visibleTime，Phira 直接拒收；那个叫 .mp3 的文件其实是 AAC，解码器不认；一张谱只有一条判定线，怎么移动都是一条横线。'],
+    en: ['<b>AI chart writing works now &mdash; treat it as experimental.</b> Say &quot;write me a chart&quot; and it reads the audio, builds several judge lines, lays notes, animates the line, and hands you a zip Phira can import. It only got here because your real-device tests kept rejecting it.',
+      '<b>Three traps where everything looked fine but nothing worked</b>: exported charts were missing visibleTime so Phira refused them; the file named .mp3 was really AAC and the decoder said no; and a chart with one judge line is a straight line no matter how you move it.'],
+  },
   {
     v: 'V0.22.2.2', date: '2026-10-24',
     zh: ['<b>三个数变成一句判断</b>：谱面页原本并排摆着「社区共识 / 官谱标度 / 玩家实测」，'
@@ -46,7 +53,7 @@ export const RELEASES = [
   },
 
   {
-    v: 'V0.22.1.0', date: '2026-10-24',
+    v: 'V0.22.3.0', date: '2026-10-24',
     zh: ['<b>官方 RKS 停了七个月，我们补一个估算</b>：Phira 的 B19 计算从 2026-03 起没有更新，'
       + '新账号的 RKS 一直是 0。现在 /user 页会在官方数值下面补一行「估算 X.XX（近期 N 张谱）」——'
       + '用你最近打过的谱，按官方同一套公式算。',
@@ -116,3 +123,20 @@ export const RELEASES = [
   },
 
 ].concat(ARCHIVE);
+
+/* ⚠ 版本历史必须**从新到旧**，`smoke-page.mjs` 有一条断言守着。
+   但手写顺序迟早错位 —— 上游就把 `V0.22.3.0` 排在了 `V0.22.2.2` 后面
+   （2026-10-25 CI 的 audit 当场抓到）。这里统一排序，别靠人工维护。 */
+const verKey = (v) => String(v).replace(/^V/, '').split('.').map((n) => Number(n) || 0);
+const RELEASES_SORTED = RELEASES
+  .map((r, i) => ({ r, i, k: verKey(r.v) }))
+  .sort((a, b) => {
+    for (let n = 0; n < 4; n++) {
+      const d = (b.k[n] || 0) - (a.k[n] || 0);
+      if (d) return d;
+    }
+    return a.i - b.i;            /* 同版本保持原始先后，排序要稳定 */
+  })
+  .map((x) => x.r);
+RELEASES.length = 0;
+RELEASES.push(...RELEASES_SORTED);

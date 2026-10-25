@@ -31,4 +31,6 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          # 扫描范围见 .github/codeql/codeql-config.yml（排除开发期脚本）
+          config-file: ./.github/codeql/codeql-config.yml
       - uses: github/codeql-action/analyze@v3
