@@ -37,10 +37,10 @@ jobs:
         # 想让 Python 重新被扫，先把它从 paths-ignore 里放出来，再加回这一项。
         language: ['javascript-typescript']
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # 扫描范围见 .github/codeql/codeql-config.yml（排除开发期脚本）
           config-file: ./.github/codeql/codeql-config.yml
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
