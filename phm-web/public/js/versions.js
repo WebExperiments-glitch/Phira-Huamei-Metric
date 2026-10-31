@@ -23,6 +23,13 @@ import { ARCHIVE } from './versions-archive.js?v=V0.22.5.0';
 
 export const RELEASES = [
   {
+    v: 'V0.22.5.0', date: '2026-10-31',
+    zh: ['<b>写谱功能可以单独关掉了。</b> 它是实验性的，以前一旦出问题只能停整个站点。现在有一道开关：关掉之后与写谱相关的接口直接回「当前部署未启用」，其它页面照常使用。默认是开着的，行为和以前一样。',
+      '<b>规则写谱页不再被 AI 面板拖死。</b> 那个面板以前是页面一打开就加载，只要它有一行代码出错，整页就白屏 —— 一个辅助功能把主功能拖下水。现在改成用到时才加载：它坏了只影响它自己，「音频转谱」照常可用。'],
+    en: ['<b>Chart writing can be switched off on its own.</b> It is experimental, and until now the only way out of a problem was taking the whole site down. There is now a switch: turn it off and the writing endpoints answer &quot;not enabled in this deployment&quot; while everything else keeps working. It is on by default, so nothing changes for you.',
+      '<b>The rule-based chart page no longer dies with the AI panel.</b> That panel used to load as soon as the page opened, so a single bad line blanked the whole page &mdash; a helper taking down the main feature. It now loads only when you use it, so a failure stays contained and audio-to-chart still works.'],
+  },
+  {
     v: 'V0.22.4.0', date: '2026-10-25',
     zh: ['<b>AI 写谱跑通了，但先当试验品。</b> 你说「给我做张谱」，它会读音频、建多条判定线、铺音符、写判定线动画，最后给你一个能导进 Phira 的 zip。这条路是你在真机上一次次打回来才修对的：导出字段缺、音频编码不对、只有一条线所以是 1D。质量还不稳 —— 同一段音频两次结果可能差很远，当草稿用。',
       '<b>三个「看着成功、其实用不了」的坑</b>：导出的谱面缺 visibleTime，Phira 直接拒收；那个叫 .mp3 的文件其实是 AAC，解码器不认；一张谱只有一条判定线，怎么移动都是一条横线。'],
