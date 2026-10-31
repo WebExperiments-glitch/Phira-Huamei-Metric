@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.22.4.0">
+<meta name="app-version" content="V0.22.5.0">
 <title>谱面渲染 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <!-- 防闪烁：必须在样式表之前跑，否则深色模式会先白一帧。
@@ -13,8 +13,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.22.5.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.5.0">
 <style>
 .rnd-wrap{max-width:1040px;margin:0 auto;padding:18px 16px 60px}
 .rnd-zone{border:1.5px dashed var(--line2);border-radius:12px;padding:26px 18px;text-align:center;
@@ -101,6 +101,6 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <div class="rnd-limit" data-i18n-html="rnd.limit"></div>
 </main>
 
-<script type="module" src="/js/render-page.js?v=V0.22.4.0"></script>
+<script type="module" src="/js/render-page.js?v=V0.22.5.0"></script>
 </body>
 </html>

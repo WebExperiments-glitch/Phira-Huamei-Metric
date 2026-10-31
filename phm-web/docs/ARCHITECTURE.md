@@ -282,6 +282,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | 成绩校验 | `lib/hm.mjs` 的 `validatePlay()` | 用 `phiraScore()` 重算 acc/score，只告警不拒收 | 不信客户端报的 score/accuracy |
 | 限流 | `lib/ratelimit.mjs` | 进程内预筛 + DB `hm_rate_hit` 权威计数；身份优先、IP 兜底、全局兜底 | **不读 X-Forwarded-For**（源码级禁用，测试守着） |
 | 贡献准入 | `lib/contribute-ticket.mjs` + `lib/contribute-routes.mjs` | 给 /api/contribute 签/验 5 分钟 HMAC 凭证；换票只查 Phira 元数据、不下载谱面；未持票请求在解析 body 前拒绝 | 不把「匿名可写」当默认；无写凭据时 fail-closed |
+| 写谱边界与开关 | `lib/write-scope.mjs` | 写谱链路的**文件清单**（`WRITE_OWNED`）、可引用的主站模块白名单（`WRITE_MAY_USE`）、总开关 `PHM_WRITE`，以及关闭时那张**不依赖任何外链**的说明页。守卫在 `tools/test-write-scope.mjs`（已挂 `npm run check`） | 写谱不拆站但也不再开发：边界靠清单+测试守，出问题靠环境变量一键关，不用回滚整站。详见 `docs/WRITE-LINK.md` |
 | AI 写谱代理 | `lib/agent-routes.mjs` | `POST /api/agent/chat`：把 `{model,system,messages,tools}` 转给 DeepSeek，**SSE 原样透传不重组**（重组会丢 usage / reasoning_content）。Key 只在服务端，浏览器拿不到。未配 `PHM_AGENT_KEY` 时 fail-closed 返回 503 并说明原因 | Key 不能进浏览器；没有 Key 绝不"降级成本地规则生成"，那会让用户以为模型在写 |
 | API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、开放平台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
 | API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理 / 轮换；匿名与 Key 配额；scope 校验 | 不写引擎逻辑；认证与用量全走 RPC；契约在 `api/openapi.json` |

@@ -127,6 +127,10 @@ const COLOR_OK = [
   /* 邮件正文：**邮件客户端不支持 CSS 变量**（Gmail/Outlook 会把 var(--x) 丢掉），
      颜色只能写字面十六进制。渲染目标不在我们自己的主题体系里，与上面两项同理。 */
   /^lib\/mail-tpl\.mjs$/,
+  /* 写谱关闭时的说明页：**必须在「写谱链路已经坏了」的时候也能显示**，
+     所以刻意不引任何外链样式 —— 拿不到 CSS 变量，颜色只能写字面值。
+     与 404 错误页同理。（见 docs/WRITE-LINK.md「出问题怎么关」） */
+  /^lib\/write-scope\.mjs$/,
 ];
 const COLOR_OK_INLINE = [
   /data:image\/svg\+xml/,                // favicon 的 data URI，只能是字面色

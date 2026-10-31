@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.22.4.0">
+<meta name="app-version" content="V0.22.5.0">
 <title>自动写谱 · P.H.M.</title>
 <meta name="description" content="导入 MP3，提取 BPM / 拍点 / 段落，用一句话让 AI 写谱，或直接自动生成，下载 .pez。音频全程本地，不上传。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,10 +11,10 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.22.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.4.0">
-<link rel="stylesheet" href="/css/motion.css?v=V0.22.4.0">
-<script type="module" src="/js/motion.js?v=V0.22.4.0"></script>
+<link rel="stylesheet" href="/css/base.css?v=V0.22.5.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.22.5.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.22.5.0">
+<script type="module" src="/js/motion.js?v=V0.22.5.0"></script>
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -233,13 +233,13 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
    三层报告用 esc() 转义文本，漏了它 → 点「生成谱面」直接 ReferenceError，
    页面表现是「点了没反应」。t 之前也漏了，被 try{installGuard(t)} 吞掉，
    所以守卫其实一直拿到 undefined。 */
-import { renderNav, esc, t } from '/js/ui.js?v=V0.22.4.0';
+import { renderNav, esc, t } from '/js/ui.js?v=V0.22.5.0';
 
-import { analyzeFile } from '/js/audio-analysis.js?v=V0.22.4.0';
-import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.22.4.0';
-import { installGuard } from '/js/guard.js?v=V0.22.4.0';
-import { createWriter } from '/js/agent.js?v=V0.22.4.0';
-import * as S from '/js/settings.js?v=V0.22.4.0';
+import { analyzeFile } from '/js/audio-analysis.js?v=V0.22.5.0';
+import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.22.5.0';
+import { installGuard } from '/js/guard.js?v=V0.22.5.0';
+
+import * as S from '/js/settings.js?v=V0.22.5.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -437,6 +437,18 @@ drop.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.
  * ============================================================== */
 let aiWriter = null, aiBusy = false;
 
+/* ── 写谱链路是**可选依赖** ──
+   以前这里顶部是静态 import（createWriter 来自 agent.js），
+   于是 agent.js 只要有一处语法错，整个规则写谱页就白屏 ——
+   一个「辅助功能」把「主功能」拖死了。
+   现在改成第一次点「AI 改谱」时才加载；加载失败只影响那一块面板。
+   ⚠ 版本串要和别的 import 同串，否则会变成两个模块实例（状态分裂）。 */
+let __agentMod = null;
+function agentModule() {
+  if (!__agentMod) __agentMod = import('/js/agent.js?v=V0.22.5.0');
+  return __agentMod;
+}
+
 function aiLog(text, cls) {
   const el = $('#aiLog');
   el.hidden = false;
@@ -569,6 +581,9 @@ async function generateAI() {
 
   const audioBytes = new Uint8Array(await file.arrayBuffer());
 
+  /* ⚠ 写谱链路是**可选依赖**：按需动态加载，规则写谱页不因它白屏。
+     以前是顶部静态 import —— agent.js 一出语法错，整个 /rulechart 起不来。 */
+  const { createWriter } = await agentModule();
   aiWriter = createWriter({
     model: $('#aiModel').value,
     apiKey: aiKey(),

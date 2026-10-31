@@ -6,8 +6,8 @@
  * 这一层**不该有**任何关于谱面的判断 —— 否则以后换界面要重写一遍。
  * ============================================================ */
 
-import { renderNav, applyStatic, onLangChange, t, esc } from './ui.js?v=V0.22.4.0';
-import { createWriter } from './agent.js?v=V0.22.4.0';
+import { renderNav, applyStatic, onLangChange, t, esc } from './ui.js?v=V0.22.5.0';
+import { createWriter } from './agent.js?v=V0.22.5.0';
 
 const $ = (s) => document.querySelector(s);
 const log = $('#log');
