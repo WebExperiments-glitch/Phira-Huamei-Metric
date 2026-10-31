@@ -1,5 +1,23 @@
 # P.H.M. — Phira Huamei Metric
 
+<p align="center">
+  <img src="phm-web/docs/shots/home-dark.png" alt="P.H.M. 首页" width="820">
+</p>
+
+<p align="center">
+  <a href="https://phm.app.workbuddy.host/"><b>▶ 在线使用</b></a> ·
+  <a href="phm-web/docs/HANDOVER.md">改代码先读这个</a> ·
+  <a href="phm-web/CHANGELOG.md">更新记录</a> ·
+  <a href="phm-web/docs/ENGINE-EXPERIMENT.md">被否掉的方案</a>
+</p>
+
+<p align="center">
+  <img alt="CI" src="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/actions/workflows/ci.yml/badge.svg">
+  <img alt="CodeQL" src="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/actions/workflows/codeql.yml/badge.svg">
+  <img alt="License" src="https://img.shields.io/badge/license-GPLv3-blue">
+  <img alt="Deps" src="https://img.shields.io/badge/runtime%20deps-1-brightgreen">
+</p>
+
 > 为 Phira / Phigros 谱面提供**可审计的难度参考**。
 > 拖入谱面包，得到一个客观数值 + 它匹配到的官谱参照。
 > **不给判决。**
@@ -24,6 +42,13 @@
 **在线使用**：<https://phm.app.workbuddy.host/> （打开即用，无需安装）
 
 ---
+
+<p align="center">
+  <img src="phm-web/docs/shots/chart-dark.png" alt="谱面详情页：引擎值 / 玩家实测 / 标称" width="820">
+</p>
+
+> 谱面页会同时给出**三个互相独立的数**：引擎按谱面结构算的、玩家实际打出来的、
+> 以及谱师自己写进文件里的。三者不一致时，页面会直接说明差在哪 —— 而不是把判断丢给你。
 
 ## 一句话定位
 

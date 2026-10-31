@@ -46,6 +46,7 @@ import { makeChartAssetRoutes } from './lib/chartassets.mjs';
 import { phiraProxy } from './lib/phira-proxy.mjs';
 import { makeRksRoutes } from './lib/rks-routes.mjs';
 import { CLEAN, makePageRoutes } from './lib/pages.mjs';
+import { writeEnabled, CLOSED_PAGE } from './lib/write-scope.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -407,6 +408,8 @@ const apiRoutes = makeApiRoutes({
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
 const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+/* 写谱链路的总开关：PHM_WRITE=off 时页面回说明页、接口 503。默认开。 */
+const WRITE_ENABLED = writeEnabled(process.env);
 const agentRoutes = makeAgentRoutes({ send, gate, gateAnalyze, readBody });
 const rksRoutes = makeRksRoutes(SEC_HEADERS);
 /* 档案路由：token 从 x-hm-token 读（托管网关会吃掉 Authorization，真踩过）。 */
@@ -593,7 +596,10 @@ const server = http.createServer(guardRequest(async (req, res) => {
      /api/contribute 不再接受匿名直接写入：客户端必须先用真实存在的 chart_id
      换一张 5 分钟有效的 HMAC 凭证。换证只查 Phira 元数据，**不下载谱面**。 */
   /* agent 的三条路由收在 lib 里 —— server.mjs 已到 900 行硬上限 */
-  if (p.startsWith('/api/agent/')) return agentRoutes.handle(req, res, url, ip);
+  if (p.startsWith('/api/agent/')) {
+    if (!WRITE_ENABLED) return send(res, 503, JSON.stringify({ error: 'write feature is off', code: 'write_disabled' }));
+    return agentRoutes.handle(req, res, url, ip);
+  }
   if (p === '/api/contribute/ticket') return contributeRoutes.ticketRoute(req, res, ip);
 
   /* 写入网关：校验 + 限流 + 落库 */
@@ -830,6 +836,13 @@ const server = http.createServer(guardRequest(async (req, res) => {
      映射表在 lib/pages.mjs（与详情页 / sitemap 放一起）；
      **显式白名单，不是通配** —— 加页面必须同时进 PUBLIC_FILES。 */
   const cleanHit = CLEAN[p];
+
+  /* ── 写谱链路的开关（见 lib/write-scope.mjs 顶部）──
+     关掉时这两个页面回一张**不依赖任何脚本**的说明页，接口一律 503。
+     这样它坏了不用回滚整站：改一个环境变量重启即可。 */
+  if (!WRITE_ENABLED && (p === '/write' || p === '/agent')) {
+    return send(res, 200, CLOSED_PAGE, 'text/html; charset=utf-8');
+  }
 
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
   /* ⚠ 畸形百分号编码（`/%`）会让 decodeURIComponent 抛 URIError —— 一个畸形 URL

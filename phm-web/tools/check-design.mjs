@@ -49,6 +49,10 @@ const STANDALONE = [
   /^public\/css\/api\.css$/,
   /* 邮件模板：Gmail 会丢掉 CSS 变量，颜色只能写字面值（见 lib/mail-tpl.mjs 注释） */
   /^lib\/mail-tpl\.mjs$/,
+  /* 写谱关闭时的说明页：必须在「写谱链路已经坏了」时也能显示，
+     所以不引任何外链样式，拿不到 CSS 变量 —— 与 404 错误页同理。
+     两边豁免表必须同步（lint-slop 里也有一条）。 */
+  /^lib\/write-scope\.mjs$/,
 ];
 
 /* ── 运行期由 JS 写入的自定义属性（静态扫不到定义处） ── */
