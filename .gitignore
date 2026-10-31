@@ -86,3 +86,22 @@ _research/rpe-next-full/
 # 真机测试产物（截图 / 抓回的包），不进仓库
 phm-web/shots/
 phm-web/tmp/
+
+# ── 难度模型研究产生的数据（2026-10-31）─────────────────────────
+# 全部可从 Phira 公开 API 重抓，体积 16 GB+，绝不入库。
+data/crawl/
+# Kaggle 训练包（train/val 是上面 crawl 的派生，13 MB；保留可复现，但先不入库）
+data/kaggle/
+# PyTorch XPU 轮子（692 MB）与模型权重
+data/wheels/
+*.npz
+*.pt
+*.bin
+
+# 抓取/派生的大体积音频与 PCM
+data/audio/
+data/pcm/
+
+# 本机运维脚本（爬虫常驻、XPU 环境），路径与本机绑定
+SETUP-XPU.bat
+START-CRAWL.bat

@@ -1,0 +1,134 @@
+{
+ "n_charts": 5411,
+ "params": 79041,
+ "best": {
+  "rho": 0.7505860905917922,
+  "epoch": 11,
+  "mse": 0.4180925190448761
+ },
+ "history": [
+  {
+   "epoch": 1,
+   "loss": 0.7105,
+   "val_mse": 1.2977,
+   "val_rho": 0.6299
+  },
+  {
+   "epoch": 2,
+   "loss": 0.5661,
+   "val_mse": 0.6257,
+   "val_rho": 0.6985
+  },
+  {
+   "epoch": 3,
+   "loss": 0.4876,
+   "val_mse": 0.4408,
+   "val_rho": 0.6872
+  },
+  {
+   "epoch": 4,
+   "loss": 0.494,
+   "val_mse": 0.5349,
+   "val_rho": 0.7084
+  },
+  {
+   "epoch": 5,
+   "loss": 0.4895,
+   "val_mse": 0.4775,
+   "val_rho": 0.721
+  },
+  {
+   "epoch": 6,
+   "loss": 0.438,
+   "val_mse": 0.4639,
+   "val_rho": 0.7362
+  },
+  {
+   "epoch": 7,
+   "loss": 0.4167,
+   "val_mse": 0.431,
+   "val_rho": 0.7426
+  },
+  {
+   "epoch": 8,
+   "loss": 0.4151,
+   "val_mse": 0.4054,
+   "val_rho": 0.7421
+  },
+  {
+   "epoch": 9,
+   "loss": 0.3655,
+   "val_mse": 0.5186,
+   "val_rho": 0.7414
+  },
+  {
+   "epoch": 10,
+   "loss": 0.4074,
+   "val_mse": 0.4253,
+   "val_rho": 0.7436
+  },
+  {
+   "epoch": 11,
+   "loss": 0.3496,
+   "val_mse": 0.4181,
+   "val_rho": 0.7506
+  },
+  {
+   "epoch": 12,
+   "loss": 0.3365,
+   "val_mse": 0.3817,
+   "val_rho": 0.7463
+  },
+  {
+   "epoch": 13,
+   "loss": 0.3185,
+   "val_mse": 0.4102,
+   "val_rho": 0.7334
+  },
+  {
+   "epoch": 14,
+   "loss": 0.2865,
+   "val_mse": 0.3799,
+   "val_rho": 0.732
+  },
+  {
+   "epoch": 15,
+   "loss": 0.2682,
+   "val_mse": 0.412,
+   "val_rho": 0.7194
+  },
+  {
+   "epoch": 16,
+   "loss": 0.2465,
+   "val_mse": 0.4451,
+   "val_rho": 0.7146
+  },
+  {
+   "epoch": 17,
+   "loss": 0.2253,
+   "val_mse": 0.4278,
+   "val_rho": 0.6955
+  },
+  {
+   "epoch": 18,
+   "loss": 0.2073,
+   "val_mse": 0.4446,
+   "val_rho": 0.6932
+  },
+  {
+   "epoch": 19,
+   "loss": 0.1898,
+   "val_mse": 0.4418,
+   "val_rho": 0.6791
+  }
+ ],
+ "final": {
+  "spearman": 0.7506,
+  "r2": 0.5354,
+  "rmse": 0.6232
+ },
+ "baseline": {
+  "spearman": 0.752,
+  "r2": 0.532
+ }
+}

@@ -38,6 +38,7 @@ const STEPS = [
   ['生成脚本解释器单测（45 条；**不用 eval**，守「不报错但算错」那类）', 'node', ['tools/test-script-eval.mjs']],
   ['导出字段单测（11 条；守 Phira 打不开 —— 缺 visibleTime）', 'node', ['tools/test-pez-export.mjs']],
   ['音频容器单测（20 条；守 Phira 报 unsupported codec）', 'node', ['tools/test-audio-sniff.mjs']],
+  ['写谱边界单测（14 条；清单/单向依赖/开关）', 'node', ['tools/test-write-scope.mjs']],
   ['拍↔秒换算单测（11 条；全链路唯一时间真源）', 'node', ['tools/test-beat-time.mjs']],
   ['几何层音符类型单测（12 条；守 Flick/Drag 被并进 Tap）', 'node', ['tools/test-chart-geom.mjs']],
   ['宿主状态序列化单测（7 条；守音频字节被塞进系统提示）', 'node', ['tools/test-agent-context.mjs']],

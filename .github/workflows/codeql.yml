@@ -25,7 +25,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['javascript-typescript', 'python']
+        # ⚠ 只跑 JS/TS。
+        #
+        # 曾经这里还有 'python'，但 `.github/codeql/codeql-config.yml` 把
+        # tools/、phm-web/tools/、phm/、_research/、llm-hub/ 全部 paths-ignore 了
+        # —— 而仓库里的 Python 只有这些目录。于是 Python 那条腿**一个文件都扫不到**，
+        # CodeQL 以 `CodeQL could not process any code written in Python`（exit 32）失败。
+        #
+        # 从 2026-10-26 起 main 上就一直是红的（不是某次改动的锅），
+        # 因为它是必需检查，等于**每个 PR 都被一条永远不可能变绿的腿卡住**。
+        # 想让 Python 重新被扫，先把它从 paths-ignore 里放出来，再加回这一项。
+        language: ['javascript-typescript']
     steps:
       - uses: actions/checkout@v4
       - uses: github/codeql-action/init@v3
