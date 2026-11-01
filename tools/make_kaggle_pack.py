@@ -22,7 +22,7 @@ CHARTS = os.path.join(ROOT, "charts")
 IRT = os.path.join(ROOT, "player-irt.json")
 OUTDIR = os.path.join(ROOT, "kaggle")
 K, M = 1.104, 15.84
-MIN_PLAYERS = 100
+MIN_PLAYERS = 50           # 与 build_seq_dataset 对齐（见那里的说明）
 
 SYS = ("你是音游难度评估器。输入是一张 Phira 谱面的紧凑事件流（DNA 串）："
        "每 2 个字符表示一个音符 —— 第 1 字符是距上一个音符的时间差（0.1 秒，base32），"

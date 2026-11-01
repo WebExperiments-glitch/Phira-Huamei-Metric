@@ -110,13 +110,17 @@ const evalJS = async expr => {
 };
 
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, skip = 0;
 /* 跨页共享的观察值（例如「各页版本号是否一致」） */
 const CC = {};
 const ok = (n, c, d) => {
   if (c) { pass++; console.log('  ✓ ' + n); }
   else { fail++; console.log('  ✗ ' + n + (d ? '  → ' + d : '')); if (d) errors.push('[冒烟] ' + n + ' → ' + d); }
 };
+/* 「环境缺东西」与「我们写坏了」必须分开。
+   跳过**不是通过**：它单独计数，并在汇总行里显示，不允许静默变绿。
+   只在上游明确不可用时用，判据见各调用点。 */
+const skipped = (n, why) => { skip++; console.log('  - 跳过 ' + n + '  → ' + why); };
 
 /* ── 开浏览器之前的静态检查：**版本串必须处处一致** ──
    ES 模块按 **URL 字符串**去重。同一个文件被两种 URL 引用
@@ -587,8 +591,18 @@ for (const R of ROUTES) {
       ok('★ 路径穿越被拒（SSRF 闸门）', ill.badPath === 404 || ill.badPath === 400, String(ill.badPath));
       ok('★ 绝对 URL 被拒（SSRF 闸门）', ill.evilHost === 400 || ill.evilHost === 404, String(ill.evilHost));
       ok('★ 非 GET/HEAD 被拒', ill.post === 405, String(ill.post));
-      ok('★ 支持 Range（大图先试前 64KB）',
-        ill.rangeSt === 206 && ill.rangeLen === '100', JSON.stringify({ st: ill.rangeSt, len: ill.rangeLen }));
+      /* 502 在这个端点上**只表示上游失败**（lib/chartassets.mjs:
+         `up.status === 404 ? 404 : 502`），不是代理写坏了。
+         Phira CDN 对 GitHub 运行器偶发不可达（2026-11-01 夜间连续三次），
+         此时断言没有意义 —— 记跳过并报出来，而不是变绿或变红。 */
+      if (ill.rangeSt === 502) {
+        skipped('★ 支持 Range（大图先试前 64KB）',
+          'via=upstream-502：Phira CDN 不可达，属外部故障，非本站代码问题');
+      } else {
+        ok('★ 支持 Range（大图先试前 64KB）',
+          ill.rangeSt === 206 && ill.rangeLen === '100',
+          JSON.stringify({ st: ill.rangeSt, len: ill.rangeLen }));
+      }
     }
   }
 
@@ -815,6 +829,6 @@ errors.slice(0, 12).forEach(e => console.log('   ! ' + e));
 if (warns.length) console.log('警告 ' + warns.length + ' 条（前 3）：' + warns.slice(0, 3).join(' | ').slice(0, 300));
 
 console.log('\n────────');
-console.log(`通过 ${pass} · 失败 ${fail} · 运行时报错 ${errors.length}`);
+console.log(`通过 ${pass} · 失败 ${fail} · 跳过 ${skip} · 运行时报错 ${errors.length}`);
 ws.close(); cleanup();
 process.exit((fail || errors.length) ? 1 : 0);

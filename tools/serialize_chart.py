@@ -61,46 +61,25 @@ TYPE = {1: "T", 2: "H", 3: "F", 4: "D"}
 
 
 def serialize(path, max_notes=20000):
-    with open(path, encoding="utf-8") as f:
-        raw = f.read()
-    try:
-        d = json.loads(raw)
-    except json.JSONDecodeError:
-        # 有些包把多个 JSON 对象首尾相接（不换行），取第一个
-        d = json.JSONDecoder().raw_decode(raw.lstrip())[0]
-    if not isinstance(d, dict) or "judgeLineList" not in d:
-        raise ValueError("不是 RPE 格式")
+    """谱面 → 事件流文本。
 
-    bpm_list = sorted(d.get("BPMList") or [{"bpm": 120.0, "startTime": [0, 0, 1]}],
-                      key=lambda s: s.get("startTime", [0, 0, 1]))
-    lines = d["judgeLineList"]
-
-    events = []
-    for li, ln in enumerate(lines):
-        for nt in ln.get("notes") or []:
-            t = beat_to_sec(bpm_list, nt["startTime"])
-            typ = TYPE.get(nt.get("type"), "T")
-            x = float(nt.get("positionX", 0.0))
-            above = 1 if nt.get("above", 1) else 0
-            item = (t, x, typ, above, li)
-            if typ == "H":
-                e = beat_to_sec(bpm_list, nt.get("endTime") or nt["startTime"])
-                item = (t, x, typ, above, li, max(e - t, 0.0))
-            events.append(item)
-    events.sort(key=lambda e: (e[0], e[1]))
+    ⚠ 2026-11-01：改为走 `chart_io.load_events`，同时吃 RPE(JSON) 与 PEC(文本)。
+    此前只认 RPE 的 judgeLineList，601 张 PEC 谱面被判"不是 RPE 格式"丢掉，
+    占可用样本的 11%。
+    """
+    from chart_io import load_events
+    events = load_events(path, max_events=max(10 ** 6, max_notes * 2))
     n_all = len(events)
     truncated = n_all > max_notes
     events = events[:max_notes]
 
     dur = events[-1][0] if events else 0.0
-    head = (f"#META lines={len(lines)} notes={n_all} dur={dur:.1f} "
-            f"bpm={bpm_list[0]['bpm']:.1f}")
+    head = f"#META notes={n_all} dur={dur:.1f}"
     body = []
-    for e in events:
-        t, x, typ, above, li = e[0], e[1], e[2], e[3], e[4]
+    for t, x, typ, above, hold in events:
         tag = "" if above else "b"          # 只标「在下」（默认上），省字符
         if typ == "H":
-            body.append(f"{t:.2f} {x:+.1f}{tag} H {e[5]:.2f}")
+            body.append(f"{t:.2f} {x:+.1f}{tag} H {hold:.2f}")
         else:
             body.append(f"{t:.2f} {x:+.1f}{tag} {typ}")
     return head + "\n" + "\n".join(body), truncated, len(events)
