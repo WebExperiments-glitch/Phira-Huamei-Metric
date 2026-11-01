@@ -33,7 +33,8 @@ CHARTS = os.path.join(ROOT, "charts")
 IRT = os.path.join(ROOT, "player-irt.json")
 OUT = os.path.join(ROOT, "seq-dataset.npz")
 MAX_EVENTS = 8000          # 极端谱（5 万物量）截断，避免单样本过大
-MIN_PLAYERS = 100          # 标签可信度阈值（k=100 时 ρ 0.995）
+MIN_PLAYERS = 50           # 2026-11-01：100 → 50。冷启动曲线 20 人 ρ0.975 / 100 人 0.995，
+                           # 50 人在两者之间；换来的是可用谱面 7,153 → 9,161（+28%）。
 
 
 def find_chart_file(d):

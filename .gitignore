@@ -105,3 +105,9 @@ data/pcm/
 # 本机运维脚本（爬虫常驻、XPU 环境），路径与本机绑定
 SETUP-XPU.bat
 START-CRAWL.bat
+
+# ── 难度模型发布产物与研究中间件（2026-11-01）──────────────
+# 合并后的完整权重 1.2 GB，已发布到魔搭，不入库
+release/
+# 基准测试的切分与结果（可由 tools/bench_suite.py prep/split 重建）
+data/bench/
