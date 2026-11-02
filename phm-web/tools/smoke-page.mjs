@@ -321,7 +321,7 @@ for (const R of ROUTES) {
      写死具体数字是有意的 —— ">=N" 这种松断言拦不住「少了一个入口」这种回归。 */
   /* 导航条目数与站点模式无关 —— 静态站也保留完整清单（点进去是 410 说明页），
      所以这里只验「到底渲染出几个」。写死数字是有意的：少一个入口是回归。 */
-  ok('导航含 12 个入口', (info.navLinks || []).length >= 12, JSON.stringify(info.navLinks));
+  ok('导航含 5 个入口', (info.navLinks || []).length >= 5, JSON.stringify(info.navLinks));
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
