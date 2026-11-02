@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""在**事件序列**上训一个小 transformer，预测玩家实测难度 b。
+"""⚠ 本文件里的 SeqNet（conv+attn）**已废弃**（2026-11-02 定案）。
+
+    保留原因：`ssm_seq.py` 从这里 import DATA/SEED/make_batches/stack（共用评测装置）。
+    **不要再训 SeqNet**：20 维特征下它已被岭回归（0.8024）与 SSM（0.8162）同时超过。
+    定案见 `docs/调研/模型定案.md`。
+
+在**事件序列**上训一个小 transformer，预测玩家实测难度 b。
 
 ━━━ 要回答的唯一问题 ━━━
 序列里的信息，是否多于 49 维摘要？
@@ -33,7 +39,7 @@ import torch
 import torch.nn as nn
 
 ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-DATA = os.path.join(ROOT, "seq-dataset.npz")
+DATA = os.environ.get("PHM_SEQ") or os.path.join(ROOT, "seq-dataset.npz")
 CKPT = os.path.join(ROOT, "seq-model.pt")
 OUT = os.path.join(ROOT, "seq-result.json")
 SEED = 20261028

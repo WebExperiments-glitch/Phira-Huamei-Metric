@@ -225,6 +225,9 @@ const ROUTES = [
   { path: '/render', name: '谱面渲染', sel: ['#zone', '#canvas', '#seek'], mod: 'ui' },
   { path: '/packs', name: '谱面包', sel: ['#q', '#lv', '#sort', '#list', '#more'], mod: 'ui',
     ready: `!!document.querySelector('#list .card2')` },
+  /* 差值表是 JS 渲染的，ready 必须等表格真的出现 —— 只看 DOM 有 tbody 会秒过 */
+  { path: '/discrepancy', name: '标称vs实测', sel: ['#s-n', '#s-med', '#s-gt1', '#rows'], mod: 'ui',
+    ready: `document.querySelectorAll('#rows tr').length > 100` },
   /* 法务页是自带 <nav> 的静态正文页（不用 JS 生成导航），所以 standalone。 */
   { path: '/privacy', name: '隐私', sel: ['h1'], mod: 'ui', standalone: true },
   { path: '/terms', name: '服务条款', sel: ['h1'], mod: 'ui', standalone: true },
@@ -318,7 +321,7 @@ for (const R of ROUTES) {
      写死具体数字是有意的 —— ">=N" 这种松断言拦不住「少了一个入口」这种回归。 */
   /* 导航条目数与站点模式无关 —— 静态站也保留完整清单（点进去是 410 说明页），
      所以这里只验「到底渲染出几个」。写死数字是有意的：少一个入口是回归。 */
-  ok('导航含 11 个入口', (info.navLinks || []).length >= 11, JSON.stringify(info.navLinks));
+  ok('导航含 12 个入口', (info.navLinks || []).length >= 12, JSON.stringify(info.navLinks));
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */

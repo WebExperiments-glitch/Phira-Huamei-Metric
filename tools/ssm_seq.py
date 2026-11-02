@@ -17,6 +17,7 @@ CfC 的 τ(x,h) 和 Mamba 的 Δ(x)·A 是同一个机制（输入决定的时�
   3. 自检：与朴素逐步递推做 allclose 对比（`python ssm_seq.py --selftest`）
 """
 import json
+import math
 import os
 import sys
 import time
@@ -34,7 +35,7 @@ from train_seq import DATA, SEED, make_batches, spearman, stack   # noqa: E402
 D_MODEL = 96
 D_STATE = 16
 CHUNK = 32
-EPOCHS = 8          # 每 epoch 约 10 分钟，8 个约 80 分钟
+EPOCHS = 16         # 每 epoch 约 10 分钟；有早停（连续 5 个 epoch 不涨就停）
 GROUP = 4          # 4 个事件并 1 组（组内 dt 求和 = 这一「步」在连续时间里走了多久）
 
 
@@ -107,6 +108,14 @@ class SSMBlock(nn.Module):
         self.in_proj = nn.Linear(d, 2 * d)
         self.conv = nn.Conv1d(d, d, 4, padding=3, groups=d)      # 因果短卷积
         self.x_proj = nn.Linear(d, 2 * d_state + 1)              # Δ, B, C
+        # ⚠ 关键初始化：Mamba 原论文把 dt_proj.bias 设到 dt_min≈0.001，
+        # 让**初始记忆很长**，再由模型自己学短。不做这一步时：
+        #   softplus(0)≈0.69 → Δ≈0.69×0.15s≈0.1 → Ā=exp(-0.1)=0.905
+        #   → 记忆视界 ≈ 1/(1-Ā) ≈ 10 步 = **约 40 个音符**
+        # 而中位谱面有 2,258 个音符 —— 模型一开始只能看局部，"难不难"却是全局属性。
+        # 这里取 Δ_init=0.005 → 视界 ≈ 200 步 ≈ 800 个音符。
+        with torch.no_grad():
+            self.x_proj.bias[0] = math.log(math.exp(0.005) - 1.0)
         # 标准 Mamba 初始化：A[d,n] = -(n+1)，即第 n 个状态通道衰减率随 n 增大
         self.a_log = nn.Parameter(
             torch.log(torch.arange(1, d_state + 1, dtype=torch.float32).repeat(d, 1)))
@@ -138,7 +147,7 @@ class SSMBlock(nn.Module):
 
 
 class SSMNet(nn.Module):
-    def __init__(self, d_in=10, d=D_MODEL, layers=2):
+    def __init__(self, d_in=24, d=D_MODEL, layers=2):
         super().__init__()
         self.stem = GroupStem(d_in, d)
         self.blocks = nn.ModuleList([SSMBlock(d) for _ in range(layers)])
@@ -182,14 +191,18 @@ def main():
     tr, va = perm[:cut], perm[cut:]
     print(f"数据 {len(y):,} 张 · 训练 {len(tr):,} · 验证 {len(va):,}")
 
-    model = SSMNet()
+    model = SSMNet(d_in=z["feats"].shape[1])
     print(f"模型参数量 {sum(p.numel() for p in model.parameters()):,}（基线 79k）")
     opt = torch.optim.AdamW(model.parameters(), lr=2e-3, weight_decay=0.05)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
     lossf = nn.MSELoss()
     best, best_state, best_pred, best_gold = -9, None, None, None
+    stall = 0                     # 连续多少个 epoch 没刷新最佳
     t0 = time.time()
     for ep in range(1, EPOCHS + 1):
+        if stall >= 5:
+            print(f"  连续 5 个 epoch 没有刷新最佳，早停（省下 {EPOCHS - ep + 1} 个 epoch）")
+            break
         model.train()
         tot, nb = 0.0, 0
         for batch in make_batches(tr, offs, order_by_len=True, bs=32):
@@ -211,9 +224,16 @@ def main():
                 gs.extend(y[batch].tolist())
         rho, mae = spearman(ps, gs), float(np.mean(np.abs(np.array(ps) - np.array(gs))))
         if rho > best:                      # 存最佳权重与预测，供事后做配对检验
-            best = rho
+            best, stall = rho, 0
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             best_pred, best_gold = list(ps), list(gs)
+            # ⚠ 立即落盘：上一次跑到 ep6(0.7549) 被回收，全部丢失，白烧 80 分钟
+            torch.save({"model": best_state, "rho": best, "ep": ep},
+                       os.path.join(ROOT, "data", "ssm-best.pt"))
+            json.dump({"rho": best, "ep": ep, "pred": best_pred, "gold": best_gold},
+                      open(os.path.join(ROOT, "data", "ssm-preds.json"), "w"))
+        else:
+            stall += 1
         print(f"  ep{ep:2d} loss {tot / max(nb,1):.4f} · ρ {rho:.4f} · MAE {mae:.3f} "
               f"· {(time.time() - t0) / 60:.1f} 分", flush=True)
     print(f"\n最佳 ρ {best:.4f} · 判据：> 0.7506（基线） / 0.752（49 维 ridge）")

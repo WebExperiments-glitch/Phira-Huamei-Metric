@@ -187,6 +187,7 @@ phm-web/
 | 账号服务端 | `lib/hm-accounts.mjs`（scrypt 哈希 + 自签 HS256 JWT + 真验签）· `lib/hm-code-routes.mjs`（注册/登录/发码/重置）· `lib/hm-profile-routes.mjs`（档案 / 绑定 / 注销）。⚠ 自签与平台 token 的差别是**能不能验签**：平台密钥在平台手里，服务端只能解析 `sub`，等于谁都能伪造；自签的密钥只在服务端 |
 | 全局错误兜底 | `public/js/guard.js` —— `error` / `unhandledrejection` / 断网三类提示，右上角 toast。**原本全站只有 app.html 接了 rejection，其余 9 页静默无痕**。自包含页 `phm-api.html` 内联一份（改名 `_gcut` 避开重名） |
 | 技能分（难在哪） | public/js/skills.js —— 把 feats 的 39 个特征重组为 stamina/dexterity/reading/precision 四技能。纯展示层：不改数值、不动 ENGINE_VER、不进 k-NN 的 REF_DIMS，所以不需要重算缓存。⚠ 只在「刚分析完」的响应里给 —— phm_charts 表没有 feats 字段，缓存行算不出来 |
+| 标称 vs 实测（`/discrepancy`） | `public/discrepancy.html` + `public/js/i18n/discrepancy.js` + `public/js/discrepancy-data.js` —— 数据由 `tools/gen_discrepancy.py` 生成。**标称必须取 `level` 字段**（正则 `Lv.数字`），`difficulty` 字段与它只有 30% 一致，用错会造出 +19 级的假差值 |
 | 谱面包 / 资源打包下载 | `public/js/chartfiles.js` + `public/js/chartfiles-core.mjs` —— 页面 `/packs`。**零中转**：服务器只代理 JSON 元数据，曲绘/音乐/chart 文件一律**浏览器直连 Phira CDN**，`.pez` 在浏览器本地用 `rulechart.js` 导出的 `zipStore` 打包。⚠ 纯函数层必须在 `public/js/` 不能放 `lib/` —— `lib/` 不在静态白名单里 |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 曲绘为什么加载不出来 | `lib/chartassets.mjs` —— 上游 MIME 是 `application/octet-stream`，浏览器 **ORB** 会拒绝解码（`ERR_BLOCKED_BY_ORB`），所以展示用曲绘必须过我们的代理改 MIME。排查曲绘空白时先看这里，别再怀疑 CDN 挂了 |

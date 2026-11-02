@@ -42,6 +42,7 @@ import download from './i18n/download.js?v=V0.22.5.0';
    `lint-i18n` 直接报「等于没翻」。 */
 import agent from './i18n/agent.js?v=V0.22.5.0';
 import render from './i18n/render.js?v=V0.22.5.0';
+import discrepancy from './i18n/discrepancy.js?v=V0.22.5.0';
 
 /* ══════════════════════════════════════════════════════════════
  * 字典：按页面分片，在这里合并
@@ -61,6 +62,7 @@ import render from './i18n/render.js?v=V0.22.5.0';
  *   而 Object.assign 会**静默**让后者覆盖前者。宁可崩一下让人看见。
  */
 const FRAGMENTS = [
+  ['discrepancy', discrepancy],
   ['common', common], ['home', home], ['app', app], ['charter', charter],
   ['user', user], ['data', data], ['legal', legal], ['settings', settings],
   ['version', version], ['download', download], ['status', status], ['packs', packs],
