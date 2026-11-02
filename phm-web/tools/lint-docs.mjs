@@ -205,33 +205,28 @@ console.log('[6] 旧文件名黑名单');
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
- * 根 README 的维度数必须等于参照集的实际维度数
- * ══════════════════════════════════════════════════════════════
- * 【为什么】2026-10-24 外部评审说「README 停在旧版本」。版本号那条是误判
- *   （本仓库刻意不写死版本，指向 CHANGELOG），但**引擎描述**确实过时了：
- *   8 → 37 维改完之后，README 还写着 8 维。
- *   散文里的数字没有任何守卫，改代码时没人会想起它 —— 所以抓最容易被引用的
- *   那一处：加粗的「**N 维**」必须等于参照集的实际维度。
- */
+/* 7) 目录地图里的 tools 数量必须与实际文件数一致
+   ────────────────────────────────────────────────────────────
+   【为什么】这个数字**漂过三次**：写成 30 个 → 加了几个工具没改 → 改成 45 个
+   → 又加了几个（predeploy / fuzz-http / test-resilience…）还是没改。
+   写死一个会漂的数字，不如让 lint 盯着它 —— 漂了就红，改了工具的人立刻知道。
+   同理适用于「文件数」这类**手工维护的统计**。 */
+console.log('[7] tools 目录地图计数');
 {
-  const readme = path.join(ROOT, '..', 'README.md');
-  const refCom = path.join(ROOT, 'public', 'data', 'ref-com.json');
-  if (fs.existsSync(readme) && fs.existsSync(refCom)) {
-    try {
-      const j = JSON.parse(fs.readFileSync(refCom, 'utf8'));
-      const row = (j.rows || [])[0];
-      /* 行格式：[定数, 档位, 曲名, id, ...维度] —— 减去前 4 个就是维度数 */
-      const dims = Array.isArray(row) ? row.length - 4 : 0;
-      const txt = fs.readFileSync(readme, 'utf8');
-      const found = [];
-      for (const m of txt.matchAll(/\*\*(\d+)\s*维\*\*/g)) found.push(Number(m[1]));
-      if (dims > 0) {
-        const wrong = found.filter(n => n !== dims);
-        if (wrong.length) bad('README 写 **' + wrong[0] + ' 维**，参照集实际 ' + dims + ' 维');
-        else ok('README 维度数与参照集一致（' + dims + '）');
-      }
-    } catch (e) { bad('README 维度数检查失败：' + e.message); }
+  const doc = path.join(ROOT, 'docs', 'README.md');
+  const toolsDir = path.join(ROOT, 'tools');
+  if (!fs.existsSync(doc) || !fs.existsSync(toolsDir)) {
+    bad('找不到 docs/README.md 或 tools/');
+  } else {
+    const txt = fs.readFileSync(doc, 'utf8');
+    const m = txt.match(/tools\/[^\n]*（(\d+)\s*个）/);
+    const actual = fs.readdirSync(toolsDir).filter(f => {
+      try { return fs.statSync(path.join(toolsDir, f)).isFile(); } catch { return false; }
+    }).length;
+    if (!m) bad('docs/README.md 的目录地图里找不到 tools 数量（格式应含「（N 个）」）');
+    else if (+m[1] !== actual) {
+      bad(`目录地图写 ${m[1]} 个 tools，实际 ${actual} 个 —— 加/删工具时必须同步这个数字`);
+    } else ok(`tools 计数一致（${actual}）`);
   }
 }
 
