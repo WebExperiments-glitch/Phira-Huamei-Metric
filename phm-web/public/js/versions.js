@@ -19,9 +19,25 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.22.5.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.23.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.23.0.0', date: '2026-11-02',
+    zh: ['<b>新增「标称 vs 实测」。</b> 谱面上的定数是谱师自己填的。这一页拿它和玩家实际打出来的难度对照 —— '
+      + '3,689 张谱里，<b>近三成的标注和真实体验差了一档以上</b>，还有 12% 差了一档半。'
+      + '挑歌之前先看一眼，能少踩几次「看标 7 级结果打不动」的坑。',
+      '<b>顶栏瘦了一圈。</b> 从 14 项减到 5 项：首页、算定数、定数库、谱师、设置。'
+      + '被收起来的功能（规则写谱、AI 写谱、谱面渲染、谱包、玩家页等）<b>页面都还在</b>，'
+      + '老链接照常能打开，只是不再占着顶栏 —— 每天要看的东西不超过五个。'],
+    en: ['<b>New: Declared vs Measured.</b> The difficulty on a chart is whatever its author typed. '
+      + 'This page puts it next to how hard players actually find it &mdash; across 3,689 charts, '
+      + '<b>nearly a third are off by a full level or more</b>, and 12% by a level and a half. '
+      + 'Worth a look before you pick a chart.',
+      '<b>A shorter top bar.</b> Down from 14 entries to 5: home, analyse, library, charters, settings. '
+      + 'The rest of the features (rule-based writing, AI writing, rendering, packs, player pages) '
+      + '<b>are all still there</b> and old links still work &mdash; they just no longer crowd the top bar.'],
+  },
   {
     v: 'V0.22.5.0', date: '2026-10-31',
     zh: ['<b>写谱功能可以单独关掉了。</b> 它是实验性的，以前一旦出问题只能停整个站点。现在有一道开关：关掉之后与写谱相关的接口直接回「当前部署未启用」，其它页面照常使用。默认是开着的，行为和以前一样。',
