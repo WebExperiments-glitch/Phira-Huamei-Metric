@@ -6,6 +6,7 @@
  * ============================================================ */
 export default {
   zh: {
+    'dt.toDiff': '标称与实测差多少？看「标称 vs 实测」→',
     'dt.title': '共享定数缓存 · 数据管理',
     'dt.sub': '全站共享缓存里每一行都在这里。<b>只读</b> ——写入只能由服务端复算后经凭据入库，这一页没有任何写入口。',
     'dt.eng': '当前引擎 {v}',
@@ -53,6 +54,7 @@ export default {
   },
 
   en: {
+    'dt.toDiff': 'How far off are the labels? See Declared vs Measured →',
     'dt.title': 'Shared constant cache · Data',
     'dt.sub': 'Every row of the shared cache is here. <b>Read-only</b> — rows can only be written by the server after recomputing, through a credential. This page has no write path.',
     'dt.eng': 'Engine {v}',
