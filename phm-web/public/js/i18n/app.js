@@ -8,9 +8,12 @@
  * ============================================================ */
 export default {
   zh: {
-    /* ── 页头：标语 + 顶部搜索 ── */
-    'app.head.slogan':
-      '拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br>'
+    /* ── 页头：标语 + 顶部搜索 ──
+       `app.head.h1` 是这一页的**语义标题**（见 app.html 里那个 .sr-only h1）：
+       视觉上这页直接以标语开场，但它需要有一个一级标题，否则读屏用户
+       无法判断自己在哪一页。等 UI 重设计时再把它提升成可见标题。 */
+    'app.head.h1': '算定数 · 谱面难度工作台',
+    'app.head.slogan': '拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br>'
       + '<b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。',
     'app.head.search.ph': '搜谱面：曲名 / 谱师',
     'app.head.search.btn': '搜索',
@@ -215,6 +218,10 @@ export default {
     'app.res.desc.com': 'Phira 社区谱',
     'app.res.desc.off': 'Phigros 官谱',
     'app.res.off.note': '与 Phigros 官方同一标度（{n} 张官谱）',
+    /* 玩家实测：不看谱面文件，只看玩家击打偏差反推的难度。
+       ⚠ 只在知道谱面 id 时出现（深链进来），本地文件没有 id。 */
+    'app.res.behav': '玩家实测',
+    'app.res.behav.tip': '由玩家击打时间偏差反推的难度，与上面两个数方法完全独立（括号内是参与人数）',
     'app.res.off.hi': '　·　社区共识比它高 {d}',
     'app.res.off.lo': '　·　社区共识比它低 {d}',
     /* ⚠ 拆成「引导句 + 三条短列表」：原来是一整段 200 字、里面 ①②③ 三个加粗，
@@ -386,7 +393,11 @@ export default {
   },
 
   en: {
-    /* ── header: slogan + top search ── */
+    /* ── header: slogan + top search ──
+       `app.head.h1` is this page's semantic heading (rendered as the .sr-only h1
+       in app.html): visually the page opens with the slogan, but it still needs a
+       level-1 heading so screen-reader users know which page they are on. */
+    'app.head.h1': 'Analyze · chart difficulty workbench',
     'app.head.slogan':
       'Drop a chart pack in → get <b>both difficulty scales</b> (community consensus + official scale).<br>'
       + '<b>No sign-in · chart files are never uploaded</b> · parsing runs entirely in your browser.',
@@ -596,6 +607,8 @@ export default {
     'app.res.desc.com': 'Phira community charts',
     'app.res.desc.off': 'Phigros official charts',
     'app.res.off.note': 'same scale as official Phigros ({n} official charts)',
+    'app.res.behav': 'measured',
+    'app.res.behav.tip': 'derived from how accurately players hit this chart — independent of the two figures above (number of players in brackets)',
     'app.res.off.hi': ' · community consensus sits {d} above it',
     'app.res.off.lo': ' · community consensus sits {d} below it',
     'app.res.vague.lead':

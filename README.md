@@ -1,5 +1,24 @@
 # P.H.M. — Phira Huamei Metric
 
+<p align="center">
+  <img src="phm-web/docs/shots/home-dark.png" alt="P.H.M. 首页" width="820">
+</p>
+
+<p align="center">
+  <a href="https://phm.app.workbuddy.host/"><b>▶ 在线使用</b></a> ·
+  <a href="phm-web/docs/HANDOVER.md">改代码先读这个</a> ·
+  <a href="phm-web/CHANGELOG.md">更新记录</a> ·
+  <a href="phm-web/docs/ENGINE-EXPERIMENT.md">被否掉的方案</a> ·
+  <a href="https://modelscope.cn/models/jfjijiogkijijg/phm-difficulty-qwen3-0.6b">难度模型（开源）</a>
+</p>
+
+<p align="center">
+  <img alt="CI" src="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/actions/workflows/ci.yml/badge.svg">
+  <img alt="CodeQL" src="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric/actions/workflows/codeql.yml/badge.svg">
+  <img alt="License" src="https://img.shields.io/badge/license-GPLv3-blue">
+  <img alt="Deps" src="https://img.shields.io/badge/runtime%20deps-1-brightgreen">
+</p>
+
 > 为 Phira / Phigros 谱面提供**可审计的难度参考**。
 > 拖入谱面包，得到一个客观数值 + 它匹配到的官谱参照。
 > **不给判决。**
@@ -15,6 +34,7 @@
 > 下一个人照着旧号判断"现在是什么版本"就会错。
 > 当前线上版本随时可查：`curl -s https://phm.app.workbuddy.host/ | grep app-version`
 >
+> V0.22.0.0（2026-10-23）参照维度 **8 → 37**：引擎一早算出了 39 个特征，只是一直只用了 8 个。
 > V0.4.0（2026-10-07）那次是**引擎级**变更：参照集从「1,037 张官谱 × 4 维」
 > 换成「9,508 张社区谱 × 8 维」，并改为**双标度输出**。
 > 方法与全部被否掉的方案见 `phm-web/docs/ENGINE-EXPERIMENT.md`。
@@ -23,6 +43,13 @@
 **在线使用**：<https://phm.app.workbuddy.host/> （打开即用，无需安装）
 
 ---
+
+<p align="center">
+  <img src="phm-web/docs/shots/chart-dark.png" alt="谱面详情页：引擎值 / 玩家实测 / 标称" width="820">
+</p>
+
+> 谱面页会同时给出**三个互相独立的数**：引擎按谱面结构算的、玩家实际打出来的、
+> 以及谱师自己写进文件里的。三者不一致时，页面会直接说明差在哪 —— 而不是把判断丢给你。
 
 ## 一句话定位
 
@@ -91,7 +118,7 @@ python phm/cli.py --model data/official.jsonl                     # 引擎自检
 
 | 部分 | 在哪跑 | 说明 |
 |---|---|---|
-| 谱面解析 + 特征 + PS / 参考定数 | **纯前端** | ZIP 解压、RPE/PGR/**PEC** 解析、8 维 k-NN（双参照）全部在浏览器内，**谱面文件不上传** |
+| 谱面解析 + 特征 + PS / 参考定数 | **纯前端** | ZIP 解压、RPE/PGR/**PEC** 解析、37 维 k-NN（双参照）全部在浏览器内，**谱面文件不上传** |
 | 连接 Phira / 搜谱面 | 前端直连 `api.phira.cn` | 只读公开数据（RKS、最好成绩、谱面信息），**不需要密码** |
 | 打卡 / 定数共享缓存（**可选**） | WorkBuddy 托管云数据库 | 只有你在打卡区**主动勾选**时才写；不勾选则完全本机 |
 
@@ -143,7 +170,7 @@ python tools/calibrate_engine.py     # 或 python tools/pipeline.py calibrate
 | | 桌面 / CLI（`phm/core.py`） | 网页版（`engine.js`） |
 |---|---|---|
 | 参照集 | 1,037 张官谱 | **9,508 张社区谱** + 1,037 张官谱（对照） |
-| 维度 | 4 维 | **8 维** |
+| 维度 | 4 维 → 8 维 → **37 维** | 引擎一早算出了 39 个特征，之前只用了 8 个 |
 | 输出 | 参考定数 + 不确定带 | **双标度**：社区共识 + 官谱标度 + 不确定带 |
 | 聚合 | 加权中位 | **加权截尾均值（15%）** —— 输出分辨率 104→1332 个不同值 |
 | 解析格式 | RPE / PGR / PEC | RPE / PGR / PEC（同一套内容嗅探） |
@@ -230,6 +257,51 @@ node phm-web/tools/audit-baselines.mjs --split created
 `phm-web/docs/ENGINE-EXPERIMENT.md`。
 
 ---
+
+## 玩家实测难度（2026-11 新增）
+
+引擎算的是「谱面结构有多难」；这一节是**另一条独立测量**：玩家实际打得有多难。
+
+做法：抓取 Phira 全站 6,566 万条成绩（13,859 张谱），用 IRT（项目反应理论）
+同时估计每张谱的难度 `b` 与每个玩家的能力 `θ` —— 不同水平的玩家混在一起，
+也不会把难度估计带偏。
+
+| 检验 | 结果 |
+|---|---|
+| 分半信度（195 万玩家随机劈两半、各估一次） | **ρ 0.9999** |
+| 冷启动：只用 20 人估计 | ρ 0.975 |
+| 与谱师声明定数的一致性 | **ρ 0.68** ← 「难度」本身有约 0.3 的不可约分歧 |
+
+### 四种方法，同一份数据
+
+| 方法 | ρ | 参数量 | 说明 |
+|---|---|---|---|
+| 49 维手工特征 + 岭回归 | **0.752** | 50 | 现役最优 |
+| 事件序列 + 膨胀卷积 + 注意力 | 0.7506 | 79k | 与线性模型平手 |
+| 选择性状态空间（S6 / Mamba 机制） | 0.7549 | 68k | 同切分下岭回归 0.7353；+0.02 落在噪声内（SE 0.031） |
+| Qwen3-0.6B + LoRA 读 DNA 串 | 0.598 | 4.6M | **负面结果**，已开源存档 |
+
+> 「让大模型直接读原始序列」这条路已经走完并**证伪**：7,000 张样本不够模型
+> 先学会一套自造编码，再学难度。权重、训练代码与完整实验记录见
+> [ModelScope](https://modelscope.cn/models/jfjijiogkijijg/phm-difficulty-qwen3-0.6b)。
+
+### 压力测试：六组切分（`tools/bench_suite.py`）
+
+只报一个随机切分的 ρ 会被四种方式骗过：谱师泄漏、时间泄漏、捷径学习、长尾崩溃。
+六组切分把它们分开测：
+
+| 切分 | 线性模型 ρ |
+|---|---|
+| 随机 85/15 | 0.731 |
+| 按谱师分组留出 | 0.746 |
+| 按时间切分（旧→新） | 0.767 |
+| 冷启动（50–99 人） | 0.742 |
+| 长谱 top 10% | **0.642** |
+| 短谱 bottom 10% | **0.587** |
+
+前三组说明**没有泄漏**（更难的两组反而更高）；后两组是真正的短板。
+另有「只数音符」的羞辱性基线：**ρ 0.495** —— 任何复杂模型打不过它就没有意义。
+
 
 ## 目录结构
 
@@ -328,6 +400,9 @@ node phm-web/tools/audit-baselines.mjs --split created
 | [调研报告2-定数由谁定](docs/调研/调研报告2-定数由谁定.md) | 定数到底谁定（**结论：没人按标准写**） |
 | [定数公式v2](docs/结果/定数公式v2.md) | 现行公式与精度 |
 | [18维要素实验结果](docs/结果/18维要素实验结果.md) | **负面结果**：加维度反而变差 |
+| [序列架构调研](docs/调研/难度模型-序列架构.md) | LNN → 选择性状态空间：为什么 CfC 的 τ 与 S6 的 Δ 是同一个机制 |
+| [基准测试规格](docs/调研/难度模型-基准测试.md) | 六组切分 × 八项指标，以及「只报一个 ρ 会被怎么骗」 |
+| [模型权重](https://modelscope.cn/models/jfjijiogkijijg/phm-difficulty-qwen3-0.6b) | Qwen3-0.6B 难度预测（负面结果存档） |
 | [ADR 索引](docs/adr/README.md) | 架构决策：两套引擎 / 免费不接支付 / API 未排期 |
 | [非目标](docs/NON-GOALS.md) | 明确不做什么（防项目膨胀） |
 | [RUNBOOK](phm-web/docs/RUNBOOK.md) | 出事时照着做：分诊 / 回滚 / 备份 / 密钥 |

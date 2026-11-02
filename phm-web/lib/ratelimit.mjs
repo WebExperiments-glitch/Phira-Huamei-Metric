@@ -57,12 +57,32 @@ async function dbHit(key, max, windowMs) {
     return null;
   }
   if (!WRITE_SECRET) return null;
-  const r = await dbFetch('/rpc/hm_rate_hit', {
+  /* ⚠ 首次 8 秒、重试 20 秒 —— 两次都要能配超时。
+     2026-10-24 实测：Neon 免费档冷启动要 13~18 秒，两次 8 秒**都撞不上**，
+     于是 via 变 db-down。生产上这等于「冷启动时限流静默放行」；
+     本地则表现为推送闸门 40% 概率误红（5 次跑 2 次红，实测）。
+     为什么不一上来就 20 秒：常见路径绝大多数是 <1 秒的热库，
+     不该为冷启动付 20 秒的等待。所以热路径仍然 8 秒，只在**重试**时放宽。 */
+  const call = (timeoutMs = 8000) => dbFetch('/rpc/hm_rate_hit', {
     method: 'POST',
     body: JSON.stringify({
       p_secret: WRITE_SECRET, p_key: key, p_max: max, p_window_ms: windowMs,
     }),
-  }, 8000, 2048);
+  }, timeoutMs, 2048);
+
+  let r = await call();
+  /* ⚠ **超时要重试一次**，而且只在超时的时候。
+     2026-10-21 换到 Neon 之后才知道：免费档空闲 5 分钟就把 compute 缩到零，
+     下一个请求要等它唤醒（实测 1.7~13 秒）。8 秒的 dbHit 超时会撞上这件事，
+     于是 via 变成 db-down —— 而 db-down 在我们的语义里是**回归**（单测会红），
+     真实用户那边则是 fail-open（限流静默放行）。
+     一次"根本没送到库里"的超时重试是安全的：计数器没被写过，不会重复计数。
+     真正的数据库错误（42501 / 语法 / 连接被拒）照旧立刻返回，不重试。 */
+  const timedOut = !r.ok && (r.status === 504 || /TIMEOUT|db timeout/i.test(String(r.body || r.error || '')));
+  if (timedOut) {
+    await new Promise(res => setTimeout(res, 1200));
+    r = await call(20000);   /* 冷启动要 13~18 秒，8 秒不够 */
+  }
   if (!r.ok) {
     console.warn('[ratelimit] DB 计数失败，退回进程内：', r.status,
       String(r.body || r.error || '').slice(0, 160));

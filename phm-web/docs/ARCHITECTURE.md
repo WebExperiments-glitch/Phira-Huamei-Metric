@@ -40,9 +40,13 @@
 | `/` | `index.html` | 落地页：这是什么、双标度怎么读、三个入口、实时统计 |
 | `/app` | `app.html` | 分析工作台：拖入谱面包 / 搜谱面 / 出定数 / 导出分享卡 |
 | `/rulechart` | `rulechart.html` | **规则写谱**：BPM/时长/难度/轨道 → RPE v160 谱面 + `.pez`，纯本地生成 |
+| `/render` | `render.html` | **谱面预览 + 体检**：拖入 RPE 谱面 JSON/PEZ → 按时间轴画出音符与判定线，同时跑 `chart-lint.js` 五层校验（语法/密度/配置/手序/深度） |
+| `/agent` | `agent.html` | **AI 写谱**：一句话描述 → 模型调用命令写谱 → 五层体检 → 报定数。**每一步改动都要审批**（read 免审 / edit 必审 / danger 永审）。模型走服务端代理，Key 不出服务端 | 没有 Key 时明说「未开启」，不降级成本地规则生成 —— 那会让人以为模型在写 |
+| `/write` | `write.html` | **AI 写谱（对话式）**：全屏对话，拖入 MP3/图片即可开写。思考强度开关 + 档位（OpenRouter 走 reasoning.effort，DeepSeek 走 thinking.type）。命令面与审批复用 agent.js | 对话式比表单式更适合「说不清要什么」的场景；表单式仍留在 /rulechart |
 | `/charter` | `charter.html` | 谱师页：某个谱师的全部作品、档位分布、每张谱的 P.H.M. 定数 |
 | `/user` | `user.html` | 玩家页：成绩、自算 RKS、最近游玩、任意单谱的全部成绩 |
 | `/data` | `data.html` | **数据管理**：全库分页浏览、排序、过滤；每行的双标度与引擎版本 |
+| `/discrepancy` | `discrepancy.html` | **标称 vs 实测**：谱面上的定数（谱师自填）与玩家实测难度对比，按差值排序。数据由 `tools/gen_discrepancy.py` 预生成到 `public/js/discrepancy-data.js`（⚠ 标称取 `level` 字段，不是 `difficulty`） |
 | `/settings` | `settings.html` | **设置**：上传偏好 / Phira 连接信息 / 本机存储清单与清除 / 关于 |
 | `/version` | `version.html` | **版本历史**（面向用户，只列能感知的变化）。数据源 `public/js/versions.js` —— 与 `CHANGELOG.md`（开发者向）是**两份**，但 smoke 有断言守着「RELEASES[0].v = app-version」 |
 | `/download` | `download.html` | **下载页**：Windows 客户端。exe 本体在 `downloads/`，只走 `/download/phira-huamei.exe` 这一条流式路由（`lib/download.mjs`） |
@@ -270,6 +274,8 @@ js/i18n/settings.js ← 设置页（set.*）
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
 | 身份 / 账号 | `lib/hm.mjs` + `lib/hm-accounts.mjs` + `lib/hm-code-routes.mjs` | huamei 身份校验；自建账号（scrypt + 自签 HS256）；验证码路由（发码 / 验码 / 重置） | 不把平台 token 当可信身份；不用登录密码碰 Phira |
+| 邮件发送 | `lib/mail.mjs` + `lib/mail-tpl.mjs` | 注册/重置的验证码。三家免费服务商（SMTP2GO / Brevo / Resend）由 `PHM_MAIL_PROVIDER` 选，全是 HTTPS API（不引 nodemailer）。⚠ 原来靠平台的 auth 发信，2026-10-21 随数据库一起挂了 → 改成自己生成码、库里只存 HMAC、自己发。模板单独成文件是因为**邮件客户端不支持 CSS 变量**，颜色必须写字面值（lint-slop 有豁免） |
+| 数据库驱动适配 | `lib/db-pg.mjs` | 用 `pg` 直连 Postgres，但**对外保持 PostgREST 的调用形状**（`/rpc/x`、`/table?col=eq.v`）—— `lib/` 下 7 个模块一行都不用改。只翻译代码里真实用到的算子（eq/neq/gt/gte/lt/lte/in + order/limit/offset/select）。⚠ 三个坑：numeric 默认回**字符串**（不转会把 12.3 变成 "12.3"，前端算术得 NaN）；无参函数要拼 `fn()` 不是 `fn($1)`；超时定时器必须能取消（否则输的那半变成 unhandledRejection → 进程退出）|
 | 下线闸门 | `lib/retired.mjs` | 被撤的路径一律 410 Gone（页面/API 一张表 `RETIRED_PAGES`/`RETIRED_API`）；说明页 `/retired` 与「继续使用请到」的地址 `RETIRE_URL` 都只有这一处。⚠ 文件**不删**，只从 `PUBLIC_FILES` 移除 → 恢复就是加回去 |
 | 兜底层 | `lib/resilience.mjs` | 进程级 `uncaughtException`/`unhandledRejection` 兜底 + `guardRequest()` 包住请求处理（同步抛 / async reject / 头已发出的迟抛 / res 自身 error）。⚠ 内部全 try/catch，**兜底自己不许抛**；60 秒内兜 50 次就主动退出让平台重启 | 单进程服务死在一次未捕获异常上；真踩过三次 |
 | 账号档案 / 注销 | `lib/hm-profile-routes.mjs` | `GET/PUT/DELETE /api/hm/profile` + `POST /api/hm/touch` + 只读聚合代理 `/api/plays`。sub **只从已验签 token 取**，不接受前端传 | 不让前端说"我是谁"；`phm_plays` 匿名聚合不需要登录 |
@@ -277,11 +283,15 @@ js/i18n/settings.js ← 设置页（set.*）
 | 成绩校验 | `lib/hm.mjs` 的 `validatePlay()` | 用 `phiraScore()` 重算 acc/score，只告警不拒收 | 不信客户端报的 score/accuracy |
 | 限流 | `lib/ratelimit.mjs` | 进程内预筛 + DB `hm_rate_hit` 权威计数；身份优先、IP 兜底、全局兜底 | **不读 X-Forwarded-For**（源码级禁用，测试守着） |
 | 贡献准入 | `lib/contribute-ticket.mjs` + `lib/contribute-routes.mjs` | 给 /api/contribute 签/验 5 分钟 HMAC 凭证；换票只查 Phira 元数据、不下载谱面；未持票请求在解析 body 前拒绝 | 不把「匿名可写」当默认；无写凭据时 fail-closed |
+| 写谱边界与开关 | `lib/write-scope.mjs` | 写谱链路的**文件清单**（`WRITE_OWNED`）、可引用的主站模块白名单（`WRITE_MAY_USE`）、总开关 `PHM_WRITE`，以及关闭时那张**不依赖任何外链**的说明页。守卫在 `tools/test-write-scope.mjs`（已挂 `npm run check`） | 写谱不拆站但也不再开发：边界靠清单+测试守，出问题靠环境变量一键关，不用回滚整站。详见 `docs/WRITE-LINK.md` |
+| AI 写谱代理 | `lib/agent-routes.mjs` | `POST /api/agent/chat`：把 `{model,system,messages,tools}` 转给 DeepSeek，**SSE 原样透传不重组**（重组会丢 usage / reasoning_content）。Key 只在服务端，浏览器拿不到。未配 `PHM_AGENT_KEY` 时 fail-closed 返回 503 并说明原因 | Key 不能进浏览器；没有 Key 绝不"降级成本地规则生成"，那会让用户以为模型在写 |
 | API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、开放平台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
 | API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理 / 轮换；匿名与 Key 配额；scope 校验 | 不写引擎逻辑；认证与用量全走 RPC；契约在 `api/openapi.json` |
 | 下载 | `lib/download.mjs` | 流式 + Range + ETag 送 `downloads/` 里的 exe | 不把 `downloads/` 加进 `PUBLIC_DIRS` |
 | 玩家成绩卡 | `public/js/sharecard.js` | **两种卡片**：谱面体检卡（`exportCard`）与玩家成绩卡（`exportPlayerCard`）。共用同一批绘制工具与 `deliver()` —— 各写一份必然漂移，分享失败时的兜底最容易漏掉一边。⚠ 玩家卡必须同时印 P.H.M. RKS 与官方 RKS 并标注来源；只印一个数会被截图当成官方值引用。⚠ 卡片里的坐标是按**基线**分档算的（630 高度很紧），改文案前先看 `drawPlayerWide` 顶部的分档表 |
 | 页面级 SEO | `lib/pages.mjs` | `/chart/<id>` 详情页（**服务端注入** title/description/canonical/OG/JSON-LD —— 爬虫不执行 JS，客户端渲染等于没做）与动态 `/sitemap.xml`（661 张谱面各一条，内存缓存 10 分钟）。数据源 `phm_charts` + 上游 `/chart/{id}`，各套短超时，任一挂了仍返回 200 + 通用 meta |
+| RKS 估算 | `lib/rks-routes.mjs` | `GET /api/rks?uid=` 按**最近游玩记录**估 RKS。存在的原因：Phira 的 B19 计算**冻结在 2026-03-19**，2026 年后注册的账号 rks 恒为 0 —— 功能停摆而非用户的问题。公式 `((ACC*100-55)/45)^2 × 定数`，总分 `(Σ前19 + 最高)/实际槽数`（分母不能写死 20：多数人凑不满，写死会把只打 5 张的人压到 1/4）。只统计 ranked/stable 谱面。⚠ 返回文案必须是「估算」不是「RKS」——两条时间线不同，不能比大小 | 内存缓存 10 分钟；上游失败回 `{ok:false}`，前端静默不显示 |
+| Phira 代理 | `lib/phira-proxy.mjs` | `/api/phira/*` 透传到 api.phira.cn。**这是唯一能主动访问上游的出口** —— 白名单写错一个字，我们的服务器就变成公开爬虫的代理（出口 IP + 带宽白送）。⚠ 判据必须落在**归一化之后**的 pathname 上：`new URL().pathname` 只折叠字面 `..`，编码的 `%2e%2e` 会留下，而 fetch 解析时会折叠 —— 于是 `/chart/%2e%2e/user/1` 能突破前缀检查（2026-10-24 审计核实并修复）。现在：拒可疑形态 → 构造 URL → 判归一化 pathname → 验 origin | 条件请求头（if-modified-since / etag）必须转发，否则条款页永远打不开 |
 | 曲绘代理 | `lib/chartassets.mjs` | `/api/phira-illust/<uuid>` 把 Phira CDN 的 `application/octet-stream` 改回 `image/webp`。**存在的原因是浏览器 ORB**：跨源响应的 MIME 不对时 Chrome 拒绝交给解码器，`<img>` 静默失败（`ERR_BLOCKED_BY_ORB`），真实用户同样中招。路径段严格校验 UUID —— 这是 SSRF 闸门 | ⚠ 只代理**展示用**曲绘；chart / 音乐仍浏览器直连，用户要原件，我们不改写交付物。⚠ 上游 404 回 1×1 占位 WebP 而不是报错，让浏览器缓存住 |
 | 自监控 | `lib/status.mjs` | 每 60s 探测 9 个目标（页面 / 接口 / 数据），环形缓冲存近 24h、DB 存 30 天；`/api/status` 返回聚合 | 打回环地址而非外部域名；探测失败绝不抛；**无样本时整体结论为 unknown 而不是「全部正常」** |
 | 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |

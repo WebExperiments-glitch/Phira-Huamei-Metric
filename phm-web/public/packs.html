@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.21.4.0">
+<meta name="app-version" content="V0.23.0.1">
 <title>谱面包 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="把任意 Phira 谱面连同曲绘、音频打成 .pez 包。文件在你的浏览器里直连下载，不经我们的服务器。">
@@ -12,8 +12,10 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.21.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.21.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.23.0.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.23.0.1">
+<link rel="stylesheet" href="/css/motion.css?v=V0.23.0.1">
+<script type="module" src="/js/motion.js?v=V0.23.0.1"></script>
 <style>
 /* ── 卡片网格 ──
    grid 而非 flex：卡片等高，且窗口变窄时自动降列。
@@ -105,20 +107,16 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </style>
 </head>
 <body>
-<!-- ⚠ 2026-10-21：站点收敛为静态工具。这段是**写死的中文兜底** ——
-     不许清成 <div data-i18n="retire.text"></div>，模块链一环失败整页就没这句了。
-     链接指向 /retired（服务端渲染，不依赖任何 JS / 数据库）。 -->
-<div class="retire-banner" role="region" aria-label="站点公告">
-  <span data-i18n="retire.text">本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。</span>
-  <a class="retire-banner-link" href="/retired" data-i18n="retire.link">继续使用请到 →</a>
-</div>
 <div class="wrap">
 
 <nav id="nav"></nav>
 
 <div class="card">
   <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px">
-    <h2 style="margin:0" data-i18n="pk.title">谱面包</h2>
+    <!-- 这一页的标题用 h1：每页必须有一个一级标题，而「谱面包」正是这一页的标题。
+         字号仍按原来的 18px（--t-lg）—— 换成 h1 后浏览器默认的 2em 会把它
+         放大到 28px，那是改版不是修 bug。 -->
+    <h1 style="margin:0;font-size:var(--t-lg)" data-i18n="pk.title">谱面包</h1>
     <span class="dim2" style="font-size:12px" id="cnt"></span>
   </div>
   <div class="sub" data-i18n-html="pk.sub">
@@ -187,10 +185,10 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <script type="module">
 import {
   renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER,
-} from '/js/ui.js?v=V0.21.4.0';
-import { installGuard } from '/js/guard.js?v=V0.21.4.0';
-import { cleanChart, searchText, FILE_KINDS } from '/js/chartfiles-core.mjs?v=V0.21.4.0';
-import { packPez, saveBlob, fileUrlOf } from '/js/chartfiles.js?v=V0.21.4.0';
+} from '/js/ui.js?v=V0.23.0.1';
+import { installGuard } from '/js/guard.js?v=V0.23.0.1';
+import { cleanChart, searchText, FILE_KINDS } from '/js/chartfiles-core.mjs?v=V0.23.0.1';
+import { packPez, saveBlob, fileUrlOf } from '/js/chartfiles.js?v=V0.23.0.1';
 
 installGuard(t);
 renderNav();
@@ -329,7 +327,7 @@ function render() {
       + esc(t('pk.noResult')) + '</p><p class="dim2" style="margin:0;font-size:12px">'
       + esc(t('pk.noResultHint')) + '</p></div>';
   } else {
-    $('list').innerHTML = '<div class="grid">' + list.map(cardHtml).join('') + '</div>';
+    $('list').innerHTML = '<div class="grid" data-mv-list>' + list.map(cardHtml).join('') + '</div>';
   }
 
   $('more').style.display = S.items.length < S.total ? '' : 'none';

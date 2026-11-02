@@ -120,7 +120,17 @@ const COLOR_OK = [
      所以宁愿自带一套最小令牌。改 base.css 的令牌时要同步这里。 */
   /^public\/404\.html$/,
   /^tools\/make-og\.mjs$/,               // 生成分享图（离屏渲染，不走 CSS 主题）
-  /^public\/js\/sharecard\.js$/,         // 同上：导出的是图片，颜色必须写死
+  /^public\/js\/sharecard\.js$/,
+  /* 谱面渲染器：画在 canvas 上，**离屏导出时没有 document**，拿不到 CSS 变量。
+     与 sharecard 同类：渲染目标不在我们的主题体系里。 */
+  /^public\/js\/chart-geom\.js$/,         // 同上：导出的是图片，颜色必须写死
+  /* 邮件正文：**邮件客户端不支持 CSS 变量**（Gmail/Outlook 会把 var(--x) 丢掉），
+     颜色只能写字面十六进制。渲染目标不在我们自己的主题体系里，与上面两项同理。 */
+  /^lib\/mail-tpl\.mjs$/,
+  /* 写谱关闭时的说明页：**必须在「写谱链路已经坏了」的时候也能显示**，
+     所以刻意不引任何外链样式 —— 拿不到 CSS 变量，颜色只能写字面值。
+     与 404 错误页同理。（见 docs/WRITE-LINK.md「出问题怎么关」） */
+  /^lib\/write-scope\.mjs$/,
 ];
 const COLOR_OK_INLINE = [
   /data:image\/svg\+xml/,                // favicon 的 data URI，只能是字面色
@@ -360,10 +370,13 @@ for (const f of FILES) {
  * 死接口比死代码更隐蔽：它看起来"是给外面用的"。
  */
 const allText = FILES.map(f => ({ rel: f.rel, s: readFileSync(f.abs, 'utf8') }));
-/* 接口层模块（settings / i18n / ui / phira / sharecard）的导出**就是**对外接口，
+/* 接口层模块（settings / i18n / ui / phira / sharecard / agent）的导出**就是**对外接口，
    被外部按需取用是正常的，不该按"没人用就是死接口"来判。
-   要盯的是**实现模块**（engine.js）里的死导出。 */
-const IFACE_MODULES = /^public\/js\/(settings|i18n|ui|phira|sharecard)\.js$/;
+   要盯的是**实现模块**（engine.js）里的死导出。
+
+   agent.js 与 ui.js 同类：它是**装配入口**，要等页面 import 了才产生调用链。
+   页面没建时它的导出必然"全站无人 import" —— 那不是死接口，是还没接上。 */
+const IFACE_MODULES = /^public\/js\/(settings|i18n|ui|phira|sharecard|agent)\.js$/;
 for (const f of FILES) {
   if (!/^public\/js\/[\w-]+\.js$/.test(f.rel)) continue;
   if (IFACE_MODULES.test(f.rel)) continue;
@@ -438,6 +451,47 @@ for (const f of FILES) {
     add('残留 console.log', f.rel, i + 1, l.trim().slice(0, 70),
       '生产代码里的调试输出会泄漏内部结构，也是"没收拾干净"的标志');
   });
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 9) 内联 CSS 变量：JS 设了但 CSS 从没 var() 引用
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么】
+ *   2026-10-24 用户截图报「标度条上的字糊成一坨」。查下来是
+ *   `style="--at:0"` / `--at:100"` 写在了 HTML 上，而 CSS 里**从来没有**
+ *   `var(--at)` —— 于是两个绝对定位的刻度标签都落在 left:auto，
+ *   也就是同一个位置，叠成一团乱码。
+ *
+ *   这类错误**不报错、不警告**，浏览器照单全收：变量没人用就当没有。
+ *   和「颜色令牌漏了一处」是同一类问题，靠人眼盯不住。
+ */
+for (const f of FILES.filter(x => x.rel.endsWith('.html'))) {
+  let src;
+  try { src = readFileSync(f.abs, 'utf8'); } catch { continue; }
+  const declared = new Set();
+  for (const m of src.matchAll(/--([a-z0-9-]+)\s*:/g)) declared.add(m[1]);
+  const used = new Set();
+  for (const m of src.matchAll(/var\(--([a-z0-9-]+)/g)) used.add(m[1]);
+  /* 页面如果把自己的样式拆到了同名 css（app.html → css/app.css），
+     `var()` 引用就在那个文件里 —— 只看 html 会整片误报。
+     2026-10-25 拆 app.css 时踩到：7 个变量全被误判「没人用」。 */
+  try {
+    const own = readFileSync(path.join(ROOT, 'public', 'css',
+      f.rel.split('/').pop().replace(/\.html$/, '.css')), 'utf8');
+    for (const m of own.matchAll(/var\(--([a-z0-9-]+)/g)) used.add(m[1]);
+  } catch { /* 没有同名 css 就是纯内联页面 */ }
+  /* 全局令牌定义在 base.css，页面里只引用不定义 —— 不该误报 */
+  let globalTokens = new Set();
+  try {
+    const base = readFileSync(path.join(ROOT, 'public', 'css', 'base.css'), 'utf8');
+    for (const m of base.matchAll(/--([a-z0-9-]+)\s*:/g)) globalTokens.add(m[1]);
+  } catch { /* 没有 base.css 就不豁免 */ }
+  for (const v of declared) {
+    if (used.has(v) || globalTokens.has(v)) continue;
+    add('CSS 变量设了没人用', f.rel, 0, `--${v}`,
+      'JS 里设了自定义属性、CSS 里却没有 var() 引用 —— 那个样式等于没写，'
+      + '而且不报错（标度条刻度叠字就是这么来的）');
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.23.0.1">
+<title>标称 vs 实测 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="谱面上的定数是谱师自己填的。这一页拿它和玩家实际打出来的难度对比，找出标注离真实体验最远的谱面。">
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.23.0.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.23.0.1">
+<style>
+/* ── 统计条：四个数，等宽对齐 ──
+   刻意不加彩色：唯一需要强调的只有「差 1 档以上」的占比，
+   所以只有那一个数用琥珀色（原则：一屏只留一个强调点）。 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{display:block;font-size:12px;color:var(--fg3);margin-top:2px}
+/* ⚠ 令牌真名是 --brand，不是 --accent-fg（后者不存在，静默失效） */
+.stat.key b{color:var(--brand)}
+
+/* ── 差值表 ── */
+.dtab{width:100%;border-collapse:collapse;font-size:14px}
+.dtab th{text-align:left;font-weight:600;font-size:12px;color:var(--fg3);
+  padding:0 8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.dtab td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.dtab tr:last-child td{border-bottom:none}
+.dtab .nm{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dtab .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* 差值为正 = 实测更难（偏红），为负 = 实测更易（偏绿）。
+   ⚠ 这里用红涨绿跌的**中文习惯**：难度"涨"上去用红。 */
+/* 差值为正 = 实测更难（说明标称偏低，玩家会踩坑）→ 用 warn 提起注意；
+   为负 = 标称偏高，不值得同等视觉重量 → 降级为 dim。
+   ⚠ 不许写死颜色：本仓库只认 --ok/--warn/--err 三个语义令牌。 */
+.dtab .pos{color:var(--warn)}
+.dtab .neg{color:var(--fg3)}
+.dtab .who{color:var(--fg3);font-size:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.filters button{font:inherit;font-size:13px;padding:5px 11px;border-radius:999px;
+  border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.filters button[aria-pressed="true"]{border-color:var(--brand);color:var(--brand)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav id="nav"></nav>
+
+<div class="card">
+  <h2 style="margin:0 0 4px" data-i18n="dc.title">标称 vs 实测</h2>
+  <div class="sub" data-i18n-html="dc.sub">谱面上的定数是谱师自己填的。这一页拿它和玩家实际打出来的难度对比。</div>
+  <div class="stats">
+    <div class="stat"><b id="s-n">—</b><span data-i18n="dc.stat.n">可比谱面</span></div>
+    <div class="stat"><b id="s-med">—</b><span data-i18n="dc.stat.med">差值中位数</span></div>
+    <div class="stat key"><b id="s-gt1">—</b><span data-i18n="dc.stat.gt1">差 1 档以上</span></div>
+    <div class="stat"><b id="s-rho">—</b><span data-i18n="dc.stat.rho">两者秩相关</span></div>
+  </div>
+  <div class="fd" style="margin-top:8px" id="meta"></div>
+</div>
+
+<div class="card">
+  <div class="filters">
+    <button id="f-abs" aria-pressed="true" data-i18n="dc.sort.abs">差值大小</button>
+    <button id="f-hi" aria-pressed="false" data-i18n="dc.sort.hi">只高估</button>
+    <button id="f-lo" aria-pressed="false" data-i18n="dc.sort.lo">只低估</button>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="dtab">
+      <thead><tr>
+        <th data-i18n="dc.col.name">谱面</th>
+        <th class="num" data-i18n="dc.col.declared">标称</th>
+        <th class="num" data-i18n="dc.col.measured">实测</th>
+        <th class="num" data-i18n="dc.col.diff">差值</th>
+        <th class="num" data-i18n="dc.col.players">玩家</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="fd" id="empty" hidden data-i18n="dc.empty">没有符合条件的谱面。</div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 6px;font-size:15px" data-i18n="dc.note.t">这个数是哪来的</h3>
+  <div class="fd" id="note-b" data-i18n-html="dc.note.b">实测难度来自 IRT。</div>
+  <div class="fd" data-i18n-html="dc.note.c">标称取自 level 字段。</div>
+  <div class="fd" data-i18n-html="dc.note.l">只收录玩家 ≥ 200 人的谱面。</div>
+</div>
+
+<footer>
+  <div class="row" style="justify-content:space-between">
+    <span><a href="/" data-i18n="dc.back">← 返回首页</a></span>
+    <span>P.H.M. Standard · GPL-3.0</span>
+  </div>
+</footer>
+
+</div>
+
+<script type="module">
+import { t, applyStatic, onLangChange, renderNav, esc } from '/js/ui.js?v=V0.23.0.1';
+import { ROWS, META } from '/js/discrepancy-data.js?v=V0.23.0.1';
+
+let mode = 'abs';   /* abs | hi | lo */
+
+function fmt(n) { return n.toLocaleString('zh-CN'); }
+
+function view() {
+  if (mode === 'hi') return ROWS.filter(r => r.x > 0);
+  if (mode === 'lo') return ROWS.filter(r => r.x < 0);
+  return ROWS;
+}
+
+function render() {
+  const list = view();
+  document.getElementById('rows').innerHTML = list.map(r => {
+    const cls = r.x > 0 ? 'pos' : 'neg';
+    return '<tr>'
+      + '<td class="nm" title="' + esc(r.n) + '">' + esc(r.n || '—')
+      + ' <span class="who">' + esc(r.c || '') + '</span></td>'
+      + '<td class="num">' + r.d.toFixed(1) + '</td>'
+      + '<td class="num">' + r.m.toFixed(1) + '</td>'
+      + '<td class="num ' + cls + '">' + (r.x > 0 ? '+' : '') + r.x.toFixed(1) + '</td>'
+      + '<td class="num">' + fmt(r.p) + '</td>'
+      + '</tr>';
+  }).join('');
+  document.getElementById('empty').hidden = list.length > 0;
+}
+
+function paintStatsDc() {
+  const all = ROWS;
+  const abs = all.map(r => Math.abs(r.x)).sort((a, b) => a - b);
+  const med = abs.length ? abs[Math.floor(abs.length / 2)] : 0;
+  document.getElementById('s-n').textContent = fmt(META.n);
+  document.getElementById('s-med').textContent = med.toFixed(2);
+  document.getElementById('s-gt1').textContent = (META.gt1 * 100).toFixed(0) + '%';
+  document.getElementById('s-rho').textContent = META.rho.toFixed(2);
+  document.getElementById('meta').textContent =
+    t('dc.meta', { n: fmt(META.n), p: META.minPlayers });
+  document.getElementById('note-b').innerHTML =
+    t('dc.note.b', { m: '6,566 万' });
+}
+
+document.querySelectorAll('.filters button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    mode = btn.id === 'f-hi' ? 'hi' : btn.id === 'f-lo' ? 'lo' : 'abs';
+    document.querySelectorAll('.filters button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b === btn));
+    });
+    render();
+  });
+});
+
+/* 语言一变，统计条与表格都要重画 —— 数字在 JS 里拼的 */
+/* ⚠ 导航不是自动画的：每页必须自己调 renderNav('本页 key')，
+   漏了就是「导航已渲染」通过、但一个入口都没有（冒烟会报 12 个入口 → []） */
+onLangChange(function () { applyStatic(); renderNav('discrepancy'); paintStatsDc(); render(); });
+applyStatic();
+renderNav('discrepancy');
+paintStatsDc();
+render();
+</script>
+</body>
+</html>

@@ -35,3 +35,4 @@ downloads/*.exe
 tools/_tmp*.py
 tools/_tmp*.mjs
 tools/_tmp*.sh
+build-app/

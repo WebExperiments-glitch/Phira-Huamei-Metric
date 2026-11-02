@@ -125,12 +125,16 @@ if (NET) {
 console.log('\n[5] 参照集与 k-NN 结构');
 {
   const D = REF_DIMS.length, LBL = ROW_LABELS;
-  ok('REF_DIMS 有 8 维', D === 8, '得到 ' + D);
+  /* ⚠ 别写死维度数。2026-10-23 把 8 维扩到 37 维时，这条断言红了一次 ——
+     红得对（它确实变了），但写死数字等于每次调维都要改测试。
+     真正要守的是**自洽**：REF_DIMS 的个数 = 每行宽度 - 标签列数。 */
+  ok('REF_DIMS 维度数与行宽自洽', REF_OFFICIAL.every(r => r.length === ROW_LABELS + D),
+    'D=' + D + ' 首行 ' + REF_OFFICIAL[0].length);
   ok('ROW_LABELS 与生成器一致（= 4）', LBL === 4, '得到 ' + LBL);
   ok('官谱参照非空', REF_OFFICIAL.length > 1000, '得到 ' + REF_OFFICIAL.length);
-  ok('每行长度 = ROW_LABELS + 8',
+  ok('每行长度 = ROW_LABELS + REF_DIMS.length',
     REF_OFFICIAL.every(r => r.length === LBL + D),
-    '首行长度 ' + REF_OFFICIAL[0].length);
+    '首行长度 ' + REF_OFFICIAL[0].length + '（期望 ' + (LBL + D) + '）');
   ok('标签列类型正确（定数 number / 档位 number / 曲名 string）',
     REF_OFFICIAL.every(r => typeof r[0] === 'number' && typeof r[1] === 'number'
       && typeof r[2] === 'string'));
@@ -206,7 +210,8 @@ console.log('\n[6] 社区参照集 ref-com.json');
       JSON.stringify(refCom.dims) === JSON.stringify(REF_DIMS));
     ok('labels 与引擎一致', refCom.labels === ROW_LABELS);
     ok('规模 ≥ 9000 张', refCom.rows.length >= 9000, '得到 ' + refCom.rows.length);
-    ok('每行长度 = ROW_LABELS + 8', refCom.rows.every(r => r.length === ROW_LABELS + 8));
+    ok('每行长度 = ROW_LABELS + REF_DIMS.length',
+      refCom.rows.every(r => r.length === ROW_LABELS + REF_DIMS.length));
     ok('社区谱都有 chart_id（排除自身要用）',
       refCom.rows.every(r => Number.isInteger(r[3]) && r[3] > 0));
     ok('没有「定数 0」的行', refCom.rows.every(r => r[0] > 0));

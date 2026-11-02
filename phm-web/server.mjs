@@ -1,22 +1,15 @@
-/* P.H.M. Standard —— 静态前端 + 轻量 Node 服务
- * 零依赖（只用 Node 内置模块），沙箱里装不上任何东西也能跑。
+/* P.H.M. Standard —— 前端 + 轻量 Node 服务
  *
- * 职责边界（刻意做小）：
- *   1. 托管静态前端（index.html / robots.txt）
- *   2. 对外提供受限的写入网关 /api/*：校验 → 限流 → 转发到云数据库
- *   3. 服务端自有的持久化（JSON 文件），用于限流计数与可信统计
+ * 依赖：**默认零依赖**（只用 Node 内置模块）。唯一例外是数据库驱动 `pg` ——
+ * 只有配了 PHM_NEON_URL（新站）才需要，静态站（腾讯那块指路牌）完全用不到。
+ * 见 lib/db-pg.mjs 与 lib/retired.mjs 的 STATIC_ONLY。
  *
- * 为什么需要它：前端直连数据面时，任何规则都能被绕过；这里把「写」收归一处，
- * 至少做到校验与限流。
+ * 职责边界（刻意做小）：托管静态前端、提供受限的 /api/* 网关（校验 → 限流 → 落库）。
  *
- * ⚠ 权限真相（实测过，别再想当然）：
- *   网关与浏览器持同一把 publishableKey、同为 anon，连 Referer 都能被非浏览器客户端伪造，
- *   所以**网关无法在数据库层面被区分出来**。因此最初「网关是唯一写入口」只是**规范**，
- *   不是防线 —— 攻击者绕开网关直连 REST 一样能写能改（实测 201/204）。
- *
- *   真正的封堵靠 **phm_put_chart()**（SECURITY DEFINER + 写入凭据）：
- *   已对 anon / authenticated 撤销 phm_charts 的 INSERT/UPDATE/DELETE，
- *   数据库侧只剩「带凭据的 RPC」这一条写路径。凭据只在本进程内，不进前端产物。
+ * ⚠ 权限真相（实测过，别再想当然）：网关与浏览器持同一把 key、同为 anon，
+ *   所以"网关是唯一写入口"只是**规范**不是防线。真正的封堵靠
+ *   phm_put_chart()（SECURITY DEFINER + 写入凭据）：表已对 anon 撤销写权限，
+ *   库侧只剩"带凭据的 RPC"这一条路。凭据只在本进程内，不进前端产物。
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -38,18 +31,22 @@ import {
 import { makeProfileRoutes } from './lib/hm-profile-routes.mjs';
 import { makeDownloadHandler, DOWNLOAD_FILES } from './lib/download.mjs';
 import { installFaultGuards, guardRequest } from './lib/resilience.mjs';
-import { retiredGate } from './lib/retired.mjs';
+import { retiredGate, STATIC_ONLY, RETIRED_HTML } from './lib/retired.mjs';
 /* 贡献凭证：/api/contribute 的准入能力票（见 lib/contribute-ticket.mjs 顶部）。 */
 import {
   ticketAvailable, issueTicket, verifyTicket, ticketCovers,
   TICKET_TTL_MS, TICKET_MAX_CHARTS,
 } from './lib/contribute-ticket.mjs';
 import { makeContributeRoutes } from './lib/contribute-routes.mjs';
+import { makeAgentRoutes } from './lib/agent-routes.mjs';
 /* API v1 路由（/api/v1/*）—— 独立模块，避免 server.mjs 破 900 行。 */
 import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
 import { makeChartAssetRoutes } from './lib/chartassets.mjs';
+import { phiraProxy } from './lib/phira-proxy.mjs';
+import { makeRksRoutes } from './lib/rks-routes.mjs';
 import { CLEAN, makePageRoutes } from './lib/pages.mjs';
+import { writeEnabled, CLOSED_PAGE } from './lib/write-scope.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
@@ -191,13 +188,17 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
    server-store.json 全都躺在 ROOT 里被当静态资源送出去（含数据库地址、密钥、访客 IP）。
    目录穿越防护 ≠ 白名单。这是安全修复的核心。
    现在拆成两层：少量精确允许的根文件 + 仅限 public/js、public/css 下的安全扩展名。 */
-/* ⚠ 已下线的页面不在这里：文件还在仓库里（git 随时能回来），但不放行 → 404/410 */
-const PUBLIC_FILES = new Set(['index.html', 'app.html', 'robots.txt', 'favicon.ico',
-  'privacy.html', 'terms.html', '404.html', 'og.png', 'rulechart.html', 'packs.html',
+/* 完整白名单；静态站按 RETIRED_HTML 减掉（同一份代码两个站，见 lib/retired.mjs） */
+const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
+  'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
+  '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
+  'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
+  'status.html', 'packs.html', 'render.html', 'agent.html', 'write.html',
+  'discrepancy.html',
   /* 末尾三个是许可证正文：按**名字**放行，别往 SAFE_EXT 加 .txt（见 docs/README「许可证」） */
   'fonts/OFL-LXGWWenKai.txt', 'fonts/OFL-NotoSerifSC.txt', 'vendor/uqr-LICENSE']);
-/* ⚠ 加页面**必须同时改两处**：PUBLIC_FILES（放行文件）+ 下面的 CLEAN（干净 URL）。
-   只改一处要么 404、要么页面存在但没有 /xxx 这样的地址。 */
+if (STATIC_ONLY) for (const f of RETIRED_HTML) PUBLIC_FILES.delete(f);
+/* ⚠ 加页面必须同时改 PUBLIC_FILES（放行文件）与 CLEAN（干净 URL），漏一处就 404。 */
 
 /* 注：曾经还有一个独立的英文页 en.html。i18n 上线后它是**冗余**的 ——
    全站一套代码两种语言，再留一个手写的英文页就变成两份必然漂移的实现，
@@ -303,10 +304,10 @@ function sendFile(res, fp, longCache, req) {
          · 页面报「does not provide an export named ...」→ 模块链断 → 下半页空白
        改成 1 小时 + must-revalidate：既保住缓存收益，又能**自己好**（最多一小时）。
        配上下面新加的 ETag，重校验是 304，不会重下 730KB 的参照集。 */
+    /* PHM_DEV=1 一律 no-store：开发时改了 js 立刻生效，不用换版本号也不用强刷。 */
     const cc = isHtml ? 'no-cache'
-      : (longCache ? 'public, max-age=3600, must-revalidate'
+      : (process.env.PHM_DEV === '1' ? 'no-store' : longCache ? 'public, max-age=3600, must-revalidate'
         : ((ext === '.js' || ext === '.json') ? 'no-cache' : 'public, max-age=3600'));
-
     /* ETag：由「大小 + mtime」算出（弱校验即可 —— 内容会随 accept-encoding 变）。
        有了它，must-revalidate 的代价从「重下整个文件」降到「一次 304」。
        ⚠ 以前没有 ETag，所以长缓存的资源一旦过期就只能整份重传。 */
@@ -408,6 +409,10 @@ const apiRoutes = makeApiRoutes({
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
 const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+/* 写谱链路的总开关：PHM_WRITE=off 时页面回说明页、接口 503。默认开。 */
+const WRITE_ENABLED = writeEnabled(process.env);
+const agentRoutes = makeAgentRoutes({ send, gate, gateAnalyze, readBody });
+const rksRoutes = makeRksRoutes(SEC_HEADERS);
 /* 档案路由：token 从 x-hm-token 读（托管网关会吃掉 Authorization，真踩过）。 */
 const profileRoutes = makeProfileRoutes({ send, gate, gateRead: gateStats, gateWriteId, whoami: hmWhoami,
   getProfile: hmGetProfile, putProfile: hmPutProfile, touchProfile: hmTouchProfile, deleteAccount: hmDeleteAccount, dbFetch });
@@ -438,6 +443,8 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
   if (p === '/api/status') return statusRoutes(req, res, url);
   if (p.startsWith('/api/phira-illust/') || p.startsWith('/api/phira-file/')) return chartAssets(req, res, url);
+  /* 按近期成绩估 RKS —— 官方 B19 自 2026-03 起停更，这一条给它兜底 */
+  if (p === '/api/rks' && await rksRoutes(req, res, url)) return;
 
   /* ── huamei：取谱代理 ──
      客户端把 `API_URL` 指到这里，于是 Phira 的整个 API 面都经我们这一跳。
@@ -458,55 +465,7 @@ const server = http.createServer(guardRequest(async (req, res) => {
     '/terms/',           // 服务条款 / 隐私政策（客户端要读）
     '/music',            // 谱面音频
   ];
-  if (p === '/api/phira' || p.startsWith('/api/phira/')) {
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      return send(res, 403, JSON.stringify({ error: 'only GET/HEAD' }));
-    }
-    if (!(await gate(res, gateProxy({ ip }), 'rate limit'))) return;
-    const sub = p.replace(/^\/api\/phira/, '') || '/';
-    /* 前缀不匹配 → 404，**不要**透传。
-       ⚠ 用 startsWith 而不是正则：前缀是写死的字面量，正则只会引入意外。 */
-    if (!PHIRA_PROXY_PATHS.some(pre => sub === pre || sub.startsWith(pre))) {
-      return send(res, 404, JSON.stringify({ error: 'path not allowed' }));
-    }
-    const target = PHIRA_API + sub + (url.search || '');
-    /* ⚠ 条件请求头必须转发。
-       客户端用 HEAD `/terms/{locale}.txt` + `If-Modified-Since` 判断
-       「服务条款有没有变」—— 只靠响应里的 `Last-Modified`。
-       把这两个头截掉，客户端会直接报
-       `获取服务条款和隐私政策内容失败 / invalid last-modified header`。
-       （实测：代理只回 content-type 时，条款页永远打不开。） */
-    const fwd = {};
-    for (const h of ['if-modified-since', 'if-none-match']) {
-      if (req.headers[h]) fwd[h] = req.headers[h];
-    }
-    try {
-      const up = await fetch(target, {
-        method: req.method,
-        headers: Object.assign({
-          'accept': 'application/json,text/plain,*/*',
-          'accept-language': 'zh-CN,zh;q=0.9',
-          'user-agent': 'phm-huamei/1.0 (+https://phm.app.workbuddy.host)',
-        }, fwd),
-        redirect: 'follow',
-        signal: AbortSignal.timeout(15000),
-      });
-      const buf = Buffer.from(await up.arrayBuffer());
-      /* 回程头白名单 —— **不能只回 content-type**。
-         `last-modified` / `etag` 是条件请求的判据；
-         `content-length` 给 HEAD 用；`accept-ranges` 留给续传。 */
-      const out = { 'content-type': up.headers.get('content-type') || 'application/json; charset=utf-8' };
-      for (const h of ['last-modified', 'etag', 'content-length', 'accept-ranges']) {
-        const v = up.headers.get(h);
-        if (v) out[h] = v;
-      }
-      out['cache-control'] = 'no-store';
-      res.writeHead(up.status, Object.assign(out, SEC_HEADERS));
-      return res.end(req.method === 'HEAD' ? undefined : buf);
-    } catch (e) {
-      return send(res, 502, JSON.stringify({ error: 'upstream: ' + String(e.message || e).slice(0, 120) }));
-    }
-  }
+  if (await phiraProxy(req, res, url, p, ip, gate, gateProxy, send, SEC_HEADERS)) return;
 
   /* ── huamei：成绩接收 ──
      身份 = 用户自己的 huamei token；写入只经 hm_put_play()（SECURITY DEFINER）。 */
@@ -571,6 +530,21 @@ const server = http.createServer(guardRequest(async (req, res) => {
       }));
     }
 
+    /* ── 必须**验签通过**，不能只看 sub 存不存在 ──
+       ⚠ 2026-10-24 防御审计指出并核实：`hmWhoami` 的正路全挂时会降级到
+         `subFromJwt` —— 那是**本地解析、完全不验签**，只看结构/aud/exp。
+         于是任何人自己造一个 JWT（sub 填别人的 id）就能往那个账号名下写成绩。
+         Key 管理那条路已经要求 `verified === true` 了，成绩写入没有要求，这不一致。
+       → 写库一律要求验签通过。降级身份只允许读，不许写。 */
+    if (who.verified !== true) {
+      return send(res, 401, JSON.stringify({
+        ok: false,
+        error: 'token_unverified',
+        detail: '成绩写入需要验签通过的身份；降级解析不算',
+        variant: who.variant || null,
+      }));
+    }
+
     /* ⚠ 第二道闸：按**身份**限流（身份优先于 IP —— GitHub/Stripe 的做法）。
        IP 在 NAT/网关后面不可信（实测线上对端恒为 127.0.0.1），
        而我们自己签发的 sub 伪造不了。
@@ -622,6 +596,11 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* ── /api/contribute/ticket ── 贡献凭证（见 lib/contribute-routes.mjs）──
      /api/contribute 不再接受匿名直接写入：客户端必须先用真实存在的 chart_id
      换一张 5 分钟有效的 HMAC 凭证。换证只查 Phira 元数据，**不下载谱面**。 */
+  /* agent 的三条路由收在 lib 里 —— server.mjs 已到 900 行硬上限 */
+  if (p.startsWith('/api/agent/')) {
+    if (!WRITE_ENABLED) return send(res, 503, JSON.stringify({ error: 'write feature is off', code: 'write_disabled' }));
+    return agentRoutes.handle(req, res, url, ip);
+  }
   if (p === '/api/contribute/ticket') return contributeRoutes.ticketRoute(req, res, ip);
 
   /* 写入网关：校验 + 限流 + 落库 */
@@ -859,6 +838,13 @@ const server = http.createServer(guardRequest(async (req, res) => {
      **显式白名单，不是通配** —— 加页面必须同时进 PUBLIC_FILES。 */
   const cleanHit = CLEAN[p];
 
+  /* ── 写谱链路的开关（见 lib/write-scope.mjs 顶部）──
+     关掉时这两个页面回一张**不依赖任何脚本**的说明页，接口一律 503。
+     这样它坏了不用回滚整站：改一个环境变量重启即可。 */
+  if (!WRITE_ENABLED && (p === '/write' || p === '/agent')) {
+    return send(res, 200, CLOSED_PAGE, 'text/html; charset=utf-8');
+  }
+
   /* 静态资源：**白名单之外一律 404** —— 绝不送源码 / 配置 / 运行时数据 */
   /* ⚠ 畸形百分号编码（`/%`）会让 decodeURIComponent 抛 URIError —— 一个畸形 URL
      就能打掉进程。必须自己接住。（路径穿越是安全的：`%2e%2e` 解码后被白名单挡住。） */
@@ -879,7 +865,9 @@ const server = http.createServer(guardRequest(async (req, res) => {
   const longCache = hasVer && /\.(js|css|png|svg|ico|webp|woff2|json)$/i.test(rel);
   /* 页面 HTML 一律 no-cache（sendFile 内部按扩展名判断），
      所以干净 URL 不需要额外处理缓存头。 */
-  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) return sendFile(res, fp, longCache, req);
+  if (fs.existsSync(fp) && fs.statSync(fp).isFile()) {
+    return sendFile(res, fp, longCache, req);
+  }
   return send404(res);
 }), softFault);
 

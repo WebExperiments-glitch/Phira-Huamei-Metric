@@ -110,7 +110,26 @@ export function dbHeaders(extra) {
    结果把**正常响应**也截了 —— 行数一多 JSON.parse 就失败，调用方拿到空集还以为是
    「库里没数据」。这种「静默返回空」比抛错危险得多（批量任务会白跑一遍）。
    默认放到 8KB 足够单行/小结果；列表类查询显式传更大的值。 */
+/* ── 驱动选择：PostgREST(HTTP) 还是 pg 直连 ──
+ * 2026-10-21 换到 Neon 之后，CloudBase 那个 PostgREST 端点不复存在，
+ * 于是加了一层把 PostgREST 语法翻译成 SQL 的适配（见 lib/db-pg.mjs）。
+ * 判据是**有没有配 Neon 连接串**，不是人记着去改开关 —— 换环境时少记一件事。 */
+/* ⚠ 别写 ENV——这个文件里的 .env 解析在 resolveWriteSecret() 里是**局部变量**，
+   没有模块级的 ENV。直接再读一次 .env，代价可忽略（只在首次 dbFetch 时跑）。 */
+const NEON_URL = process.env.PHM_NEON_URL
+  || (readDotEnv(path.join(ROOT, '.env')).PHM_NEON_URL || '');
+const USE_PG = (process.env.PHM_DB_DRIVER || (NEON_URL ? 'pg' : 'rest')) === 'pg';
+let _pgFetch = null;
+
 export async function dbFetch(pathAndQuery, init, timeoutMs = 15000, maxBody = 8192) {
+  if (USE_PG) {
+    if (!_pgFetch) {
+      const { makePgFetch } = await import('./db-pg.mjs');
+      _pgFetch = makePgFetch(NEON_URL);
+      console.log('[phm] 数据库驱动：pg 直连 (' + NEON_URL.split('@')[1].split('/')[0] + ')');
+    }
+    return _pgFetch(pathAndQuery, init, timeoutMs, maxBody);
+  }
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {

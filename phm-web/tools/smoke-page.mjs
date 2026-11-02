@@ -25,6 +25,8 @@
  * ============================================================ */
 import { spawn } from 'node:child_process';
 import net from 'node:net';
+/* 下线闸门的真值与服务端同一份 —— 不抄第二份清单，抄了必然漂移 */
+import { STATIC_ONLY } from '../lib/retired.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -108,13 +110,17 @@ const evalJS = async expr => {
 };
 
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, skip = 0;
 /* 跨页共享的观察值（例如「各页版本号是否一致」） */
 const CC = {};
 const ok = (n, c, d) => {
   if (c) { pass++; console.log('  ✓ ' + n); }
   else { fail++; console.log('  ✗ ' + n + (d ? '  → ' + d : '')); if (d) errors.push('[冒烟] ' + n + ' → ' + d); }
 };
+/* 「环境缺东西」与「我们写坏了」必须分开。
+   跳过**不是通过**：它单独计数，并在汇总行里显示，不允许静默变绿。
+   只在上游明确不可用时用，判据见各调用点。 */
+const skipped = (n, why) => { skip++; console.log('  - 跳过 ' + n + '  → ' + why); };
 
 /* ── 开浏览器之前的静态检查：**版本串必须处处一致** ──
    ES 模块按 **URL 字符串**去重。同一个文件被两种 URL 引用
@@ -212,8 +218,16 @@ const ROUTES = [
   { path: '/', name: '首页', sel: ['#verfoot'], mod: 'ui' },
   { path: '/app', name: '工作台', sel: ['#drop', '#file', '#msg', '#out', '#csrch'], mod: 'engine' },
   { path: '/rulechart', name: '规则写谱', sel: ['#rcGo', '#preview', '#rcPez', '#rcReport'], mod: 'rulechart' },
+  /* /agent 的 ready 判据不能只看 DOM：它 boot() 里要异步探服务端有没有 Key，
+     未配 Key 时会把发送按钮禁掉。所以只断言「页面和输入框存在」。 */
+  { path: '/write', name: 'AI 写谱', sel: ['#q', '#send', '#log', '#stat', '#empty'], mod: 'ui' },
+  { path: '/agent', name: 'AI 写谱（旧）', sel: ['#q', '#send', '#log', '#stat'], mod: 'ui' },
+  { path: '/render', name: '谱面渲染', sel: ['#zone', '#canvas', '#seek'], mod: 'ui' },
   { path: '/packs', name: '谱面包', sel: ['#q', '#lv', '#sort', '#list', '#more'], mod: 'ui',
     ready: `!!document.querySelector('#list .card2')` },
+  /* 差值表是 JS 渲染的，ready 必须等表格真的出现 —— 只看 DOM 有 tbody 会秒过 */
+  { path: '/discrepancy', name: '标称vs实测', sel: ['#s-n', '#s-med', '#s-gt1', '#rows'], mod: 'ui',
+    ready: `document.querySelectorAll('#rows tr').length > 100` },
   /* 法务页是自带 <nav> 的静态正文页（不用 JS 生成导航），所以 standalone。 */
   { path: '/privacy', name: '隐私', sel: ['h1'], mod: 'ui', standalone: true },
   { path: '/terms', name: '服务条款', sel: ['h1'], mod: 'ui', standalone: true },
@@ -305,7 +319,17 @@ for (const R of ROUTES) {
      写死具体数字是有意的：**少一个入口是回归**，而"≥6"这种松断言拦不住它。 */
   /* ⚠ 数字跟着 NAV 走：2026-10-21 收敛后只剩 4 个入口（首页/工作台/规则写谱/谱面包）。
      写死具体数字是有意的 —— ">=N" 这种松断言拦不住「少了一个入口」这种回归。 */
+  /* 导航条目数与站点模式无关 —— 静态站也保留完整清单（点进去是 410 说明页），
+     所以这里只验「到底渲染出几个」。写死数字是有意的：少一个入口是回归。 */
   ok('导航含 4 个入口', (info.navLinks || []).length >= 4, JSON.stringify(info.navLinks));
+  /* ★ 导航里的每一条都必须真的返回 200。
+     2026-11-02 事故：导航挑了 /data /charter /settings 三项，
+     而它们在本站的「静态分析工具」形态下是 **410 Gone** ——
+     用户点进去看到「已下线」，比没有入口更糟。只数个数拦不住这种事。 */
+  for (const href of (info.navLinks || [])) {
+    const rs = await fetch(new URL(href, BASE));
+    ok('导航项可访问 ' + href, rs.status === 200, String(rs.status));
+  }
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
@@ -578,8 +602,18 @@ for (const R of ROUTES) {
       ok('★ 路径穿越被拒（SSRF 闸门）', ill.badPath === 404 || ill.badPath === 400, String(ill.badPath));
       ok('★ 绝对 URL 被拒（SSRF 闸门）', ill.evilHost === 400 || ill.evilHost === 404, String(ill.evilHost));
       ok('★ 非 GET/HEAD 被拒', ill.post === 405, String(ill.post));
-      ok('★ 支持 Range（大图先试前 64KB）',
-        ill.rangeSt === 206 && ill.rangeLen === '100', JSON.stringify({ st: ill.rangeSt, len: ill.rangeLen }));
+      /* 502 在这个端点上**只表示上游失败**（lib/chartassets.mjs:
+         `up.status === 404 ? 404 : 502`），不是代理写坏了。
+         Phira CDN 对 GitHub 运行器偶发不可达（2026-11-01 夜间连续三次），
+         此时断言没有意义 —— 记跳过并报出来，而不是变绿或变红。 */
+      if (ill.rangeSt === 502) {
+        skipped('★ 支持 Range（大图先试前 64KB）',
+          'via=upstream-502：Phira CDN 不可达，属外部故障，非本站代码问题');
+      } else {
+        ok('★ 支持 Range（大图先试前 64KB）',
+          ill.rangeSt === 206 && ill.rangeLen === '100',
+          JSON.stringify({ st: ill.rangeSt, len: ill.rangeLen }));
+      }
     }
   }
 
@@ -662,8 +696,27 @@ for (const R of ROUTES) {
       for (const h of hrefs) { try { res[h] = (await fetch(h, {method:'GET'})).status; } catch(e){ res[h] = 'ERR'; } }
       return res;
     })()`);
-    const bad = Object.entries(links || {}).filter(([, s]) => s !== 200);
-    ok('导航每个入口都返回 200', bad.length === 0, JSON.stringify(links));
+    /* ⚠ 2026-10-21：同一份代码跑两个站，**静态站**上账号/成绩/数据那几个入口
+       是故意 410 的（见 lib/retired.mjs）。所以判据不是"必须 200"，而是
+       **"要么能用，要么明确告诉你为什么不能用"**：
+       非 200 只允许 410，且响应体里必须有「未启用」的说明。
+       （措辞在 2026-10-22 从"已停止运营"改成"未启用" —— 站点复活了，
+        再说整站停止运营就是假话；410 本身仍然是对爬虫的正确信号。） */
+    const nonOk = Object.entries(links || {}).filter(([, s]) => s !== 200);
+    const notGone = nonOk.filter(([, s]) => s !== 410);
+    ok('导航入口没有 404/500（410 是已下线，允许）', notGone.length === 0,
+      notGone.length ? JSON.stringify(notGone) : ('已下线 ' + nonOk.length + ' 个'));
+    if (nonOk.length) {
+      const gone = await evalJS(`(async function(){
+        const out = [];
+        for (const h of ${JSON.stringify(nonOk.map(([h]) => h))}) {
+          const t = await (await fetch(h)).text();
+          if (!t.includes('未启用')) out.push(h);
+        }
+        return out;
+      })()`);
+      ok('410 的入口都给了「未启用」说明', (gone || []).length === 0, JSON.stringify(gone));
+    }
   }
 
   const newErr = errors.length - before;
@@ -678,34 +731,77 @@ for (const R of ROUTES) {
  * 哪天有人把它们加回白名单（或在 CLEAN 里重新映射），下线就静默失效了，
  * 而用户点进去只看到 503，接着以为网站坏了。这条断言就是防那个。
  * ══════════════════════════════════════════════════════════ */
-console.log('\n[下线闸门] 被撤的路径必须 410');
+/* ⚠ 这一节必须**跟着服务端模式走**，不能写死。
+   2026-10-21 因托管环境所限把站点收敛成静态，当时把 19 条路径写死成「必须 410」。
+   2026-10-25 服务与数据库恢复，站点回到全功能 —— 写死的断言立刻全红，
+   但那是**测试过期**，不是站点坏了。
+
+   判据改成读 lib/retired.mjs 的同一份真值：
+     静态模式 → 被撤路径必须 410（防「重新加回白名单导致下线静默失效」）
+     全功能   → 这些路径不得 410（防「闸门没关」）
+   两个方向相反，防的是同一件事：**清单和实际行为不一致**。 */
+const GONE_ALL = ['/user', '/data', '/charter', '/status', '/settings', '/platform',
+  '/developers', '/phm-api', '/download', '/version', '/chart/1', '/chart/80281',
+  '/api/v1/charts', '/api/hm/profile', '/api/stats', '/api/plays', '/api/scores'];
+console.log(STATIC_ONLY
+  ? '\n[下线闸门] 静态模式：被撤的路径必须 410'
+  : '\n[下线闸门] 全功能模式：这些路径不得 410');
 {
-  const GONE = ['/user', '/data', '/charter', '/status', '/settings', '/platform',
-    '/developers', '/phm-api', '/download', '/version', '/chart/1', '/chart/80281',
-    '/api/v1/charts', '/api/hm/profile', '/api/stats', '/api/plays', '/api/scores'];
-  for (const g of GONE) {
+  for (const g of GONE_ALL) {
     const r = await fetch(BASE + g, { redirect: 'manual' });
-    ok('410 Gone  ' + g, r.status === 410, 'got ' + r.status);
+    if (STATIC_ONLY) {
+      ok('410 Gone  ' + g, r.status === 410, 'got ' + r.status);
+    } else {
+      /* 全功能站只判闸门方向。404/500 是别的问题（例如数据库抖动），
+         不该由这条断言背 —— 否则真出闸门故障时反而看不出来。 */
+      ok('闸门已开  ' + g, r.status !== 410, 'got ' + r.status);
+    }
   }
+  /* /retired 与裸文件路径都是**模式相关**的，不能写死。
+     静态站：/retired 要有说明页；裸 .html 不在白名单 → 404
+     全功能站：/retired 没意义（首页都在，"整站停运"就是假话）；裸 .html 在白名单 → 200 */
   const r = await fetch(BASE + '/retired');
-  const t = r.ok ? await r.text() : '';
-  ok('/retired 说明页可达', r.status === 200 && t.includes('停止运营'), 'status=' + r.status);
-  ok('/api/health 仍通', (await fetch(BASE + '/api/health')).ok);
-  /* 裸文件路径是**另一种**正确行为：文件还在磁盘上，但不在 PUBLIC_FILES 白名单里
-     → 404。干净 URL（/user）才是 410。两条都钉住，别混。 */
-  for (const f of ['/user.html', '/data.html', '/settings.html', '/status.html']) {
-    const r = await fetch(BASE + f, { redirect: 'manual' });
-    ok('裸文件 404  ' + f, r.status === 404, 'got ' + r.status);
+  if (STATIC_ONLY) {
+    const t = r.ok ? await r.text() : '';
+    ok('/retired 说明页可达', r.status === 200 && t.includes('未启用'), 'status=' + r.status);
+    for (const f of ['/user.html', '/data.html', '/settings.html', '/status.html']) {
+      const rr = await fetch(BASE + f, { redirect: 'manual' });
+      ok('裸文件 404  ' + f, rr.status === 404, 'got ' + rr.status);
+    }
+  } else {
+    /* 全功能站：裸 .html 在 PUBLIC_FILES 里，必须能直接打开。
+       ⚠ 这一条同时守住「白名单漏了」——漏了会 404，而干净 URL 仍是 200，
+         光看干净 URL 发现不了。 */
+    for (const f of ['/user.html', '/data.html', '/settings.html', '/status.html']) {
+      const rr = await fetch(BASE + f, { redirect: 'manual' });
+      ok('裸文件可达  ' + f, rr.status === 200, 'got ' + rr.status);
+    }
   }
+  ok('/api/health 仍通', (await fetch(BASE + '/api/health')).ok);
 }
 
-/* 横幅不许依赖 JS：直接读 HTML 源（不执行任何模块）——
-   这是「模块链一环失败整页就没文字」最坏的形态，而横幅是最该守的一条。 */
-console.log('\n[横幅] 站点公告写死在 HTML 里');
+/* 「本网站已停止运行」横幅已于 2026-10-22 整体删除（站点已复活，那句话是假话）。
+   这里改为**反向断言**：它不许再出现在任何页面的 HTML 源里 ——
+   否则哪天有人从旧分支捞回一段模板，横幅会悄悄回来，而没人会发现。 */
+console.log('\n[横幅] 「已停止运行」不许再出现');
 {
-  const html = await (await fetch(BASE + '/app')).text();
-  ok('横幅文案在 HTML 源里', html.includes('本网站已停止运行'));
-  ok('横幅链接指向 /retired', html.includes('href="/retired"'));
+  const pages = ['/', '/app', '/packs', '/rulechart', '/privacy', '/terms'];
+  const leaked = [];
+  for (const p of pages) {
+    const html = await (await fetch(BASE + p)).text();
+    if (html.includes('本网站已停止运行') || html.includes('retire-banner')) leaked.push(p);
+  }
+  ok('页面 HTML 源里没有「已停止运行」横幅', leaked.length === 0, JSON.stringify(leaked));
+  /* 静态站的 410 页要给一句人话（措辞用中性的"未启用"）。
+     全功能站上 /user 是正常页面，这条不适用 —— 但它仍然要守一件事：
+     **任何页面都不许出现"停止运营"这种已成假话的措辞**。 */
+  const userPage = await (await fetch(BASE + '/user')).text();
+  if (STATIC_ONLY) {
+    ok('410 页仍说明原因（用「未启用」而不是「停止运营」）',
+      userPage.includes('未启用') && !userPage.includes('停止运营'));
+  } else {
+    ok('全功能站不出现「停止运营」字样', !userPage.includes('停止运营'));
+  }
 }
 
 
@@ -744,6 +840,6 @@ errors.slice(0, 12).forEach(e => console.log('   ! ' + e));
 if (warns.length) console.log('警告 ' + warns.length + ' 条（前 3）：' + warns.slice(0, 3).join(' | ').slice(0, 300));
 
 console.log('\n────────');
-console.log(`通过 ${pass} · 失败 ${fail} · 运行时报错 ${errors.length}`);
+console.log(`通过 ${pass} · 失败 ${fail} · 跳过 ${skip} · 运行时报错 ${errors.length}`);
 ws.close(); cleanup();
 process.exit((fail || errors.length) ? 1 : 0);

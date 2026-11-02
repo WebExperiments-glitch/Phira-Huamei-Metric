@@ -222,7 +222,11 @@ if (PROD) {
      ⚠ 别写成「必须 404」—— 线上前面还有一层平台网关，它会对 `.git/`、`/db/`
      这类路径直接回 **403**（比我们的 404 更早一步）。两种都不是泄露。
      判据应该是「拿得到内容吗」，不是「状态码是不是恰好 404」。 */
-  for (const p of ['/server.mjs', '/lib/cloud.mjs', '/write-secret.txt', '/db/api-v2/20.sql', '/.git/config']) {
+  /* ⚠ .env 一定要在这里：2026-10-21 起它里面除了写入凭据，还有 **Neon 的数据库密码**。
+     而部署工具上传的是**整个目录**（不走 git），所以 .env 真的会躺在服务器上 ——
+     白名单是唯一的防线。（和 write-secret.txt 同一个道理。） */
+  for (const p of ['/server.mjs', '/lib/cloud.mjs', '/write-secret.txt', '/.env',
+    '/db/api-v2/20.sql', '/db/neon/10-core.sql', '/.git/config']) {
     const r = await get(p);
     if (r.status === 404) ok(p + ' 正确 404（本站白名单）');
     else if (r.status === 403) ok(p + ' 403（平台网关拦截，同样拿不到内容）');

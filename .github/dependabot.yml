@@ -1,0 +1,51 @@
+# Dependabot —— 自动提 PR 升级依赖与 Action 版本
+# ============================================================
+# 【为什么需要】
+#   这个项目的运行时依赖只有 1 个（pg），看起来"没什么可升的"。
+#   但 **GitHub Actions 用的 action 本身也是依赖** ——
+#   actions/checkout@v4 这类一旦过期，GitHub 会强制切换运行时，
+#   某天 CI 会毫无征兆地开始报 deprecation 甚至直接失败。
+#   实际见过：`Node.js 20 is deprecated ... forced to run on Node.js 24`。
+#
+# 【节奏】
+#   每周一次、同一时刻，避免一天提十个 PR 淹掉真正的工作。
+#   分组（groups）把同一生态的升级合成一个 PR，减少噪音。
+
+version: 2
+
+updates:
+  # ── 运行时依赖 ──
+  - package-ecosystem: npm
+    directory: /phm-web
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "deps"
+    # ⚠ 只自动提 minor / patch。major 往往带破坏性变更（比如 pg 大版本改连接行为），
+    #   必须人来判断 —— 让 Dependabot 提一个 PR 摆着看，比自己忘了升级更可控。
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      npm-minor:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # ── GitHub Actions 版本 ──
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns: ["*"]

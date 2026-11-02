@@ -48,6 +48,7 @@ phm-web/
 │   ├── ratelimit.mjs          ← 限流：进程内预筛 + DB hm_rate_hit 权威计数
 │   ├── contribute-ticket.mjs  ← /api/contribute 的 HMAC 贡献凭证（签 / 验）
 │   ├── contribute-routes.mjs  ← 换票路由 + 验票 + 服务端复核后落库
+│   ├── agent-routes.mjs       ← AI 写谱代理：SSE 透传到 DeepSeek，Key 不出服务端
 │   ├── api-keys.mjs           ← API Key 生成 / sha256 哈希 / 掩码（sk-…）
 │   └── download.mjs           ← 下载端点：流式 + Range + ETag
 │
@@ -75,13 +76,27 @@ phm-web/
 │   ├── css/
 │   │   ├── base.css           ← 底座：令牌 / reset / 排版 / 布局骨架 / 导航 / 卡片 / 表格
 │   │   ├── ui-kit.css         ← 组件：控件 / 按钮 / callout / 芯片 / 字体与字号档位
+│   │   ├── motion.css         ← 动效层：入场揭示 / 悬停抬升 / 进度条 / 噪点 / 跨页转场
 │   │   ├── docs.css           ← 法务长文版式（privacy / terms）
 │   │   └── api.css            ← 开发者文档 / API 开放平台版式
 │   └── js/
 │       ├── engine.js          ← ★★ 引擎：浏览器与 Node 共用的唯一真源（纯计算）
 │       ├── audio-analysis.js  ← ★ 浏览器音频提取：BPM / 拍点 / 踩音点 / 段落
+│       ├── agent.js          ← 写谱 Agent 装配入口：提示词 + 注册表 + 主循环 → createWriter()
+│       ├── agent-page.js     ← /agent 页交互：气泡 / 审批卡片 / 事件流（不含谱面判断）
+│       ├── write-page.js     ← /write 全屏对话：附件（MP3/图片）/ 思考懒渲染 / 插话两态
+│       ├── agent-commands.js  ← ★ 14 条命令 + 三档权限（read / edit / danger），工具定义由注册表生成
+│       ├── agent-runtime.js   ← ★ 主循环：messages / transcript / checkpoint 三数组，失败回滚
+│       ├── agent-prompt.js    ← 写谱 Agent 的系统提示词（领域知识 + 三条诚实条款）
+│       ├── chart-geom.js     ← ★ RPE 谱面几何抽提 + Canvas 绘制（30 种缓和曲线按 phichain 的权威表）
+│       ├── chart-lint.js     ← ★ 谱面体检：五层校验（语法/密度/配置/手序/深度），纯函数
+│       ├── script-eval.js    ← ★ 生成脚本解释器（**不用 eval**：CSP 没开 unsafe-eval，new Function 必被拦）
+│       ├── beat-time.js      ← ★★ 拍 ↔ 秒的**唯一真源**（收 RPE 的 BPMList，变速谱成立；与 rhythm.js 的恒定速度网格版不同物）
+│       ├── render-page.js    ← /render 页交互：拖入解析 / 播放头 / 体检报告渲染
 │       ├── phira.js           ← ★ Phira API 客户端（接口陷阱清单写在文件头）
 │       ├── ui.js              ← 导航 / 格式化 / 缓存读取 / P.H.M. RKS
+│       ├── markdown.js        ← 极简 markdown（转义优先 + 白名单，无第三方依赖）
+│       ├── motion.js          ← ★ 动效运行时（零依赖；减弱动效时整份不执行）
 │       ├── settings.js        ← ★★ 用户设置的**唯一真源**：键名 / 默认值 / 读写 / 清理
 │       ├── handoff.js         ← 首页 → /app 的 IndexedDB 文件接力
 │       ├── i18n.js + i18n/    ← 双语：10 个页面分片，中英写在同一个文件
@@ -91,7 +106,7 @@ phm-web/
 │       ├── versions-archive.js ← 版本历史的旧条目。拆开的原因：versions.js 只增不减，每次发版都会顶到 900 行上限
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
-├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（49 个）
+├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（72 个）
 │   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件）
 │   ├── gen-release.mjs        ← 从实际 exe 算大小 / sha256 / 客户端版本
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
@@ -165,6 +180,7 @@ phm-web/
 | 分享卡片的版式 / 文案 | `public/js/sharecard.js` |
 | 分享卡上的二维码 | `public/js/qr.js` —— 编码器是 `public/vendor/uqr.mjs`（MIT）。⚠ **模块边长必须整数**：`size/total` 得到小数再逐格 round，格子会在 3/4 像素间交替，看着正常但解码器认不出（实测 132px 的码 jsQR 完全解不开）。另外每模块至少 3–4px。 |
 | `/app?chart=<id>` 深链 | `public/js/deeplink.js` —— 谱面文件由浏览器**直连** Phira CDN（CSP `connect-src` 已放行 `phira.5wyxi.com`）。⚠ 与首页接力互斥，否则会分析两遍。 |
+| 玩家实测难度 | `public/js/behav.js` —— `/data/behavior-diff.json`（1,700 张谱，每张 ≥10 人）。由 17,000 名玩家的 15.8 万条记录按 `log(std)` 双向固定效应反推，**完全不看谱面文件**，所以能跟引擎算的数互相印证。⚠ 只有知道谱面 id 时才有（深链进来），本地拖入的文件没有 id。⚠ JSON 一次会话只拉一次。 |
 | 自动写谱（MP3 → 提取 → RPE v160 .pez/.zip） | `public/js/audio-analysis.js` + `public/js/rulechart.js` —— 浏览器本地提取/排谱，页面 `/rulechart` |
 | 自动写谱 · 时间轴（A） | `public/js/rhythm.js` —— 拍网格 / 相位精调 / **量化（含三连音）** / 乐句边界。⚠ 量化不是「吸到 1/4 网格」：层级 1·2·3·4·6，**故意不含 1/8** —— 三十二分太细，有了它任何位置都能被「对上」，容差就形同虚设。层级代价 `SUBDIV_COST_MS` 保证「简单读法优先」|
 | 自动写谱 · 事件选择（B） | `public/js/salience.js` —— 给每个候选打**音乐显著性**（强度打底 × 拍位 × 声部，乘子结构不是加权求和），再按分数选到目标数量。⚠⚠ **绝不凭空造音符**：候选不够就少给，`shortfall` 如实上报。同一份文件还负责映射判定线（按「哪只手更空」分配，不是 i%2 机械交替）|
@@ -173,6 +189,7 @@ phm-web/
 | 账号服务端 | `lib/hm-accounts.mjs`（scrypt 哈希 + 自签 HS256 JWT + 真验签）· `lib/hm-code-routes.mjs`（注册/登录/发码/重置）· `lib/hm-profile-routes.mjs`（档案 / 绑定 / 注销）。⚠ 自签与平台 token 的差别是**能不能验签**：平台密钥在平台手里，服务端只能解析 `sub`，等于谁都能伪造；自签的密钥只在服务端 |
 | 全局错误兜底 | `public/js/guard.js` —— `error` / `unhandledrejection` / 断网三类提示，右上角 toast。**原本全站只有 app.html 接了 rejection，其余 9 页静默无痕**。自包含页 `phm-api.html` 内联一份（改名 `_gcut` 避开重名） |
 | 技能分（难在哪） | public/js/skills.js —— 把 feats 的 39 个特征重组为 stamina/dexterity/reading/precision 四技能。纯展示层：不改数值、不动 ENGINE_VER、不进 k-NN 的 REF_DIMS，所以不需要重算缓存。⚠ 只在「刚分析完」的响应里给 —— phm_charts 表没有 feats 字段，缓存行算不出来 |
+| 标称 vs 实测（`/discrepancy`） | `public/discrepancy.html` + `public/js/i18n/discrepancy.js` + `public/js/discrepancy-data.js` —— 数据由 `tools/gen_discrepancy.py` 生成。**标称必须取 `level` 字段**（正则 `Lv.数字`），`difficulty` 字段与它只有 30% 一致，用错会造出 +19 级的假差值 |
 | 谱面包 / 资源打包下载 | `public/js/chartfiles.js` + `public/js/chartfiles-core.mjs` —— 页面 `/packs`。**零中转**：服务器只代理 JSON 元数据，曲绘/音乐/chart 文件一律**浏览器直连 Phira CDN**，`.pez` 在浏览器本地用 `rulechart.js` 导出的 `zipStore` 打包。⚠ 纯函数层必须在 `public/js/` 不能放 `lib/` —— `lib/` 不在静态白名单里 |
 | 接口路由 / 校验 / 限流 / 静态托管 | `server.mjs` |
 | 曲绘为什么加载不出来 | `lib/chartassets.mjs` —— 上游 MIME 是 `application/octet-stream`，浏览器 **ORB** 会拒绝解码（`ERR_BLOCKED_BY_ORB`），所以展示用曲绘必须过我们的代理改 MIME。排查曲绘空白时先看这里，别再怀疑 CDN 挂了 |

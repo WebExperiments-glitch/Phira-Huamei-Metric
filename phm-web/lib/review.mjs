@@ -21,7 +21,7 @@
  *   - 单进程串行复核，带超时；失败就拒绝写入（不降级、不回退）
  * ============================================================ */
 import { analyzeChart, pickUniqueChart, ENGINE_VER } from '../public/js/engine.js';
-import { loadRefCom } from './refstore.mjs';
+import { loadRefCom, readWeightsV2 } from './refstore.mjs';
 
 const PHIRA_API = 'https://api.phira.cn';
 const FETCH_TIMEOUT = 20000;      /* 取谱面信息 */
@@ -140,7 +140,7 @@ export async function recompute(chartId, opts) {
          拿排除口径去卡"没排除"的客户端，会把**正确的贡献**判成"不是同一张谱"。
        所以：落库永远用排除口径；比对时允许客户端对上任一口径。 */
   const reports = await analyzeChart(buf, (info.name || 'chart') + '.pez',
-    { refCom: loadRefCom(), excludeId: o.noExclude ? undefined : +chartId });
+    { refCom: loadRefCom(), excludeId: o.noExclude ? undefined : +chartId, weightsV2: readWeightsV2() });
   const rep = reports.find(x => !x.error);
   if (!rep) throw new Error((reports[0] && reports[0].error) || '解析失败');
 

@@ -18,13 +18,12 @@ export default {
     'nav.charter': '谱师',
     'nav.user': '玩家',
     'nav.data': '数据',
+    'nav.discrepancy': '标称 vs 实测',
     'nav.packs': '谱面包',
     'nav.search': '搜索谱面',
     'nav.search.ph': '曲名 / 谱师 / 标签',
     'nav.settings': '设置',
     'nav.platform': 'API 开放平台',
-    'retire.text': '本网站已停止运行，账号 / 成绩 / 数据功能已全部撤回。',
-    'retire.link': '继续使用请到 →',
     'nav.status': '状态',
     'nav.download': '下载',
 
@@ -59,6 +58,11 @@ export default {
     'guard.rej': '请求没完成，可能是网络问题：{e}',
     'guard.offline': '你已经离线，连网后自动恢复',
     'guard.online': '网络已恢复',
+
+    /* 谱面页：三个数的分歧判断（三列并排却不解释，等于把判断丢给用户） */
+    'c.verdict.agree': '三个数基本一致（差 {d}）—— 这张谱的难度没什么争议。',
+    'c.verdict.looksHard': '引擎比玩家实测高 {d} —— 看着难，其实能打。常见于变速多、视觉唬人但操作不难的谱。',
+    'c.verdict.feelsHard': '玩家实测比引擎高 {d} —— 看着简单，手感坑。操作或读谱比结构上更难。',
     'c.none': '（没有）',
     'c.chart': '曲名',
     'c.charter': '谱师',
@@ -146,13 +150,12 @@ export default {
     'nav.charter': 'Charters',
     'nav.user': 'Players',
     'nav.data': 'Data',
+    'nav.discrepancy': 'Declared vs Measured',
     'nav.packs': 'Packs',
     'nav.search': 'Search charts',
     'nav.search.ph': 'title / charter / tag',
     'nav.settings': 'Settings',
     'nav.platform': 'API Platform',
-    'retire.text': 'This site has been shut down; accounts, scores and data features are withdrawn.',
-    'retire.link': 'Continue using →',
     'nav.status': 'Status',
     'nav.download': 'Download',
 
@@ -182,6 +185,11 @@ export default {
     'guard.rej': 'The request did not complete, possibly a network issue: {e}',
     'guard.offline': 'You are offline; it will resume once reconnected',
     'guard.online': 'Network restored',
+
+    /* chart page: verdict when the three numbers disagree */
+    'c.verdict.agree': 'The three numbers agree (within {d}) — this chart’s difficulty is uncontroversial.',
+    'c.verdict.looksHard': 'The engine reads {d} higher than players — looks scary but plays fine. Common with heavy scroll-speed changes.',
+    'c.verdict.feelsHard': 'Players rate it {d} higher than the engine — looks simple, plays nasty.',
     'c.none': '(none)',
     'c.chart': 'Chart',
     'c.charter': 'Charter',

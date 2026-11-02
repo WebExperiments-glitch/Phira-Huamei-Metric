@@ -199,9 +199,17 @@ export function makeApiRoutes(deps) {
         if (!a.ok) r = a;
       }
     } else {
+      /* ⚠ 匿名也要 failClosed（2026-10-24 审计）：原先只有 Key 路径关了失败，
+         匿名路径在计数库不可用时**退回进程内计数** —— 而部署是无状态的
+         （一请求一进程），进程内计数等于没有，于是限流静默消失。
+         匿名能触发的最贵操作是 `POST /analyses` 的重算（下载谱面 + 跑引擎，
+         并发槽只有 2），这条路一放开就等于免费算力放大器。
+
+         代价为零：API 每条路径本来都要读库，库挂了无论如何都会失败，
+         提前 503 只是把「坏结果」换成「明确的坏结果」。 */
       r = await limit(
         buildKeys('api', { ip }, { perIp: RL.apiAnonHour, perId: RL.apiAnonHour, global: RL.apiAnonGlobal }),
-        RL.apiAnonHour, HOUR, {});
+        RL.apiAnonHour, HOUR, { failClosed: true });
     }
     if (r.ok) return true;
     if (r.via === 'db-down') {
@@ -424,6 +432,9 @@ export function makeApiRoutes(deps) {
       logUsage(who, '/analyses', 200, id, t0);
       return json(res, 200, formatRow(row));
     }
+    /* ⚠ 这里**不**按「必须持 Key」来拦 —— 匿名可查是产品设计（100 次/小时）。
+       真正要防的是「限流失效时仍然放行算力」，那一条在 gateApi 里修（失败关闭）。
+       2026-10-24 审计提到「匿名能触发重算」，结论对，但对策不该是砍掉匿名。 */
     if (!tryEnter('api-analyze', 2)) {
       return apiErr(res, 503, 'server_error', 'analysis_busy', 'analysis is busy; retry shortly', { 'retry-after': '3' });
     }
@@ -431,7 +442,11 @@ export function makeApiRoutes(deps) {
     try {
       trusted = await recompute(id);
     } catch (e) {
-      return apiErr(res, 502, 'server_error', 'analysis_failed', String(e.message || e).slice(0, 140));
+      /* ⚠ 不要把异常原文回给调用方（2026-10-24 审计）：里面可能带上游主机名、
+         文件路径、甚至凭据片段。细节只写服务端日志，对外给稳定错误码。 */
+      console.warn('[phm] recompute failed chart=' + id + ': ' + String(e && (e.stack || e.message) || e));
+      return apiErr(res, 502, 'server_error', 'analysis_failed',
+        'analysis failed; the chart may be unavailable upstream');
     } finally {
       leave('api-analyze');
     }

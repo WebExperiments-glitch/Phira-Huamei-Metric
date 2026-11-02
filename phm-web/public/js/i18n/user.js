@@ -30,6 +30,7 @@ export default {
 
     /* ── 用户卡片 / 账号总览 ── */
     'u.rks.off': 'Phira 官方 RKS<br>（客户端界面不显示，API 里有）',
+    'u.rks.detail': '这 20 张构成上面的估算（近期成绩，不是历史最好）',
     'u.st.records': '总游玩次数',
     'u.st.records.n': '这是账号全部记录数',
     'u.st.records.non': '拿不到统计',
@@ -189,6 +190,7 @@ export default {
 
     /* ── user card / account overview ── */
     'u.rks.off': 'Phira official RKS<br>(not shown in the client, but present in the API)',
+    'u.rks.detail': 'These 20 make up the estimate above (recent plays, not all-time best)',
     'u.st.records': 'Total plays',
     'u.st.records.n': 'every record on the account',
     'u.st.records.non': 'stats unavailable',
