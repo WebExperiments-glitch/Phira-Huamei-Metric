@@ -19,9 +19,19 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.23.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.23.0.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.23.0.1', date: '2026-11-02',
+    zh: ['<b>修顶栏点进去是「已下线」的问题。</b> 上一个版本把导航砍到 5 项，其中三项'
+      + '（定数库、谱师、设置）在现在这个只做分析的版本里已经关停了 —— 点进去只会看到'
+      + '「这里不再运营」。现在只保留真正能打开的四个：首页、算定数、标称 vs 实测、规则写谱。'],
+    en: ['<b>Fixed dead links in the top bar.</b> The previous version trimmed navigation to five items, '
+      + 'but three of them (library, charters, settings) are shut down in this analysis-only build &mdash; '
+      + 'clicking them just said "no longer available". Only the four that actually open remain: '
+      + 'home, analyse, declared vs measured, rule-based writing.'],
+  },
   {
     v: 'V0.23.0.0', date: '2026-11-02',
     zh: ['<b>新增「标称 vs 实测」。</b> 谱面上的定数是谱师自己填的。这一页拿它和玩家实际打出来的难度对照 —— '
