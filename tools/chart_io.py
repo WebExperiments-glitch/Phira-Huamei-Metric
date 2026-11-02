@@ -19,6 +19,7 @@
   x 与 RPE 的 positionX 同一坐标（±675）。
 """
 import json
+import math
 
 
 def _beat_to_sec(bps, beat):
@@ -114,3 +115,90 @@ def load_events(path, max_events=100000):
         ev = parse_pec(raw)
     ev.sort(key=lambda e: e[0])
     return ev[:max_events]
+
+
+# ────────────────────────── 判定线运动（V0.1-beta.3 基础）──────────────────────────
+def _track_value(events, beat):
+    """在拍 `beat` 处取轨道值（分段线性）。
+
+    ⚠ 近似：RPE 的 easingType 有几十种缓动曲线，这里**只做线性插值**。
+    对 `start == end` 的保持型事件（最常见）是精确的；缓动曲线类的偏差
+    会在 beta.4 用完整 easing 表修正。宁可先有一个近似值，也不要继续用
+    错误的坐标（原来直接拿 positionX 当屏幕坐标，判定线一动就全错）。
+    """
+    if not events:
+        return None
+    cur = None
+    for e in events:
+        b0 = _frac(e.get("startTime"))
+        b1 = _frac(e.get("endTime", e.get("startTime")))
+        v0 = float(e.get("start", 0.0))
+        v1 = float(e.get("end", v0))
+        if beat < b0:
+            break
+        if b0 <= beat <= b1:
+            if b1 - b0 < 1e-9:
+                return v1
+            return v0 + (v1 - v0) * (beat - b0) / (b1 - b0)
+        cur = v1
+    return cur
+
+
+def _line_tracks(line):
+    """兼容两种 RPE 结构：老版直接挂在判定线上，v150+ 放在 eventLayers[0]。"""
+    def pick(key):
+        if line.get(key):
+            return line[key]
+        for el in (line.get("eventLayers") or []):
+            if el.get(key):
+                return el[key]
+        return []
+
+    return pick("moveXEvents"), pick("moveYEvents"), pick("rotateEvents"), pick("speedEvents")
+
+
+def load_notes_ex(path, max_events=200000):
+    """返回事件，附带**判定线运动后的屏幕坐标**。
+
+    每项：(t, x_note, sx, sy, rot_deg, type_char, above, hold)
+      x_note   谱面坐标系里的 positionX（±675）
+      sx, sy   判定线移动/旋转后的屏幕坐标（同一尺度）
+      rot_deg  该时刻判定线旋转角
+    """
+    raw = open(path, encoding="utf-8", errors="replace").read()
+    if raw.lstrip()[:1] != "{":
+        # PEC 暂不解析 cm/cr（beta.4）；退回原始坐标，sx=x, sy=0
+        base = parse_pec(raw)
+        return [(t, x, x, 0.0, 0.0, ch, ab, h) for t, x, ch, ab, h in base][:max_events]
+
+    d = json.JSONDecoder().raw_decode(raw.lstrip())[0]
+    if not isinstance(d, dict) or "judgeLineList" not in d:
+        raise ValueError("not RPE")
+    bpm = sorted(d.get("BPMList") or [{"bpm": 120.0, "startTime": [0, 0, 1]}],
+                 key=lambda s: s.get("startTime", [0, 0, 1]))
+    bps = [(_frac(x["startTime"]), float(x["bpm"])) for x in bpm]
+
+    out = []
+    for ln in d["judgeLineList"]:
+        mx, my, rot, _spd = _line_tracks(ln)
+        for nt in ln.get("notes") or []:
+            beat = _frac(nt["startTime"])
+            x = float(nt.get("positionX", 0.0))
+            r = _track_value(rot, beat)
+            lx = _track_value(mx, beat)
+            ly = _track_value(my, beat)
+            r = 0.0 if r is None else r
+            th = math.radians(r)
+            # 判定线旋转后，音符的水平偏移沿旋转方向铺开
+            sx = x * math.cos(th) + (lx or 0.0)
+            sy = x * math.sin(th) + (ly or 0.0)
+            typ = nt.get("type", 1)
+            ch = {1: "T", 2: "H", 3: "D", 4: "F"}.get(typ, "T")
+            hold = 0.0
+            if typ == 2:
+                e = _beat_to_sec(bps, _frac(nt.get("endTime") or nt["startTime"]))
+                hold = max(e - _beat_to_sec(bps, beat), 0.0)
+            out.append((_beat_to_sec(bps, beat), x, sx, sy, r, ch,
+                        1.0 if nt.get("above", 1) else 0.0, hold))
+    out.sort(key=lambda e: e[0])
+    return out[:max_events]

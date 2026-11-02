@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DATA = os.path.join(ROOT, "data")
 BENCH = os.path.join(DATA, "bench")
-SEQ = os.path.join(DATA, "seq-dataset.npz")
+SEQ = os.environ.get("PHM_SEQ") or os.path.join(DATA, "seq-dataset.npz")
 IRT = os.path.join(DATA, "player-irt.json")
 CHARTS = os.path.join(DATA, "crawl", "charts.jsonl")
 META = os.path.join(BENCH, "meta.json")
@@ -197,9 +197,12 @@ def load_inputs():
     return _CACHE
 
 
-def pooled_vector(i):
+def pooled_vector(i, frac=1.0):
+    """frac < 1 时只用前 frac 比例的事件（PHM-Bench 的 T7 截断任务）。"""
     d = load_inputs()
     a = d["feats"][d["offs"][i]:d["offs"][i + 1]]
+    if frac < 1.0 and len(a) > 8:
+        a = a[:max(8, int(len(a) * frac))]
     if len(a) == 0:
         return np.zeros(72, dtype=np.float32)
     q = np.percentile(a, [10, 50, 90], axis=0)                 # 3×10
@@ -208,9 +211,9 @@ def pooled_vector(i):
     return stats.astype(np.float32)
 
 
-def pooled_matrix(ids):
+def pooled_matrix(ids, frac=1.0):
     d = load_inputs()
-    return np.stack([pooled_vector(d["index"][c]) for c in ids])
+    return np.stack([pooled_vector(d["index"][c], frac=frac) for c in ids])
 
 
 # ────────────────────────── 模型 ──────────────────────────
@@ -218,8 +221,8 @@ class Ridge:
     def __init__(self, alpha=10.0):
         self.alpha = alpha
 
-    def fit(self, ids, y):
-        X = pooled_matrix(ids)
+    def fit(self, ids, y, X=None, Xk=None):
+        X = pooled_matrix(ids) if X is None else X
         self.mu, self.sd = X.mean(0), X.std(0) + 1e-6
         Xs = (X - self.mu) / self.sd
         n, d = Xs.shape
@@ -228,8 +231,9 @@ class Ridge:
         self.b = float(y.mean())
         return self
 
-    def predict(self, ids):
-        X = (pooled_matrix(ids) - self.mu) / self.sd
+    def predict(self, ids, X=None):
+        X = pooled_matrix(ids) if X is None else X
+        X = (X - self.mu) / self.sd
         return X @ self.w + self.b
 
 
