@@ -35,21 +35,17 @@ export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}
    ⚠ 2026-10-22：顶部「本站已停止运行」横幅已整体删除 —— 站点复活后
    那句话是假话。别再往页面里加回来（smoke 里有一条反向断言盯着它）。 */
 const NAV = [
+  /* ⚠ 2026-11-02 导航收敛：14 → 5。
+     依据（用户原话）：「普通用户和谱师本来就只要看定数，其他都不用看」。
+     砍掉的页面**路由保留**（老链接不 404，深链仍可用），只是不再占用顶栏 ——
+     每人每天要看的东西不超过五个，多一个都是干扰。
+     进阶功能（规则写谱 / AI 写谱 / 渲染 / 谱包 / 玩家页 / 状态 / 平台 / 下载）
+     走页脚深链或 API，见 index.html 底部。 */
   ['/', 'nav.home', 'home'],
-  ['/app', 'nav.app', 'app'],
-  ['/rulechart', 'nav.rulechart', 'rulechart'],
-  ['/write', 'nav.write', 'write'],
-  ['/render', 'nav.render', 'render'],
+  ['/app', 'nav.app', 'app'],          /* 拖谱面 → 算定数，核心动作 */
+  ['/data', 'nav.data', 'data'],       /* 全库定数浏览 */
   ['/charter', 'nav.charter', 'charter'],
-  ['/user', 'nav.user', 'user'],
-  ['/packs', 'nav.packs', 'packs'],
-  ['/data', 'nav.data', 'data'],
   ['/settings', 'nav.settings', 'settings'],
-  ['/platform', 'nav.platform', 'platform'],
-  ['/status', 'nav.status', 'status'],
-  ['/download', 'nav.download', 'download'],
-  /* 新入口一律**追加在末尾**：导航位置是用户的空间记忆，往中间插会让所有人找错 */
-  ['/discrepancy', 'nav.discrepancy', 'discrepancy'],
 ];
 
 /* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */
