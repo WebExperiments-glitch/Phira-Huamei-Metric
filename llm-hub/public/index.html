@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>llm-hub · 模型聚合</title>
+<style>
+:root{
+  --bg:#12100e; --panel:#1b1916; --card:#232019; --line:#332f28;
+  --fg:#efe9df; --fg2:#b3aa9c; --fg3:#7d7568; --accent:#e8a33d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border-bottom:1px solid var(--line);background:var(--panel);flex:none}
+header h1{margin:0;font-size:14px;font-weight:600;letter-spacing:.02em}
+header .meta{color:var(--fg3);font-size:12px}
+select{background:var(--card);color:var(--fg);border:1px solid var(--line);
+  border-radius:6px;padding:6px 9px;font:inherit;font-size:13px;outline:none}
+select:focus{border-color:var(--accent)}
+#log{flex:1;overflow-y:auto;padding:20px 16px 8px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:760px;margin:0 auto;width:100%}
+.msg .who{font-size:11.5px;color:var(--fg3);margin-bottom:4px;letter-spacing:.04em}
+.msg.user .body{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px 13px;white-space:pre-wrap}
+.msg.bot .body{padding:2px 2px 10px;white-space:pre-wrap}
+.msg.bot .body.err{color:#e0736a;font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+.msg .body code{background:#2a261f;padding:1px 5px;border-radius:4px;font-size:.92em}
+.msg .body pre{background:#0e0d0b;border:1px solid var(--line);border-radius:8px;
+  padding:10px 12px;overflow-x:auto;font-size:12.5px;margin:8px 0}
+footer{flex:none;border-top:1px solid var(--line);background:var(--panel);padding:10px 16px}
+.wrap{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+textarea{flex:1;background:var(--card);color:var(--fg);border:1px solid var(--line);
+  border-radius:9px;padding:9px 12px;font:inherit;resize:none;outline:none;max-height:160px;min-height:42px}
+textarea:focus{border-color:var(--accent)}
+button{background:var(--accent);color:#241c0c;border:0;border-radius:9px;
+  padding:10px 18px;font:inherit;font-weight:600;cursor:pointer;height:42px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.hint{max-width:760px;margin:6px auto 0;font-size:11.5px;color:var(--fg3)}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);
+  margin-left:6px;animation:p 1s infinite}
+@keyframes p{0%,100%{opacity:.25}50%{opacity:1}}
+</style>
+</head>
+<body>
+<header>
+  <h1>llm-hub</h1>
+  <span class="meta" id="provMeta"></span>
+  <select id="model" style="margin-left:auto"></select>
+  <button id="clear" style="background:var(--card);color:var(--fg2);font-weight:400;height:32px;padding:0 12px">清空</button>
+</header>
+
+<div id="log"></div>
+
+<footer>
+  <div class="wrap">
+    <textarea id="input" rows="1" placeholder="说点什么…  （Enter 发送，Shift+Enter 换行）"></textarea>
+    <button id="send">发送</button>
+  </div>
+  <div class="hint">
+    key 只存在服务端的 <code>providers.json</code>，浏览器拿不到。
+    模型 id 自带 provider 前缀，切模型 = 换一个字符串。
+  </div>
+</footer>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const log = $('#log');
+const input = $('#input');
+const sendBtn = $('#send');
+const modelSel = $('#model');
+
+let models = [];
+let busy = false;
+
+function addMsg(role, text) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
+  el.innerHTML = `<div class="who">${role === 'user' ? '你' : modelSel.value}</div>
+                  <div class="body"></div>`;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+  const body = el.querySelector('.body');
+  if (text != null) body.textContent = text;
+  return body;
+}
+
+/* 极简 markdown：只处理代码块和行内代码。
+   ⚠ 不做完整解析 —— 那需要几百行且必然有 XSS 风险。
+      这里一律 textContent 或转义后再插，宁可少渲染，不可被注入。 */
+function esc(s) {
+  return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+function render(bodyEl, text) {
+  const parts = text.split(/```/);
+  let html = '';
+  parts.forEach((p, i) => {
+    if (i % 2 === 1) {
+      const nl = p.indexOf('\n');
+      const code = nl >= 0 ? p.slice(nl + 1) : p;
+      html += `<pre>${esc(code.replace(/\n$/, ''))}</pre>`;
+    } else {
+      html += esc(p).replace(/`([^`]+)`/g, '<code>$1</code>');
+    }
+  });
+  bodyEl.innerHTML = html;
+  log.scrollTop = log.scrollHeight;
+}
+
+async function loadModels() {
+  const r = await fetch('/api/models');
+  const j = await r.json();
+  models = j.data || [];
+  if (!models.length) {
+    modelSel.innerHTML = '<option>（providers.json 里没有可用模型）</option>';
+    sendBtn.disabled = true;
+    return;
+  }
+  const byProv = {};
+  for (const m of models) (byProv[m.provider] ||= []).push(m);
+  modelSel.innerHTML = Object.entries(byProv).map(([p, list]) =>
+    `<optgroup label="${p}">` + list.map(m =>
+      `<option value="${m.provider}/${m.id}">${m.label}</option>`).join('') + '</optgroup>'
+  ).join('');
+  $('#provMeta').textContent = `${Object.keys(byProv).length} 家 · ${models.length} 个模型`;
+}
+
+let history = [];
+
+async function send() {
+  const text = input.value.trim();
+  if (!text || busy) return;
+  busy = true; sendBtn.disabled = true;
+  input.value = ''; input.style.height = 'auto';
+
+  addMsg('user', text);
+  history.push({ role: 'user', content: text });
+
+  const bodyEl = addMsg('bot');
+  const dot = document.createElement('span');
+  dot.className = 'dot';
+  bodyEl.appendChild(dot);
+
+  let acc = '';
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: modelSel.value, messages: history, stream: true }),
+    });
+    if (!r.ok || !(r.headers.get('content-type') || '').includes('event-stream')) {
+      const j = await r.json().catch(() => ({}));
+      throw new Error((j.error && j.error.message) || `HTTP ${r.status}`);
+    }
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      /* SSE：按空行切帧，取 data: 行 */
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const frame = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        for (const line of frame.split('\n')) {
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') continue;
+          try {
+            const j = JSON.parse(payload);
+            const d = j.choices && j.choices[0] && j.choices[0].delta;
+            if (d && d.content) { acc += d.content; render(bodyEl, acc); }
+          } catch { /* 非 JSON 帧忽略 */ }
+        }
+      }
+    }
+    if (!acc) bodyEl.textContent = '（空响应）';
+    else history.push({ role: 'assistant', content: acc });
+  } catch (e) {
+    bodyEl.className = 'body err';
+    bodyEl.textContent = String(e.message || e);
+  } finally {
+    busy = false; sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+sendBtn.addEventListener('click', send);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(160, input.scrollHeight) + 'px';
+});
+$('#clear').addEventListener('click', () => {
+  history = []; log.innerHTML = ''; input.focus();
+});
+
+loadModels();
+input.focus();
+</script>
+</body>
+</html>
