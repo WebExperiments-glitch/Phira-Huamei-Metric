@@ -48,6 +48,8 @@ const NAV = [
   ['/platform', 'nav.platform', 'platform'],
   ['/status', 'nav.status', 'status'],
   ['/download', 'nav.download', 'download'],
+  /* 新入口一律**追加在末尾**：导航位置是用户的空间记忆，往中间插会让所有人找错 */
+  ['/discrepancy', 'nav.discrepancy', 'discrepancy'],
 ];
 
 /* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */
