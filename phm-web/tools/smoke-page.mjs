@@ -321,7 +321,15 @@ for (const R of ROUTES) {
      写死具体数字是有意的 —— ">=N" 这种松断言拦不住「少了一个入口」这种回归。 */
   /* 导航条目数与站点模式无关 —— 静态站也保留完整清单（点进去是 410 说明页），
      所以这里只验「到底渲染出几个」。写死数字是有意的：少一个入口是回归。 */
-  ok('导航含 5 个入口', (info.navLinks || []).length >= 5, JSON.stringify(info.navLinks));
+  ok('导航含 4 个入口', (info.navLinks || []).length >= 4, JSON.stringify(info.navLinks));
+  /* ★ 导航里的每一条都必须真的返回 200。
+     2026-11-02 事故：导航挑了 /data /charter /settings 三项，
+     而它们在本站的「静态分析工具」形态下是 **410 Gone** ——
+     用户点进去看到「已下线」，比没有入口更糟。只数个数拦不住这种事。 */
+  for (const href of (info.navLinks || [])) {
+    const rs = await fetch(new URL(href, BASE));
+    ok('导航项可访问 ' + href, rs.status === 200, String(rs.status));
+  }
   }
   /* 主题必须在**第一次绘制前**就定好（<head> 里那段同步脚本），
      否则刷新会闪一下。所以每页都要检查它真的被设上了。 */
