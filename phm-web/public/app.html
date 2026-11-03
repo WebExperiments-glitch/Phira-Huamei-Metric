@@ -324,6 +324,26 @@ async function loadWeightsV2() {
   return W2;
 }
 
+/* v3：20 维序列特征的岭回归（对玩家实测难度 ρ 0.8024）。
+   拿不到就退回 v2，再退回 kNN —— 一次 fetch 失败不能毁掉整次分析。 */
+let W3 = null, W3_STATE = "";
+async function loadWeightsV3() {
+  if (W3_STATE === "ok" || W3_STATE === "fail") return W3;
+  W3_STATE = "loading";
+  try {
+    const r = await fetch("/data/engine-v3.json?v=" + encodeURIComponent(APP_VER));
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (!j || !Array.isArray(j.w) || j.w.length !== 142) throw new Error("权重结构异常");
+    W3 = j; W3_STATE = "ok";
+  } catch (e) {
+    W3_STATE = "fail";
+    console.warn("[phm] v3 权重加载失败，退回 v2/kNN：" + (e.message || e));
+    W3 = null;
+  }
+  return W3;
+}
+
 /* 空闲时预热参照集：拖入的第一张谱不该等那 750 KB。
    放在 requestIdleCallback 里 —— 不抢首屏的带宽和主线程，
    失败了也无所谓（loadRefCom 自己会退回首屏官谱参照）。 */
@@ -611,7 +631,7 @@ async function handleFiles(files){
     try{
       const buf=await file.arrayBuffer();
       const refCom=await loadRefCom();
-      const rs=await analyzeChart(buf,file.name,{refCom:refCom,weightsV2:await loadWeightsV2()});
+      const rs=await analyzeChart(buf,file.name,{refCom:refCom,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3()});
       rs.forEach(function(r){r.label=file.name;acc.push(r);});
     }catch(e){
       acc.push({label:file.name,file:file.name,
@@ -1714,7 +1734,7 @@ async function computeChart(cid,btn,info){
     csMsg(t("app.calc.dled",{mb:(buf.byteLength/1048576).toFixed(2)}));
     /* ⚠ 这里必须传 excludeId=cid：这张谱就在社区参照集里，
        不排除就是与它自己匹配（距离 0），算出来的等于把 Phira 的标签抄一遍。 */
-    const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid,weightsV2:await loadWeightsV2()});
+    const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3()});
     const rep=rs.filter(function(x){return !x.error;})[0];
     if(!rep) throw new Error((rs[0]&&rs[0].error)||t("app.calc.parsefail"));
     const f=rep.feats||{};
