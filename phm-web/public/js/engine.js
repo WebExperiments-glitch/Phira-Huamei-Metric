@@ -4,8 +4,7 @@
  * 【全站唯一的引擎真源】浏览器与 Node 服务端共用这同一份代码。
  *
  * 为什么必须同构 —— 这是「共享定数缓存可被投毒」的解药：
- *   客户端提交的结构特征不可信：攻击者可以伪造一张同名谱面，把假的
- *   ref_const 写进共享缓存，污染所有人看到的结果。
+ *   客户端提交的特征不可信：可伪造同名谱面把假值写进共享缓存污染所有人。
  *   服务端拿到 chart_id 后可以**自己下载谱面**（服务端不受 CORS 限制，
  *   浏览器受这个限制），用这份同样的引擎复算并比对 —— 一致才采纳，
  *   而且采纳的是**服务端算出来的值**，不是客户端报上来的值。
@@ -28,6 +27,9 @@ import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.23.0.
       浏览器与 Node 服务端都走同一份，不存在两份实现漂移。
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
 import { skillScores } from './skills.js?v=V0.23.0.1';
+import { ridgeV3, seqFeatures20, pool142 } from './engine-v3.mjs?v=V0.23.0.1';
+/* 再导出给 tools/verify-engine-v3.mjs 用（它直接 import 线上这份实现，不复制副本） */
+export { seqFeatures20, pool142 };
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
  * com-ridge37-v1.1.0：**重训权重**（β 标签 4,532 → 12,457，覆盖率 95.9%）。
  *   算法没变，但数值变了 → 缓存与金标必须跟着换。
@@ -322,11 +324,17 @@ export function loadChart(j){
       }
       ev.rot+=(ln.rotateEvents||[]).length;
       for(const n of (ln.notes||[])){
-        if(n.isFake===1||n.isFake===true) continue;
         const stt=n.startTime;
         if(!stt||stt.length!==3||n.type==null) continue;
-        notes.push({sec:bl.tb(tripleBeats(stt)), tick:stt[0]*32.0,
-          type:n.type, x:n.positionX||0, line:li, fake:false});
+        const _s=bl.tb(tripleBeats(stt));
+        const _h=(n.type===2&&n.endTime)?Math.max(bl.tb(tripleBeats(n.endTime))-_s,0):0;
+        notes.push({sec:_s, tick:stt[0]*32.0,
+          type:n.type, x:n.positionX||0, line:li,
+          fake:(n.isFake===1||n.isFake===true),
+          /* above 读音符自己的字段（缺失默认 1），与 tools/chart_io.py 一致。
+             第一版用 indexOf(notesAbove) 找 —— RPE v150 的音符在 notes 数组里，
+             永远找不到，above 全判成 0，池化向量整体偏掉 38。 */
+          above:(n.above===0||n.above===false)?0:1, hold:_h});
       }
     });
   } else {
@@ -354,13 +362,18 @@ export function loadChart(j){
           const t=nn.time;
           if(t==null||nn.type==null) continue;
           notes.push({sec:t*r, tick:t*32.0, type:nn.type,
-            x:nn.positionX||0, line:li, fake:false});
+            x:nn.positionX||0, line:li, fake:false,
+            above:(nn.above===0||nn.above===false)?0:1,
+            hold:(nn.type===2&&nn.holdTime)?Math.max(nn.holdTime*r,0):0});
         }
       }
     });
   }
   if(!notes.length) throw new Error("谱面里没有音符");
-  notes.sort(function(a,b){return a.sec-b.sec||a.tick-b.tick;});
+  /* 只按时间排序（稳定排序保留同刻音符的原始顺序）。
+   加 tick 做二级键会让同刻音符换个次序 → v3 的 dt 序列与 Python 侧对不上。
+   Python 那边是 ev.sort(key=lambda e: e[0])，只有时间一个键。 */
+  notes.sort(function(a,b){return a.sec-b.sec;});
   const real=notes.filter(function(n){return !n.fake;});
   const secs=real.map(function(n){return n.sec;});
   const dur=Math.max(1e-3,maxOf(secs)-minOf(secs));
@@ -743,7 +756,8 @@ function psScore(f){
      knnOff   = 官谱参照（1,037 张 Phigros 官谱）→ 与官方一致的绝对标度。
      两者之差是**系统性分布差异**，不是误差 —— 前端必须并列展示并说明来源，
      只报一个数字才是真的误导（"IN 14 算出 11.6"就是只报官谱标度的产物）。 */
-export function reportFromChart(r,name,meta,spPeak,refCom,excludeId,weightsV2){
+
+export function reportFromChart(r,name,meta,spPeak,refCom,excludeId,weightsV2,weightsV3){
   /* v2 推理：37 维 log1p → 标准化 → 线性加权 → 尺度映射回定数量纲。
      ⚠ 权重文件是 public/data/engine-v2.json，由调用方 fetch 后传入。 */
   function ridgeBeta(f, W) {
@@ -803,15 +817,17 @@ export function reportFromChart(r,name,meta,spPeak,refCom,excludeId,weightsV2){
 
      【⚠ 纯计算】权重由调用方传入（和 refCom 一样），本文件不碰 fs / 网络。 */
   const v2 = weightsV2 ? ridgeBeta(f, weightsV2) : null;
+  /* v3：20 维序列特征。输入用全部音符（含 fake）—— 与 Python 侧口径一致。 */
+  const v3 = weightsV3 ? ridgeV3(r.notes, weightsV3) : null;
   const knnOut = Object.assign({}, knn);
-  if (v2 != null && knnOut) {
+  if ((v3 != null || v2 != null) && knnOut) {
     knnOut.knnRef = knn.ref;
-    knnOut.ref = v2;
-    knnOut.basis2 = 'ridge-beta';
+    knnOut.ref = v3 != null ? v3.ding : v2;
+    knnOut.basis2 = v3 != null ? 'ridge-seq20' : 'ridge-beta';
   }
   return {name:meta.name||name, level:meta.level||knn.tier||"", charter:meta.charter||"",
     feats:f, ps:ps, knn:knnOut, knnOff:knnOff, engineVer:ENGINE_VER, spPeak:sp, bpm:r.bpm,
-    skills:skills, v2: v2};
+    skills:skills, v2: v2, v3: v3};
 }
 /* ── analyze(fileBytes, fileName[, opts]) → 报告对象数组 ──
    opts.refCom：社区参照集行数组（由调用方读文件/fetch 后传入）。
@@ -826,6 +842,12 @@ function minOf(a){ let m=Infinity; for(let i=0;i<a.length;i++) if(a[i]<m) m=a[i]
 
 export async function analyzeChart(buf,fileName,opts){
   const refCom=(opts&&opts.refCom)||null;
+  /* ⚠ 权重必须在这里透传。2026-11-02 之前的版本漏了这一步：
+     app.html 明明 fetch 了权重并传进 opts，analyzeChart 却没往下传，
+     于是 reportFromChart 里 weights 恒为 null，主数字一直是 kNN 的 ref。
+     表现是「模型换了但页面数字没变」—— 每段单独看都对，连起来才错。 */
+  const wV2=(opts&&opts.weightsV2)||null;
+  const wV3=(opts&&opts.weightsV3)||null;
   const excludeId=(opts&&opts.excludeId!=null)?+opts.excludeId:null;
   const zip=zipParse(buf);
   const reports=[];
@@ -857,7 +879,7 @@ export async function analyzeChart(buf,fileName,opts){
     if(isPecText(txt.slice(0,512))){
       try{
         const r=parsePec(txt);
-        reports.push(Object.assign(reportFromChart(r,en.name,meta,r.spPeak,refCom,excludeId),{file:fileName}));
+        reports.push(Object.assign(reportFromChart(r,en.name,meta,r.spPeak,refCom,excludeId,wV2,wV3),{file:fileName}));
       }catch(e){
         reports.push({file:fileName,name:en.name,error:"PEC 解析失败: "+e.message});
       }
@@ -870,7 +892,7 @@ export async function analyzeChart(buf,fileName,opts){
     catch(e){ reports.push({file:fileName,name:en.name,error:"JSON 解析失败: "+e.message}); continue; }
     if(!j.judgeLineList) continue;           /* 非 RPE/PGR 谱面（如 meta json） */
     const r=loadChart(j);
-    reports.push(Object.assign(reportFromChart(r,en.name,meta,speedPeakOfChart(j),refCom,excludeId),{file:fileName}));
+    reports.push(Object.assign(reportFromChart(r,en.name,meta,speedPeakOfChart(j),refCom,excludeId,wV2,wV3),{file:fileName}));
   }
   if(!reports.length) throw new Error("包里没有找到可解析的谱面（支持 RPE / PGR / PEC）");
   return reports;
