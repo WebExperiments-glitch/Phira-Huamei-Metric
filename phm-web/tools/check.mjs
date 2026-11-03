@@ -25,6 +25,9 @@ const STEPS = [
   ['语法：engine.js', 'node', ['--check', 'public/js/engine.js']],
   ['引擎回归（45 条）', 'node', ['tools/verify-engine.mjs']],
   ['引擎数值金标', 'node', ['tools/golden-engine.mjs']],
+  /* v3（浏览器里的 20 维序列模型）与 Python 训练侧的一致性。
+     移植错了不会报错，只会静默偏差 —— 这条闸门专门拦它。 */
+  ['v3 引擎一致性', 'node', ['tools/verify-engine-v3.mjs']],
   ['参照集与真源同步', 'node', ['tools/gen-ref.mjs', '--check']],
   ['限流单测（73 条；真实 DB 路径另跑 PHM_TEST_DB=1）', 'node', ['tools/test-ratelimit.mjs']],
   ['贡献凭证单测（11 条）', 'node', ['tools/test-contribute-ticket.mjs']],
