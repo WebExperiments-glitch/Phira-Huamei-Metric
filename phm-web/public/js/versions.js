@@ -19,9 +19,25 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.23.0.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.24.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.24.0.0', date: '2026-11-04',
+    zh: ['<b>定数终于换了新算法。</b> 以前页面上那个数，其实一直用的是「找相似谱面取平均」的老办法 ——'
+      + '更早一次改版的接线断了，新的模型从没真正跑起来过。现在换成了看<b>「这个谱要你手怎么动」</b>：'
+      + '音符之间要移多远、移多快、三个音连起来的角度有多别扭、同时要按几个键。'
+      + '对玩家实际打出来的难度，准确度从 0.75 提到 <b>0.80</b>。',
+      '<b>数字更稳了。</b> 顺带加了道自检：每次发版都会拿 5 张已知答案的谱面重算一遍，'
+      + '算出来差超过 0.05 级就直接拦下 —— 这种错以前不会报错，只会悄悄偏掉。'],
+    en: ['<b>The difficulty estimate now uses a new model.</b> The number on the page had been coming from '
+      + 'the old "find similar charts and average them" method &mdash; a wiring break meant the newer model '
+      + 'never actually ran. It now looks at <b>how your hands have to move</b>: how far and how fast between '
+      + 'notes, how awkward the angle through three notes is, how many keys at once. Agreement with how hard '
+      + 'players actually find a chart went from 0.75 to <b>0.80</b>.',
+      '<b>More trustworthy numbers.</b> Every release now re-runs five charts with known answers; '
+      + 'if the output drifts by more than 0.05 levels the build fails. That kind of error used to pass silently.'],
+  },
   {
     v: 'V0.23.0.1', date: '2026-11-02',
     zh: ['<b>修顶栏点进去是「已下线」的问题。</b> 上一个版本把导航砍到 5 项，其中三项'
