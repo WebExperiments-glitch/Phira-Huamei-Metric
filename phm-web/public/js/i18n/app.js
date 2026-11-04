@@ -218,6 +218,12 @@ export default {
     'app.res.basis.model': '模型估计',
     'app.res.desc.model': '20 维结构特征 → 岭回归（<b>不是</b>近邻平均；下方近邻仅供参考）',
     'app.res.basis.off': '官谱标度',
+    /* 精确计算档：结果卡片上的次要动作。文案不写「34k 参数 / GRU / attention」——
+       用户要知道的是「要不要多等这一下」，不是模型结构。 */
+    'app.res.seq.btn': '精确计算',
+    'app.res.seq.running': '计算中…',
+    'app.res.seq.note': '精确计算 · 序列模型',
+    'app.res.seq.hint': '稍慢，更准一档',
     'app.res.desc.com': 'Phira 社区谱',
     'app.res.desc.off': 'Phigros 官谱',
     'app.res.off.note': '与 Phigros 官方同一标度（{n} 张官谱）',
@@ -617,6 +623,10 @@ export default {
     'app.res.basis.model': 'Model estimate',
     'app.res.desc.model': '20 structural features → ridge regression (<b>not</b> a neighbour average; the list below is for reference)',
     'app.res.basis.off': 'Official scale',
+    'app.res.seq.btn': 'Precise',
+    'app.res.seq.running': 'Computing…',
+    'app.res.seq.note': 'precise · sequence model',
+    'app.res.seq.hint': 'a bit slower, a notch more accurate',
     'app.res.desc.com': 'Phira community charts',
     'app.res.desc.off': 'Phigros official charts',
     'app.res.off.note': 'same scale as official Phigros ({n} official charts)',

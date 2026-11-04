@@ -76,6 +76,9 @@ const LS_OK = new Set([
   'tools/check-i18n-page.mjs',
   'tools/shot.mjs',
   'tools/collect-display-chars.mjs',   /* 同上：CDP 里塞 phm_lang，采集标题用字 */
+  'tools/upload-seq-check.mjs',        /* 验收：CDP 里关掉上传（phm_optin=0）、固定中文，
+                                          再真上传一个 .pez 点「精确计算」。跑在 Node 侧，
+                                          不经过 settings.js，也不可能经过。 */
   'tools/test-ui-flows.mjs',           /* 交互测试：读 phm_font 断言"设置跨页面持久化"。
                                           它是**验证**存储，不是**定义**键名——真源仍是 settings.js。 */
   'public/phm-api.html',               /* 单文件客户端：下载到本地后没有 settings.js 可依赖，
