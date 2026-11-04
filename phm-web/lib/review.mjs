@@ -21,7 +21,7 @@
  *   - 单进程串行复核，带超时；失败就拒绝写入（不降级、不回退）
  * ============================================================ */
 import { analyzeChart, pickUniqueChart, ENGINE_VER } from '../public/js/engine.js';
-import { loadRefCom, readWeightsV2 } from './refstore.mjs';
+import { loadRefCom, readWeightsV2, readWeightsV3 } from './refstore.mjs';
 
 const PHIRA_API = 'https://api.phira.cn';
 const FETCH_TIMEOUT = 20000;      /* 取谱面信息 */
@@ -124,9 +124,12 @@ export async function recompute(chartId, opts) {
   const buf = await res.arrayBuffer();
   if (buf.byteLength > MAX_ZIP) throw new Error('谱面包过大');
 
-  /* ★ 两处关键传参：
+  /* ★ 三处关键传参：
        refCom    —— 用社区参照集（9,508 张 Phira 社区谱），而不是只有官谱。
                     实测：留出验证 |偏差|均值 1.187 → 0.820，≤1.0 命中 67.0% → 84.2%。
+       weightsV3 —— **v3 是主数字**（20 维事件序列 → 岭回归）。早先只传了 v2，
+                    于是「浏览器拖入算 v3、服务端复算算 v2」—— 同一条流水线两个数，
+                    接口和页面显示的定数对不上。权重读不到时传 null，引擎自己退回 v2/kNN。
        excludeId —— **必须排除这张谱自己**。参照集里本来就有它，
                     不排除就是距离 0 的自匹配，落库值会等于它自己的声明值，
                     整个共享缓存会退化成"把 Phira 的标签抄一遍"。
@@ -140,7 +143,8 @@ export async function recompute(chartId, opts) {
          拿排除口径去卡"没排除"的客户端，会把**正确的贡献**判成"不是同一张谱"。
        所以：落库永远用排除口径；比对时允许客户端对上任一口径。 */
   const reports = await analyzeChart(buf, (info.name || 'chart') + '.pez',
-    { refCom: loadRefCom(), excludeId: o.noExclude ? undefined : +chartId, weightsV2: readWeightsV2() });
+    { refCom: loadRefCom(), excludeId: o.noExclude ? undefined : +chartId,
+      weightsV2: readWeightsV2(), weightsV3: readWeightsV3() });
   const rep = reports.find(x => !x.error);
   if (!rep) throw new Error((reports[0] && reports[0].error) || '解析失败');
 
@@ -150,11 +154,17 @@ export async function recompute(chartId, opts) {
     name: info.name,
     level: info.level || rep.level || null,
     difficulty: info.difficulty != null ? +(+info.difficulty).toFixed(3) : null,
-    /* ref_const  = 社区共识标度（主结果，页面上那个大数字）
+    /* ref_const  = 参考定数（主结果，页面上那个大数字）。
+                   现在是 **v3 模型估计**；权重读不到时才退回 v2/kNN —
+                   下面 `basis` 会如实说明这一行到底是哪个算法算的。
        ref_official = 官谱标度（与 Phigros 官方一致的绝对标度，对照用）
        两个都存：只存一个的话，以后想复核"当时两个标度差多少"就无从查起。 */
     ref_const: rep.knn && rep.knn.ref != null ? +(+rep.knn.ref).toFixed(4) : null,
     ref_official: rep.knnOff && rep.knnOff.ref != null ? +(+rep.knnOff.ref).toFixed(4) : null,
+    /* 这一行用的是哪个推理路径：ridge-seq20(v3) / ridge-beta(v2) / knn。
+       ⚠ 只作诊断用（RPC 会忽略多余字段，不落库的列自然忽略）——
+          "服务端没跟上 v3" 这类事故从数字上看不出来，只能靠它暴露。 */
+    basis: (rep.knn && rep.knn.basis2) || 'knn',
     ps_score: rep.ps && rep.ps.total != null ? +(+rep.ps.total).toFixed(4) : null,
     nps: f.real_notes_per_second != null ? +(+f.real_notes_per_second).toFixed(4) : null,
     hold_ratio: f.hold_ratio != null ? +(+f.hold_ratio).toFixed(5) : null,

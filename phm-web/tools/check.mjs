@@ -28,6 +28,9 @@ const STEPS = [
   /* v3（浏览器里的 20 维序列模型）与 Python 训练侧的一致性。
      移植错了不会报错，只会静默偏差 —— 这条闸门专门拦它。 */
   ['v3 引擎一致性', 'node', ['tools/verify-engine-v3.mjs']],
+  /* 服务端复算 vs 浏览器路径：两边必须用同一个模型算同一个数。
+     2026-11-04 的 bug 就是「浏览器 v3、服务端 v2」，任何单元测试都发现不了。 */
+  ['服务端 ↔ 浏览器定数一致', 'node', ['tools/verify-parity-v3.mjs']],
   ['参照集与真源同步', 'node', ['tools/gen-ref.mjs', '--check']],
   ['限流单测（73 条；真实 DB 路径另跑 PHM_TEST_DB=1）', 'node', ['tools/test-ratelimit.mjs']],
   ['贡献凭证单测（11 条）', 'node', ['tools/test-contribute-ticket.mjs']],

@@ -119,12 +119,12 @@ export default {
 
     /* ── 术语表（ui.js 的 glossaryHTML，被 /app、/charter、/user 共用）── */
     'gloss.summary': '术语看不懂？点开这里（{n} 条）',
-    'gloss.consensus.t': '社区共识（主结果）',
-    'gloss.consensus.d': '把你这张谱的结构特征，拿去和 <b>Phira 上 9,508 张社区谱</b>里最相近的 20 张比，看它们被标成多少定数。这是<b>谱师实际定价的共识</b>，最贴近你在 Phira 里看到的数字。',
+    'gloss.consensus.t': '模型估计（主结果）',
+    'gloss.consensus.d': '把这张谱的结构特征（密度、位移、跳跃速度、和弦数等 20 项）交给模型，直接算出难度。<b>它不是近邻取中位</b>——卡片下方列出的近邻只是给你对照用的。模型的训练标签是玩家实际打出来的难度，所以这个数最贴近你在 Phira 里看到的数字。',
     'gloss.official.t': '官谱标度',
     'gloss.official.d': '同一套算法，但参照集换成 <b>1,037 张 Phigros 官方谱</b>。这是与官方一致的<b>绝对</b>标度。两个标度会差 2~3 级是正常的——因为社区谱和官谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6）。',
     'gloss.range.t': '不确定范围',
-    'gloss.range.d': '那 20 张参照谱的定数<b>最小值到最大值</b>。范围窄 = 参照集里有和你几乎一样的谱，结论硬；范围宽 = 没有紧密对应物，中点只能当粗略参照。',
+    'gloss.range.d': '社区谱里最相近那 20 张的定数<b>最小值到最大值</b>。范围窄 = 有和你几乎一样的谱，估计更可信；范围宽 = 没有紧密对应物，只能当粗略参考。',
     'gloss.ps.t': 'PS 负荷',
     'gloss.ps.d': '本工具自己的负荷标度（0–20），由密度 / 结构 / 协调 / 持续四组加权合成。<b>和上面两个定数不同标度</b>，不要混着比。',
     'gloss.nominal.t': '标称定数',
@@ -244,12 +244,12 @@ export default {
 
     /* ── glossary ── */
     'gloss.summary': 'Unfamiliar with the jargon? Expand ({n})',
-    'gloss.consensus.t': 'Community consensus (main result)',
-    'gloss.consensus.d': 'Your chart\u2019s structural features are compared against the 20 closest charts among <b>9,508 community charts on Phira</b>, and their declared constants are read off. This is <b>how charters actually price a chart</b> — the closest thing to the number you see inside Phira.',
+    'gloss.consensus.t': 'Model estimate (main result)',
+    'gloss.consensus.d': '20 structural features of your chart (density, movement, jump speed, chord counts…) go into a model that estimates the difficulty directly. <b>It is not a neighbour average</b> — the neighbours listed below are for comparison only. The model was trained on how hard players actually find community charts, so the number sits on the scale you see inside Phira.',
     'gloss.official.t': 'Official scale',
     'gloss.official.d': 'The same algorithm with the reference set swapped for <b>1,037 official Phigros charts</b>. This is the <b>absolute</b> scale, consistent with the game. A 2–3 level gap between the two scales is normal — community and official charts simply have <b>different structural distributions</b> (median constant 15.1 vs 10.6).',
     'gloss.range.t': 'Uncertainty range',
-    'gloss.range.d': 'The <b>minimum to maximum</b> constant across those 20 reference charts. Narrow = the reference set contains near-identical charts, so the midpoint is solid. Wide = nothing closely comparable, so the midpoint is only a rough guide.',
+    'gloss.range.d': 'The <b>minimum to maximum</b> constant across the 20 closest community charts. Narrow = near-identical charts exist, so the estimate is solid; wide = nothing closely comparable, so treat it as a rough guide.',
     'gloss.ps.t': 'PS load',
     'gloss.ps.d': 'This tool\u2019s own load scale (0–20), a weighted blend of density / structure / coordination / sustain. <b>It is a different scale from the two constants above</b> — do not compare them directly.',
     'gloss.nominal.t': 'Nominal constant',

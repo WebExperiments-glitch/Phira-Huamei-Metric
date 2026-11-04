@@ -50,6 +50,30 @@ export function readWeightsV2() {
   return _w2;
 }
 
+const ENGINE_V3 = path.join(ROOT, 'public', 'data', 'engine-v3.json');
+let _w3 = null;
+
+/** v3 引擎权重（20 维事件序列 → 142 维池化 → 岭回归）。
+    ⚠ 维数是 **142**，不是 v2 的 37 —— 校验写错会让服务端拿着一张
+       结构不匹配的权重去点乘，结果不是报错而是**静默偏移**。
+    ⚠ 与 v2 一样：服务端必须和浏览器用同一份权重，否则 API 和页面给出两个数。
+       读不到就返回 null，由引擎自己降级到 v2/kNN —— 一次读盘失败不该让整次复算中断。 */
+export function readWeightsV3() {
+  if (_w3) return _w3;
+  try {
+    const j = JSON.parse(fs.readFileSync(ENGINE_V3, 'utf8'));
+    if (!Array.isArray(j.w) || j.w.length !== 142) {
+      console.warn('[phm] engine-v3.json 权重结构异常（w 不是 142 维），服务端退回 v2/kNN');
+      return null;
+    }
+    _w3 = j;
+  } catch (e) {
+    console.warn('[phm] engine-v3.json 读取失败，服务端退回 v2/kNN：' + (e.message || e));
+    _w3 = null;
+  }
+  return _w3;
+}
+
 /** 供诊断/版本校验：参照集元信息 */
 export function refComMeta() {
   const j = JSON.parse(fs.readFileSync(REF_COM, 'utf8'));
