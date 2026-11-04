@@ -143,6 +143,10 @@ function formatReport(r) {
   return {
     chart_id: r.chart_id, name: r.name, level: r.level,
     difficulty: r.difficulty, ref_const: r.ref_const, ref_official: r.ref_official,
+    /* 哪条推理路径产出了 ref_const：ridge-seq20(v3) / ridge-beta(v2) / knn。
+       只做诊断（RPC 不落库这一列）—— 「服务端还停在 v2」这类事故
+       从数字上看不出来，只能靠它暴露。老缓存行没有这个字段，省略而不是瞎猜。 */
+    ...(r.basis ? { basis: r.basis } : {}),
     ps_score: r.ps_score, nps: r.nps, hold_ratio: r.hold_ratio, notes: r.notes,
     stair_avg: r.stair_avg, speed_peak: r.speed_peak,
     engine_ver: r.engine_ver, engine_build: r.engine_build,

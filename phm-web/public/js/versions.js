@@ -19,9 +19,17 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.24.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.24.0.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.24.0.1', date: '2026-11-04',
+    zh: ['<b>修一句会误导人的话。</b> 上一个版本把定数换成了新算法，但卡片上还写着「社区共识 · 9508 张里最相近的 20 张」——'
+      + '于是出现「数字 14.7，下面列的 5 张全是 15.3 以上」这种自相矛盾的画面。现在标签改成「模型估计」，并注明它不是近邻平均。'],
+    en: ['<b>Fixed a misleading label.</b> The previous release switched to the new model, but the card still said '
+      + '"community consensus &middot; 20 nearest of 9,508 charts" &mdash; so the number read 14.7 while all five nearest '
+      + 'charts below it were 15.3 or higher. The label now reads "model estimate" and states it is not a neighbour average.'],
+  },
   {
     v: 'V0.24.0.0', date: '2026-11-04',
     zh: ['<b>定数终于换了新算法。</b> 以前页面上那个数，其实一直用的是「找相似谱面取平均」的老办法 ——'

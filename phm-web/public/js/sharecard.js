@@ -17,7 +17,7 @@
  *   · 数字必须可读：观众在手机上看的是缩略图，字号小等于没写。
  * ============================================================ */
 
-import { drawQrBadge } from './qr.js?v=V0.24.0.0';
+import { drawQrBadge } from './qr.js?v=V0.24.0.1';
 
 const AMBER = '#e8a33d', BLUE = '#5aa2e8', GREEN = '#4cc38a';
 const FG = '#e6edf3', FG2 = '#9aa7b4', FG3 = '#6b7684', LINE = '#2a313c', CARD = '#161b22';
@@ -39,11 +39,11 @@ function qrUrlOf(d) {
 const COPY = {
   zh: {
     tag: 'Phira / Phigros 谱面难度参考',
-    ref: '参考定数 · 社区共识', ps: 'PS 负荷', official: 'Phira 标称', dev: '偏差',
+    ref: '参考定数 · 模型估计', ps: 'PS 负荷', official: 'Phira 标称', dev: '偏差',
     refOff: '官谱标度', refOffNote: '（同样的算法，参照集换成 1,037 张 Phigros 官谱）',
     nps: '每秒物量', notes: '物量', hold: '长条占比', charter: '谱师',
     range: '不确定范围',
-    footnote: '8 维特征 + 9,508 张社区谱 k-NN（社区共识）· 纯浏览器内计算 · 谱面文件不上传',
+    footnote: '20 维结构特征 + 岭回归（模型估计）· 纯浏览器内计算 · 谱面文件不上传',
     site: '不判定「虚标」，只给数字和它的不确定度',
     /* ── 玩家成绩卡 ── */
     pTag: '玩家成绩卡',
@@ -62,11 +62,11 @@ const COPY = {
   },
   en: {
     tag: 'An auditable difficulty reference for Phira charts',
-    ref: 'Reference · community', ps: 'Load (PS)', official: 'Phira rated', dev: 'Drift',
+    ref: 'Reference · model est.', ps: 'Load (PS)', official: 'Phira rated', dev: 'Drift',
     refOff: 'Official scale', refOffNote: ' (same method, reference set = 1,037 Phigros official charts)',
     nps: 'Notes/s', notes: 'Notes', hold: 'Holds', charter: 'Charter',
     range: 'range',
-    footnote: '8 features + k-NN over 9,508 community charts · runs in your browser · charts never uploaded',
+    footnote: '20 structural features + ridge regression · runs in your browser · charts never uploaded',
     site: 'We do not call anything mis-rated. We publish numbers and their uncertainty.',
     pTag: 'Player card',
     pRks: 'P.H.M. RKS',
