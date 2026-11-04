@@ -321,7 +321,7 @@ for (const R of ROUTES) {
      写死具体数字是有意的 —— ">=N" 这种松断言拦不住「少了一个入口」这种回归。 */
   /* 导航条目数与站点模式无关 —— 静态站也保留完整清单（点进去是 410 说明页），
      所以这里只验「到底渲染出几个」。写死数字是有意的：少一个入口是回归。 */
-  ok('导航含 4 个入口', (info.navLinks || []).length >= 4, JSON.stringify(info.navLinks));
+  ok('导航含 14 个入口', (info.navLinks || []).length >= 14, JSON.stringify(info.navLinks));
   /* ★ 导航里的每一条都必须真的返回 200。
      2026-11-02 事故：导航挑了 /data /charter /settings 三项，
      而它们在本站的「静态分析工具」形态下是 **410 Gone** ——

@@ -19,9 +19,16 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.24.0.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.25.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.25.0.0', date: '2026-11-04',
+    zh: ['<b>功能都回来了。</b> 账号、成绩、数据浏览、谱师页、设置、状态、开放平台、客户端下载 —— 之前被撤掉的那些页面重新上线，导航也补回完整的一份。',
+      '<b>数字统一了。</b> 之前同一张谱，拖进工作台是一个数、从搜索页点开是另一个数（差 1.5 级）。现在两条路走同一个模型，并加了一道自动比对：两边算出来差超过 0.05 级就发不出去。'],
+    en: ['<b>The features are back.</b> Accounts, scores, data browsing, charter pages, settings, status, the open platform and the client download &mdash; the pages that had been retired are live again, with the full navigation restored.',
+      '<b>One number everywhere.</b> The same chart used to give one value when dropped into the workbench and a different one from the search page (1.5 levels apart). Both paths now use the same model, with an automatic check that blocks a release if they differ by more than 0.05 levels.'],
+  },
   {
     v: 'V0.24.0.1', date: '2026-11-04',
     zh: ['<b>修一句会误导人的话。</b> 上一个版本把定数换成了新算法，但卡片上还写着「社区共识 · 9508 张里最相近的 20 张」——'
