@@ -119,11 +119,15 @@
           },
           "ref_const": {
             "type": "number",
-            "description": "P.H.M. community-scale constant (9,508-chart k-NN reference)"
+            "description": "P.H.M. reference constant (the main number). Estimated by the v3 model from 20 structural features; falls back to v2/k-NN when weights are unavailable - see basis."
           },
           "ref_official": {
             "type": "number",
-            "description": "P.H.M. official-scale constant (1,037 Phigros official charts)"
+            "description": "P.H.M. official-scale constant (1,037 Phigros official charts, k-NN reference)"
+          },
+          "basis": {
+            "type": "string",
+            "description": "Which path produced ref_const: ridge-seq20 (v3 model) | ridge-beta (v2) | knn. Diagnostic only; not stored."
           },
           "ps_score": {
             "type": "number",

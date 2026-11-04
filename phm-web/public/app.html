@@ -9,7 +9,7 @@
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="拖入 Phira 谱面包，浏览器内解析并给出双标度定数参考（社区共识 + 官谱标度）。谱面文件不上传。">
+<meta name="description" content="拖入 Phira 谱面包，浏览器内解析并给出双标度定数参考（模型估计 + 官谱标度）。谱面文件不上传。">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="P.H.M. Standard">
 <meta property="og:title" content="P.H.M. Standard —— Phira 谱面难度参考">
@@ -56,7 +56,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
        看得见的大标题压在正文上。内联一份，样式表挂了也不会露出来。 -->
   <h1 class="sr-only" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0"
       data-i18n="app.head.h1">算定数 · 谱面难度工作台</h1>
-  <div class="slogan" data-i18n-html="app.head.slogan">拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br><b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。</div>
+  <div class="slogan" data-i18n-html="app.head.slogan">拖入谱面包 → 得到<b>双标度定数参考</b>（模型估计 + 官谱标度）。<br><b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。</div>
   <div class="hsearch">
     <input id="csrch" data-i18n-ph="app.head.search.ph" maxlength="40" autocomplete="off" placeholder="搜谱面：曲名 / 谱师">
     <button id="cgo" type="button" data-i18n-title="app.head.search.title" data-i18n="app.head.search.btn" title="搜索 Phira 谱面">搜索</button>
@@ -158,7 +158,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 
 <div class="pstats" id="pstats" style="display:none"></div>
 <footer>
-  <div><span data-i18n-html="app.foot.engine">用 <b>9,508 张社区谱</b>和 <b>1,037 张官谱</b>做双参照，算出可复核的定数</span> ·
+  <div><span data-i18n-html="app.foot.engine">用<b>模型</b>估出难度，再拿 <b>9,508 张社区谱</b>和 <b>1,037 张官谱</b>做双标度对照</span> ·
   <a class="link" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"
   target="_blank" rel="noopener">GitHub</a> ·
   <!-- ⚠ 这个链接的文本由 JS 填（版本号 + beta 标记）。给「版本历史」作兜底文本是必须的：
@@ -167,12 +167,12 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <a id="verfoot" class="verfoot" href="/version" data-i18n-title="foot.hist">版本历史</a> · GPL-3.0</div>
   <details>
     <summary data-i18n="app.foot.details">PS 是什么？本工具的边界与隐私（点开看）</summary>
-    <div class="fd" data-i18n-html="app.foot.d1"><b>三个数不是一回事，别混用</b>：<br>· <b>参考定数（社区共识）</b>—— 9,508 张 Phira 社区谱里结构最相近的 20 张，它们的定数中位。这是<b>谱师实际定价的共识</b>，也是最贴近你在 Phira 上看到的那个数字。<br>· <b>官谱标度</b>——同样算法，但参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>· <b>PS</b> ——本工具自己的负荷标度（0–20），衡量操作与读取负荷，<b>与上面两个都不同标度</b>。</div>
+    <div class="fd" data-i18n-html="app.foot.d1"><b>三个数不是一回事，别混用</b>：<br>· <b>参考定数（模型估计）</b>—— 把谱面的按键密度、位移、跳跃速度等 20 项结构特征交给模型，直接算出难度。模型学的是社区谱<b>被玩家打出来的实际难度</b>，所以这个数落在你在 Phira 上看到的那个标度上。<br>· <b>官谱标度</b>—— 参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>· <b>PS</b> ——本工具自己的负荷标度（0–20），衡量操作与读取负荷，<b>与上面两个都不同标度</b>。</div>
 
     <div class="fd" data-i18n-html="app.foot.d2"><b>两个标度差得多，说明什么？</b>官谱与社区谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6；社区谱的长条占比只有官谱的 1/3、拖键是 5 倍）。所以同一张谱在两个标度上差 2~3 级是正常的——那是<b>两个尺子的差异，不是某个尺子算错了</b>。只印一个数字才会出问题：「我的 IN 14 被算成 11.6」就是这么来的。</div>
     <div class="fd" data-i18n-html="app.foot.d3"><b>PS</b> 由四个负荷组加权合成：<span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>，每个维度经饱和函数归一，每一分都能追溯到卡片上的明细。</div>
     <div class="fd" data-i18n-html="app.foot.d4"><b>PS 与官方定数无关</b> ——官方定数是人工标注（实测标注噪声约 2.80 级），两者不构成互相验证。<b>本工具不判定「虚标」</b>：在这个噪声水平下，没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」。</div>
-    <div class="fd" data-i18n-html="app.foot.d5"><b>参考定数</b>是 20 张最相似参照谱的<b>定数中位</b>，不是拟合出来的预测值——逐张可以点开看名字，拿回 Phira 自己核对。它在参照集里没有紧密对应物时会偏移，所以卡片上同时给出<b>不确定范围</b>（这 20 张的定数跨度）与<b>平均邻居距离</b>，跨度大就说明结论软。<br>留出验证（1,367 张社区谱，参照集 8,141 张）：<b>|偏差| 均值 0.820 · ≤1.0 命中 84.2%</b>，旧版（官谱 4 维）是 1.187 / 67.0%。</div>
+    <div class="fd" data-i18n-html="app.foot.d5"><b>参考定数（模型估计）</b>不是近邻投票，是模型对这张谱的预测值。卡片上的<b>不确定范围</b>仍取自 9,508 张社区谱里最相近的 20 张——那 20 张的定数跨度越大，说明社区谱里越没有和你这张同类的谱，这个数就该看得越松。下方「最相近 5 张」是留给你自己核对的：名字和难度都对得上，结论才站得住。<br>作为对照，旧版「近邻取中位」的留出验证（1,367 张社区谱，参照集 8,141 张）：<b>|偏差| 均值 0.820 · ≤1.0 命中 84.2%</b>，更旧的一版（官谱 4 维）是 1.187 / 67.0%。</div>
     <div class="fd" data-i18n-html="app.foot.d6"><b>隐私 · 什么会上传</b>（统一受页面底部「⚙ 设置」的开关控制）：<br>· <b>算 RKS</b>：本机计算。勾选「匿名上传」才写 曲名 / 定数 / ACC 三项——准确说是<b>假名化</b>贡献（带一个随机 client_id），不是严格匿名。<br>· <b>查询 Phira 账号</b>：只对<b>你确认过的本人账号</b>自动上传成绩（含 Phira UID 与用户名，Phira 站内本来就公开）。首次遇到某个 UID 会先问一次「这是你的账号吗」。<br>· <b>拖入谱面</b>：只有<b>谱面结构特征</b>进入共享定数缓存，<b>谱面文件本身不会上传</b>。<br><b>关闭底部开关后，以上三条都不会发生</b>（页面仍会请求聚合统计数字用于显示统计条，不含个人信息）。</div>
     <div class="fd" data-i18n-html="app.foot.d7">连 Phira 只读公开资料（RKS、最好成绩），<b>不需要也不接受密码</b>；输入过的用户名 / UID 只存在你浏览器本地（localStorage）用于下次自动填充，不会随请求发出。</div>
   </details>
@@ -443,8 +443,8 @@ function card(r,idx){
   const span=(kn.hi!=null&&kn.lo!=null)?(kn.hi-kn.lo):null;
   const vague=span!=null&&span>=3.0;
   /* ── 双标度 ──
-     同一个结构，在两份参照集上会给出两个数。它们不是"其中一个错了"，
-     而是**两个不同的标度**：社区共识 = 站内谱师实际定价的共识；
+     同一个谱面，两把尺子会给出两个数。它们不是"其中一个错了"，
+     而是**两个不同的标度**：主数字 = 模型估计（学自社区谱的实际难度）；
      官谱标度 = 与 Phigros 官方一致的绝对标度。
      只印一个数，就是"IN 14 被算成 11.6"那类争议的根源 —— 单一数字看起来
      像个结论，实际上只是某个标度上的投影。两个都印，争议就变成了信息。 */
@@ -458,6 +458,16 @@ function card(r,idx){
   let basisName = isCom ? t("app.res.basis.com") : t("app.res.basis.off");
   let basisDesc = isCom ? t("app.res.desc.com") : t("app.res.desc.off");
   if (isV3) { basisName = t("app.res.basis.model"); basisDesc = t("app.res.desc.model"); }
+  /* ⚠ 近邻相关的三处文案（大数字下方、近邻表标题、范围提示）用的描述**必须**是
+     一个短名词（「Phira 社区谱」），不能是 v3 那句长解释 ——
+     否则会拼成「20 维结构特征 → 岭回归（…）参照（最相近 5 张）」，
+     以及「在 20 维结构特征 → 岭回归（…）里没有紧密对应物」。
+     v3 时主数字不是近邻中位，但**不确定范围与近邻表仍然来自社区近邻**，
+     所以这三处继续指社区谱，只是标题不再冒充「这个数的来源」。 */
+  const nearDesc = isV3 ? t("app.res.desc.com") : basisDesc;
+  const nearLabel = isV3
+    ? t("app.res.near.model")
+    : t("app.res.near", { desc: basisDesc });
   const gap = (isCom && knOff && knOff.ref != null && kn.ref != null)
     ? (kn.ref - knOff.ref) : null;
   const bars=GROUPS.map(function(g){
@@ -499,7 +509,8 @@ function card(r,idx){
       +'<div class="scalecard'+(isCom?' on':'')+'">'
         +'<div class="lbl">'+esc(basisName)+'</div>'
         +'<div class="v">'+f1(kn.ref)+'</div>'
-        +'<div class="note">'+t("app.res.poolnote",{desc:basisDesc,pool:poolN,n:(kn.n20)||0})+'</div>'
+        +'<div class="note">'+(isV3 ? basisDesc
+            : t("app.res.poolnote",{desc:basisDesc,pool:poolN,n:(kn.n20)||0}))+'</div>'
       +'</div>'
       +(knOff&&knOff.ref!=null
         ?'<div class="scalecard">'
@@ -507,8 +518,8 @@ function card(r,idx){
           +'<div class="v">'+f1(knOff.ref)+'</div>'
           +'<div class="note">'+esc(t("app.res.off.note",{n:REF_OFFICIAL?REF_OFFICIAL.length:0}))
           +(gap!=null?' '+esc(gap>=0
-              ? t("app.res.off.hi",{d:Math.abs(gap).toFixed(1)})
-              : t("app.res.off.lo",{d:Math.abs(gap).toFixed(1)})):'')+'</div></div>':'')
+              ? t(isV3?"app.res.off.hi.model":"app.res.off.hi",{d:Math.abs(gap).toFixed(1)})
+              : t(isV3?"app.res.off.lo.model":"app.res.off.lo",{d:Math.abs(gap).toFixed(1)})):'')+'</div></div>':'')
     +'</div>'
 
     /* ── 区间轴：轴就是**不确定范围**（lo..hi），两端标出数值，
@@ -542,14 +553,14 @@ function card(r,idx){
         +'</li><li>'+t("app.res.vague.i3")+'</li></ul>'
         +'<div class="callout__lead" style="margin-top:.6em">'
         +t("app.res.vague.lead",{n:(kn.n20)||0,lo:f1(kn.lo),hi:f1(kn.hi),
-          span:span.toFixed(1),desc:basisDesc})+'</div></div>':'')
+          span:span.toFixed(1),desc:nearDesc})+'</div></div>':'')
       :'')
     +'<div class="srow"><span class="slabel">'+esc(t("app.res.share.label"))+'</span>'
       +'<button class="sbtn" type="button" data-share="wide" data-i="'+idx+'">'
       +esc(t("app.res.share.wide"))+'</button>'
       +'<button class="sbtn" type="button" data-share="tall" data-i="'+idx+'">'
       +esc(t("app.res.share.tall"))+'</button></div>'
-    +'<table style="margin-top:8px"><tr><th>'+esc(t("app.res.near",{desc:basisDesc}))+'</th>'
+    +'<table style="margin-top:8px"><tr><th>'+esc(nearLabel)+'</th>'
     +'<th>'+esc(t("c.tier"))+'</th><th>'+esc(t("app.res.th.const"))+'</th></tr>'+nearRows+'</table>'
     /* ── PS 四个维度：四根迷你条 ──
        ⚠ `bars` 这个变量**早就算好了却一直没渲染**（死代码），页面上只出现

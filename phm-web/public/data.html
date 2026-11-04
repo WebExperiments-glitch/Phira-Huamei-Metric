@@ -220,7 +220,7 @@ function render(j) {
     const hasD = d > 0 && d <= 20;
     const pm = r.ref_const != null ? +r.ref_const : null;
     const po = r.ref_official != null ? +r.ref_official : null;
-    /* 社区共识 vs 官谱标度之差 —— 这一列是这个工具最独有的信息 */
+    /* 模型估计 vs 官谱标度之差 —— 这一列是这个工具最独有的信息 */
     const gap = (pm != null && po != null) ? pm - po : null;
     const stale = r.engine_build !== j.engineVer;
     h += '<tr>'

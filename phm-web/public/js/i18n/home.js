@@ -30,9 +30,9 @@ export default {
 
     /* ── 「为什么是两个数字」 ── */
     'home.why.t': '为什么是两个数字',
-    'home.why.sub': '同一个谱面结构，在两份参照集上会得到两个值——这不是"其中一个算错了"，而是两把不同的尺子。',
-    'home.dc.com.k': '社区共识',
-    'home.dc.com.n': '9,508 张 Phira 社区谱里最相近的 20 张<br>→ 站内谱师实际定价的共识',
+    'home.why.sub': '同一个谱面，两把尺子会量出两个值——不是"其中一个算错了"，而是社区谱和官谱的标度本来就不同。',
+    'home.dc.com.k': '模型估计',
+    'home.dc.com.n': '20 项结构特征 → 模型<br>→ 最贴近你在 Phira 看到的数字',
     'home.dc.off.k': '官谱标度',
     'home.dc.off.n': '换成 1,037 张 Phigros 官谱<br>→ 与官方一致的绝对标度',
     'home.why.n1':
@@ -41,9 +41,9 @@ export default {
       + '只印一个数字，社区谱师就会看到「我的 IN 14 被算成 11.6」那样对不上的结果。'
       + '<b>把差距印出来，争议就变成了信息。</b>',
     'home.why.n2':
-      '每个数都带<b>不确定范围</b>（那 20 张参照谱的定数跨度）。跨度大 = 这张谱的结构在参照集里'
-      + '没有紧密对应物，中点不该被当成结论——所以卡片上会直接标出来。<br>'
-      + '实测（1,367 张留出社区谱）：<b>|偏差| 均值 0.820 · p90 1.40 · ≤1.0 命中 84.2%</b>。',
+      '每个数都带<b>不确定范围</b>（社区谱里最相近 20 张的定数跨度）。跨度大 = 这张谱在社区参照里'
+      + '没有紧密对应物，只能当粗略参考——所以卡片上会直接标出来。<br>'
+      + '旧版「近邻取中位」的留出验证（1,367 张社区谱）：<b>|偏差| 均值 0.820 · p90 1.40 · ≤1.0 命中 84.2%</b>。',
 
     /* ── 站点数据 ── */
     'home.stats.t': '站点数据',
@@ -62,8 +62,8 @@ export default {
       + '没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」——'
       + '<b>声称能区分就是造假</b>。',
     'home.bounds.b2':
-      '<b>社区共识不是客观真值。</b>它是 Phira 上谱师声明定数的共识，'
-      + '反映的是"站内同类谱被判成多少"，不是绝对难度。官谱标度那一栏才是与官方可比的绝对标度。',
+      '<b>模型估计不是客观真值。</b>它学的是社区谱被玩家打出来的难度，'
+      + '反映"站内同类谱有多难"，不是绝对难度。官谱标度那一栏才是与官方可比的绝对标度。',
     'home.bounds.b3':
       '<b>隐私。</b>核心链路（拖入谱面 → 解析 → 出定数）全程在本机浏览器内完成，'
       + '<b>谱面文件永不上传</b>。只有你在打卡区主动勾选时，才会把算出的结构特征'
@@ -106,9 +106,9 @@ export default {
 
     /* ── "Why two numbers" ── */
     'home.why.t': 'Why two numbers',
-    'home.why.sub': 'The same chart structure yields two values against two reference sets — not because one of them is wrong, but because they are two different rulers.',
-    'home.dc.com.k': 'Community consensus',
-    'home.dc.com.n': 'The 20 closest charts among 9,508 Phira community charts<br>→ what charters on the site actually price it at',
+    'home.why.sub': 'The same chart measured by two rulers gives two values — not because one of them is wrong, but because community and official charts sit on different scales.',
+    'home.dc.com.k': 'Model estimate',
+    'home.dc.com.n': '20 structural features → model<br>→ the closest thing to the number you see on Phira',
     'home.dc.off.k': 'Official scale',
     'home.dc.off.n': 'Against 1,037 official Phigros charts<br>→ an absolute scale consistent with the game',
     'home.why.n1':
@@ -118,11 +118,11 @@ export default {
       + 'as many drags. Print one number and community charters see a mismatch like "my IN 14 came out '
       + 'as 11.6". <b>Print the gap and the disagreement turns into information.</b>',
     'home.why.n2':
-      'Every number carries an <b>uncertainty range</b> (the spread of constants across those 20 '
-      + 'reference charts). A wide spread means this chart\u2019s structure has no close counterpart in '
-      + 'the reference set, so the midpoint should not be read as a verdict — which is why the card '
-      + 'shows the range outright.<br>Measured on 1,367 held-out community charts: <b>mean |error| 0.820 · '
-      + 'p90 1.40 · 84.2% within 1.0</b>.',
+      'Every number carries an <b>uncertainty range</b> (the spread of constants across the 20 closest '
+      + 'community charts). A wide spread means this chart has no close counterpart in the community '
+      + 'reference set, so treat the number as a rough guide — which is why the card shows the range '
+      + 'outright.<br>Old "median of neighbours" method on held-out data (1,367 community charts): '
+      + '<b>mean |error| 0.820 · p90 1.40 · 84.2% within 1.0</b>.',
 
     /* ── Site data ── */
     'home.stats.t': 'Site data',
@@ -142,9 +142,9 @@ export default {
       + '"the game itself would label it this way" on structure alone — <b>anyone claiming otherwise is '
       + 'lying</b>.',
     'home.bounds.b2':
-      '<b>Community consensus is not objective truth.</b> It is the consensus on the constants charters '
-      + 'declared on Phira; it says "what similar charts on the site get labelled", not absolute '
-      + 'difficulty. The official-scale column is the absolute scale comparable to the game.',
+      '<b>Model estimates are not objective truth.</b> The model learns how hard players actually find '
+      + 'community charts — it says "how hard similar charts on the site are", not absolute difficulty. '
+      + 'The official-scale column is the absolute scale comparable to the game.',
     'home.bounds.b3':
       '<b>Privacy.</b> The core path (drop a chart pack → parse → constants) runs entirely in your '
       + 'browser, and <b>chart files are never uploaded</b>. Only when you tick the box yourself are the '

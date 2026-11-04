@@ -61,7 +61,7 @@
 
     <div class="cd-num" id="nums">
       <div class="b">
-        <div class="k">参考定数 · 社区共识</div>
+        <div class="k">参考定数 · 模型估计</div>
         <div class="v" id="ref">—</div>
         <div class="n" id="range">—</div>
       </div>
@@ -190,13 +190,13 @@ function paint(m, c) {
     $('#ref').textContent = f2(c.ref_const);
     /* 定数下面那行小字：缓存里**实际有**的三项。
        ⚠ 原来写的是 ref_lo / ref_hi（不确定范围），但 phm_charts 表没有这两列 ——
-         于是这一行永远显示"社区共识标度"，等于装饰。
+         于是这一行永远显示"模型估计标度"，等于装饰。
          改成 PS 负荷 / 物量 / NPS：都是缓存里现成的，而且能帮人判断"这谱凭什么是 17.45"。 */
     const bits = [];
     if (isFinite(+c.ps_score)) bits.push('PS ' + f1(c.ps_score));
     if (isFinite(+c.notes)) bits.push('物量 ' + Math.round(+c.notes));
     if (isFinite(+c.nps)) bits.push('NPS ' + f2(c.nps));
-    $('#range').textContent = bits.length ? bits.join(' · ') : '社区共识标度';
+    $('#range').textContent = bits.length ? bits.join(' · ') : '模型估计标度';
     if (isFinite(+c.ref_official) && +c.ref_official > 0) $('#refOff').textContent = f2(c.ref_official);
     if (isFinite(+official)) $('#offical').textContent = f2(official);
   } else {
@@ -217,7 +217,7 @@ function paint(m, c) {
     $('#behav').textContent = f2(e[0]);
     $('#behavN').textContent = e[1] + ' 位玩家的击打偏差';
     /* 三个数的分歧**本身就是信息**，而现在三列并排、谁也不解释谁。
-       判据用「引擎(社区共识) − 玩家实测」的差： */
+       判据用「引擎(模型估计) − 玩家实测」的差： */
     const eng = isFinite(+c.ref_const) && +c.ref_const > 0 ? +c.ref_const : null;
     const bh = +e[0];
     if (eng != null && document.getElementById('verdict')) {

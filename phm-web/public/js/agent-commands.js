@@ -48,6 +48,28 @@ async function weightsV2() {
   return W2;
 }
 
+/* ── v3 权重（11 KB）──
+   与 /app 工作台同一套推理（20 维事件序列 → 岭回归），否则写谱 Agent
+   报出的定数会比用户自己拖同一张谱算出来的低/高 —— 同一个数两处不同源。
+   读到就用 v3；读不到返回 null，让引擎自己降级到 v2/kNN（降级 ≠ 报错）。 */
+let W3 = null, W3_STATE = '';
+async function weightsV3() {
+  if (W3_STATE === 'ok' || W3_STATE === 'fail') return W3;
+  W3_STATE = 'loading';
+  try {
+    const r = await fetch('/data/engine-v3.json?v=' + encodeURIComponent(APP_VER));
+    if (!r.ok) throw Error('HTTP ' + r.status);
+    const j = await r.json();
+    /* ⚠ 142 维，不是 v2 的 37 维。校验错了不会报错，只会静默偏移。 */
+    if (!j || !Array.isArray(j.w) || j.w.length !== 142) throw Error('权重结构异常（w 不是 142 维）');
+    W3 = j; W3_STATE = 'ok';
+  } catch (e) {
+    W3_STATE = 'fail';
+    console.warn('[agent] v3 权重加载失败，定数退回 v2/kNN：' + (e.message || e));
+  }
+  return W3;
+}
+
 /* ── schema 构造器 ──
    最小够用：只要能让模型看懂参数含义与必填。不实现完整 JSON Schema。 */
 const T = (desc) => ({ type: 'string', description: desc });
@@ -244,20 +266,24 @@ export function createCommands({ approve = async () => true, getChart, setChart,
       return { chart: emptyChart({}), note: 'BPMList 可多段；offset 单位毫秒' };
     });
 
-  defineCommand('difficulty_estimate', '用 v2 引擎算出当前谱面的预估定数。生成后调一次，把数字如实报给用户（它不是「这首歌应该多少分」）。',
+  defineCommand('difficulty_estimate', '用 v3 引擎算出当前谱面的预估定数。生成后调一次，把数字如实报给用户（它不是「这首歌应该多少分」）。',
     obj({}), 'read', async () => {
       const chart = getChart();
       const notes = (chart?.judgeLineList ?? []).reduce((n, l) => n + (l.notes?.length ?? 0), 0);
       if (!notes) throw Error('当前谱面还没有音符，先 chart_generate');
-      const W = await weightsV2();
+      const W2 = await weightsV2();
+      const W3 = await weightsV3();
       let r;
       try { r = loadChart(chart); } catch (e) { throw Error('谱面结构无法解析：' + (e.message || e)); }
       const meta = chart.META || {};
-      const rep = reportFromChart(r, meta.name || '', meta, null, null, null, W);
-      const level = rep?.v2 ?? rep?.knn?.ref ?? null;
+      const rep = reportFromChart(r, meta.name || '', meta, null, null, null, W2, W3);
+      const level = rep?.v3?.ding ?? rep?.v2 ?? rep?.knn?.ref ?? null;
+      const basis = rep?.v3 != null ? 'ridge-seq20 (v3)'
+        : rep?.v2 != null ? 'ridge-beta (v2)'
+        : 'knn 参照集（模型权重没取到，已降级）';
       return {
         level: level == null ? null : +Number(level).toFixed(1),
-        basis: rep?.v2 != null ? 'ridge-beta (v2)' : 'knn 参照集（v2 权重没取到，已降级）',
+        basis,
         notes,
         nps: rep?.feats?.notes_all ? +(rep.feats.notes_all / Math.max(1, (chart.META?.duration || 1))).toFixed(2) : null,
         engineVer: rep?.engineVer ?? null,

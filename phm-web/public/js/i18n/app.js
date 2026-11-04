@@ -13,7 +13,7 @@ export default {
        视觉上这页直接以标语开场，但它需要有一个一级标题，否则读屏用户
        无法判断自己在哪一页。等 UI 重设计时再把它提升成可见标题。 */
     'app.head.h1': '算定数 · 谱面难度工作台',
-    'app.head.slogan': '拖入谱面包 → 得到<b>双标度定数参考</b>（社区共识 + 官谱标度）。<br>'
+    'app.head.slogan': '拖入谱面包 → 得到<b>双标度定数参考</b>（模型估计 + 官谱标度）。<br>'
       + '<b>无需登录 · 谱面文件不会上传</b> · 解析全在你的浏览器里完成。',
     'app.head.search.ph': '搜谱面：曲名 / 谱师',
     'app.head.search.btn': '搜索',
@@ -118,14 +118,15 @@ export default {
        直接摆给用户看，还叠了"源码 phm-web/public/index.html"——那是开发笔记。
        界面只留一句人话，技术细节进「PS 是什么」折叠区与 /version 页。 */
     'app.foot.engine':
-      '用 <b>9,508 张社区谱</b>和 <b>1,037 张官谱</b>做双参照，算出可复核的定数',
+      '用<b>模型</b>估出难度，再拿 <b>9,508 张社区谱</b>和 <b>1,037 张官谱</b>做双标度对照',
     'app.foot.ver': '版本 {v}（开发者测试版，正式版会重新计算）',
     'app.foot.details': 'PS 是什么？本工具的边界与隐私（点开看）',
     'app.foot.d1':
       '<b>三个数不是一回事，别混用</b>：<br>'
-      + '· <b>参考定数（社区共识）</b>—— 9,508 张 Phira 社区谱里结构最相近的 20 张，'
-      + '它们的定数中位。这是<b>谱师实际定价的共识</b>，也是最贴近你在 Phira 上看到的那个数字。<br>'
-      + '· <b>官谱标度</b>——同样算法，但参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>'
+      + '· <b>参考定数（模型估计）</b>—— 把谱面的按键密度、位移、跳跃速度等 20 项结构特征'
+      + '交给模型，直接算出难度。模型学的是社区谱<b>被玩家打出来的实际难度</b>，'
+      + '所以这个数落在你在 Phira 上看到的那个标度上。<br>'
+      + '· <b>官谱标度</b>—— 参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>'
       + '· <b>PS</b> ——本工具自己的负荷标度（0–20），衡量操作与读取负荷，<b>与上面两个都不同标度</b>。',
     'app.foot.d2':
       '<b>两个标度差得多，说明什么？</b>官谱与社区谱<b>结构分布本来就不同</b>'
@@ -141,12 +142,12 @@ export default {
       + '两者不构成互相验证。<b>本工具不判定「虚标」</b>：在这个噪声水平下，'
       + '没有任何工具能仅凭结构区分「谱师标错」和「官方也会这么标」。',
     'app.foot.d5':
-      '<b>参考定数</b>是 20 张最相似参照谱的<b>定数中位</b>，不是拟合出来的预测值——'
-      + '逐张可以点开看名字，拿回 Phira 自己核对。它在参照集里没有紧密对应物时会偏移，'
-      + '所以卡片上同时给出<b>不确定范围</b>（这 20 张的定数跨度）与<b>平均邻居距离</b>，'
-      + '跨度大就说明结论软。<br>'
-      + '留出验证（1,367 张社区谱，参照集 8,141 张）：<b>|偏差| 均值 0.820 · ≤1.0 命中 84.2%</b>，'
-      + '旧版（官谱 4 维）是 1.187 / 67.0%。',
+      '<b>参考定数（模型估计）</b>不是近邻投票，是模型对这张谱的预测值。'
+      + '卡片上的<b>不确定范围</b>仍取自 9,508 张社区谱里最相近的 20 张——'
+      + '那 20 张的定数跨度越大，说明社区谱里越没有和你这张同类的谱，这个数就该看得越松。'
+      + '下方「最相近 5 张」是留给你自己核对的：名字和难度都对得上，结论才站得住。<br>'
+      + '作为对照，旧版「近邻取中位」的留出验证（1,367 张社区谱，参照集 8,141 张）：'
+      + '<b>|偏差| 均值 0.820 · ≤1.0 命中 84.2%</b>，更旧的一版（官谱 4 维）是 1.187 / 67.0%。',
     'app.foot.d6':
       '<b>隐私 · 什么会上传</b>（统一受页面底部「⚙ 设置」的开关控制）：<br>'
       + '· <b>算 RKS</b>：本机计算。勾选「匿名上传」才写 曲名 / 定数 / ACC 三项 '
@@ -226,16 +227,19 @@ export default {
     'app.res.behav.tip': '由玩家击打时间偏差反推的难度，与上面两个数方法完全独立（括号内是参与人数）',
     'app.res.off.hi': '　·　社区共识比它高 {d}',
     'app.res.off.lo': '　·　社区共识比它低 {d}',
+    /* v3 生效时主数字是模型估计，不再是社区近邻中位 —— 比它高低的主语得跟着换 */
+    'app.res.off.hi.model': '　·　模型估计比它高 {d}',
+    'app.res.off.lo.model': '　·　模型估计比它低 {d}',
     /* ⚠ 拆成「引导句 + 三条短列表」：原来是一整段 200 字、里面 ①②③ 三个加粗，
        读起来像一段免责声明。评审：改浅琥珀底的提示框 + 短列表。
        ⚠ 加粗预算：每段至多一处（引导句），列表条目不再加粗。 */
     'app.res.vague.lead':
       '这 {n} 张参照谱的定数横跨 {lo}–{hi}（相差 {span}）——'
-      + '在{desc}里<b>没有紧密对应物</b>，中点只能当粗略参照。',
+      + '在{desc}里<b>没有紧密对应物</b>，这个估计只能当粗略参考。',
     'app.res.vague.see': '这种时候该看什么：',
     'app.res.vague.i1': '看它更靠近范围的哪一端（偏难还是偏易）；',
-    'app.res.vague.i2': '点开下面「最相近 5 张」核对名字 —— 觉得哪张不像，这个数就不该信；',
-    'app.res.vague.i3': '换另一标度看另一栏（社区与官谱往往一宽一窄）。',
+    'app.res.vague.i2': '点开下面「最相近 5 张」核对名字 —— 一张都不像的话，就把它当粗略参考；',
+    'app.res.vague.i3': '换另一栏看另一标度（两栏常常一宽一窄）。',
 
     'app.res.poolnote': '{desc} {pool} 张里最相近的 {n} 张',
     /* 明细分组的四组标题 */
@@ -248,6 +252,8 @@ export default {
     'app.res.share.wide': '横版图 · QQ / B站 / X',
     'app.res.share.tall': '竖版图 · 抖音',
     'app.res.near': '{desc}参照（最相近 5 张）',
+    /* v3：主数字不是近邻中位，但近邻表仍是社区谱，不能拿长解释当表头 */
+    'app.res.near.model': '社区谱参照（最相近 5 张）',
     'app.res.th.const': '定数',
     'app.res.punch.title': '算单曲 RKS',
     'app.res.punch.opt': '（可选：匿名贡献数据）',
@@ -401,7 +407,7 @@ export default {
        level-1 heading so screen-reader users know which page they are on. */
     'app.head.h1': 'Analyze · chart difficulty workbench',
     'app.head.slogan':
-      'Drop a chart pack in → get <b>both difficulty scales</b> (community consensus + official scale).<br>'
+      'Drop a chart pack in → get <b>both difficulty scales</b> (model estimate + official scale).<br>'
       + '<b>No sign-in · chart files are never uploaded</b> · parsing runs entirely in your browser.',
     'app.head.search.ph': 'Search charts: song / charter',
     'app.head.search.btn': 'Search',
@@ -495,16 +501,17 @@ export default {
 
     /* ── footer ── */
     'app.foot.engine':
-      'Computed against <b>9,508 community charts</b> and <b>1,037 official charts</b> as dual references',
+      'Estimates difficulty with a <b>model</b>, then compares it against <b>9,508 community charts</b> and <b>1,037 official charts</b>',
     'app.foot.ver': 'Version {v} (developer beta; the release build will recompute everything)',
     'app.foot.details': 'What is PS? This tool\u2019s limits and privacy (expand)',
     'app.foot.d1':
       '<b>These three numbers are not the same — do not mix them up</b>:<br>'
-      + '· <b>Reference constant (community consensus)</b> — the median declared constant of the 20 '
-      + 'structurally closest charts among 9,508 Phira community charts. This is <b>how charters actually '
-      + 'price a chart</b>, and the closest thing to the number you see on Phira.<br>'
-      + '· <b>Official scale</b> — the same algorithm with the reference set swapped for 1,037 official '
-      + 'Phigros charts; the absolute scale consistent with the game.<br>'
+      + '· <b>Reference constant (model estimate)</b> — 20 structural features (note density, movement, '
+      + 'jump speed…) go into a model that estimates the difficulty directly. The model learned from '
+      + '<b>how hard players actually find community charts</b>, so the result sits on the scale you see '
+      + 'on Phira.<br>'
+      + '· <b>Official scale</b> — the reference set swapped for 1,037 official Phigros charts; '
+      + 'the absolute scale consistent with the game.<br>'
       + '· <b>PS</b> — this tool\u2019s own load scale (0–20), measuring execution and reading load, '
       + '<b>a different scale from both of the above</b>.',
     'app.foot.d2':
@@ -524,12 +531,14 @@ export default {
       + '"fake labels"</b>: at that noise level no tool can tell "the charter mislabelled" from "the official '
       + 'would label it this way too" by structure alone.',
     'app.foot.d5':
-      'The <b>reference constant</b> is the <b>median declared constant</b> of the 20 most similar reference '
-      + 'charts, not a fitted prediction — you can open each one by name and check it back on Phira. It drifts '
-      + 'when the reference set has no close match, so the card also shows the <b>uncertainty range</b> '
-      + '(the spread across those 20) and the <b>mean neighbour distance</b>; a wide spread means the number is soft.<br>'
-      + 'Hold-out validation (1,367 community charts, reference set of 8,141): <b>mean |error| 0.820 · 84.2% within 1.0</b>; '
-      + 'the old version (4-dim official reference) was 1.187 / 67.0%.',
+      'The <b>reference constant (model estimate)</b> is a prediction, not a neighbour vote. '
+      + 'The <b>uncertainty range</b> on the card still comes from the 20 closest charts among 9,508 '
+      + 'community charts — the wider that spread, the fewer comparable charts exist, so the looser you '
+      + 'should read the estimate. The "5 closest" table below is there for you to check: if the names and '
+      + 'levels look nothing like yours, the number does not hold up.<br>'
+      + 'For comparison, the old "median of neighbours" method on held-out data (1,367 community charts, '
+      + 'reference set of 8,141): <b>mean |error| 0.820 · 84.2% within 1.0</b>; '
+      + 'the older version (4-dim official) was 1.187 / 67.0%.',
     'app.foot.d6':
       '<b>Privacy · what gets uploaded</b> (all of it governed by the switch in the Settings panel at the page bottom):<br>'
       + '· <b>Compute RKS</b>: runs locally. Only if you tick "upload anonymously" do we write '
@@ -615,13 +624,15 @@ export default {
     'app.res.behav.tip': 'derived from how accurately players hit this chart — independent of the two figures above (number of players in brackets)',
     'app.res.off.hi': ' · community consensus sits {d} above it',
     'app.res.off.lo': ' · community consensus sits {d} below it',
+    'app.res.off.hi.model': ' · the model estimate sits {d} above it',
+    'app.res.off.lo.model': ' · the model estimate sits {d} below it',
     'app.res.vague.lead':
       'These {n} reference charts span {lo}–{hi} (a gap of {span}) — '
-      + 'this chart has <b>no close match</b> in {desc}, so the midpoint is only a rough guide.',
+      + 'this chart has <b>no close match</b> in {desc}, so the estimate is only a rough guide.',
     'app.res.vague.see': 'What to look at instead:',
     'app.res.vague.i1': 'Which end of the range it leans toward (harder or easier side of its kind);',
-    'app.res.vague.i2': 'Open the "5 closest" table below and check the names — if one looks nothing like yours, do not trust this number;',
-    'app.res.vague.i3': 'Read the other column for the other scale (community and official often disagree in opposite directions).',
+    'app.res.vague.i2': 'Open the "5 closest" table below and check the names — if none of them look like yours, treat the number as a rough guide;',
+    'app.res.vague.i3': 'Read the other column for the other scale (one is often tighter than the other).',
 
     'app.res.poolnote': '{desc} — the {n} closest of {pool}',
     'app.res.g1': 'Basics',
@@ -633,6 +644,7 @@ export default {
     'app.res.share.wide': 'Landscape · QQ / Bilibili / X',
     'app.res.share.tall': 'Portrait · Douyin',
     'app.res.near': '{desc} reference (5 closest)',
+    'app.res.near.model': 'Community reference (5 closest)',
     'app.res.th.const': 'Constant',
     'app.res.punch.title': 'Per-chart RKS',
     'app.res.punch.opt': ' (optional: contribute anonymously)',

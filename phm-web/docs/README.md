@@ -106,12 +106,13 @@ phm-web/
 │       ├── versions-archive.js ← 版本历史的旧条目。拆开的原因：versions.js 只增不减，每次发版都会顶到 900 行上限
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
-├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（73 个）
+├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（74 个）
 │   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件）
 │   ├── gen-release.mjs        ← 从实际 exe 算大小 / sha256 / 客户端版本
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
 │   ├── reconcile-cache.mjs    ← ★ 缓存对账（--recompute-stale / --fix，退出码可挂 CI）
 │   ├── verify-engine.mjs      ← ★ 引擎回归测试（45 条；--net 比对真实基线）
+│   ├── verify-parity-v3.mjs   ← ★★ 服务端复算 ↔ 浏览器路径 定数一致性（防「一条路径忘了传 v3」）
 │   ├── smoke-page.mjs         ← ★ 冒烟（239 条：页面 / 版本号 / 缓存策略）
 │   ├── verify-pages.mjs       ← ★★ 真浏览器驱动 UI（123 条，含双语覆盖）
 │   ├── test-ui-flows.mjs      ← ★★ 真浏览器交互（24 条：拖文件 / 结果卡 / 字体跨页）

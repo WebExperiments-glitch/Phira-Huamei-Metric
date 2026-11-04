@@ -147,8 +147,8 @@ if (!det) det = await ev(`JSON.stringify({leaks:[], name:(document.getElementByI
 ok('★ 详情页无漏翻键', String(det).indexOf('"leaks":[]') >= 0, String(det).slice(0, 140));
 ok('★ 渲染出曲名', String(det).indexOf('Cornflakes') >= 0, String(det).slice(0, 120));
 ok('★ 显示定数', /"ref":"1[0-9]\.[0-9]{2}"/.test(String(det)), String(det).slice(0, 120));
-ok('★ 定数下方有 PS/物量/NPS（不是永远显示"社区共识标度"）',
-  /"range":"(PS|社区共识标度)/.test(String(det)), String(det).slice(0, 140));
+ok('★ 定数下方有 PS/物量/NPS（不是永远显示"模型估计标度"）',
+  /"range":"(PS|模型估计标度|社区共识标度)/.test(String(det)), String(det).slice(0, 140));
 ok('★ 曲绘加载成功（走代理，不是 ♪ 占位）', String(det).indexOf('"illLoaded":true') >= 0, String(det).slice(0, 160));
 ok('★ 有「在分析台打开」按钮', String(det).indexOf('"hasOpenApp":true') >= 0);
 ok('详情页无运行时报错', errs.length === beforeDetail, (errs.length - beforeDetail) + ' 条');
