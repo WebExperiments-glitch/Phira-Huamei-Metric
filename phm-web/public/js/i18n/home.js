@@ -32,7 +32,7 @@ export default {
     'home.why.t': '为什么是两个数字',
     'home.why.sub': '同一个谱面，两把尺子会量出两个值——不是"其中一个算错了"，而是社区谱和官谱的标度本来就不同。',
     'home.dc.com.k': '模型估计',
-    'home.dc.com.n': '20 项结构特征 → 模型<br>→ 最贴近你在 Phira 看到的数字',
+    'home.dc.com.n': '20 项结构特征 + 片段手型 → 模型<br>→ 最贴近你在 Phira 看到的数字',
     'home.dc.off.k': '官谱标度',
     'home.dc.off.n': '换成 1,037 张 Phigros 官谱<br>→ 与官方一致的绝对标度',
     'home.why.n1':
@@ -108,7 +108,7 @@ export default {
     'home.why.t': 'Why two numbers',
     'home.why.sub': 'The same chart measured by two rulers gives two values — not because one of them is wrong, but because community and official charts sit on different scales.',
     'home.dc.com.k': 'Model estimate',
-    'home.dc.com.n': '20 structural features → model<br>→ the closest thing to the number you see on Phira',
+    'home.dc.com.n': '20 structural features + fragment hand-shape → model<br>→ the closest thing to the number you see on Phira',
     'home.dc.off.k': 'Official scale',
     'home.dc.off.n': 'Against 1,037 official Phigros charts<br>→ an absolute scale consistent with the game',
     'home.why.n1':
