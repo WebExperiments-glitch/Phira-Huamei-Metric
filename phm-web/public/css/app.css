@@ -174,6 +174,20 @@ padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;transition:.15s}
 .scalecard.on .v{color:var(--brand-bright)}
 .scalecard.on .lbl{color:var(--brand)}
 
+/* ── 精确计算（序列模型，可选档）──
+   默认档旁边的一行小动作：给不愿意只看一个数的人一个「再算细一点」的入口。
+   权重 700 KB 是点了才拉的，所以这里必须看起来**轻**，不能抢主数字的视线 ——
+   20px 而不是 30px，品牌色但不加粗底色。 */
+.seqout{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin:0 0 6px}
+.seqout b{font-family:var(--font-display);font-weight:600;font-size:19px;
+  line-height:1.15;color:var(--brand-bright);font-variant-numeric:tabular-nums}
+.seqbtn{border:1px solid var(--line);background:var(--card2);color:var(--fg2);
+  border-radius:8px;padding:3px 9px;font-size:12px;font-family:inherit;
+  cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.seqbtn:hover{border-color:var(--amber);color:var(--amber);background:var(--card)}
+.seqbtn:disabled{opacity:.45;cursor:default}
+.seqtip{font-size:11px;color:var(--fg3)}
+
 /* ── 区间轴：轴 = 不确定范围（lo..hi），两个标度各一根标记 ──
    两端标出数值；标记很近时 a 的标签在上、b 的标签在下，避免重叠。
    ⚠ 轨道的对比度不能太弱（评审：像没画完），所以用 inset 描边而不是纯底色。 */

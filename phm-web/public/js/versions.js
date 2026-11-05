@@ -19,9 +19,21 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.25.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.26.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.26.0.0', date: '2026-11-05',
+    zh: ['<b>多了一个「精确计算」按钮。</b> 平时的数还是秒出（几毫秒）；点它，会用一个更大的模型再算一遍，'
+      + '慢一点（半秒内），但更准 —— 对玩家实际打出来的难度，准度从 0.80 提到 0.83。'
+      + '<b>为什么不做成默认：</b>这 0.03 的差距折算到定数只有 0.03 分，比你自己打同一张谱两次的手感差异还小。'
+      + '默认档快 5 倍，就该留在默认。'],
+    en: ['<b>There is a new "compute precisely" button.</b> The usual number still appears instantly (a few milliseconds); '
+      + 'tap the button and a larger model runs a second pass &mdash; slower (under half a second), but more accurate: '
+      + 'agreement with how hard players actually find a chart goes from 0.80 to 0.83. '
+      + '<b>Why it is not the default:</b> those 0.03 points are about 0.03 levels, smaller than the difference you feel '
+      + 'playing the same chart twice. The default is 5&times; faster and belongs where it is.'],
+  },
   {
     v: 'V0.25.0.0', date: '2026-11-04',
     zh: ['<b>功能都回来了。</b> 账号、成绩、数据浏览、谱师页、设置、状态、开放平台、客户端下载 —— 之前被撤掉的那些页面重新上线，导航也补回完整的一份。',
