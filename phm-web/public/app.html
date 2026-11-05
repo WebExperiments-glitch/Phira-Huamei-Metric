@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.25.0.0">
+<meta name="app-version" content="V0.26.0.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -38,11 +38,11 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.25.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.25.0.0">
-<link rel="stylesheet" href="/css/motion.css?v=V0.25.0.0">
-<script type="module" src="/js/motion.js?v=V0.25.0.0"></script>
-<link rel="stylesheet" href="/css/app.css?v=V0.25.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.26.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.26.0.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.26.0.0">
+<script type="module" src="/js/motion.js?v=V0.26.0.0"></script>
+<link rel="stylesheet" href="/css/app.css?v=V0.26.0.0">
 </head>
 <body>
 <div class="wrap">
@@ -207,15 +207,15 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.25.0.0';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.26.0.0';
 
 /* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
    文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
-import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.25.0.0';
-import { createAuth, authErrorKey } from '/js/auth.js?v=V0.25.0.0';
-import { installGuard } from '/js/guard.js?v=V0.25.0.0';
-import { initDeepLink } from '/js/deeplink.js?v=V0.25.0.0';
-import { fillBehav } from '/js/behav.js?v=V0.25.0.0';
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.26.0.0';
+import { createAuth, authErrorKey } from '/js/auth.js?v=V0.26.0.0';
+import { installGuard } from '/js/guard.js?v=V0.26.0.0';
+import { initDeepLink } from '/js/deeplink.js?v=V0.26.0.0';
+import { fillBehav } from '/js/behav.js?v=V0.26.0.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -342,6 +342,119 @@ async function loadWeightsV3() {
     W3 = null;
   }
   return W3;
+}
+
+/* ── 精确计算档：34k 参数的序列模型（约 700 KB 权重，703 KB → gzip 311 KB）──
+   ⚠ **不随首屏加载**，也不在分析时自动跑：它换来的只是 0.03 分的差距
+     （ρ 0.8024 → 0.8245），代价是 7 倍体积 + 一次前向。
+     所以做成结果卡片上的一个按钮，用户点了才拉权重。
+   ⚠ 加载/推理任何一步失败都不报错、不影响主数字 —— 只是把这个入口收掉。 */
+let WSEQ = null, WSEQ_STATE = "";
+const SEQ_MAX_EVENTS = 8000;   /* 与训练口径一致（tools/build_seq_dataset.py 的 MAX_EVENTS） */
+async function loadSeqModel() {
+  if (WSEQ_STATE === "ok" || WSEQ_STATE === "fail") return WSEQ;
+  WSEQ_STATE = "loading";
+  try {
+    const r = await fetch("/data/seq-model.json?v=" + encodeURIComponent(APP_VER));
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (!j || !j.weights || !j.meta) throw new Error("权重结构异常");
+    WSEQ = j; WSEQ_STATE = "ok";
+  } catch (e) {
+    WSEQ_STATE = "fail"; WSEQ = null;
+    console.warn("[phm] 序列模型权重加载失败，隐藏「精确计算」：" + (e.message || e));
+  }
+  return WSEQ;
+}
+
+/* ── 从原始谱面包里重新取「音符序列」──
+   为什么不在 analyzeChart 里顺手带出来：那个函数是浏览器与服务端**共用**的
+   纯计算模块，返回值动一个字都要重新验证两端一致（见 engine.js 顶部）。
+   精确计算是可选档，宁可在这里多解析一次（只在用户点按钮时发生），
+   也不去碰主路径的接口。
+
+   ⚠ 候选文件的挑选顺序必须与 analyzeChart **完全一致**（非媒体文件、按大小降序、
+     最多 12 个），这样才能用下标索引到同一张谱 —— 一个包里可能有 4 个难度。 */
+const SEQ_MEDIA = /\.(mp3|ogg|wav|flac|m4a|aac|opus|jpg|jpeg|png|gif|webp|bmp|mp4|mov|webm|avi|ttf|otf|woff2?|pbc|pdb|dll|exe|zip|7z|rar)$/i;
+async function chartNotesAt(buf, ci) {
+  const zip = zipParse(buf);
+  const cands = zip.files.filter(function(x){ return !SEQ_MEDIA.test(x.name); })
+    .sort(function(a,b){ return (b.size||0)-(a.size||0); })
+    .slice(0,12);
+  const out = [];
+  for (const en of cands) {
+    let txt;
+    try { txt = new TextDecoder("utf-8").decode(await en.read()); } catch (e) { continue; }
+    if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+    if (isPecText(txt.slice(0,512))) {
+      try { out.push(parsePec(txt).notes); } catch (e) { out.push(null); }
+      continue;
+    }
+    if (txt.trimStart()[0] !== "{") continue;   /* info.txt / csv 之类，静默跳过 */
+    let j = null;
+    try { j = JSON.parse(txt); } catch (e) { out.push(null); continue; }
+    if (!j.judgeLineList) continue;
+    try { out.push(loadChart(j).notes); } catch (e) { out.push(null); }
+  }
+  return out[ci] || null;
+}
+/* 结果卡片上的那一行：没算过 → 按钮；算过 → 第二个数字；失败过 → 什么都不显示 */
+function seqRow(r, idx) {
+  if (r._seqDing != null) return seqValueHTML(r._seqDing, r._seqMs);
+  if (r._seqOff || r.error) return '';
+  return '<div class="seqout"><button class="seqbtn" type="button" data-seq="' + idx + '">'
+    + esc(t("app.res.seq.btn")) + '</button>'
+    + '<span class="seqtip">' + esc(t("app.res.seq.hint")) + '</span></div>';
+}
+/* data-ding 是**未舍入**的原值：页面显示 1 位小数，验收脚本要对得更细
+   （tools/upload-seq-check.mjs 直接读它，不比 16.9 vs 16.88 这种舍入差）。
+   data-ms 是这条谱的实测耗时，同样给验收脚本读。
+   ⚠ 顺序是「标签在前、数字在后」：反过来会紧贴上面那个 30px 的主数字，
+     两个数看起来像同一个数印了两遍（实测截图里就是这样）。 */
+function seqValueHTML(v, ms) {
+  return '<div class="seqout"><span class="seqtip">' + esc(t("app.res.seq.note")) + '</span>'
+    + '<b data-ding="' + v.toFixed(4) + '"'
+    + (ms ? ' data-ms="' + ms.toFixed(1) + '"' : '') + '>' + f1(v) + '</b></div>';
+}
+/* 模型实现单独一个模块（engine-seq.mjs），**点了按钮才 import** —— 首屏不必
+   为一个可选档多拉一个请求。失败与加载不到权重同样处理：收掉入口。 */
+let predictSeqFn = null;
+async function loadSeqModule() {
+  if (!predictSeqFn) {
+    const m = await import("/js/engine-seq.mjs?v=" + encodeURIComponent(APP_VER));
+    if (typeof m.predictSeq !== "function") throw new Error("模块导出异常");
+    predictSeqFn = m.predictSeq;
+  }
+  return predictSeqFn;
+}
+async function runSeqCalc(btn) {
+  const i = +(btn.getAttribute("data-seq") || 0);
+  const rep = STATE.reports[i];
+  if (!rep || rep.error || btn.disabled) return;
+  btn.disabled = true; btn.textContent = t("app.res.seq.running");
+  try {
+    const W = await loadSeqModel();
+    if (!W) throw new Error("权重不可用");
+    const predictSeq = await loadSeqModule();
+    const notes = await chartNotesAt(rep._buf, rep._ci || 0);
+    if (!notes || !notes.length) throw new Error("拿不到音符序列");
+    /* 特征仍用 v3 那一份（同源），只在 8,000 事件处截断 —— 与训练一致 */
+    const t0 = performance.now();
+    const seq = seqFeatures20(notes.slice(0, SEQ_MAX_EVENTS));
+    const out = predictSeq(seq, W);
+    rep._seqMs = performance.now() - t0;
+    if (!out || !isFinite(out.ding)) throw new Error("推理结果异常");
+    rep._seqDing = out.ding;
+    const box = btn.closest(".seqout");
+    if (box) box.outerHTML = seqValueHTML(out.ding, rep._seqMs);
+  } catch (e) {
+    /* 默认档已经给出数字了，这里失败对用户没有意义 —— 静默收掉入口。
+       控制台留一行，方便排查。 */
+    rep._seqOff = true;
+    console.warn("[phm] 精确计算不可用，已隐藏入口：" + ((e && e.message) || e));
+    const box = btn.closest(".seqout");
+    if (box) box.remove();
+  }
 }
 
 /* 空闲时预热参照集：拖入的第一张谱不该等那 750 KB。
@@ -509,6 +622,9 @@ function card(r,idx){
       +'<div class="scalecard'+(isCom?' on':'')+'">'
         +'<div class="lbl">'+esc(basisName)+'</div>'
         +'<div class="v">'+f1(kn.ref)+'</div>'
+        /* 精确计算：默认不跑（多 700 KB 权重、多一次前向，只换 0.03 分）。
+           点了才拉权重、才推理；失败就把这一行整行收掉。 */
+        + seqRow(r, idx)
         +'<div class="note">'+(isV3 ? basisDesc
             : t("app.res.poolnote",{desc:basisDesc,pool:poolN,n:(kn.n20)||0}))+'</div>'
       +'</div>'
@@ -649,7 +765,9 @@ async function handleFiles(files){
       const buf=await file.arrayBuffer();
       const refCom=await loadRefCom();
       const rs=await analyzeChart(buf,file.name,{refCom:refCom,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3()});
-      rs.forEach(function(r){r.label=file.name;acc.push(r);});
+      /* _buf/_ci 只为「精确计算」保留：用户点了按钮要重新解析出音符序列。
+         不放进 report 的公共字段（那是 engine.js 的返回值），挂在外面更安全。 */
+      rs.forEach(function(r,i){r.label=file.name;r._buf=buf;r._ci=i;acc.push(r);});
     }catch(e){
       acc.push({label:file.name,file:file.name,
         error:e.message||String(e)});
@@ -757,6 +875,11 @@ window.addEventListener("unhandledrejection",function(ev){
 document.addEventListener("click",async function(e){
   const el=e.target; if(!el||!el.closest) return;
   try{
+    /* ── 精确计算（序列模型，可选档）──
+       ⚠ 只有本机解析过的报告才有 _buf（原始谱面包）；服务端复算的结果没有，
+         那时 seqRow 根本不会渲染按钮，这里也就进不来。 */
+    const qb=el.closest("[data-seq]");
+    if(qb){ await runSeqCalc(qb); return; }
     /* ── P.H.M. 账号 ── */
     if(el.closest("#authBtn")){
       const p=document.getElementById("authpanel");
@@ -1754,6 +1877,7 @@ async function computeChart(cid,btn,info){
     const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3()});
     const rep=rs.filter(function(x){return !x.error;})[0];
     if(!rep) throw new Error((rs[0]&&rs[0].error)||t("app.calc.parsefail"));
+    rep._buf=buf; rep._ci=rs.indexOf(rep);   /* 供「精确计算」重解析用 */
     const f=rep.feats||{};
     const payload={
       chart_id:numOrNull(cid,1,null),

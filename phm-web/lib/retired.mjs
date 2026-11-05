@@ -111,11 +111,21 @@ function retiredPage() {
    切换用**标记文件**而不是环境变量：部署工具上传的是整个目录，
    我这边没有配环境变量的入口，但「目录里有没有这个文件」是确定的。
    本文件所在目录（lib/）的上一级根目录下出现 `.static-only` 即视为静态站。 */
+/* ⚠ 2026-11-04：**只认文件标记，不再读环境变量**。
+   起因：删掉 `.static-only` 后，线上这十个页面依然 410 —— 因为部署平台上
+   还挂着 `PHM_STATIC_ONLY=1`，而它的优先级高于文件。
+   结果是最坏的一种：仓库里已是全功能站，线上却是静态站，
+   导航显示 14 个入口、其中 10 个点进去是「已下线」。
+
+   一个开关只能有一个真源。文件在仓库里，看得见、能 review、能跟代码一起回滚；
+   环境变量在平台后台，改了什么历史里查不到。所以留文件，去掉环境变量。 */
 export const STATIC_ONLY = (() => {
-  if (process.env.PHM_STATIC_ONLY === '1') return true;
-  if (process.env.PHM_STATIC_ONLY === '0') return false;
   try {
-    return fs.existsSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.static-only'));
+    /* ⚠ 标记文件叫 `.static-site`（2026-11-04 由 `.static-only` 改名）。
+       为什么改名：部署沙箱**不会删除**本地已删掉的文件 —— 旧的 `.static-only`
+       一直留在远端，于是「本地删了、线上还在静态模式」。
+       换成一个从未部署过的新名字，远端自然不存在。 */
+    return fs.existsSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.static-site'));
   } catch { return false; }
 })();
 
