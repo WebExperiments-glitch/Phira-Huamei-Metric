@@ -40,7 +40,7 @@ def _beat_to_sec(bps, beat):
     return sec
 
 
-def parse_rpe(raw):
+def parse_rpe(raw, keep_fake=False):
     """RPE：judgeLineList[].notes[]，startTime 是 (bar, num, den) 的拍。"""
     d = json.JSONDecoder().raw_decode(raw.lstrip())[0]
     if not isinstance(d, dict) or "judgeLineList" not in d:
@@ -48,8 +48,16 @@ def parse_rpe(raw):
     bpm = sorted(d.get("BPMList") or [{"bpm": 120.0, "startTime": [0, 0, 1]}],
                  key=lambda s: s.get("startTime", [0, 0, 1]))
     out = []
+    skipped = 0
     for ln in d["judgeLineList"]:
         for nt in ln.get("notes") or []:
+            # fake 音符不参与判定，但会出现在 JSON 里（演出谱里能占一半以上）。
+            # 参考 PhiraiAd features.rs:204 的处置；不计入事件序列，否则演出谱
+            # 会被系统性高估。计数留在 _FAKE_STAT 里供诊断，不影响返回值。
+            fk = nt.get("isFake", 0)
+            if not keep_fake and (fk is True or (isinstance(fk, (int, float)) and fk != 0)):
+                skipped += 1
+                continue
             t = _beat_to_sec([(_frac(s["startTime"]), float(s["bpm"])) for s in bpm],
                              _frac(nt["startTime"]))
             typ = nt.get("type", 1)
@@ -112,12 +120,12 @@ def parse_pec(raw):
     return out
 
 
-def load_events(path, max_events=100000):
+def load_events(path, max_events=100000, keep_fake=False):
     """统一入口：按内容自动判格式。返回按时间排序的事件列表。"""
     raw = open(path, encoding="utf-8", errors="replace").read()
     head = raw.lstrip()[:1]
     if head == "{":
-        ev = parse_rpe(raw)
+        ev = parse_rpe(raw, keep_fake)
     else:
         ev = parse_pec(raw)
     ev.sort(key=lambda e: e[0])

@@ -49,6 +49,7 @@ CACHE = os.path.join(ROOT, "data", "seq-pooled-cache.npz")
 OUTDIR = os.path.join(ROOT, "data")
 
 SEED = 20261028          # 外层切分（与本仓库其它实验一致，禁用其它值）
+GROUP_SPLIT = os.environ.get("PHM_GROUP_SPLIT") == "1"   # 按内容哈希分组切分
 ALPHA = 10.0             # 岭回归正则，与 export_engine_v3.py 一致
 N_BOOT = 1000
 BOOT_SEED = 20261029
@@ -337,9 +338,21 @@ def main():
     print(f"数据 {n:,} 张谱 · {len(feats):,} 事件 · {feats.shape[1]} 维")
 
     # ── 切分（外层，与全仓库一致）──
-    perm = np.random.default_rng(SEED).permutation(n)
-    cut = int(n * 0.85)
-    tr_all, te = perm[:cut], perm[cut:]
+    if GROUP_SPLIT:
+        # 按谱面内容哈希分组切分：同一份谱（不同 id 上传）不跨集。
+        # 见 tools/group_split.py 与 docs/结果/数据审计-泄漏与标签.md
+        from group_split import group_ids, split as gsplit
+        zz = np.load(os.path.join(ROOT, "data", "seq-dataset-v0.1-beta.2.npz"), allow_pickle=True)
+        all_ids = [str(x) for x in zz["ids"]]
+        keep = [i for i in range(n) if i < len(all_ids)]
+        gid = group_ids([all_ids[i] for i in keep])
+        tr_g, te_g = gsplit(gid, test_frac=0.15, seed=SEED)
+        tr_all, te = keep and np.array(tr_g), np.array(te_g)
+        print(f"分组切分：训练 {len(tr_all)}，测试 {len(te)}")
+    else:
+        perm = np.random.default_rng(SEED).permutation(n)
+        cut = int(n * 0.85)
+        tr_all, te = perm[:cut], perm[cut:]
     # inner val：只在训练集内部，用于选 epoch
     rin = np.random.default_rng(SEED + 1).permutation(len(tr_all))
     n_in = int(len(tr_all) * INNER_FRAC)
