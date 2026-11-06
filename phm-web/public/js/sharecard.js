@@ -17,7 +17,7 @@
  *   · 数字必须可读：观众在手机上看的是缩略图，字号小等于没写。
  * ============================================================ */
 
-import { drawQrBadge } from './qr.js?v=V0.26.0.0';
+import { drawQrBadge } from './qr.js?v=V0.27.0.0';
 
 const AMBER = '#e8a33d', BLUE = '#5aa2e8', GREEN = '#4cc38a';
 const FG = '#e6edf3', FG2 = '#9aa7b4', FG3 = '#6b7684', LINE = '#2a313c', CARD = '#161b22';
@@ -43,7 +43,7 @@ const COPY = {
     refOff: '官谱标度', refOffNote: '（同样的算法，参照集换成 1,037 张 Phigros 官谱）',
     nps: '每秒物量', notes: '物量', hold: '长条占比', charter: '谱师',
     range: '不确定范围',
-    footnote: '20 维结构特征 + 岭回归（模型估计）· 纯浏览器内计算 · 谱面文件不上传',
+    footnote: '20 维结构特征 + 片段手型 + 岭回归（模型估计）· 纯浏览器内计算 · 谱面文件不上传',
     site: '不判定「虚标」，只给数字和它的不确定度',
     /* ── 玩家成绩卡 ── */
     pTag: '玩家成绩卡',
@@ -66,7 +66,7 @@ const COPY = {
     refOff: 'Official scale', refOffNote: ' (same method, reference set = 1,037 Phigros official charts)',
     nps: 'Notes/s', notes: 'Notes', hold: 'Holds', charter: 'Charter',
     range: 'range',
-    footnote: '20 structural features + ridge regression · runs in your browser · charts never uploaded',
+    footnote: '20 structural features + fragment hand-shape + ridge regression · runs in your browser · charts never uploaded',
     site: 'We do not call anything mis-rated. We publish numbers and their uncertainty.',
     pTag: 'Player card',
     pRks: 'P.H.M. RKS',

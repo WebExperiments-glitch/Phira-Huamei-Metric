@@ -1,13 +1,19 @@
 /* ============================================================
- * js/engine-seq.mjs —— 序列模型（34k 参数）在浏览器里的前向
+ * js/engine-seq.mjs —— 序列模型在浏览器里的前向（「精确计算」档）
  * ============================================================
  * 输入就是 engine-v3.mjs 的 seqFeatures20() 产出的 20 维事件序列，
- * 输出和 v3 同一份 { b, ding }，所以两个档位可以直接并排显示。
+ * 输出和 v3/v4 同一份 { b, ding }，所以各档位可以直接并排显示。
  *
  * ── 它和岭回归的区别（一句话）──
  *   岭回归把整条时间轴压成 7 个分位数（142 个数），「第 40 秒有一段 12 连、
  *   之后空 8 秒」这句话在 142 维里不存在；这个模型保留时间轴 ——
  *   每 8 个事件打成一个 token，用双向 GRU 走一遍。
+ *
+ * ── v2 起多了一样东西：谱级手型 256 维 ──
+ *   时间轴之外，再把「整张谱的片段手型」拼在线性头前面（n_side=256）。
+ *   两个输入互补：GRU 看「先后」，手型看「这一段摊开多大」。
+ *   实测 ρ 短谱 0.7636 / 全 0.8511 / 长 0.8819（v1 是 0.8267 / 0.8323）。
+ *   `meta.n_side = 0` 的旧权重照样能跑，走 v1 那条分支。
  *
  * ── 结构（与 tools/train_seq_model.py 的 SeqDiffNet **逐层对应**）──
  *   8 事件 → patch 162 维（20×8 原始值 ‖ 片内 Σdt ‖ 有效比例）
@@ -75,6 +81,12 @@ function flat(W){
     ym: +W.meta.ym, ys: +W.meta.ys,
     D: (+W.meta.d_model) || 64, H: (+W.meta.hidden) || 32,
     eps: (+W.meta.layernorm_eps) || 1e-5,
+    /* v2 起：谱级手型特征（256 维）拼在池化向量后面再进线性头。
+       n_side=0 就是 v1 的结构（head.1 是 1×64），老权重照样能跑。 */
+    nS: (+W.meta.n_side) || 0,
+    smu: W.meta.side_mu ? Float64Array.from(W.meta.side_mu) : null,
+    ssd: W.meta.side_sd ? Float64Array.from(W.meta.side_sd) : null,
+    sclip: W.meta.side_clip == null ? 8 : +W.meta.side_clip,
     b2d: W.b2d || { slope: 1.12, inter: 15.99 },
   };
   FLAT.set(W, c);
@@ -123,13 +135,17 @@ function gru(g, X, T, D, H, out, oOff){
 }
 
 /* seq：seqFeatures20() 的返回值（长度 n×20 的 Float64Array）
+   side：可选的 256 维片段手型（handshape256() 的原始值，**未经标准化**）。
+         v2 权重（meta.n_side = 256）必须给，否则返回 null；
+         v1 权重给了也忽略（head.1 只有 64 个输入）。
    返回 { b, ding }；ding = 1.12b + 15.99，与 v3 同一映射。
    数据不足（0 个事件）或权重结构不对 → null，调用方据此隐藏入口。 */
-export function predictSeq(seq, W){
+export function predictSeq(seq, W, side){
   if (!seq || !W || !W.weights || !W.meta) return null;
   const n = Math.min(Math.floor(seq.length / D_IN), MAX_EVENTS);
   if (!n) return null;
   const m = flat(W);
+  if (m.nS && !side) return null;
   const D = m.D, H = m.H;
   const T = Math.ceil(n / PATCH);
 
@@ -221,10 +237,18 @@ export function predictSeq(seq, W){
     for (let i = 0; i < 2 * H; i++) g[i] += w * hh[ho + i];
   }
 
-  /* ── head：LayerNorm → Linear → 标量（标准化难度 z）── */
+  /* ── head：LayerNorm → [池化 ‖ 手型] → 标量（标准化难度 z）──
+     v2 把 256 维手型**标准化后拼在池化向量后面**（训练代码是
+     `g = cat([g, side])`，side 已在 numpy 侧 clip 到 ±8）。不标准化直接用
+     原始量纲，头层的权重是对不上的 —— 手型值是几十到几千的量级。 */
   layerNorm(g, 0, 2 * H, m.hW, m.hB, m.eps);
   let zs = m.oB[0];
   for (let i = 0; i < 2 * H; i++) zs += g[i] * m.oW[i];
+  for (let i = 0; i < m.nS; i++){
+    let v = (side[i] - m.smu[i]) / (m.ssd[i] || 1);
+    v = v > m.sclip ? m.sclip : (v < -m.sclip ? -m.sclip : v);
+    zs += v * m.oW[2 * H + i];
+  }
   const b = zs * m.ys + m.ym;
   return { b: b, ding: m.b2d.slope * b + m.b2d.inter };
 }

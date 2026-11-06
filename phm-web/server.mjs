@@ -21,7 +21,7 @@ import { reviewContribution, grosslyMismatched, recompute, chartInfo } from './l
    与 tools/ 下的批量脚本共用同一份 —— 别再复制一份到这里。 */
 import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE, DB, WRITE_SECRET } from './lib/cloud.mjs';
 /* huamei 数据飞轮的身份与成绩校验 —— 单独一个模块，见 lib/hm.mjs 顶部。 */
-import { appIdFromKey, makeWhoami, validatePlay } from './lib/hm.mjs';
+import { appIdFromKey, makeWhoami, phiraFallback, validatePlay } from './lib/hm.mjs';
 /* 自建账号：注册 / 登录 / 自签 token。见 lib/hm-accounts.mjs 顶部。 */
 import {
   register as hmRegister, login as hmLogin, verifyOwnToken, claimsOwnIssuer,
@@ -513,8 +513,17 @@ const server = http.createServer(guardRequest(async (req, res) => {
     const authToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
     const token = hdrToken || authToken;
     const tokenSrc = hdrToken ? 'x-hm-token' : (authToken ? 'authorization' : 'none');
-    if (!token) return send(res, 401, JSON.stringify({ ok: false, error: 'token_required' }));
-    const who = await hmWhoami(token);
+    /* 没带 huamei token 时**不立刻 401**：如果客户端带了 `x-phira-token`，
+       下面会用 Phira 账号验明身份（见紧随其后的那段）。这一条是「上传量为 0」
+       的第二个卡点 —— 只放行 gate 不够，认证入口本身也得允许 Phira 路径。 */
+    if (!token && !String(req.headers['x-phira-token'] || '').trim()) {
+      return send(res, 401, JSON.stringify({ ok: false, error: 'token_required' }));
+    }
+    const who = token ? await hmWhoami(token) : { sub: null, err: 'no_hm_token' };
+
+    /* huamei 账号验不过时退到 Phira 账号 —— 抽到 lib 里，server.mjs 有 900 行硬上限 */
+    await phiraFallback(req, who, token);
+
     if (!who.sub) {
       return send(res, 401, JSON.stringify({
         ok: false,

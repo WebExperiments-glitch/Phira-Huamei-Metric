@@ -22,8 +22,11 @@
  * 【判据】
  *   定数差 > 0.05 级即失败（与 verify-engine-v3 同阈值：模型 MAE 0.44 的 1/9，
  *   低于用户可感知阈值，但足以拦住「退回 v2」这种量级的偏差）。
- *   另外必须断言服务端返回的 basis 就是 ridge-seq20 —— 差值为 0 但两边都用 v2
- *   也算失败（那正是今天要防的那个 bug）。
+ *   另外必须断言服务端返回的 basis 就是 **ridge-hs398**（v4 默认档）——
+ *   差值为 0 但两边都停在旧档 也算失败（那正是今天要防的那个 bug）。
+ *   ⚠ 2026-11-05 默认档从 v3（ridge-seq20）升到 v4（ridge-hs398）：
+ *     断言跟着换，否则「服务端忘了读 engine-v4.json」会以"两边都是 v3"的形式
+ *     通过同值检查 —— 而这恰恰是这条闸门存在的理由。
  *
  * 用法：node tools/verify-parity-v3.mjs
  * ============================================================ */
@@ -82,16 +85,20 @@ const { analyzeChart } = await import('../public/js/engine.js');
 const refCom = readJSON('public/data/ref-com.json').rows;
 const wV2 = readJSON('public/data/engine-v2.json');
 const wV3 = readJSON('public/data/engine-v3.json');
+const wV4 = readJSON('public/data/engine-v4.json');
 if (!Array.isArray(wV3.w) || wV3.w.length !== 142) {
   no('engine-v3.json 是 142 维', 'len=' + (wV3.w && wV3.w.length));
 }
+if (!Array.isArray(wV4.w) || wV4.w.length !== 398) {
+  no('engine-v4.json 是 398 维', 'len=' + (wV4.w && wV4.w.length));
+}
 const reports = await analyzeChart(PEZ, 'parity.pez',
-  { refCom, weightsV2: wV2, weightsV3: wV3 });
+  { refCom, weightsV2: wV2, weightsV3: wV3, weightsV4: wV4 });
 const rep = reports.find(x => !x.error);
 if (!rep) { no('浏览器路径能跑通', (reports[0] && reports[0].error) || '无报告'); process.exit(1); }
 
 const browserRef = rep.knn && rep.knn.ref;
-const v2Only = (await analyzeChart(PEZ, 'parity.pez', { refCom, weightsV2: wV2, weightsV3: null }))
+const v2Only = (await analyzeChart(PEZ, 'parity.pez', { refCom, weightsV2: wV2, weightsV3: null, weightsV4: null }))
   .find(x => !x.error);
 const v2Ref = v2Only && v2Only.knn && v2Only.knn.ref;
 
@@ -105,11 +112,11 @@ const diff = (browserRef != null && trusted.ref_const != null)
   ? Math.abs(browserRef - trusted.ref_const) : null;
 
 /* ── 5) 判据 ─────────────────────────────────────────────────────── */
-if (trusted.basis === 'ridge-seq20') ok('服务端 basis 是 ridge-seq20');
-else no('服务端 basis 是 ridge-seq20', '当前 ' + trusted.basis);
+if (trusted.basis === 'ridge-hs398') ok('服务端 basis 是 ridge-hs398');
+else no('服务端 basis 是 ridge-hs398', '当前 ' + trusted.basis);
 
-if (rep.knn.basis2 === 'ridge-seq20') ok('浏览器 basis2 是 ridge-seq20');
-else no('浏览器 basis2 是 ridge-seq20', '当前 ' + (rep.knn.basis2 || 'knn'));
+if (rep.knn.basis2 === 'ridge-hs398') ok('浏览器 basis2 是 ridge-hs398');
+else no('浏览器 basis2 是 ridge-hs398', '当前 ' + (rep.knn.basis2 || 'knn'));
 
 if (diff == null) no('两边都给出了定数', 'server=' + trusted.ref_const + ' browser=' + browserRef);
 else if (diff <= 0.05) ok('两侧定数一致（|Δ|=' + diff.toFixed(4) + ' ≤ 0.05）');

@@ -68,8 +68,8 @@ def to_feats(ev):
       · 它要的「长条覆盖/重叠」= 通道 21 的 mean / 正比例
       · 它要的「加权 NPS」= 通道 22 的 mean
 
-    每事件 24 维：
-      0  dt（截断 3s）           1  log1p(dt→ms)
+    每事件 24 维（输入带 4 个屏幕坐标附加列时 28 维）：
+      0  dt（截断 3s）           1  log1p(dt→ms）
       2  x/675                   3  |x|/675
       4-7 类型 one-hot           8  above        9  log1p(hold→ms)
      10  Δx/675                 11  跳跃距离     12  跳跃速度（25ms 下限）
@@ -79,9 +79,12 @@ def to_feats(ev):
      19  相对时间(log1p)
      20  1 秒窗口按键数         21  当前按住的长条数
      22  1 秒窗口加权数         23  屏幕坐标位移 |Δsx|/675
+     24-27 hit_x / anchor_dx_015 / line_speed / line_rot_speed
+           （仅当 `load_notes_ex(..., extra=True)`，见 docs/结果/屏幕坐标特征-A-B.md）
     """
     n = len(ev)
-    a = np.zeros((n, 24), dtype=np.float32)
+    has_extra = len(ev[0]) >= 12      # load_notes_ex(..., extra=True) 追加的 4 列
+    a = np.zeros((n, 28 if has_extra else 24), dtype=np.float32)
     # 兼容两种输入：load_events 的 (t,x,ch,ab,hold) 与 load_notes_ex 的
     # (t,x,sx,sy,rot,ch,ab,hold)
     wide = len(ev[0]) >= 8
@@ -96,7 +99,9 @@ def to_feats(ev):
             ch, above, hold = e[5], e[6], e[7]
         else:
             ch, above, hold = e[2], e[3], e[4]
-        typ = {"T": 1, "H": 2, "D": 3, "F": 4}.get(ch, 1)
+        # ⚠ 与 chart_io.TYPE_MAP 是一对：3 = flick、4 = drag。只改一边会把
+        # flick/drag 的 one-hot 列与 strain 权重整体互换。
+        typ = {"T": 1, "H": 2, "F": 3, "D": 4}.get(ch, 1)
         sx = e[2] if wide else x
         dt = min(max(t - prev_t, 0.0), 3.0) if prev_t >= 0 else 0.0
         a[i, 0] = dt
@@ -142,6 +147,9 @@ def to_feats(ev):
             held.sort()
         a[i, 21] = float(len(held))
         a[i, 19] = np.log1p(max(t - ts[0], 0.0))
+        if has_extra:
+            # 24 hit_x / 25 anchor_dx_015 / 26 line_speed / 27 line_rot_speed
+            a[i, 24], a[i, 25], a[i, 26], a[i, 27] = e[8], e[9], e[10], e[11]
         prev_t, prev_x, prev_sx = t, x, sx
     return a
 
