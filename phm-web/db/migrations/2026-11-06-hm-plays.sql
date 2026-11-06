@@ -106,6 +106,14 @@ begin
 end;
 $function$;
 
+
+-- ── RLS ────────────────────────────────────────────────────────────
+-- 这张表只允许通过 `hm_put_play`（SECURITY DEFINER）写入，
+-- 不给 anon / authenticated 任何直连策略：有策略就等于开了第二条写入路径，
+-- 而那条路上没有 writer secret 校验。
+alter table public.hm_plays enable row level security;
+revoke all on public.hm_plays from anon, authenticated;
+
 -- 只给服务端角色执行，不给匿名
 revoke all on function public.hm_put_play(text, jsonb) from public;
 grant execute on function public.hm_put_play(text, jsonb) to authenticated;
