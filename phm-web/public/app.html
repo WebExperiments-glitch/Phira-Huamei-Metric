@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.26.0.0">
+<meta name="app-version" content="V0.27.0.0">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -38,11 +38,11 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
    **只在设置页生效**，别的页面刷新后仍是默认值。必须每页都有。 */
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.26.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.26.0.0">
-<link rel="stylesheet" href="/css/motion.css?v=V0.26.0.0">
-<script type="module" src="/js/motion.js?v=V0.26.0.0"></script>
-<link rel="stylesheet" href="/css/app.css?v=V0.26.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.27.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.27.0.0">
+<link rel="stylesheet" href="/css/motion.css?v=V0.27.0.0">
+<script type="module" src="/js/motion.js?v=V0.27.0.0"></script>
+<link rel="stylesheet" href="/css/app.css?v=V0.27.0.0">
 </head>
 <body>
 <div class="wrap">
@@ -167,7 +167,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   <a id="verfoot" class="verfoot" href="/version" data-i18n-title="foot.hist">版本历史</a> · GPL-3.0</div>
   <details>
     <summary data-i18n="app.foot.details">PS 是什么？本工具的边界与隐私（点开看）</summary>
-    <div class="fd" data-i18n-html="app.foot.d1"><b>三个数不是一回事，别混用</b>：<br>· <b>参考定数（模型估计）</b>—— 把谱面的按键密度、位移、跳跃速度等 20 项结构特征交给模型，直接算出难度。模型学的是社区谱<b>被玩家打出来的实际难度</b>，所以这个数落在你在 Phira 上看到的那个标度上。<br>· <b>官谱标度</b>—— 参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>· <b>PS</b> ——本工具自己的负荷标度（0–20），衡量操作与读取负荷，<b>与上面两个都不同标度</b>。</div>
+    <div class="fd" data-i18n-html="app.foot.d1"><b>三个数不是一回事，别混用</b>：<br>· <b>参考定数（模型估计）</b>—— 把谱面的按键密度、位移、跳跃速度等 20 项结构特征，再加上「片段手型」（连续几个音符摊开多大：包围盒、横向跨度、绕行长度）交给模型，直接算出难度。模型学的是社区谱<b>被玩家打出来的实际难度</b>，所以这个数落在你在 Phira 上看到的那个标度上。<br>· <b>官谱标度</b>—— 参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>· <b>PS</b> ——本工具自己的负荷标度（0–20），衡量操作与读取负荷，<b>与上面两个都不同标度</b>。</div>
 
     <div class="fd" data-i18n-html="app.foot.d2"><b>两个标度差得多，说明什么？</b>官谱与社区谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6；社区谱的长条占比只有官谱的 1/3、拖键是 5 倍）。所以同一张谱在两个标度上差 2~3 级是正常的——那是<b>两个尺子的差异，不是某个尺子算错了</b>。只印一个数字才会出问题：「我的 IN 14 被算成 11.6」就是这么来的。</div>
     <div class="fd" data-i18n-html="app.foot.d3"><b>PS</b> 由四个负荷组加权合成：<span class="mono">PS = 20 × (0.40·密度 + 0.30·结构 + 0.15·协调 + 0.15·持续)</span>，每个维度经饱和函数归一，每一分都能追溯到卡片上的明细。</div>
@@ -207,15 +207,15 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.26.0.0';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.27.0.0';
 
 /* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
    文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
-import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.26.0.0';
-import { createAuth, authErrorKey } from '/js/auth.js?v=V0.26.0.0';
-import { installGuard } from '/js/guard.js?v=V0.26.0.0';
-import { initDeepLink } from '/js/deeplink.js?v=V0.26.0.0';
-import { fillBehav } from '/js/behav.js?v=V0.26.0.0';
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.27.0.0';
+import { createAuth, authErrorKey } from '/js/auth.js?v=V0.27.0.0';
+import { installGuard } from '/js/guard.js?v=V0.27.0.0';
+import { initDeepLink } from '/js/deeplink.js?v=V0.27.0.0';
+import { fillBehav } from '/js/behav.js?v=V0.27.0.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -344,7 +344,29 @@ async function loadWeightsV3() {
   return W3;
 }
 
-/* ── 精确计算档：34k 参数的序列模型（约 700 KB 权重，703 KB → gzip 311 KB）──
+/* v4：142 池化 ‖ 256 片段手型（对玩家实测难度 ρ 0.8319 / 短谱 0.7614）。
+   **这是默认档**。拿不到就退回 v3，再退回 v2，最后退回 kNN ——
+   一次 fetch 失败不能毁掉整次分析，只是数字换个档位（basis2 会如实说明）。 */
+let W4 = null, W4_STATE = "";
+async function loadWeightsV4() {
+  if (W4_STATE === "ok" || W4_STATE === "fail") return W4;
+  W4_STATE = "loading";
+  try {
+    const r = await fetch("/data/engine-v4.json?v=" + encodeURIComponent(APP_VER));
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    /* ⚠ 398 维（142 + 256），不是 v3 的 142 —— 校验错了不报错，只会静默偏移。 */
+    if (!j || !Array.isArray(j.w) || j.w.length !== 398) throw new Error("权重结构异常");
+    W4 = j; W4_STATE = "ok";
+  } catch (e) {
+    W4_STATE = "fail";
+    console.warn("[phm] v4 权重加载失败，退回 v3 / v2 / kNN：" + (e.message || e));
+    W4 = null;
+  }
+  return W4;
+}
+
+/* ── 精确计算档：序列模型（v2 起带 256 维手型，权重约 750 KB）──
    ⚠ **不随首屏加载**，也不在分析时自动跑：它换来的只是 0.03 分的差距
      （ρ 0.8024 → 0.8245），代价是 7 倍体积 + 一次前向。
      所以做成结果卡片上的一个按钮，用户点了才拉权重。
@@ -387,14 +409,15 @@ async function chartNotesAt(buf, ci) {
     try { txt = new TextDecoder("utf-8").decode(await en.read()); } catch (e) { continue; }
     if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
     if (isPecText(txt.slice(0,512))) {
-      try { out.push(parsePec(txt).notes); } catch (e) { out.push(null); }
+      /* PEC 没有判定线运动信息：sx = x, sy = 0（与 Python 口径一致） */
+      try { out.push({ notes: parsePec(txt).notes, screen: null }); } catch (e) { out.push(null); }
       continue;
     }
     if (txt.trimStart()[0] !== "{") continue;   /* info.txt / csv 之类，静默跳过 */
     let j = null;
     try { j = JSON.parse(txt); } catch (e) { out.push(null); continue; }
     if (!j.judgeLineList) continue;
-    try { out.push(loadChart(j).notes); } catch (e) { out.push(null); }
+    try { out.push(loadChart(j)); } catch (e) { out.push(null); }
   }
   return out[ci] || null;
 }
@@ -436,12 +459,14 @@ async function runSeqCalc(btn) {
     const W = await loadSeqModel();
     if (!W) throw new Error("权重不可用");
     const predictSeq = await loadSeqModule();
-    const notes = await chartNotesAt(rep._buf, rep._ci || 0);
+    const ch = await chartNotesAt(rep._buf, rep._ci || 0);
+    const notes = ch && ch.notes;
     if (!notes || !notes.length) throw new Error("拿不到音符序列");
-    /* 特征仍用 v3 那一份（同源），只在 8,000 事件处截断 —— 与训练一致 */
+    /* 特征仍用 v3/v4 那一份（同源），只在 8,000 事件处截断 —— 与训练一致。
+       v2 模型还要 256 维手型（handshape256 内部自己截断到 8,000，同一口径）。 */
     const t0 = performance.now();
     const seq = seqFeatures20(notes.slice(0, SEQ_MAX_EVENTS));
-    const out = predictSeq(seq, W);
+    const out = predictSeq(seq, W, handshape256(notes, ch.screen));
     rep._seqMs = performance.now() - t0;
     if (!out || !isFinite(out.ding)) throw new Error("推理结果异常");
     rep._seqDing = out.ding;
@@ -567,7 +592,7 @@ function card(r,idx){
      之前只换了数字没换文案，页面就自相矛盾：卡片写 14.7，
      下面列的 5 张"最相近"却全是 15.3~16.9 —— 一个取中位数的数不可能低于所有近邻。
      一旦 basis2 是 ridge-seq20，标签与说明必须跟着换。 */
-  const isV3 = kn.basis2 === "ridge-seq20";
+  const isV3 = kn.basis2 === "ridge-hs398" || kn.basis2 === "ridge-seq20";
   let basisName = isCom ? t("app.res.basis.com") : t("app.res.basis.off");
   let basisDesc = isCom ? t("app.res.desc.com") : t("app.res.desc.off");
   if (isV3) { basisName = t("app.res.basis.model"); basisDesc = t("app.res.desc.model"); }
@@ -619,9 +644,12 @@ function card(r,idx){
        产品核心是"两个数字"，那就把两个数字摆成两张并排的卡，而不是
        一个巨大、另一个缩在灰条里。 */
     +'<div class="scales">'
-      +'<div class="scalecard'+(isCom?' on':'')+'">'
+      +'<div class="scalecard'+(isCom?' on':'')+'" data-basis="'+(kn.basis2||'knn')+'">'
         +'<div class="lbl">'+esc(basisName)+'</div>'
-        +'<div class="v">'+f1(kn.ref)+'</div>'
+        /* data-ding 是未舍入的原值（1 位小数看不出 16.4 与 16.5 之间那 0.02），
+           data-basis 是产出它的档位 —— 验收脚本靠这两个属性区分
+           v4 / v3 / v2 / kNN，不用去猜页面文字。 */
+        +'<div class="v" data-ding="'+(kn.ref==null?'':(+kn.ref).toFixed(4))+'">'+f1(kn.ref)+'</div>'
         /* 精确计算：默认不跑（多 700 KB 权重、多一次前向，只换 0.03 分）。
            点了才拉权重、才推理；失败就把这一行整行收掉。 */
         + seqRow(r, idx)
@@ -764,7 +792,7 @@ async function handleFiles(files){
     try{
       const buf=await file.arrayBuffer();
       const refCom=await loadRefCom();
-      const rs=await analyzeChart(buf,file.name,{refCom:refCom,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3()});
+      const rs=await analyzeChart(buf,file.name,{refCom:refCom,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3(),weightsV4:await loadWeightsV4()});
       /* _buf/_ci 只为「精确计算」保留：用户点了按钮要重新解析出音符序列。
          不放进 report 的公共字段（那是 engine.js 的返回值），挂在外面更安全。 */
       rs.forEach(function(r,i){r.label=file.name;r._buf=buf;r._ci=i;acc.push(r);});
@@ -1052,6 +1080,10 @@ window.PHM.status = function(){
     authError: (HM_AUTH.state.error && HM_AUTH.state.error.kind) || null,
     tokenSaved: !!HM_AUTH.state.token,
     autoUpload: OPTN(),
+    /* 各档权重的装载状态：主数字是哪一档算出来的，靠它一眼看出来。
+       "页面 v4、服务端 v3" 这类事故从数字上看不出来，只能靠这种可测接缝。 */
+    weights: { v4: W4_STATE || "idle", v3: W3_STATE || "idle", v2: W2_STATE || "idle",
+      seq: WSEQ_STATE || "idle" },
     noticeAgreed: noticeAgreed(),
     ownDeclared: __SET.own.list().length,
   };
@@ -1874,7 +1906,7 @@ async function computeChart(cid,btn,info){
     csMsg(t("app.calc.dled",{mb:(buf.byteLength/1048576).toFixed(2)}));
     /* ⚠ 这里必须传 excludeId=cid：这张谱就在社区参照集里，
        不排除就是与它自己匹配（距离 0），算出来的等于把 Phira 的标签抄一遍。 */
-    const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3()});
+    const rs=await analyzeChart(buf,nm+".pez",{refCom:await loadRefCom(),excludeId:cid,weightsV2:await loadWeightsV2(),weightsV3:await loadWeightsV3(),weightsV4:await loadWeightsV4()});
     const rep=rs.filter(function(x){return !x.error;})[0];
     if(!rep) throw new Error((rs[0]&&rs[0].error)||t("app.calc.parsefail"));
     rep._buf=buf; rep._ci=rs.indexOf(rep);   /* 供「精确计算」重解析用 */

@@ -37,8 +37,15 @@ REPO = os.path.dirname(WEB)
 sys.path.insert(0, os.path.join(REPO, "tools"))
 from export_seq_model import np_predict          # noqa: E402  已与 torch 对拍过的纯 numpy 前向
 from build_seq_dataset import events_of, to_feats  # noqa: E402
+from handshape_features import chart_features     # noqa: E402
 
-WEIGHTS = os.path.join(REPO, "data", "seq-model.json")
+# 与 export_engine_v4.py 的 EXTENT_METRICS 同一份：8 个值钱的 A_extent 指标
+EXTENT_METRICS = {"path", "disp", "eff", "bbox_area", "diag", "aspect", "span_x", "span_y"}
+
+# ⚠ 读**浏览器实际加载的那一份**（phm-web/public/data），不是训练侧的 data/。
+#   两份曾经同名不同内容（data/ 还是 v1），对拍就会拿错权重 —— 实测踩过一次：
+#   golden 全对、页面全错，因为生成 golden 时读的是旧文件。
+WEIGHTS = os.path.join(WEB, "public", "data", "seq-model.json")
 CHARTS = os.path.join(REPO, "data", "charts")
 OUT = os.path.join(HERE, "golden-seq.json")
 
@@ -63,16 +70,38 @@ def synth_seq(n):
                       for d in range(20)] for i in range(n)], dtype=np.float64)
 
 
+def synth_side(mu, sd):
+    """合成 256 维手型（**原始量纲**，未标准化）。
+
+    v2 的头层吃的是标准化后的手型，所以这里围绕 side_mu 上下摆 ±3 个 sd ——
+    既不落在常量上（那样测不出拼接口），也不会被 clip 一刀切平。
+    公式只含取模、除法、乘加，JS 侧逐字复现（见 verify-seq-model.mjs）。
+    ⚠ 顺序写死：先 mu + k*sd，再由前向内部做 (x-mu)/sd。两边都由这一份 mu/sd
+      算出，所以只要公式一致，进位也一致。"""
+    out = np.empty(256, dtype=np.float64)
+    for d in range(256):
+        k = ((d * 13 + 7) % 97) / 97.0 * 6.0 - 3.0
+        out[d] = mu[d] + k * sd[d]
+    return out
+
+
 def main():
     j = json.load(open(WEIGHTS, encoding="utf-8"))
     W = {k: np.array(v, dtype=np.float64) for k, v in j["weights"].items()}
     mu = np.array(j["meta"]["mu"], dtype=np.float64)
     sd = np.array(j["meta"]["sd"], dtype=np.float64)
     ym, ys = float(j["meta"]["ym"]), float(j["meta"]["ys"])
+    n_side = int(j["meta"].get("n_side") or 0)
+    smu = ssd = None
+    if n_side:
+        smu = np.array(j["meta"]["side_mu"], dtype=np.float64)
+        ssd = np.array(j["meta"]["side_sd"], dtype=np.float64)
+        assert len(smu) == n_side and len(ssd) == n_side, "side 统计量与 n_side 不一致"
 
-    def forward(x64):
+    def forward(x64, side):
         n = len(x64)
-        z = np_predict(W, (x64 - mu) / sd, np.ones(int(np.ceil(n / PATCH)), dtype=bool), n)
+        z = np_predict(W, (x64 - mu) / sd, np.ones(int(np.ceil(n / PATCH)), dtype=bool), n,
+                       side=side)
         b = z * ys + ym
         return b, 1.12 * b + 15.99
 
@@ -80,22 +109,31 @@ def main():
     for cid in CHART_IDS:
         path = os.path.join(CHARTS, cid, "chart.json")
         feats = to_feats(events_of(path))[:, :20].astype(np.float64)   # β.3 的 24 维取前 20
-        b, ding = forward(feats)
+        side = None
+        if n_side:
+            # 与 export_engine_v4.py 的 live_extent 同一口径：只留 8 个 A_extent 指标
+            names, vec = chart_features(events_of(path))
+            idx = [i for i, nm in enumerate(names) if nm.split("|")[2] in EXTENT_METRICS]
+            side = np.clip((vec[idx].astype(np.float64) - smu) / ssd, -8.0, 8.0)
+        b, ding = forward(feats, side)
         cases.append({"id": cid, "kind": "chart", "n": int(len(feats)),
                       "b": float(b), "ding": float(ding)})
         print(f"  {cid:>6s}  n={len(feats):5d}  b={b:.6f}  ding={ding:.6f}")
 
     for n in SYNTH_N:
-        b, ding = forward(synth_seq(n))
+        side = None if not n_side else np.clip(
+            (synth_side(smu, ssd) - smu) / ssd, -8.0, 8.0)
+        b, ding = forward(synth_seq(n), side)
         cases.append({"id": f"synth-{n}", "kind": "synth", "n": n,
                       "b": float(b), "ding": float(ding)})
         print(f"  synth-{n:<4d}  n={n:5d}  b={b:.6f}  ding={ding:.6f}")
 
     out = {"_note": "生成自 phm-web/tools/gen-seq-golden.py；特征=当前 Python to_feats 前 20 列，"
+                    "手型=当前 Python handshape_features 的 8 个 A_extent 指标（256 维），"
                     "前向=tools/export_seq_model.py 的 np_predict",
            "meta": {"patch": int(j["meta"]["patch"]), "d_model": int(j["meta"]["d_model"]),
                     "hidden": int(j["meta"]["hidden"]), "d_in": int(j["meta"]["d_in"]),
-                    "synth_scale": SYNTH_SCALE},
+                    "n_side": n_side, "synth_scale": SYNTH_SCALE},
            "cases": cases}
     json.dump(out, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(f"→ {OUT}（{len(cases)} 条）")

@@ -120,7 +120,7 @@ export default {
     /* ── 术语表（ui.js 的 glossaryHTML，被 /app、/charter、/user 共用）── */
     'gloss.summary': '术语看不懂？点开这里（{n} 条）',
     'gloss.consensus.t': '模型估计（主结果）',
-    'gloss.consensus.d': '把这张谱的结构特征（密度、位移、跳跃速度、和弦数等 20 项）交给模型，直接算出难度。<b>它不是近邻取中位</b>——卡片下方列出的近邻只是给你对照用的。模型的训练标签是玩家实际打出来的难度，所以这个数最贴近你在 Phira 里看到的数字。',
+    'gloss.consensus.d': '把这张谱的结构特征（密度、位移、跳跃速度、和弦数等 20 项）和「片段手型」（连续几个音符摊开多大：包围盒、横向跨度、绕行长度）交给模型，直接算出难度。<b>它不是近邻取中位</b>——卡片下方列出的近邻只是给你对照用的。模型的训练标签是玩家实际打出来的难度，所以这个数最贴近你在 Phira 里看到的数字。',
     'gloss.official.t': '官谱标度',
     'gloss.official.d': '同一套算法，但参照集换成 <b>1,037 张 Phigros 官方谱</b>。这是与官方一致的<b>绝对</b>标度。两个标度会差 2~3 级是正常的——因为社区谱和官谱<b>结构分布本来就不同</b>（社区谱定数中位 15.1，官谱 10.6）。',
     'gloss.range.t': '不确定范围',
@@ -245,7 +245,7 @@ export default {
     /* ── glossary ── */
     'gloss.summary': 'Unfamiliar with the jargon? Expand ({n})',
     'gloss.consensus.t': 'Model estimate (main result)',
-    'gloss.consensus.d': '20 structural features of your chart (density, movement, jump speed, chord counts…) go into a model that estimates the difficulty directly. <b>It is not a neighbour average</b> — the neighbours listed below are for comparison only. The model was trained on how hard players actually find community charts, so the number sits on the scale you see inside Phira.',
+    'gloss.consensus.d': '20 structural features of your chart (density, movement, jump speed, chord counts…) plus a <b>fragment hand-shape</b> block (how wide each short run spreads: bounding box, horizontal span, path length) go into a model that estimates the difficulty directly. <b>It is not a neighbour average</b> — the neighbours listed below are for comparison only. The model was trained on how hard players actually find community charts, so the number sits on the scale you see inside Phira.',
     'gloss.official.t': 'Official scale',
     'gloss.official.d': 'The same algorithm with the reference set swapped for <b>1,037 official Phigros charts</b>. This is the <b>absolute</b> scale, consistent with the game. A 2–3 level gap between the two scales is normal — community and official charts simply have <b>different structural distributions</b> (median constant 15.1 vs 10.6).',
     'gloss.range.t': 'Uncertainty range',

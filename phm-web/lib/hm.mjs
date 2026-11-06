@@ -256,3 +256,40 @@ export function validatePlay(body) {
   /* `warn` 一路带到响应体 —— 调用方必须把它透出去，否则诊断信息就死在这里。 */
   return { row, warn };
 }
+
+
+/** huamei 账号验不过时，退到 **Phira 账号**。
+ *
+ * 2026-11-06 实测 `hm_plays` 0 行，根因不是没人打：客户端只在
+ * `huamei::current_token().is_some()` 时才构造上报闭包（scene/song.rs:1035），
+ * 而 huamei 账号是自建邮箱体系 —— 玩家只有 Phira 账号。
+ *
+ * 处理 `x-phira-token`：直接调 Phira 的 `/me` 验明身份。
+ *   · 必须真的调上游，不能只信头里的自述
+ *   · 验证失败不拒收，按匿名存（数据飞轮怕没数据，不是怕脏数据）
+ *   · 前缀 `phira:` 与 huamei 的 sub 区分，事后可分辨来源
+ */
+export async function phiraFallback(req, who, hmToken) {
+  /* 客户端只有一个 token 槽：登录了 huamei 就放它的 token，否则放 Phira 的。
+     所以这里**先看专用头，再退回已解析的 x-hm-token** —— 否则「只有 Phira 账号」
+     的玩家永远走不到验证，身份会全部丢掉。 */
+  const token = String(req.headers['x-phira-token'] || hmToken || '').trim();
+  if (!token) return who;
+  try {
+    const r = await fetch('https://phira.5wyxi.com/me', {
+      headers: { Authorization: 'Bearer ' + token },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (r.ok) {
+      const me = await r.json();
+      if (me && Number(me.id) > 0 && (!who.sub || who.verified !== true)) {
+        who.sub = 'phira:' + Number(me.id);
+        who.verified = true;
+        who.phiraAccount = true;
+      }
+    }
+  } catch {
+    /* 超时/网络失败：按匿名走，不阻断上报 */
+  }
+  return who;
+}

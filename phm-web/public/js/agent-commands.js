@@ -20,12 +20,12 @@
  *   这样做的好处：**审批发生在改动之前**，而不是改完再问。
  * ============================================================ */
 
-import { lintChart } from './chart-lint.js?v=V0.26.0.0';
-import { extractGeometry } from './chart-geom.js?v=V0.26.0.0';
-import { runScript } from './script-eval.js?v=V0.26.0.0';
-import { loadChart, reportFromChart } from './engine.js?v=V0.26.0.0';
-import { APP_VER } from './ui.js?v=V0.26.0.0';
-import { beatValue, toBeat, chartBeatToSec, chartSecToBeat } from './beat-time.js?v=V0.26.0.0';
+import { lintChart } from './chart-lint.js?v=V0.27.0.0';
+import { extractGeometry } from './chart-geom.js?v=V0.27.0.0';
+import { runScript } from './script-eval.js?v=V0.27.0.0';
+import { loadChart, reportFromChart } from './engine.js?v=V0.27.0.0';
+import { APP_VER } from './ui.js?v=V0.27.0.0';
+import { beatValue, toBeat, chartBeatToSec, chartSecToBeat } from './beat-time.js?v=V0.27.0.0';
 
 /* ── v2 权重（4 KB）──
    ⚠ 别再让 difficulty_estimate 当空壳：2026-10-25 实测里它只回了统计量加一句
@@ -68,6 +68,28 @@ async function weightsV3() {
     console.warn('[agent] v3 权重加载失败，定数退回 v2/kNN：' + (e.message || e));
   }
   return W3;
+}
+
+/* ── v4 权重（38 KB）──
+   **默认档**：142 池化 ‖ 256 片段手型。与 /app 工作台同一套推理 ——
+   写谱 Agent 报出的定数必须和用户自己拖同一张谱算出来的一样。
+   拿不到返回 null，引擎自己退回 v3 → v2 → kNN。 */
+let W4 = null, W4_STATE = '';
+async function weightsV4() {
+  if (W4_STATE === 'ok' || W4_STATE === 'fail') return W4;
+  W4_STATE = 'loading';
+  try {
+    const r = await fetch('/data/engine-v4.json?v=' + encodeURIComponent(APP_VER));
+    if (!r.ok) throw Error('HTTP ' + r.status);
+    const j = await r.json();
+    /* ⚠ 398 维（142 + 256）。校验成 142 会让服务端/页面各算一个数。 */
+    if (!j || !Array.isArray(j.w) || j.w.length !== 398) throw Error('权重结构异常（w 不是 398 维）');
+    W4 = j; W4_STATE = 'ok';
+  } catch (e) {
+    W4_STATE = 'fail';
+    console.warn('[agent] v4 权重加载失败，定数退回 v3/v2/kNN：' + (e.message || e));
+  }
+  return W4;
 }
 
 /* ── schema 构造器 ──
@@ -266,20 +288,20 @@ export function createCommands({ approve = async () => true, getChart, setChart,
       return { chart: emptyChart({}), note: 'BPMList 可多段；offset 单位毫秒' };
     });
 
-  defineCommand('difficulty_estimate', '用 v3 引擎算出当前谱面的预估定数。生成后调一次，把数字如实报给用户（它不是「这首歌应该多少分」）。',
+  defineCommand('difficulty_estimate', '用 v4 引擎（20 维结构特征 + 片段手型）算出当前谱面的预估定数。生成后调一次，把数字如实报给用户（它不是「这首歌应该多少分」）。',
     obj({}), 'read', async () => {
       const chart = getChart();
       const notes = (chart?.judgeLineList ?? []).reduce((n, l) => n + (l.notes?.length ?? 0), 0);
       if (!notes) throw Error('当前谱面还没有音符，先 chart_generate');
-      const W2 = await weightsV2();
-      const W3 = await weightsV3();
+      const W2 = await weightsV2(), W3 = await weightsV3(), W4 = await weightsV4();
       let r;
       try { r = loadChart(chart); } catch (e) { throw Error('谱面结构无法解析：' + (e.message || e)); }
       const meta = chart.META || {};
-      const rep = reportFromChart(r, meta.name || '', meta, null, null, null, W2, W3);
-      const level = rep?.v3?.ding ?? rep?.v2 ?? rep?.knn?.ref ?? null;
-      const basis = rep?.v3 != null ? 'ridge-seq20 (v3)'
-        : rep?.v2 != null ? 'ridge-beta (v2)'
+      const rep = reportFromChart(r, meta.name || '', meta, null, null, null, W2, W3, W4);
+      const level = rep?.model?.ding ?? rep?.v2 ?? rep?.knn?.ref ?? null;
+      const basis = rep?.model?.basis === 'ridge-hs398' ? 'ridge-hs398 (v4)'
+        : rep?.model?.basis === 'ridge-seq20' ? 'ridge-seq20 (v3，v4 权重没取到，已降级)'
+        : rep?.v2 != null ? 'ridge-beta (v2，v4/v3 权重没取到，已降级)'
         : 'knn 参照集（模型权重没取到，已降级）';
       return {
         level: level == null ? null : +Number(level).toFixed(1),

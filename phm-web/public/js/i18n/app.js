@@ -123,7 +123,8 @@ export default {
     'app.foot.details': 'PS 是什么？本工具的边界与隐私（点开看）',
     'app.foot.d1':
       '<b>三个数不是一回事，别混用</b>：<br>'
-      + '· <b>参考定数（模型估计）</b>—— 把谱面的按键密度、位移、跳跃速度等 20 项结构特征'
+      + '· <b>参考定数（模型估计）</b>—— 把谱面的按键密度、位移、跳跃速度等 20 项结构特征，'
+      + '再加上「片段手型」（连续几个音符摊开多大：包围盒、横向跨度、绕行长度）'
       + '交给模型，直接算出难度。模型学的是社区谱<b>被玩家打出来的实际难度</b>，'
       + '所以这个数落在你在 Phira 上看到的那个标度上。<br>'
       + '· <b>官谱标度</b>—— 参照集换成 1,037 张 Phigros 官谱，是与官方一致的绝对标度。<br>'
@@ -216,13 +217,13 @@ export default {
     'app.res.g.stamina': '持续负荷',
     'app.res.basis.com': '社区共识',
     'app.res.basis.model': '模型估计',
-    'app.res.desc.model': '20 维结构特征 → 岭回归（<b>不是</b>近邻平均；下方近邻仅供参考）',
+    'app.res.desc.model': '20 维结构特征 + 片段手型（每一小段摊开多大）→ 岭回归（<b>不是</b>近邻平均；下方近邻仅供参考）',
     'app.res.basis.off': '官谱标度',
     /* 精确计算档：结果卡片上的次要动作。文案不写「34k 参数 / GRU / attention」——
        用户要知道的是「要不要多等这一下」，不是模型结构。 */
     'app.res.seq.btn': '精确计算',
     'app.res.seq.running': '计算中…',
-    'app.res.seq.note': '精确计算 · 序列模型',
+    'app.res.seq.note': '精确计算 · 序列模型（含片段手型）',
     'app.res.seq.hint': '稍慢，更准一档',
     'app.res.desc.com': 'Phira 社区谱',
     'app.res.desc.off': 'Phigros 官谱',
@@ -513,7 +514,8 @@ export default {
     'app.foot.d1':
       '<b>These three numbers are not the same — do not mix them up</b>:<br>'
       + '· <b>Reference constant (model estimate)</b> — 20 structural features (note density, movement, '
-      + 'jump speed…) go into a model that estimates the difficulty directly. The model learned from '
+      + 'jump speed…) plus a <b>fragment hand-shape</b> block (how wide each short run spreads: bounding '
+      + 'box, horizontal span, path length) go into a model that estimates the difficulty directly. The model learned from '
       + '<b>how hard players actually find community charts</b>, so the result sits on the scale you see '
       + 'on Phira.<br>'
       + '· <b>Official scale</b> — the reference set swapped for 1,037 official Phigros charts; '
@@ -621,11 +623,11 @@ export default {
     'app.res.g.stamina': 'Sustain load',
     'app.res.basis.com': 'Community consensus',
     'app.res.basis.model': 'Model estimate',
-    'app.res.desc.model': '20 structural features → ridge regression (<b>not</b> a neighbour average; the list below is for reference)',
+    'app.res.desc.model': '20 structural features + fragment hand-shape (how wide each short run spreads) → ridge regression (<b>not</b> a neighbour average; the list below is for reference)',
     'app.res.basis.off': 'Official scale',
     'app.res.seq.btn': 'Precise',
     'app.res.seq.running': 'Computing…',
-    'app.res.seq.note': 'precise · sequence model',
+    'app.res.seq.note': 'precise · sequence model (with fragment hand-shape)',
     'app.res.seq.hint': 'a bit slower, a notch more accurate',
     'app.res.desc.com': 'Phira community charts',
     'app.res.desc.off': 'Phigros official charts',
