@@ -39,7 +39,20 @@ export const TARGETS = [
   { id: 'page-home',    group: 'page', path: '/',           label: '首页' },
   { id: 'page-app',     group: 'page', path: '/app',        label: '算谱面' },
   { id: 'page-data',    group: 'page', path: '/data',       label: '查定数' },
-  { id: 'page-user',    group: 'page', path: '/user',     label: '玩家页' },
+  { id: 'page-user',    group: 'page', path: '/user',       label: '玩家页' },
+
+  /* 2026-11-07 补全：原来只探 4 个页面，导航里另外 7 个入口从未被检查过。
+     它们各自走不同的路由分支（白名单、渲染、静态包下载），
+     首页绿了不代表 /packs 绿。每条都已在线上实测 200。 */
+  { id: 'page-packs',   group: 'page', path: '/packs',      label: '谱面包' },
+  { id: 'page-charter', group: 'page', path: '/charter',    label: '谱师' },
+  { id: 'page-write',   group: 'page', path: '/write',      label: '写谱' },
+  { id: 'page-rule',    group: 'page', path: '/rulechart',  label: '规则写谱' },
+  { id: 'page-render',  group: 'page', path: '/render',     label: '谱面渲染' },
+  { id: 'page-platform',group: 'page', path: '/platform',   label: 'API 平台' },
+  { id: 'page-download',group: 'page', path: '/download',   label: '下载' },
+  { id: 'page-settings',group: 'page', path: '/settings',   label: '设置' },
+  { id: 'page-status',  group: 'page', path: '/status',     label: '服务状态' },
 
   /* ── 接口：真会走 DB 的那些 ── */
   { id: 'api-health',   group: 'api',  path: '/api/health',        label: '健康检查' },
@@ -49,6 +62,9 @@ export const TARGETS = [
 
   /* ── 数据：大文件传输 ── */
   { id: 'data-ref',     group: 'data', path: '/data/ref-com.json', label: '参照集' },
+  /* 搜索引擎与爬虫看的就是这两个；它们 500 会直接影响收录，但没人会手动访问。 */
+  { id: 'data-sitemap', group: 'data', path: '/sitemap.xml', label: '站点地图' },
+  { id: 'data-robots',  group: 'data', path: '/robots.txt',  label: 'robots' },
 ];
 
 /* 探测周期。60s 是权衡：太短会给自造压力（每个探测都是一次真实请求，
