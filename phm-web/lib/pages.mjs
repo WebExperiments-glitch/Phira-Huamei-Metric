@@ -42,7 +42,7 @@ export const CLEAN = {
   '/developers': 'developers.html', '/platform': 'platform.html',
   '/developer': 'platform.html',   /* 旧链接兼容 */
   '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',
-  '/status': 'status.html', '/packs': 'packs.html',
+  '/status': 'status.html', '/packs': 'packs.html', '/more': 'more.html',
   '/render': 'render.html', '/agent': 'agent.html', '/write': 'write.html',
   '/discrepancy': 'discrepancy.html',
 };

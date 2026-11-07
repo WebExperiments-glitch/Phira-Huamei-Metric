@@ -35,6 +35,7 @@ import legal from './i18n/legal.js?v=V0.27.0.0';
 import settings from './i18n/settings.js?v=V0.27.0.0';
 import version from './i18n/version.js?v=V0.27.0.0';
 import status from './i18n/status.js?v=V0.27.0.0';
+import more from './i18n/more.js?v=V0.27.0.0';
 import packs from './i18n/packs.js?v=V0.27.0.0';
 import download from './i18n/download.js?v=V0.27.0.0';
 /* ⚠ 这两个分片是 /write 与 /agent 的文案。合并远端时 i18n.js 取了远端那份，
@@ -66,6 +67,7 @@ const FRAGMENTS = [
   ['common', common], ['home', home], ['app', app], ['charter', charter],
   ['user', user], ['data', data], ['legal', legal], ['settings', settings],
   ['version', version], ['download', download], ['status', status], ['packs', packs],
+  ['more', more],
   ['agent', agent], ['render', render],
 ];
 

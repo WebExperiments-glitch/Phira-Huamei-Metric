@@ -56,6 +56,7 @@
 | `/chart/<id>` | `chart.html` | **谱面详情页（SEO 落地页）**：服务端注入 title / description / canonical / OG / JSON-LD （**爬虫不执行 JS**，客户端渲染等于没做），客户端再填定数、曲绘与元数据。数据源 `phm_charts` 缓存 + 上游 `/chart/{id}`，两者各套短超时，任一挂了仍返回 200 + 通用 meta |
 | `/retired` | `retired.html`（**服务端模板**） | 下线说明页：告诉用户哪些功能撤了、还能用什么、去哪继续。由 `lib/retired.mjs` 读模板并替换 `__APP_VER__` / `__RETIRE_URL__` 后送出；文件本身**不在** `PUBLIC_FILES` 里，裸访问 404 |
 | `/packs` | `packs.html` | **谱面包**：浏览 Phira 公开谱面库，把任意谱面（曲绘 / 音乐 / chart JSON）在**浏览器本地**打成 `.pez` 包并下载。零中转 —— 服务器只代理 JSON 元数据，文件一律浏览器直连 Phira CDN（不烧我们的带宽、也不替上游再分发） |
+| `/more` | `more.html` | **全部功能入口**：导航只留谱面与创作两类，其余按用途分组平铺（2026-11-07 用户反馈 13 项平铺「有些杂乱」）。纯链接页，无状态 |
 | `/status` | `status.html` | **运行状态**：20 个目标自检（页面/数据 60s，打 DB 的接口 5 分钟——见 `RL.apiAnonHour`），报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
 | `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |

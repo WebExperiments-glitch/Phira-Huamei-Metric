@@ -193,7 +193,7 @@ const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.ht
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
   '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
-  'status.html', 'packs.html', 'render.html', 'agent.html', 'write.html',
+  'status.html', 'more.html', 'packs.html', 'render.html', 'agent.html', 'write.html',
   'discrepancy.html',
   /* 末尾三个是许可证正文：按**名字**放行，别往 SAFE_EXT 加 .txt（见 docs/README「许可证」） */
   'fonts/OFL-LXGWWenKai.txt', 'fonts/OFL-NotoSerifSC.txt', 'vendor/uqr-LICENSE']);

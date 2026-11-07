@@ -26,6 +26,7 @@ export default {
     'nav.platform': 'API 开放平台',
     'nav.status': '状态',
     'nav.download': '下载',
+    'nav.more': '更多',
 
     /* ── 通用动作 ── */
     'c.clear': '清除',
@@ -158,6 +159,7 @@ export default {
     'nav.platform': 'API Platform',
     'nav.status': 'Status',
     'nav.download': 'Download',
+    'nav.more': 'More',
 
     /* ── common ── */
     'c.clear': 'Clear',
