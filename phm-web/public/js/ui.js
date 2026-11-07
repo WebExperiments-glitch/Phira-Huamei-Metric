@@ -39,7 +39,6 @@ const NAV = [
      ⚠ 每一条都必须实测返回 200 —— smoke 会逐条 fetch 验证（10 月那次 410 死链的教训）。 */
   ['/', 'nav.home', 'home'],
   ['/app', 'nav.app', 'app'],                  /* 拖谱面 → 算定数 */
-  ['/discrepancy', 'nav.discrepancy', 'discrepancy'],
   ['/data', 'nav.data', 'data'],
   ['/charter', 'nav.charter', 'charter'],
   ['/user', 'nav.user', 'user'],

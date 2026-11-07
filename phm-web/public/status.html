@@ -134,6 +134,21 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
   </div>
 </div>
 
+<!-- 2026-11-07：接入 BetterStack 做**外部**可用性监控。
+     本页的探针打的是回环地址（进程活着就必然连通），只能证明「服务没卡死」，
+     测不出平台网关 / DNS / 运营商网络的问题 —— 那恰好是用户最常遇到的。
+     所以把外部监控放在最上面，本页自检降级为内部参考。 -->
+<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <div style="flex:1;min-width:220px">
+    <div style="font-size:14px;font-weight:600;margin-bottom:4px" data-i18n="st.extTitle">外部可用性监控</div>
+    <div class="dim2" style="font-size:12.5px;line-height:1.7" data-i18n="st.extBody">
+      从全球多个节点定期请求本站，能测出本页测不到的故障（平台网关、DNS、线路）。事故记录与订阅在那里。
+    </div>
+  </div>
+  <a class="btn" href="https://phm.betteruptime.com" target="_blank" rel="noopener"
+     style="white-space:nowrap" data-i18n="st.extGo">打开状态页 ↗</a>
+</div>
+
 <div id="groups"></div>
 
 <!-- 样本不足时出现：解释那条「大部分是灰的」色条不是故障 -->
