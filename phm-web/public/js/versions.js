@@ -19,9 +19,27 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.27.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.27.1.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.27.1.0', date: '2026-11-07',
+    zh: ['<b>导航收成了 9 项。</b> 原来一行平铺 13 个入口，谁也扫不完 —— 现在主路径只留「谱面」和「创作」，'
+      + '其余按用途收进新的「更多」页（谱面 / 创作 / 数据与开发 / 系统 四组卡片）。',
+      '<b>状态页开始记「事件」了。</b> 以前只有可用率百分比 —— 看到 62% 只能猜「是不是我赶上倒霉」。'
+      + '现在会写清楚是<b>性能下降 / 部分中断 / 完全中断</b>、影响哪个组件、什么时候恢复的。',
+      '<b>修了一个自己造成的故障：</b>自检探针每 60 秒打两个查库接口，每小时 120 次超过了 100 次的配额，'
+      + '于是后六分之一的探测全被限流拒掉 —— 状态页上显示成「接口只有 62% 可用」。降到 5 分钟一次后恢复正常。'],
+    en: ['<b>The navigation is down to 9 items.</b> Thirteen links in one row is more than anyone scans — '
+      + 'the main path now keeps only charts and creation, and everything else moved into a new “More” page '
+      + 'grouped into charts / creation / data & developers / system.',
+      '<b>The status page now records incidents.</b> It used to show only an uptime percentage — seeing 62% '
+      + 'left you guessing whether you were just unlucky. It now states whether a component is '
+      + '<b>degraded, partially down or fully down</b>, what was affected, and when it recovered.',
+      '<b>Fixed a self-inflicted outage:</b> the self-check probed two database-backed endpoints every 60 seconds — '
+      + '120 calls per hour against a quota of 100, so the last sixth was always rate-limited and showed up as '
+      + '“the API is only 62% available”. Dropping those two to once every five minutes fixed it.'],
+  },
   {
     v: 'V0.27.0.0', date: '2026-11-05',
     zh: ['<b>默认的数更准了，所有人都受益。</b> 这次看的不再只是单个音符的动作，而是「一小段音符摊开多大」——'
