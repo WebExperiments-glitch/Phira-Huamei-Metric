@@ -58,9 +58,14 @@ console.log('\n【1】目标清单');
   /* ⚠ 更危险的一种：探一个**不存在**的路径，绿了也是假的绿。 */
   T('目标路径都在已知白名单页面或 API 上',
     TARGETS.every(t => {
+      /* 2026-11-07 扩充探针时补入：新增的路径都在线上实测过 200。
+         这份白名单的意义是「不许探一个不存在的路径，否则绿了也是假绿」，
+         所以新增条目必须来自实测，不能凭想象填。 */
       const KNOWN = ['/', '/app', '/data', '/user', '/charter', '/download',
                      '/developers', '/platform', '/version', '/rulechart',
                      '/settings', '/privacy', '/terms',
+                     '/packs', '/write', '/render', '/status',
+                     '/sitemap.xml', '/robots.txt',
                      '/api/health', '/api/v1/meta', '/api/v1/stats',
                      '/api/v1/charts', '/api/stats', '/api/summary',
                      '/data/ref-com.json', '/data/ref-official.js'];

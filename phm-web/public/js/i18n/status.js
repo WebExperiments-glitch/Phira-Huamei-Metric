@@ -23,6 +23,9 @@ export default {
       '刚启动，还没有攒够样本。第一轮探测完成后这里会亮起来。',
     'st.updated': '更新于 {t}',
     'st.interval': '每 {n} 秒检查一次',
+    'st.extTitle': '外部可用性监控',
+    'st.extBody': '从全球多个节点定期请求本站，能测出本页测不到的故障（平台网关、DNS、线路）。事故记录与订阅在那里。',
+    'st.extGo': '打开状态页 ↗',
 
     /* ── 时间范围切换 ── */
     'st.range': '范围',
@@ -86,6 +89,9 @@ export default {
       'Just started — not enough samples yet. This light turns on after the first round.',
     'st.updated': 'Updated {t}',
     'st.interval': 'Checked every {n}s',
+    'st.extTitle': 'External availability',
+    'st.extBody': 'Independent probes from multiple regions can catch failures this page cannot: platform gateway, DNS, routing. Incident history and subscriptions live there.',
+    'st.extGo': 'Open status page ↗',
 
     'st.range': 'Range',
     'st.uptimeBar': 'Hourly availability (green = all good, amber = some failures, red = mostly failing, grey = no samples)',
