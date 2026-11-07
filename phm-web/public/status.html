@@ -149,6 +149,10 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
      style="white-space:nowrap" data-i18n="st.extGo">打开状态页 ↗</a>
 </div>
 
+<!-- 事件区：总状态横幅 + 进行中的故障（Statuspage 那套词汇）。
+     平时整体正常时这里整块为空，不占版面。 -->
+<div id="incbar"></div>
+
 <div id="groups"></div>
 
 <!-- 样本不足时出现：解释那条「大部分是灰的」色条不是故障 -->
@@ -385,6 +389,58 @@ function render() {
 /* ── 取数据 ──
  * ⚠ 30 天视图可能因为迁移没跑而没数据。这时给一句说明，
  *   而不是让用户对着空的图表猜是不是坏了。 */
+/* ── 事件区渲染 ──
+ * 词汇照抄 Statuspage：operational / degraded(性能下降) / partial(部分中断) / major(完全中断)。
+ * 没有进行中的故障时整块不渲染 —— 一个空白横幅比"一切正常"更让人安心。 */
+/* 颜色一律走令牌（base.css 的 --warn / --err），双主题才不会漏改。
+   partial 和 degraded 都用 warn 系：橙色层级只靠深浅区分，
+   在深色主题下硬编码的中间色会直接失效。 */
+const INC_STYLE = {
+  degraded: { color: 'var(--warn)', bg: 'color-mix(in srgb, var(--warn) 10%, transparent)', tone: '性能下降' },
+  partial:  { color: 'var(--warn)', bg: 'color-mix(in srgb, var(--warn) 16%, transparent)', tone: '部分中断' },
+  major:    { color: 'var(--err)',  bg: 'color-mix(in srgb, var(--err) 10%, transparent)',  tone: '完全中断' },
+};
+
+function fmtIncTime(ts) {
+  const d = new Date(ts);
+  const p = (n) => String(n).padStart(2, '0');
+  return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function renderIncidents() {
+  const box = $('incbar');
+  if (!box) return;
+  const state = DATA.overallState || 'operational';
+  const list = (DATA.incidents || []).filter(i => !i.resolvedAt);
+  if (state === 'operational' && !list.length) { box.innerHTML = ''; return; }
+
+  const tone = INC_STYLE[state] || INC_STYLE.degraded;
+  const tags = (DATA.components || [])
+    .filter(c => c.status !== 'operational')
+    .map(c => '<span class="inctag" style="border-color:' + (INC_STYLE[c.status] || tone).color
+      + ';color:' + (INC_STYLE[c.status] || tone).color + '">' + escUi(c.label)
+      + ' · ' + escUi((INC_STYLE[c.status] || tone).tone) + '</span>').join(' ');
+
+  let html = '<div class="card" style="margin-bottom:14px;border-left:3px solid ' + tone.color
+    + ';background:' + tone.bg + '">'
+    + '<div style="font-size:14px;font-weight:600;margin-bottom:6px">'
+    + escUi(DATA.overallLabel || tone.tone) + '</div>'
+    + (tags ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' + tags + '</div>' : '');
+
+  for (const inc of list) {
+    const up = (inc.updates || []).slice().reverse();
+    html += '<div style="margin-top:10px;font-size:12.5px;line-height:1.8">'
+      + '<div style="font-weight:600;margin-bottom:4px">' + escUi(inc.componentLabel) + ' · '
+      + escUi((INC_STYLE[inc.level] || tone).tone) + ' · 已持续 '
+      + Math.max(1, Math.round((Date.now() - inc.startedAt) / 60000)) + ' 分钟</div>'
+      + up.map(u => '<div><span class="dim2" style="font-variant-numeric:tabular-nums">'
+        + fmtIncTime(u.at) + '</span>　' + escUi(u.text) + '</div>').join('')
+      + '</div>';
+  }
+  html += '</div>';
+  box.innerHTML = html;
+}
+
 async function loadStatus() {
   $('groups').innerHTML = '<div class="card"><p class="dim2" style="margin:0;font-size:13px">'
     + escUi(t('st.loading')) + '</p></div>';
@@ -396,6 +452,7 @@ async function loadStatus() {
              intervalMs: 60000, targets: 0, range: RANGE };
   }
   render();
+  renderIncidents();
   if (RANGE === '30d' && DATA.overall === 'unknown' && DATA.targets > 0) {
     $('groups').insertAdjacentHTML('afterbegin',
       '<div class="card" style="margin-top:14px"><p class="dim2" style="margin:0;font-size:12.5px">'
