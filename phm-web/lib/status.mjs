@@ -30,6 +30,7 @@
  * ============================================================ */
 
 import { dbFetch, WRITE_SECRET } from './cloud.mjs';
+import { ingest as ingestIncidents, overallLabel, STATUS as INC_STATUS } from './incidents.mjs';
 
 /* ── 探测目标 ──
  * ⚠ path 一律用**干净 URL**（不带 .html）：线上由路由改写，
@@ -171,11 +172,14 @@ function summarize(samples) {
 let timer = null;
 let lastRunAt = 0;
 const lastProbeAt = new Map();
+/* 最近一次事件状态机的输出（组件状态 + 事件列表） */
+let lastIncidents = null;
 let running = false;
 
 async function tick(basePort) {
   if (running) return;/* 上一轮还没跑完（慢探测时不叠加） */
   running = true;
+  const round = [];
   try {
     for (const t of TARGETS) {
       /* 每个目标可以有自己的节奏：打 DB 的接口没必要每分钟探 ——
@@ -187,7 +191,11 @@ async function tick(basePort) {
       const s = await probe(t, basePort);
       lastProbeAt.set(t.id, Date.now());
       ringPush(rings.get(t.id), s);
+      round.push(s);
     }
+    /* 喂给事件状态机：它自己维护连续失败/成功计数，
+       只有到阈值才改组件状态 —— 一次抖动不会让页面变红。 */
+    lastIncidents = ingestIncidents(round, TARGETS);
     lastRunAt = Date.now();
     /* 有失败才写 DB：健康时不产生任何写入。
      * 状态页数据的价值全在「出过事的时候」——那才有东西可查。 */
@@ -337,9 +345,18 @@ export async function buildStatusSnapshot(range) {
     else overall = 'outage';
   }
 
+  /* 事件层：组件状态 + 未关闭事件 + 总状态的文字描述。
+     ⚠ `overall` 保留旧的 ok/outage 二值（前端和外部调用方还在读），
+       新增 `overallState` 才是 Statuspage 词汇（operational/degraded/…）。 */
+  const inc = lastIncidents || { components: [], overall: 'operational', incidents: [] };
   return {
     range: days > 1 ? '30d' : '24h',
     overall,
+    overallState: inc.overall,
+    overallLabel: overallLabel(inc.overall),
+    components: inc.components,
+    incidents: inc.incidents.filter(i => !i.resolvedAt),
+    incidentHistory: inc.incidents.slice(0, 10),
     updatedAt: lastRunAt || Date.now(),
     intervalMs: INTERVAL_MS,
     targets: TARGETS.length,
