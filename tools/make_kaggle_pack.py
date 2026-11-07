@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """生成 Kaggle 训练包：紧凑序列化 + 指令数据 + 可直接跑的 notebook。
 
+⚠ DNA 编码自 2026-11-02 已停用（见 chart_dna.py 头注：ρ0.598 vs 岭回归 0.8024），
+本工具保留用于复现那个负面结果 —— 复现路径上更不容许静默丢数据，所以
+这个 PR 级别的解析 bug 值得单独修。
+
 ━━━ 为什么压到 9.5 token/事件还不够 ━━━
 中位谱 1,093 事件 → 约 10,400 token；Kaggle T4 上用 4,096 上下文的话只能装四成。
 所以策略是：**全量存盘，训练时均匀抽样**（每 k 个事件取 1 个，k 由长度决定），
@@ -37,6 +41,13 @@ def compact(text):
     ⚠ 这里是整条流水线最关键的一处改动。最早用 `12.34 +337.5 T` 这种
     自然语言式写法，中位谱面就是 14,400 token，4k 上下文只能装三成，
     于是差点用"均匀抽样"把数据砍掉。先压编码才是对的。
+
+    位置列的 "b" 后缀：serialize_chart 给 below(above=0) 音符打
+    `-2.5b` 这样的标记，此前直接 `float(f[1])` 会 ValueError，
+    被 `except ValueError: continue` 静默吞掉 —— 真语料全量复算：
+    3,977/9,685 张（41.1%）受影响、0.44% 事件被吞，最惨一张丢 30%
+    （tools/audit_llm_pack_coverage.py 可复现）。
+    旧格式曾把 tag 挂在类型列（`Tb`），所以类型列的 rstrip("b") 保留。
     """
     from chart_dna import encode
     ev = []
@@ -45,12 +56,11 @@ def compact(text):
         if len(f) < 3:
             continue
         try:
-            ev.append((float(f[0]), float(f[1]), f[2].rstrip("b"),
+            ev.append((float(f[0]), float(f[1].rstrip("b")), f[2].rstrip("b"),
                        float(f[3]) if len(f) > 3 else None))
         except ValueError:
             continue
     return encode(ev), len(ev)
-    return head + "\n" + "\n".join(body), len(body)
 
 
 def main():
