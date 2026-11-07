@@ -35,21 +35,21 @@ export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}
    ⚠ 2026-10-22：顶部「本站已停止运行」横幅已整体删除 —— 站点复活后
    那句话是假话。别再往页面里加回来（smoke 里有一条反向断言盯着它）。 */
 const NAV = [
-  /* 2026-11-04：全功能站恢复，导航回到完整列表。
-     ⚠ 每一条都必须实测返回 200 —— smoke 会逐条 fetch 验证（10 月那次 410 死链的教训）。 */
+  /* 2026-11-07 重排：原来 13 项平铺，用户反馈「有些杂乱」。
+     主路径只留「谱面 + 创作」两段，其余收进 /more（按用途分组）。
+     ⚠ 每一条都必须实测返回 200 —— smoke 会逐条 fetch 验证。 */
   ['/', 'nav.home', 'home'],
+  /* 谱面：查 / 看 / 谁做的 / 谁打的 */
   ['/app', 'nav.app', 'app'],                  /* 拖谱面 → 算定数 */
-  ['/data', 'nav.data', 'data'],
+  ['/packs', 'nav.packs', 'packs'],
   ['/charter', 'nav.charter', 'charter'],
   ['/user', 'nav.user', 'user'],
-  ['/rulechart', 'nav.rulechart', 'rulechart'],
+  /* 创作 */
   ['/write', 'nav.write', 'write'],
+  ['/rulechart', 'nav.rulechart', 'rulechart'],
   ['/render', 'nav.render', 'render'],
-  ['/packs', 'nav.packs', 'packs'],
-  ['/settings', 'nav.settings', 'settings'],
-  ['/platform', 'nav.platform', 'platform'],
-  ['/status', 'nav.status', 'status'],
-  ['/download', 'nav.download', 'download'],
+  /* 其余全部入口 */
+  ['/more', 'nav.more', 'more'],
 ];
 
 /* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */
