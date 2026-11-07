@@ -30,6 +30,7 @@
  * ============================================================ */
 
 import { dbFetch, WRITE_SECRET } from './cloud.mjs';
+import { ingest as ingestIncidents, overallLabel, STATUS as INC_STATUS } from './incidents.mjs';
 
 /* ── 探测目标 ──
  * ⚠ path 一律用**干净 URL**（不带 .html）：线上由路由改写，
@@ -39,16 +40,36 @@ export const TARGETS = [
   { id: 'page-home',    group: 'page', path: '/',           label: '首页' },
   { id: 'page-app',     group: 'page', path: '/app',        label: '算谱面' },
   { id: 'page-data',    group: 'page', path: '/data',       label: '查定数' },
-  { id: 'page-user',    group: 'page', path: '/user',     label: '玩家页' },
+  { id: 'page-user',    group: 'page', path: '/user',       label: '玩家页' },
+
+  /* 2026-11-07 补全：原来只探 4 个页面，导航里另外 7 个入口从未被检查过。
+     它们各自走不同的路由分支（白名单、渲染、静态包下载），
+     首页绿了不代表 /packs 绿。每条都已在线上实测 200。 */
+  { id: 'page-packs',   group: 'page', path: '/packs',      label: '谱面包' },
+  { id: 'page-charter', group: 'page', path: '/charter',    label: '谱师' },
+  { id: 'page-write',   group: 'page', path: '/write',      label: '写谱' },
+  { id: 'page-rule',    group: 'page', path: '/rulechart',  label: '规则写谱' },
+  { id: 'page-render',  group: 'page', path: '/render',     label: '谱面渲染' },
+  { id: 'page-platform',group: 'page', path: '/platform',   label: 'API 平台' },
+  { id: 'page-download',group: 'page', path: '/download',   label: '下载' },
+  { id: 'page-settings',group: 'page', path: '/settings',   label: '设置' },
+  { id: 'page-status',  group: 'page', path: '/status',     label: '服务状态' },
 
   /* ── 接口：真会走 DB 的那些 ── */
   { id: 'api-health',   group: 'api',  path: '/api/health',        label: '健康检查' },
   { id: 'api-meta',     group: 'api',  path: '/api/v1/meta',       label: 'API 元信息' },
-  { id: 'api-stats',    group: 'api',  path: '/api/v1/stats',      label: 'API 统计' },
-  { id: 'api-charts',   group: 'api',  path: '/api/v1/charts?limit=1', label: 'API 查谱' },
+  /* ⚠ 2026-11-07 实测：这两条每分钟探一次 = 120 次/小时，
+     超过 RL.apiAnonHour（100/小时）→ 后 1/6 的采样全是 429，
+     可用率常年 62%~65%，看起来像接口挂了，其实是探针把自己限流了。
+     降到 5 分钟一次：两条合计 24 次/小时，留足余量给真实用户。 */
+  { id: 'api-stats',    group: 'api',  path: '/api/v1/stats',      label: 'API 统计', everyMs: 300_000 },
+  { id: 'api-charts',   group: 'api',  path: '/api/v1/charts?limit=1', label: 'API 查谱', everyMs: 300_000 },
 
   /* ── 数据：大文件传输 ── */
   { id: 'data-ref',     group: 'data', path: '/data/ref-com.json', label: '参照集' },
+  /* 搜索引擎与爬虫看的就是这两个；它们 500 会直接影响收录，但没人会手动访问。 */
+  { id: 'data-sitemap', group: 'data', path: '/sitemap.xml', label: '站点地图' },
+  { id: 'data-robots',  group: 'data', path: '/robots.txt',  label: 'robots' },
 ];
 
 /* 探测周期。60s 是权衡：太短会给自造压力（每个探测都是一次真实请求，
@@ -150,16 +171,31 @@ function summarize(samples) {
  * 而周期是 60s，仍有余量。 */
 let timer = null;
 let lastRunAt = 0;
+const lastProbeAt = new Map();
+/* 最近一次事件状态机的输出（组件状态 + 事件列表） */
+let lastIncidents = null;
 let running = false;
 
 async function tick(basePort) {
   if (running) return;/* 上一轮还没跑完（慢探测时不叠加） */
   running = true;
+  const round = [];
   try {
     for (const t of TARGETS) {
+      /* 每个目标可以有自己的节奏：打 DB 的接口没必要每分钟探 ——
+         那既烧配额（apiAnonHour=100/小时），又给数据库添无谓负载。
+         没到点的目标直接跳过，不产生采样点（可用率按采样点算，不会被稀释）。 */
+      const every = t.everyMs || 60_000;
+      const last = lastProbeAt.get(t.id) || 0;
+      if (Date.now() - last < every - 5_000) continue;
       const s = await probe(t, basePort);
+      lastProbeAt.set(t.id, Date.now());
       ringPush(rings.get(t.id), s);
+      round.push(s);
     }
+    /* 喂给事件状态机：它自己维护连续失败/成功计数，
+       只有到阈值才改组件状态 —— 一次抖动不会让页面变红。 */
+    lastIncidents = ingestIncidents(round, TARGETS);
     lastRunAt = Date.now();
     /* 有失败才写 DB：健康时不产生任何写入。
      * 状态页数据的价值全在「出过事的时候」——那才有东西可查。 */
@@ -309,9 +345,18 @@ export async function buildStatusSnapshot(range) {
     else overall = 'outage';
   }
 
+  /* 事件层：组件状态 + 未关闭事件 + 总状态的文字描述。
+     ⚠ `overall` 保留旧的 ok/outage 二值（前端和外部调用方还在读），
+       新增 `overallState` 才是 Statuspage 词汇（operational/degraded/…）。 */
+  const inc = lastIncidents || { components: [], overall: 'operational', incidents: [] };
   return {
     range: days > 1 ? '30d' : '24h',
     overall,
+    overallState: inc.overall,
+    overallLabel: overallLabel(inc.overall),
+    components: inc.components,
+    incidents: inc.incidents.filter(i => !i.resolvedAt),
+    incidentHistory: inc.incidents.slice(0, 10),
     updatedAt: lastRunAt || Date.now(),
     intervalMs: INTERVAL_MS,
     targets: TARGETS.length,

@@ -21,15 +21,15 @@
  *     引擎本身不认识 fetch，也不认识 fs。
  * ============================================================ */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.24.0.1';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.27.0.0';
 /* 技能分：把 39 个特征重组为四技能维度。
    ⚠ skills.js 是**纯函数、无副作用**，所以引擎可以安全 import 它 ——
       浏览器与 Node 服务端都走同一份，不存在两份实现漂移。
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
-import { skillScores } from './skills.js?v=V0.24.0.1';
-import { ridgeV3, seqFeatures20, pool142 } from './engine-v3.mjs?v=V0.24.0.1';
+import { skillScores } from './skills.js?v=V0.27.0.0';
+import { pickRidge, seqFeatures20, pool142, withScreenCoords, handshape256 } from './engine-v3.mjs?v=V0.27.0.0';
 /* 再导出给 tools/verify-engine-v3.mjs 用（它直接 import 线上这份实现，不复制副本） */
-export { seqFeatures20, pool142 };
+export { seqFeatures20, pool142, handshape256 };
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
  * com-ridge37-v1.1.0：**重训权重**（β 标签 4,532 → 12,457，覆盖率 95.9%）。
  *   算法没变，但数值变了 → 缓存与金标必须跟着换。
@@ -328,7 +328,7 @@ export function loadChart(j){
         if(!stt||stt.length!==3||n.type==null) continue;
         const _s=bl.tb(tripleBeats(stt));
         const _h=(n.type===2&&n.endTime)?Math.max(bl.tb(tripleBeats(n.endTime))-_s,0):0;
-        notes.push({sec:_s, tick:stt[0]*32.0,
+        notes.push({sec:_s, tick:stt[0]*32.0, beat:tripleBeats(stt),
           type:n.type, x:n.positionX||0, line:li,
           fake:(n.isFake===1||n.isFake===true),
           /* above 读音符自己的字段（缺失默认 1），与 tools/chart_io.py 一致。
@@ -377,8 +377,8 @@ export function loadChart(j){
   const real=notes.filter(function(n){return !n.fake;});
   const secs=real.map(function(n){return n.sec;});
   const dur=Math.max(1e-3,maxOf(secs)-minOf(secs));
-  return {notes:notes, real:real, dur:dur, bpm:bpm,
-          nlines:lines.length, ev:ev};
+  return withScreenCoords({notes:notes, real:real, dur:dur, bpm:bpm,
+          nlines:lines.length, ev:ev}, j);
 }
 /* ── 加权密度（对照 strain_features）── */
 function pyRound(x,d){ const m=Math.pow(10,d); return Math.round(x*m)/m; }
@@ -757,7 +757,7 @@ function psScore(f){
      两者之差是**系统性分布差异**，不是误差 —— 前端必须并列展示并说明来源，
      只报一个数字才是真的误导（"IN 14 算出 11.6"就是只报官谱标度的产物）。 */
 
-export function reportFromChart(r,name,meta,spPeak,refCom,excludeId,weightsV2,weightsV3){
+export function reportFromChart(r,name,meta,spPeak,refCom,excludeId,weightsV2,weightsV3,weightsV4){
   /* v2 推理：37 维 log1p → 标准化 → 线性加权 → 尺度映射回定数量纲。
      ⚠ 权重文件是 public/data/engine-v2.json，由调用方 fetch 后传入。 */
   function ridgeBeta(f, W) {
@@ -817,17 +817,17 @@ export function reportFromChart(r,name,meta,spPeak,refCom,excludeId,weightsV2,we
 
      【⚠ 纯计算】权重由调用方传入（和 refCom 一样），本文件不碰 fs / 网络。 */
   const v2 = weightsV2 ? ridgeBeta(f, weightsV2) : null;
-  /* v3：20 维序列特征。输入用全部音符（含 fake）—— 与 Python 侧口径一致。 */
-  const v3 = weightsV3 ? ridgeV3(r.notes, weightsV3) : null;
+  /* 默认档 v4(398) → v3(142) → v2/kNN 的降级链在 engine-v3.mjs（本文件 900 行上限）。 */
+  const best = pickRidge(r.notes, weightsV4, weightsV3, r.screen);
   const knnOut = Object.assign({}, knn);
-  if ((v3 != null || v2 != null) && knnOut) {
+  if ((best != null || v2 != null) && knnOut) {
     knnOut.knnRef = knn.ref;
-    knnOut.ref = v3 != null ? v3.ding : v2;
-    knnOut.basis2 = v3 != null ? 'ridge-seq20' : 'ridge-beta';
+    knnOut.ref = best != null ? best.ding : v2;
+    knnOut.basis2 = best != null ? best.basis : 'ridge-beta';
   }
   return {name:meta.name||name, level:meta.level||knn.tier||"", charter:meta.charter||"",
     feats:f, ps:ps, knn:knnOut, knnOff:knnOff, engineVer:ENGINE_VER, spPeak:sp, bpm:r.bpm,
-    skills:skills, v2: v2, v3: v3};
+    skills:skills, v2: v2, model: best};
 }
 /* ── analyze(fileBytes, fileName[, opts]) → 报告对象数组 ──
    opts.refCom：社区参照集行数组（由调用方读文件/fetch 后传入）。
@@ -847,7 +847,7 @@ export async function analyzeChart(buf,fileName,opts){
      于是 reportFromChart 里 weights 恒为 null，主数字一直是 kNN 的 ref。
      表现是「模型换了但页面数字没变」—— 每段单独看都对，连起来才错。 */
   const wV2=(opts&&opts.weightsV2)||null;
-  const wV3=(opts&&opts.weightsV3)||null;
+  const wV3=(opts&&opts.weightsV3)||null, wV4=(opts&&opts.weightsV4)||null;
   const excludeId=(opts&&opts.excludeId!=null)?+opts.excludeId:null;
   const zip=zipParse(buf);
   const reports=[];
@@ -879,7 +879,7 @@ export async function analyzeChart(buf,fileName,opts){
     if(isPecText(txt.slice(0,512))){
       try{
         const r=parsePec(txt);
-        reports.push(Object.assign(reportFromChart(r,en.name,meta,r.spPeak,refCom,excludeId,wV2,wV3),{file:fileName}));
+        reports.push(Object.assign(reportFromChart(r,en.name,meta,r.spPeak,refCom,excludeId,wV2,wV3,wV4),{file:fileName}));
       }catch(e){
         reports.push({file:fileName,name:en.name,error:"PEC 解析失败: "+e.message});
       }
@@ -892,7 +892,7 @@ export async function analyzeChart(buf,fileName,opts){
     catch(e){ reports.push({file:fileName,name:en.name,error:"JSON 解析失败: "+e.message}); continue; }
     if(!j.judgeLineList) continue;           /* 非 RPE/PGR 谱面（如 meta json） */
     const r=loadChart(j);
-    reports.push(Object.assign(reportFromChart(r,en.name,meta,speedPeakOfChart(j),refCom,excludeId,wV2,wV3),{file:fileName}));
+    reports.push(Object.assign(reportFromChart(r,en.name,meta,speedPeakOfChart(j),refCom,excludeId,wV2,wV3,wV4),{file:fileName}));
   }
   if(!reports.length) throw new Error("包里没有找到可解析的谱面（支持 RPE / PGR / PEC）");
   return reports;

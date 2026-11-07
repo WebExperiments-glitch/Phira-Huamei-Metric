@@ -111,3 +111,4 @@ START-CRAWL.bat
 release/
 # 基准测试的切分与结果（可由 tools/bench_suite.py prep/split 重建）
 data/bench/
+data/kaggle-ds/

@@ -56,7 +56,8 @@
 | `/chart/<id>` | `chart.html` | **谱面详情页（SEO 落地页）**：服务端注入 title / description / canonical / OG / JSON-LD （**爬虫不执行 JS**，客户端渲染等于没做），客户端再填定数、曲绘与元数据。数据源 `phm_charts` 缓存 + 上游 `/chart/{id}`，两者各套短超时，任一挂了仍返回 200 + 通用 meta |
 | `/retired` | `retired.html`（**服务端模板**） | 下线说明页：告诉用户哪些功能撤了、还能用什么、去哪继续。由 `lib/retired.mjs` 读模板并替换 `__APP_VER__` / `__RETIRE_URL__` 后送出；文件本身**不在** `PUBLIC_FILES` 里，裸访问 404 |
 | `/packs` | `packs.html` | **谱面包**：浏览 Phira 公开谱面库，把任意谱面（曲绘 / 音乐 / chart JSON）在**浏览器本地**打成 `.pez` 包并下载。零中转 —— 服务器只代理 JSON 元数据，文件一律浏览器直连 Phira CDN（不烧我们的带宽、也不替上游再分发） |
-| `/status` | `status.html` | **运行状态**：9 个目标每 60s 自检一次，报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
+| `/more` | `more.html` | **全部功能入口**：导航只留谱面与创作两类，其余按用途分组平铺（2026-11-07 用户反馈 13 项平铺「有些杂乱」）。纯链接页，无状态 |
+| `/status` | `status.html` | **运行状态**：20 个目标自检（页面/数据 60s，打 DB 的接口 5 分钟——见 `RL.apiAnonHour`），报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
 | `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |
 
@@ -293,7 +294,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | RKS 估算 | `lib/rks-routes.mjs` | `GET /api/rks?uid=` 按**最近游玩记录**估 RKS。存在的原因：Phira 的 B19 计算**冻结在 2026-03-19**，2026 年后注册的账号 rks 恒为 0 —— 功能停摆而非用户的问题。公式 `((ACC*100-55)/45)^2 × 定数`，总分 `(Σ前19 + 最高)/实际槽数`（分母不能写死 20：多数人凑不满，写死会把只打 5 张的人压到 1/4）。只统计 ranked/stable 谱面。⚠ 返回文案必须是「估算」不是「RKS」——两条时间线不同，不能比大小 | 内存缓存 10 分钟；上游失败回 `{ok:false}`，前端静默不显示 |
 | Phira 代理 | `lib/phira-proxy.mjs` | `/api/phira/*` 透传到 api.phira.cn。**这是唯一能主动访问上游的出口** —— 白名单写错一个字，我们的服务器就变成公开爬虫的代理（出口 IP + 带宽白送）。⚠ 判据必须落在**归一化之后**的 pathname 上：`new URL().pathname` 只折叠字面 `..`，编码的 `%2e%2e` 会留下，而 fetch 解析时会折叠 —— 于是 `/chart/%2e%2e/user/1` 能突破前缀检查（2026-10-24 审计核实并修复）。现在：拒可疑形态 → 构造 URL → 判归一化 pathname → 验 origin | 条件请求头（if-modified-since / etag）必须转发，否则条款页永远打不开 |
 | 曲绘代理 | `lib/chartassets.mjs` | `/api/phira-illust/<uuid>` 把 Phira CDN 的 `application/octet-stream` 改回 `image/webp`。**存在的原因是浏览器 ORB**：跨源响应的 MIME 不对时 Chrome 拒绝交给解码器，`<img>` 静默失败（`ERR_BLOCKED_BY_ORB`），真实用户同样中招。路径段严格校验 UUID —— 这是 SSRF 闸门 | ⚠ 只代理**展示用**曲绘；chart / 音乐仍浏览器直连，用户要原件，我们不改写交付物。⚠ 上游 404 回 1×1 占位 WebP 而不是报错，让浏览器缓存住 |
-| 自监控 | `lib/status.mjs` | 每 60s 探测 9 个目标（页面 / 接口 / 数据），环形缓冲存近 24h、DB 存 30 天；`/api/status` 返回聚合 | 打回环地址而非外部域名；探测失败绝不抛；**无样本时整体结论为 unknown 而不是「全部正常」** |
+| 自监控 | `lib/status.mjs` + `lib/incidents.mjs` | 探测 20 个目标（页面 / 接口 / 数据），环形缓冲存近 24h、DB 存 30 天；`incidents.mjs` 把采样聚成组件状态并按 Statuspage 决策树算总状态、自动开关故障事件 | 打回环地址而非外部域名；探测失败绝不抛；**无样本时整体结论为 unknown 而不是「全部正常」** |
 | 网关 | `server.mjs` | 路由、字段校验、限流装配、静态托管 | 不写业务算法，不直接碰数据库配置 |
 | 界面 | `public/*.html`（见上面站点结构表） | 渲染、交互、调 API | 不做可信判定 |
 | 出图 | `public/js/sharecard.js` | 把结果画成 PNG（横 1200×630 / 竖 1080×1920） | 不加载任何外部图片（会污染 canvas） |

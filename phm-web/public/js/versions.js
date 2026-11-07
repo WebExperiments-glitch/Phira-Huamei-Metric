@@ -19,9 +19,43 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.24.0.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.27.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.27.0.0', date: '2026-11-05',
+    zh: ['<b>默认的数更准了，所有人都受益。</b> 这次看的不再只是单个音符的动作，而是「一小段音符摊开多大」——'
+      + '手要跨多远、这条路径绕不绕。短谱（谱面很短的那种）准度从 0.71 提到 0.76，长谱也没落下。',
+      '<b>尝试过但没用的：</b>曲率、走位折返、左右手交替、同押组合 —— 测下来全都没帮上忙。'
+      + '真正有用的是最朴素的「跨度」，不是花哨的手法。',
+      '<b>「精确计算」也升级了</b>，长谱尤其明显。但短谱两条路撞在同一面墙上（0.761 vs 0.764），说明短谱缺的是信息，不是模型不够大。'],
+    en: ['<b>The default number is more accurate now, for everyone.</b> It no longer looks only at single-note motion, '
+      + 'but at <i>how far a short run of notes spreads out</i> &mdash; how far the hand travels, and whether the path doubles back. '
+      + 'Short charts went from 0.71 to 0.76, with no loss on long ones.',
+      '<b>Tried and discarded:</b> curvature, direction reversals, left/right alternation, chord patterns &mdash; none of them helped. '
+      + 'What works is the plain question of extent, not fancy technique.',
+      '<b>"Compute precisely" was upgraded too</b>, most visibly on long charts. On short charts both paths hit the same wall '
+      + '(0.761 vs 0.764), which says short charts are missing information, not model capacity.'],
+  },
+  {
+    v: 'V0.26.0.0', date: '2026-11-05',
+    zh: ['<b>多了一个「精确计算」按钮。</b> 平时的数还是秒出（几毫秒）；点它，会用一个更大的模型再算一遍，'
+      + '慢一点（半秒内），但更准 —— 对玩家实际打出来的难度，准度从 0.80 提到 0.83。'
+      + '<b>为什么不做成默认：</b>这 0.03 的差距折算到定数只有 0.03 分，比你自己打同一张谱两次的手感差异还小。'
+      + '默认档快 5 倍，就该留在默认。'],
+    en: ['<b>There is a new "compute precisely" button.</b> The usual number still appears instantly (a few milliseconds); '
+      + 'tap the button and a larger model runs a second pass &mdash; slower (under half a second), but more accurate: '
+      + 'agreement with how hard players actually find a chart goes from 0.80 to 0.83. '
+      + '<b>Why it is not the default:</b> those 0.03 points are about 0.03 levels, smaller than the difference you feel '
+      + 'playing the same chart twice. The default is 5&times; faster and belongs where it is.'],
+  },
+  {
+    v: 'V0.25.0.0', date: '2026-11-04',
+    zh: ['<b>功能都回来了。</b> 账号、成绩、数据浏览、谱师页、设置、状态、开放平台、客户端下载 —— 之前被撤掉的那些页面重新上线，导航也补回完整的一份。',
+      '<b>数字统一了。</b> 之前同一张谱，拖进工作台是一个数、从搜索页点开是另一个数（差 1.5 级）。现在两条路走同一个模型，并加了一道自动比对：两边算出来差超过 0.05 级就发不出去。'],
+    en: ['<b>The features are back.</b> Accounts, scores, data browsing, charter pages, settings, status, the open platform and the client download &mdash; the pages that had been retired are live again, with the full navigation restored.',
+      '<b>One number everywhere.</b> The same chart used to give one value when dropped into the workbench and a different one from the search page (1.5 levels apart). Both paths now use the same model, with an automatic check that blocks a release if they differ by more than 0.05 levels.'],
+  },
   {
     v: 'V0.24.0.1', date: '2026-11-04',
     zh: ['<b>修一句会误导人的话。</b> 上一个版本把定数换成了新算法，但卡片上还写着「社区共识 · 9508 张里最相近的 20 张」——'

@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.24.0.1';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.24.0.1';
+import { PHIRA_API } from './phira.js?v=V0.27.0.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.27.0.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -35,16 +35,21 @@ export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}
    ⚠ 2026-10-22：顶部「本站已停止运行」横幅已整体删除 —— 站点复活后
    那句话是假话。别再往页面里加回来（smoke 里有一条反向断言盯着它）。 */
 const NAV = [
-  /* ⚠ 2026-11-02：导航只能放**线上真实活着**的页面。
-     本站自 10-21 起收敛为「静态分析工具」，lib/retired.mjs 把账号/成绩/
-     数据管理/谱师/设置/下载/版本历史全部设为 **410 Gone**。
-     我第一版收敛时按"全功能站"的清单挑了 5 项，其中 3 项（/data /charter
-     /settings）在线上是 410 —— 用户点进去看到的是「已下线」，比没入口更糟。
-     现在只放实测返回 200 的页面；tools/smoke-page.mjs 有一条断言会逐条 fetch 验证。 */
+  /* 2026-11-07 重排：原来 13 项平铺，用户反馈「有些杂乱」。
+     主路径只留「谱面 + 创作」两段，其余收进 /more（按用途分组）。
+     ⚠ 每一条都必须实测返回 200 —— smoke 会逐条 fetch 验证。 */
   ['/', 'nav.home', 'home'],
-  ['/app', 'nav.app', 'app'],                  /* 拖谱面 → 算定数，核心动作 */
-  ['/discrepancy', 'nav.discrepancy', 'discrepancy'],
-  ['/rulechart', 'nav.rulechart', 'rulechart'],/* 谱师向：规则写谱 */
+  /* 谱面：查 / 看 / 谁做的 / 谁打的 */
+  ['/app', 'nav.app', 'app'],                  /* 拖谱面 → 算定数 */
+  ['/packs', 'nav.packs', 'packs'],
+  ['/charter', 'nav.charter', 'charter'],
+  ['/user', 'nav.user', 'user'],
+  /* 创作 */
+  ['/write', 'nav.write', 'write'],
+  ['/rulechart', 'nav.rulechart', 'rulechart'],
+  ['/render', 'nav.render', 'render'],
+  /* 其余全部入口 */
+  ['/more', 'nav.more', 'more'],
 ];
 
 /* 记住当前页 —— 语言一变要能自己重画（导航是 JS 生成的，静态替换覆盖不到） */

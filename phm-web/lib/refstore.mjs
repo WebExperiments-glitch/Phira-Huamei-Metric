@@ -50,6 +50,9 @@ export function readWeightsV2() {
   return _w2;
 }
 
+const ENGINE_V4 = path.join(ROOT, 'public', 'data', 'engine-v4.json');
+let _w4 = null;
+
 const ENGINE_V3 = path.join(ROOT, 'public', 'data', 'engine-v3.json');
 let _w3 = null;
 
@@ -72,6 +75,27 @@ export function readWeightsV3() {
     _w3 = null;
   }
   return _w3;
+}
+
+/** v4 引擎权重（142 池化 ‖ 256 片段手型 = **398 维**）。**这是默认档**。
+    ⚠ 与 v3 一样：服务端必须和浏览器用同一份权重，否则 API 和页面给出两个数。
+    ⚠ 维数校验写成 398。写成 142 的话 v4 会被判成"结构异常"直接跳过 ——
+       表现是服务端一直用 v3 而页面用 v4，两处数字差一档，很难看出来。
+    读不到返回 null，引擎自己退回 v3 → v2 → kNN。 */
+export function readWeightsV4() {
+  if (_w4) return _w4;
+  try {
+    const j = JSON.parse(fs.readFileSync(ENGINE_V4, 'utf8'));
+    if (!Array.isArray(j.w) || j.w.length !== 398) {
+      console.warn('[phm] engine-v4.json 权重结构异常（w 不是 398 维），服务端退回 v3/v2/kNN');
+      return null;
+    }
+    _w4 = j;
+  } catch (e) {
+    console.warn('[phm] engine-v4.json 读取失败，服务端退回 v3/v2/kNN：' + (e.message || e));
+    _w4 = null;
+  }
+  return _w4;
 }
 
 /** 供诊断/版本校验：参照集元信息 */
