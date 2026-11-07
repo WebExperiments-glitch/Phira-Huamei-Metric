@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.27.0.0">
+<title>更多 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
+<meta name="description" content="P.H.M. 的全部功能入口：谱面、创作、数据与开发、系统设置。">
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.27.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.27.0.0">
+<style>
+/* ── 入口网格 ──
+   13 项塞不进导航一行（用户 2026-11-07 反馈「有些杂乱」），
+   这里按用途分组平铺：每组一个标题 + 自适应卡片。
+   卡片尺寸用 minmax 自适应，窄屏一列、宽屏三到四列，不写断点。 */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:10px 0 22px}
+.mcard{
+  display:block;padding:13px 14px;border:1px solid var(--line);border-radius:var(--r2);
+  background:var(--card);text-decoration:none;color:inherit;transition:border-color .15s,transform .15s;
+}
+.mcard:hover{border-color:var(--brand-line);transform:translateY(-1px)}
+.mcard .mt{font-size:13.5px;font-weight:600;color:var(--fg)}
+.mcard .md{margin-top:4px;font-size:12px;line-height:1.65;color:var(--fg3)}
+.mgroup{font-size:12.5px;font-weight:600;color:var(--fg2);margin:18px 0 0}
+</style>
+</head>
+<body>
+<header id="topbar"></header>
+<main class="wrap">
+  <h1 class="page-title" data-i18n="more.title">更多</h1>
+  <p class="dim2" style="margin:6px 0 0;font-size:13px" data-i18n="more.sub"></p>
+  <div id="grids"></div>
+</main>
+<footer id="foot"></footer>
+
+<script type="module">
+import { renderNav, esc, applyStatic, t, onLangChange } from '/js/ui.js?v=V0.27.0.0';
+
+/* ⚠ 这里必须写**字面量 key**：i18n 的 lint 是扫源码里 t('...') 的字符串，
+   写成 t(variable) 会被判定成「引用了字典里没有的 key」。
+   所以每次重画都重新构造一次这个结构，而不是缓存 t(key) 的结果。 */
+function groups() {
+  return [
+    { title: t('more.g1'), items: [
+      { href: '/app', title: t('nav.app') },
+      { href: '/packs', title: t('nav.packs') },
+      { href: '/charter', title: t('nav.charter') },
+      { href: '/user', title: t('nav.user') },
+    ]},
+    { title: t('more.g2'), items: [
+      { href: '/write', title: t('nav.write') },
+      { href: '/rulechart', title: t('nav.rulechart') },
+      { href: '/render', title: t('nav.render') },
+    ]},
+    { title: t('more.g3'), items: [
+      { href: '/data', title: t('more.data.t'), desc: t('more.data.d') },
+      { href: '/platform', title: t('more.platform.t'), desc: t('more.platform.d') },
+      { href: '/download', title: t('more.download.t'), desc: t('more.download.d') },
+    ]},
+    { title: t('more.g4'), items: [
+      { href: '/settings', title: t('more.settings.t'), desc: t('more.settings.d') },
+      { href: '/status', title: t('more.status.t'), desc: t('more.status.d') },
+      { href: '/version', title: t('more.version.t'), desc: t('more.version.d') },
+    ]},
+  ];
+}
+
+function paintMore() {
+  document.getElementById('grids').innerHTML = groups().map(g =>
+    '<div class="mgroup">' + esc(g.title) + '</div>'
+    + '<div class="mgrid">' + g.items.map(it =>
+      '<a class="mcard" href="' + it.href + '">'
+      + '<div class="mt">' + esc(it.title) + '</div>'
+      + (it.desc ? '<div class="md">' + esc(it.desc) + '</div>' : '')
+      + '</a>').join('') + '</div>'
+  ).join('');
+}
+
+renderNav('more');
+applyStatic();
+paintMore();
+onLangChange(function () { applyStatic(); paintMore(); });
+</script>
+</body>
+</html>
