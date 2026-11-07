@@ -57,8 +57,12 @@ export const TARGETS = [
   /* ── 接口：真会走 DB 的那些 ── */
   { id: 'api-health',   group: 'api',  path: '/api/health',        label: '健康检查' },
   { id: 'api-meta',     group: 'api',  path: '/api/v1/meta',       label: 'API 元信息' },
-  { id: 'api-stats',    group: 'api',  path: '/api/v1/stats',      label: 'API 统计' },
-  { id: 'api-charts',   group: 'api',  path: '/api/v1/charts?limit=1', label: 'API 查谱' },
+  /* ⚠ 2026-11-07 实测：这两条每分钟探一次 = 120 次/小时，
+     超过 RL.apiAnonHour（100/小时）→ 后 1/6 的采样全是 429，
+     可用率常年 62%~65%，看起来像接口挂了，其实是探针把自己限流了。
+     降到 5 分钟一次：两条合计 24 次/小时，留足余量给真实用户。 */
+  { id: 'api-stats',    group: 'api',  path: '/api/v1/stats',      label: 'API 统计', everyMs: 300_000 },
+  { id: 'api-charts',   group: 'api',  path: '/api/v1/charts?limit=1', label: 'API 查谱', everyMs: 300_000 },
 
   /* ── 数据：大文件传输 ── */
   { id: 'data-ref',     group: 'data', path: '/data/ref-com.json', label: '参照集' },
@@ -166,6 +170,7 @@ function summarize(samples) {
  * 而周期是 60s，仍有余量。 */
 let timer = null;
 let lastRunAt = 0;
+const lastProbeAt = new Map();
 let running = false;
 
 async function tick(basePort) {
@@ -173,7 +178,14 @@ async function tick(basePort) {
   running = true;
   try {
     for (const t of TARGETS) {
+      /* 每个目标可以有自己的节奏：打 DB 的接口没必要每分钟探 ——
+         那既烧配额（apiAnonHour=100/小时），又给数据库添无谓负载。
+         没到点的目标直接跳过，不产生采样点（可用率按采样点算，不会被稀释）。 */
+      const every = t.everyMs || 60_000;
+      const last = lastProbeAt.get(t.id) || 0;
+      if (Date.now() - last < every - 5_000) continue;
       const s = await probe(t, basePort);
+      lastProbeAt.set(t.id, Date.now());
       ringPush(rings.get(t.id), s);
     }
     lastRunAt = Date.now();
