@@ -33,9 +33,19 @@ function sig(key, exp, secret) {
   return crypto.createHmac('sha256', secret).update(key + '.' + exp).digest('base64url').slice(0, 26);
 }
 
-/** 同源判定：Origin 优先，其次 Referer。都没有就拒绝（curl 直接打会被挡）。 */
+/** 同源判定：Origin 优先，其次 Referer。都没有就拒绝（curl 直接打会被挡）。
+ *  ⚠ 2026-11-08 生产实测：部署在反代后面时 req.headers.host 可能是网关改写后的
+ *     内部主机名（公开主机名多半只透传在 x-forwarded-host）—— 此时 Origin /
+ *     Referer 里的公开 host 永远对不上，整条 manifest → tile 投递管线会对
+ *     **所有人** 403，而页面上是「静默消失」（404 页现场截图证实，canvas 不画、
+ *     无报错、无人发现）。
+ *  所以这里先读网关透传的 x-forwarded-host（多值时取第一个），读不到再退回 host；
+ *  本地直跑（无反代）行为完全不变。若网关连 x-forwarded-host 也剥掉，
+ *  则需要网关侧放行 Origin / Referer / Host / x-forwarded-host。
+ *  另：tile 校验先 exp 后 sig 的顺序为既有行为，本补丁不动它。 */
 function sameOrigin(req) {
-  const host = (req.headers.host || '').toLowerCase();
+  const xfh = (req.headers['x-forwarded-host'] || '').split(',')[0].trim().toLowerCase();
+  const host = xfh || (req.headers.host || '').toLowerCase();
   const origin = req.headers.origin;
   if (origin) {
     try { return new URL(origin).host.toLowerCase() === host; } catch { return false; }
