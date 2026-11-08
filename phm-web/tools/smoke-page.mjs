@@ -331,7 +331,29 @@ for (const R of ROUTES) {
      而它们在本站的「静态分析工具」形态下是 **410 Gone** ——
      用户点进去看到「已下线」，比没有入口更糟。只数个数拦不住这种事。 */
   for (const href of (info.navLinks || [])) {
-    const rs = await fetch(new URL(href, BASE));
+    const target = new URL(href, BASE);
+    const external = target.origin !== new URL(BASE).origin;
+    /* 外链除了会返回 5xx，还会**直接断连**（2026-11-08 实测
+       UND_ERR_SOCKET / other side closed，进程未捕获异常直接崩）。
+       所以网络层也要兜：外链失败记跳过，本站失败照旧抛。 */
+    let rs;
+    try {
+      rs = await fetch(target, external ? { signal: AbortSignal.timeout(10000) } : {});
+    } catch (e) {
+      if (!external) throw e;
+      skipped('导航项可访问 ' + href, 'via=network-error（上游断连：' + (e.cause?.code || e.name) + '）');
+      continue;
+    }
+    /* ⚠ 外链（GitHub 仓库等）拿 5xx 时**记跳过，不算通过也不算失败**。
+       2026-11-08 实测：GitHub Actions 的 runner 访问 github.com 返回 504，
+       连着三轮把 audit 判红，而本站代码一行没坏。项目规矩早就写了
+       「冒烟遇上游 502 → 记跳过并报 via=upstream-502，不是变绿」，
+       但这里一直没实现 —— 现在补上。
+       只放过外链的 5xx；4xx 仍是我们的错（链接写错），本站链接一律照旧判 200。 */
+    if (external && rs.status >= 500 && rs.status < 600) {
+      skipped('导航项可访问 ' + href, 'via=upstream-' + rs.status + '（上游不可达，非本站故障）');
+      continue;
+    }
     ok('导航项可访问 ' + href, rs.status === 200, String(rs.status));
   }
   }
