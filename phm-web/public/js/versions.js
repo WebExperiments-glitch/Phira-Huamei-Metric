@@ -30,14 +30,14 @@ export const RELEASES = [
       + '右键"另存为"拿不到东西，抓到单块也只有 1/36。',
       '<b>每张图里都藏了一个 ID。</b> 水印写进频域，能扛住 JPEG 重压和裁剪；'
       + '但扛不住 AI 重绘——这是这类技术的天花板，不吹。'],
-    en: ['<b>The site has a mascot now — and you won't meet her on the home page.</b> Her name is Xili. '
+    en: ['<b>The site has a mascot now — and you will not meet her on the home page.</b> Her name is Xili. '
       + 'She appears in exactly two places: 404s and empty states. A tool site should not park a character '
       + 'over the controls.',
       '<b>The art is no longer "an image".</b> It is cut into a 6×6 grid, each tile signed separately, '
       + 'reassembled on a canvas in the browser — "save image as" gets you nothing, and a single tile is 1/36.',
       '<b>Every image carries an embedded ID.</b> The watermark lives in the frequency domain and survives '
       + 'heavy JPEG compression and cropping; it does not survive AI redrawing — that is the ceiling of this '
-      + 'technique, and we won't pretend otherwise.'],
+      + 'technique, and we will not pretend otherwise.'],
   },
   {
     v: 'V0.27.1.0', date: '2026-11-07',
