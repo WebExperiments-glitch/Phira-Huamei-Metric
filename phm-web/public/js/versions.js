@@ -19,9 +19,28 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.27.2.3';
+import { ARCHIVE } from './versions-archive.js?v=V0.28.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.28.0.0', date: '2026-11-08',
+    zh: ['<b>登录终于成了一个正经页面。</b> 以前它藏在谱面工作台的一个折叠面板里，'
+      + '导航上一个入口都没有 —— 找不到就等于没有。现在有独立的 <code>/login</code>：'
+      + '左边一团会被人手拨开的琥珀色粒子，右边表单分两步走，先收邮箱再收密码。',
+      '<b>那团粒子是 Live2D 的位置。</b> 看板娘还在做，先用粒子占住 —— '
+      + '鼠标扫过去，粒子会弹开。颜色跟着主题走。',
+      '<b>API 加了防护，但匿名没被砍。</b> 读接口照旧给匿名用，'
+      + '只是匿名不能再触发谱面重算；带签名或 DPoP 证明的请求配额更高、还能防重放。'],
+    en: ['<b>Signing in is a real page now.</b> It used to hide in a collapsible panel on the '
+      + 'chart workbench, with no entry anywhere in the nav — if nobody can find it, it does not exist. '
+      + 'Now there is a standalone <code>/login</code>: amber particles on the left you can push around '
+      + 'with your cursor, and a two-step form on the right (email first, password second).',
+      '<b>Those particles are where the Live2D mascot will live.</b> It is still being built, '
+      + 'so particles hold the place for now — sweep the cursor through and they scatter.',
+      '<b>The API gained guards, but anonymous access stayed.</b> Read endpoints are still open to '
+      + 'everyone; what anonymous users lost is the ability to trigger a recompute. '
+      + 'Signed or DPoP-proved requests get higher quotas and replay protection.'],
+  },
   {
     v: 'V0.27.2.3', date: '2026-11-08',
     zh: ['<b>API v1.3：把站内本来就看得到的数据，变成可查询、可限流、可审计的接口。</b> '

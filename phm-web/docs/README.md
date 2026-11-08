@@ -176,6 +176,7 @@ phm-web/
 
 | 我想改… | 看这个 |
 |---|---|
+| 登录页粒子群 | `public/js/particles.js` —— 弹簧回归 + 阻尼 + 鼠标斥力的 canvas 粒子，鼠标扫过把粒子弹开。**这是 Live2D 看板娘的占位**（见 `assets/07-Live2D目标.md`），Live2D 到位后换掉同一个位置。⚠ 颜色从 `--brand` 令牌读（跟随明暗主题），不硬编码色值；`prefers-reduced-motion` 只画静态一帧 |
 | 看板娘（404 / 空状态） | `public/js/xili-still.js` —— 从 `/api/xili/manifest/<key>` 拿签名，逐块取 6×6 碎块后在 canvas 拼。**不给整图文件**：单块只有 1/36 且带盲水印。失败即清空容器，不影响页面功能 |
 | 难度算法 / 特征 / k-NN | `public/js/engine.js` |
 | 页面交互 / 渲染 | `public/app.html`（**工作台主体**，找对应函数名）。⚠ 里面还有约 300 行**休眠代码**（玩家面板迁到 `/user` 后遗留），见 `ARCHITECTURE.md` 的已知技术债 |
