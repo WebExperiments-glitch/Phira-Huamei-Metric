@@ -19,9 +19,25 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.27.2.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.27.2.3';
 
 export const RELEASES = [
+  {
+    v: 'V0.27.2.3', date: '2026-11-08',
+    zh: ['<b>API v1.3：把站内本来就看得到的数据，变成可查询、可限流、可审计的接口。</b> '
+      + '新增玩家实测难度、社区参照集、引擎权重、版本历史、状态、事件、标称差共 8 个只读端点，'
+      + 'scope 从 3 个扩到 7 个；开发者文档与 OpenAPI 契约同步覆盖全部 20 个端点。',
+      '<b>给第三方一个连通性探测口。</b> <code>/api/v1/health</code> 公开免 Key，'
+      + '逐项回 database / 上游 / 本地数据 / 自监控的可用性与耗时；全通 200，有依赖不可达 503。',
+      '<b>状态页的四个栏目在站内也能直接点了。</b> 维护计划、历史故障、联系我们、RSS 订阅摊成五个入口。'],
+    en: ['<b>API v1.3 turns data you could already see on the site into queryable, rate-limited, auditable endpoints.</b> '
+      + 'Eight read-only endpoints (player-derived difficulty, community reference, engine artifacts, version history, '
+      + 'status, incidents, discrepancy), with scopes expanded from 3 to 7 and OpenAPI covering all 20 paths.',
+      '<b>A connectivity probe for third parties.</b> <code>/api/v1/health</code> is public and reports '
+      + 'per-dependency availability and latency: 200 when all clear, 503 when a dependency is unreachable.',
+      '<b>All four status-page sections are now linked from the site.</b> Maintenance, previous incidents, '
+      + 'get in touch and RSS get their own entries.'],
+  },
   {
     v: 'V0.27.2.2', date: '2026-11-08',
     zh: ['<b>上一版没修好，这次才是对的。</b> 网关把 Host 和 x-forwarded-host 一起改写了，'

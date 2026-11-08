@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.27.2.2">
+<meta name="app-version" content="V0.27.2.3">
 <title>P.H.M. 开发者文档 · API v1</title>
 <meta name="description" content="P.H.M. API v1：查询与分析 Phira / Phigros 谱面难度。免费，支持匿名与 API Key。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.27.2.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.27.2.2">
-<link rel="stylesheet" href="/css/api.css?v=V0.27.2.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.27.2.3">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.27.2.3">
+<link rel="stylesheet" href="/css/api.css?v=V0.27.2.3">
 </head>
 <body>
 <div class="wrap"><nav id="nav"></nav></div>
@@ -32,6 +32,9 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
     <a href="#players">玩家资料</a>
     <a href="#analyses">分析谱面</a>
     <a href="#usage">用量</a>
+    <div class="grp">v1.3 新增</div>
+    <a href="#data">只读数据端点</a>
+    <a href="#health">连通性探测</a>
     <a href="#keys">Key 管理</a>
     <div class="grp">参考</div>
     <a href="#errors">错误码</a>
@@ -93,6 +96,13 @@ print(r.json())</div>
           <option value="/stats">GET /stats — 全库统计</option>
           <option value="/charters/257272?maxPages=1">GET /charters/{uid} — 谱师作品</option>
           <option value="/players/257272">GET /players/{uid} — 玩家资料</option>
+          <option value="/behavior?chart_id=4">GET /behavior — 玩家实测难度（单谱）</option>
+          <option value="/reference?limit=3">GET /reference — 社区参照集</option>
+          <option value="/engines">GET /engines — 引擎版本清单</option>
+          <option value="/versions">GET /versions — 版本历史</option>
+          <option value="/incidents">GET /incidents — 故障事件</option>
+          <option value="/discrepancy">GET /discrepancy — 标称 vs 实测</option>
+          <option value="/health">GET /health — 连通性探测（免 Key）</option>
         </select>
       </div>
       <div class="api-play-row">
@@ -257,7 +267,10 @@ print(r.json())</div>
     <h2 id="keys">Key 管理</h2>
     <p>在 <a href="/platform">API 开放平台</a> 登录后创建、改名、设置权限/到期、轮换、吊销。删除（吊销）后 Key 会立即从列表消失，历史用量仍保留。</p>
     <div class="api-note" style="margin:10px 0">
-      <b>Scopes：</b><code class="inline">charts:read</code>（查询）、<code class="inline">analyses:write</code>（分析）、<code class="inline">usage:read</code>（用量）。
+      <b>Scopes（7 个）：</b><code class="inline">charts:read</code>（查询、标称差）、
+      <code class="inline">analyses:write</code>（分析）、<code class="inline">usage:read</code>（用量）、
+      <code class="inline">behavior:read</code>（玩家实测难度）、<code class="inline">reference:read</code>（社区参照集）、
+      <code class="inline">engines:read</code>（引擎权重）、<code class="inline">system:read</code>（状态 / 事件 / 版本）。
       缺 scope 返回 <b>403 insufficient_scope</b>；过期返回 <b>401 expired_api_key</b>。
       创建时可设 30/90/365 天或永不过期；轮换会新建同权限 Key 并立即吊销旧 Key。
     </div>
@@ -290,11 +303,65 @@ print(r.json())</div>
       <tr><td>502</td><td><code>analysis_failed</code> / <code>cache_unavailable</code></td><td>数据库暂时不可用</td></tr>
       <tr><td>502</td><td><code>upstream_unavailable</code></td><td>Phira 上游暂时不可用（谱师 / 玩家接口）。<b>不是</b>「没有数据」，请重试而不是当作空结果</td></tr>
       <tr><td>502</td><td><code>stats_unavailable</code></td><td>统计服务暂时不可用</td></tr>
+      <tr><td>502</td><td><code>data_unavailable</code></td><td>v1.3 只读端点的数据源暂时不可读</td></tr>
       <tr><td>503</td><td><code>analysis_busy</code> / <code>rate_limit_unavailable</code></td><td>分析并发已满 / 限流器故障</td></tr>
     </table>
 
+    <h2 id="data">只读数据端点 <span class="api-tag">v1.3</span></h2>
+    <p>这一批把站内本来就能看到、但第三方只能整包下载的数据，变成<b>可查询、可限流、可审计</b>的接口。
+      全部只读，不写库、不触发重算、不接受上传。数据源都是本站已在公开路径上的 JSON 与站内自检模块。</p>
+    <table class="api-table">
+      <tr><th>方法 / 路径</th><th>Scope</th><th>说明</th></tr>
+      <tr><td><code>GET /behavior</code></td><td><code>behavior:read</code></td><td>玩家实测难度。1,700 张谱 ≥10 人打过，17,000 名玩家的 15.8 万条成绩按 log(std) 双向固定效应反推；数据文件含 4,532 条。<code>?chart_id=</code> 单查，<code>?limit=&amp;offset=</code> 分页（1..500）。</td></tr>
+      <tr><td><code>GET /reference</code></td><td><code>reference:read</code></td><td>社区参照集 <code>ref-com.json</code>：9,508 行 × 36 维特征。同样的单查 / 分页；每行展开成具名字段。</td></tr>
+      <tr><td><code>GET /engines</code></td><td><code>engines:read</code></td><td>engine-v2 / v3 / v4 与 seq-model 的元数据（维数、目标、字节数）。</td></tr>
+      <tr><td><code>GET /engines/{id}</code></td><td><code>engines:read</code></td><td>取回某一版权重的原始 JSON，用于复现实验。</td></tr>
+      <tr><td><code>GET /versions</code></td><td><code>system:read</code></td><td>从 <code>CHANGELOG.md</code> 真源解析的版本列表（version / date / current）。</td></tr>
+      <tr><td><code>GET /status</code></td><td><code>system:read</code></td><td>与站内状态页同一份 24h 快照：20 个目标的可用率、组件状态、进行中的事件。</td></tr>
+      <tr><td><code>GET /incidents</code></td><td><code>system:read</code></td><td>进行中的故障 + 最近 10 条历史，来自 Statuspage 决策树那套组件状态。</td></tr>
+      <tr><td><code>GET /discrepancy</code></td><td><code>charts:read</code></td><td>标称 vs 实测：可比谱数、|delta| 中位数、超过 1 / 1.5 级的张数。<code>?chart_id=</code> 或 <code>?min_gap=</code>。</td></tr>
+    </table>
+    <div class="api-note" style="margin:10px 0">
+      <b>关于 discrepancy：</b><code>ref_const</code> 与 <code>ref_official</code> 基于<b>两套标度</b>，
+      <code>delta</code> 仅供对照坐标，<b>不是误差指标</b>。这与站内页面的口径一致。
+    </div>
+    <h3>示例</h3>
+    <div class="api-code">curl https://phm.app.workbuddy.host/api/v1/behavior?chart_id=4 \
+  -H <span class="str">"x-phm-key: sk-你的key"</span>
+
+{
+  <span class="key">"found"</span>: true, <span class="key">"chart_id"</span>: 4,
+  <span class="key">"behavior_difficulty"</span>: 9.04,
+  <span class="key">"sample_size"</span>: 19,
+  <span class="key">"notes"</span>: 459, <span class="key">"duration_s"</span>: 115.5, <span class="key">"bpm"</span>: 134
+}</div>
+    <p><code>notes / duration_s / bpm</code> 是谱面指纹——页面靠它把没有 chart_id 的本地谱面对上号。</p>
+
+    <h2 id="health">连通性探测 <span class="api-tag">v1.3</span></h2>
+    <p><b>公开、无需 Key</b>（要探的就是「能不能连上」），但仍计入匿名限流，避免被当成免费探针放大器。
+      逐项探测 <code>database</code> / <code>phira-upstream</code> / <code>local-data</code> / <code>status-monitor</code>，
+      返回每项的 <code>ok</code> 与耗时（毫秒）。</p>
+    <div class="api-code">curl -i https://phm.app.workbuddy.host/api/v1/health
+
+{
+  <span class="key">"ok"</span>: true, <span class="key">"checkedAt"</span>: "2026-11-08T…",
+  <span class="key">"checks"</span>: [
+    { <span class="key">"name"</span>: "database",        <span class="key">"ok"</span>: true, <span class="key">"ms"</span>: 201 },
+    { <span class="key">"name"</span>: "phira-upstream", <span class="key">"ok"</span>: true, <span class="key">"ms"</span>: 893 },
+    { <span class="key">"name"</span>: "local-data",     <span class="key">"ok"</span>: true, <span class="key">"ms"</span>: 0 },
+    { <span class="key">"name"</span>: "status-monitor", <span class="key">"ok"</span>: true, <span class="key">"ms"</span>: 0 }
+  ]
+}</div>
+    <div class="api-note" style="margin:10px 0">
+      <b>关于「单独开一个端口」：</b>本站部署在只暴露一个 HTTP 端口的托管环境里，物理上开不了第二个。
+      所以用<b>专用端点</b>代替，语义等价：第三方定时打 <code>/health</code>，
+      <b>200 = 全通，503 = 至少一项依赖不可达</b>（端点本身仍活着）。
+      响应只回 ok / ms / 分类，不回内部主机名、连接串或上游正文。
+    </div>
+
     <h2 id="changelog">更新日志</h2>
     <ul>
+      <li><b>2026-11-08 · v1.3</b>：新增 9 个只读端点（玩家实测难度 / 社区参照集 / 引擎权重 / 版本历史 / 状态 / 事件 / 标称差）与公开连通性探测 <code>/health</code>；scope 从 3 个扩到 7 个；OpenAPI 契约覆盖全部 20 个端点。</li>
       <li><b>2026-10-18 · v1.2</b>：新增 <code>/charts</code> 列表（分页 / 搜索 / 排序 / 过滤）、<code>/stats</code> 全库统计、<code>/charters/{uid}</code> 谱师作品、<code>/players/{uid}</code> 玩家资料；端点从 9 个扩到 13 个。鉴权头改为推荐 <code>x-phm-key</code>（原因见「认证」一节）。</li>
       <li><b>2026-10-17 · v1.1</b>：Key scopes / 过期 / 轮换；按 Key 用量；<code>/meta</code> 构建信息；OpenAPI 单一契约 <code>/api/v1/openapi.json</code>。</li>
       <li><b>2026-10-17 · v1</b>：首个公开版本。查询 / 分析 / 用量 / Key 管理；匿名 100 次/小时，Key 1000 次/小时、分析 200 次/天。</li>
@@ -323,8 +390,8 @@ print(r.json())</div>
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.27.2.2';
-import { installGuard } from '/js/guard.js?v=V0.27.2.2';
+import { renderNav } from '/js/ui.js?v=V0.27.2.3';
+import { installGuard } from '/js/guard.js?v=V0.27.2.3';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

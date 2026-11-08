@@ -13,10 +13,14 @@ import {
   limit, buildKeys, tryEnter, leave, rlHeaders, RL,
 } from './ratelimit.mjs';
 import { generateApiKey, hashApiKey } from './api-keys.mjs';
+import {
+  behavior, reference, engines, engine, versions, discrepancy,
+  statusData, incidents, health, EXTRA_SCOPES,
+} from './api-extras.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
-const ALL_SCOPES = ['charts:read', 'analyses:write', 'usage:read'];
+const ALL_SCOPES = ['charts:read', 'analyses:write', 'usage:read', ...EXTRA_SCOPES];
 
 /* Phira 上游。谱师/玩家这两个端点要打它，是本模块**唯一的外部依赖**，
    所以超时给得比内部查询短：内部 15s，上游 8s。
@@ -658,6 +662,25 @@ export function makeApiRoutes(deps) {
     return apiErr(res, 404, 'invalid_request_error', 'not_found', 'unknown key endpoint');
   }
 
+  /* ── A 档只读扩展的统一编排 ──
+     所有端点走同一套：scope → 限流 → 计时 → 稳定错误码 → 用量日志。
+     ⚠ 异常细节只写服务端日志：本地文件路径 / 上游正文不能透给调用方。 */
+  async function handleExtra(res, who, ip, scope, endpoint, fn) {
+    if (!requireScope(res, who, scope)) return;
+    if (!(await gateApi(res, who, ip))) return;
+    const t0 = Date.now();
+    try {
+      const data = await fn();
+      logUsage(who, endpoint, 200, null, t0);
+      return json(res, 200, data);
+    } catch (e) {
+      console.warn('[phm] ' + endpoint + ' failed: ' + String(e && e.message || e));
+      logUsage(who, endpoint, 502, null, t0);
+      return apiErr(res, 502, 'server_error', 'data_unavailable',
+        endpoint.slice(1) + ' is temporarily unavailable');
+    }
+  }
+
   function openapi() {
     /* 单一契约：api/openapi.json。再在代码里维护一份必然漂移。 */
     return openapiSpec || { openapi: '3.1.0', info: { title: 'P.H.M. API', version: '1.0.0' }, paths: {} };
@@ -725,6 +748,15 @@ export function makeApiRoutes(deps) {
       }
     }
 
+    /* 第三方连通性探测：**公开**（要探的就是"能不能连上"），
+       但仍走匿名限流，避免被人拿去当免费探针放大器。
+       503 表示至少一项依赖不可达，端点本身是活的。 */
+    if (req.method === 'GET' && p === '/health') {
+      if (!(await gateApi(res, { kind: 'anon' }, ip))) return;
+      const d = await health({ dbFetch, phiraBase });
+      return json(res, d.ok ? 200 : 503, d);
+    }
+
     const who = await identify(req);
     if (who.error) {
       const status = who.error === 'key_lookup_failed' ? 503 : 401;
@@ -758,6 +790,42 @@ export function makeApiRoutes(deps) {
     }
     if (req.method === 'GET' && p === '/usage') {
       return handleUsage(req, res, who);
+    }
+    /* ── A 档：只读扩展 ── */
+    const qp = url.searchParams;
+    const num = (k, d, lo, hi) => {
+      const n = Number(qp.get(k));
+      return Number.isInteger(n) && n >= lo && n <= hi ? n : d;
+    };
+    if (req.method === 'GET' && p === '/behavior') {
+      return handleExtra(res, who, ip, 'behavior:read', '/behavior',
+        () => behavior({ chartId: qp.get('chart_id'), limit: num('limit', 100, 1, 500), offset: num('offset', 0, 0, 100000) }));
+    }
+    if (req.method === 'GET' && p === '/reference') {
+      return handleExtra(res, who, ip, 'reference:read', '/reference',
+        () => reference({ chartId: qp.get('chart_id'), limit: num('limit', 100, 1, 500), offset: num('offset', 0, 0, 100000) }));
+    }
+    if (req.method === 'GET' && p === '/engines') {
+      return handleExtra(res, who, ip, 'engines:read', '/engines', () => engines());
+    }
+    if (req.method === 'GET' && /^\/engines\/[^/]+$/.test(p)) {
+      const id = p.slice('/engines/'.length);
+      const d = engine(id);
+      if (!d) return apiErr(res, 404, 'invalid_request_error', 'not_found', 'unknown engine version');
+      return handleExtra(res, who, ip, 'engines:read', '/engines/' + id, () => d);
+    }
+    if (req.method === 'GET' && p === '/versions') {
+      return handleExtra(res, who, ip, 'system:read', '/versions', () => versions());
+    }
+    if (req.method === 'GET' && p === '/status') {
+      return handleExtra(res, who, ip, 'system:read', '/status', () => statusData());
+    }
+    if (req.method === 'GET' && p === '/incidents') {
+      return handleExtra(res, who, ip, 'system:read', '/incidents', () => incidents());
+    }
+    if (req.method === 'GET' && p === '/discrepancy') {
+      return handleExtra(res, who, ip, 'charts:read', '/discrepancy',
+        () => discrepancy({ chartId: qp.get('chart_id'), minGap: qp.get('min_gap'), dbFetch }));
     }
     if (p === '/keys' || /^\/keys\//.test(p)) {
       return handleKeys(req, res, req.method, p);

@@ -19,8 +19,13 @@ const SPEC_PATH = path.join(WEB, 'api', 'openapi.json');
    所以它两边都查。漏登记的表现是 spec 里有个谁都没实现的路径。 */
 const KNOWN_PATHS = ['/meta', '/charts', '/charts/{chart_id}', '/analyses', '/usage',
   '/keys', '/keys/{id}', '/keys/{id}/rotate',
-  '/stats', '/charters/{uid}', '/players/{uid}'];
-const KNOWN_SCOPES = new Set(['charts:read', 'analyses:write', 'usage:read']);
+  '/stats', '/charters/{uid}', '/players/{uid}',
+  /* v1.3（2026-11-08）：只读数据端点 + 公开连通性探测。
+     新端点必须同时登记在这里，否则契约会变成「写了但没人实现」。 */
+  '/behavior', '/reference', '/engines', '/engines/{id}',
+  '/versions', '/status', '/incidents', '/discrepancy', '/health'];
+const KNOWN_SCOPES = new Set(['charts:read', 'analyses:write', 'usage:read',
+  'behavior:read', 'reference:read', 'engines:read', 'system:read']);
 const METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 let pass = 0, fail = 0;
 const ok = (m) => { pass++; console.log('  ✓ ' + m); };
