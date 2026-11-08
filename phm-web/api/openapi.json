@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "P.H.M. API",
-    "version": "1.0.0",
-    "description": "Phira / Phigros chart difficulty reference API. Free; anonymous and API-key access."
+    "version": "1.3.0",
+    "description": "Phira / Phigros chart difficulty reference API. Free; anonymous and API-key access. v1.3 adds read-only data endpoints (player-derived difficulty, community reference, engine weights, status/incidents, version history) and a public connectivity probe."
   },
   "servers": [
     {
@@ -24,6 +24,18 @@
     {
       "name": "phira",
       "description": "Phira upstream lookups"
+    },
+    {
+      "name": "data",
+      "description": "Only-read datasets and engine artifacts"
+    },
+    {
+      "name": "system",
+      "description": "Self-check status, incidents, version history"
+    },
+    {
+      "name": "health",
+      "description": "Third-party connectivity probe"
     }
   ],
   "components": {
@@ -32,7 +44,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "sk-...",
-        "description": "API key. Scopes: charts:read, analyses:write, usage:read. 兼容保留；部署环境的网关会注入自己的 Authorization 头，可能让 Key 静默降级为匿名 —— 优先用 x-api-key。"
+        "description": "API key. Scopes: charts:read, analyses:write, usage:read, behavior:read, reference:read, engines:read, system:read. 兼容保留；部署环境的网关会注入自己的 Authorization 头 —— 优先用 x-phm-key。"
       },
       "apiKey": {
         "type": "apiKey",
@@ -1310,6 +1322,477 @@
             "description": "Not found"
           }
         }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Connectivity probe for third parties",
+        "description": "公开、无需 Key。逐项探测 database / phira-upstream / local-data / status-monitor，返回 ok 与耗时。任一项失败返回 503，端点本身仍活着。不回内部主机名或连接串。",
+        "operationId": "getHealth",
+        "x-scopes": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          },
+          "503": {
+            "description": "one or more dependencies unreachable"
+          }
+        }
+      }
+    },
+    "/behavior": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Player-derived difficulty",
+        "description": "1,700 张谱（数据文件里 4,532 条）由 17,000 名玩家的 15.8 万条成绩按 log(std) 双向固定效应反推。字段：behavior_difficulty / sample_size / notes / duration_s / bpm（后三项是谱面指纹）。",
+        "operationId": "getBehavior",
+        "x-scopes": [
+          "behavior:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "chart_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "只看某一张谱"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "1..500，默认 100"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "默认 0"
+          }
+        ]
+      }
+    },
+    "/reference": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Community reference set",
+        "description": "ref-com.json：9,508 行 × 36 维特征。?chart_id= 单查；否则分页返回 rows（每行展开成具名字段）。",
+        "operationId": "getReference",
+        "x-scopes": [
+          "reference:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "chart_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "只看某一张谱"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "1..500，默认 100"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "默认 0"
+          }
+        ]
+      }
+    },
+    "/engines": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "List engine artifacts",
+        "description": "engine-v2 / v3 / v4 与 seq-model 的元数据（维数、目标、文件大小）。",
+        "operationId": "getEngines",
+        "x-scopes": [
+          "engines:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        }
+      }
+    },
+    "/engines/{id}": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Get one engine artifact",
+        "description": "id ∈ engine-v2 | engine-v3 | engine-v4 | seq-model。返回该文件原本的 JSON。",
+        "operationId": "getEngine",
+        "x-scopes": [
+          "engines:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "engine-v2",
+                "engine-v3",
+                "engine-v4",
+                "seq-model"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/versions": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Version history",
+        "description": "从 CHANGELOG.md 真源解析出的版本列表（version / date / current）。",
+        "operationId": "getVersions",
+        "x-scopes": [
+          "system:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Self-check status snapshot",
+        "description": "与站内 /status 同一份 buildStatusSnapshot(24h)：20 个目标的可用率、组件状态、进行中的事件。",
+        "operationId": "getStatus",
+        "x-scopes": [
+          "system:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        }
+      }
+    },
+    "/incidents": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Incidents",
+        "description": "当前进行中的故障 + 最近 10 条历史，来自 Statuspage 决策树那套组件状态。",
+        "operationId": "getIncidents",
+        "x-scopes": [
+          "system:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        }
+      }
+    },
+    "/discrepancy": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Declared vs measured constants",
+        "description": "ref_const（实测）与 ref_official（谱师标称）都非空才可比。⚠ 两套标度，delta 仅供对照坐标，不是误差指标。支持 ?chart_id= 与 ?min_gap=。",
+        "operationId": "getDiscrepancy",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "security": [
+          {},
+          {
+            "phmKey": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "insufficient_scope / rate limited"
+          },
+          "502": {
+            "description": "data_unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "chart_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "只看某一张谱"
+          },
+          {
+            "name": "min_gap",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "只返回 |delta| ≥ 该值的行"
+          }
+        ]
       }
     }
   }
