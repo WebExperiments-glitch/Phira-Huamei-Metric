@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.27.1.0">
+<meta name="app-version" content="V0.27.2.0">
 <meta name="robots" content="noindex">
 <title>404 · 页面不存在 — P.H.M. Standard</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
@@ -42,12 +42,21 @@ a.btn.p:hover{background:rgba(232,163,61,.1);color:var(--amber)}
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
 var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
+<style>
+/* 汐里 · 404：图在 404 大字上方。用「空」表情（face-baseline-v1）。 */
+.xl-404{display:flex;justify-content:center;margin:14px auto 6px;min-height:1px}
+.xl-404 canvas{display:block;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5))}
+.xl-line{font-size:13.5px;color:#8b949e;margin:6px 0 0;letter-spacing:.01em}
+@media (max-width:640px){.xl-404 canvas{width:96px!important}}
+</style>
 </head>
 <body>
 <div class="box">
+  <div class="xl-404" id="xl404" aria-live="polite"></div>
   <div class="code">404</div>
   <h1 data-i18n="nf.title">这个页面不存在</h1>
   <p data-i18n="nf.desc">地址可能打错了，或者这个页面已经被移除。</p>
+  <p class="xl-line" data-i18n="xl.nf">这里没有东西可量。</p>
   <code class="mono" id="p">—</code>
 
   <div class="acts">
@@ -70,7 +79,7 @@ var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");e
 /* 错误页本来是纯静态的；i18n 上线后需要这个模块来把 data-i18n 文案换掉。
    本页没有 #nav（renderNav 遇到就空转），调它是为了和其它页保持同一套接线。
    语言变化时静态替换不会自己重跑，所以要在 onLangChange 里再 applyStatic 一次。 */
-import { applyStatic, renderNav, onLangChange } from '/js/ui.js?v=V0.27.1.0';
+import { applyStatic, renderNav, onLangChange } from '/js/ui.js?v=V0.27.2.0';
 renderNav();
 applyStatic();
 onLangChange(function () { applyStatic(); });
@@ -81,6 +90,11 @@ var el = document.getElementById("p");
 var t = "";
 try { t = decodeURIComponent(location.pathname + location.search); } catch (e) { t = location.pathname; }
 el.textContent = t.length > 200 ? t.slice(0, 200) + "…" : t;
+</script>
+<script type="module">
+/* 404 用「无奈」那张（expr07）：她本来也没什么可说 */
+import { mountXiliStill } from '/js/xili-still.js?v=V0.27.2.0';
+mountXiliStill('xl404', 'resigned', 168);
 </script>
 </body>
 </html>
