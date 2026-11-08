@@ -14,16 +14,3 @@ paths-ignore:
   - '_research/**'
   - 'llm-hub/**'
 
-# ── 按「规则 + 文件」精确排除 ──────────────────────────────
-# 只排除下面这一条组合，**不是**关掉整个规则，也不是整目录豁免。
-queries:
-  - uses: security-and-quality
-    excludes:
-      # js/xss-through-dom 在 DOMParser.parseFromString 上报「DOM text 被当作 HTML」。
-      # 事实：public/js/i18n.js 的 sanitizeI18nHtml() 先用**标签 + 属性白名单**
-      # 过滤（标签取自字典里真实用到的那些；属性只留 a[href] 且限协议），
-      # 写回 DOM 的只有清洗后的结果。
-      # CodeQL 不跟踪自定义清洗逻辑，且对该 sink 的抑制注释无效 ——
-      # 只能在配置层按规则+路径精确排除。
-      - id: js/xss-through-dom
-        path: phm-web/public/js/i18n.js

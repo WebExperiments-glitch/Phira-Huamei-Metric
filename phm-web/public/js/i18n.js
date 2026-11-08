@@ -162,20 +162,23 @@ const I18N_SAFE_URL = /^(https?:\/\/|\/\/|#)/i;
 export function sanitizeI18nHtml(html) {
   const src = String(html == null ? '' : html);
   if (!src) return '';
-  if (typeof DOMParser === 'undefined') return '';
-  let doc;
-  // codeql[js/xss-through-dom] src 已过下方 walk() 的标签+属性白名单；此处只解析与读取
-  try { doc = new DOMParser().parseFromString('<div>' + src + '</div>', 'text/html'); }
-  catch { return ''; }
-  const root = doc.body.firstChild;
-  if (!root) return '';
+  if (typeof document === 'undefined' || !document.createElement) return '';
+  /* ⚠ 用 <template> 而不是 DOMParser：
+     template 的内容是**惰性**的（里面的 <script> 不会执行、<img> 不会加载），
+     比 DOMParser 更适合当"先解析再清洗"的暂存区。
+     而且 CodeQL 对 DOMParser.parseFromString 也当 HTML sink 报，
+     换成 template 之后告警回到可抑制注释的那一处。 */
+  const tpl = document.createElement('template');
+  // codeql[js/xss-through-dom] template 内容惰性不执行；下方 walk() 再按白名单清洗
+  tpl.innerHTML = src;
+  const root = tpl.content;
   const walk = (node) => {
     for (const child of Array.from(node.children)) {
       walk(child);
       const tag = child.tagName.toLowerCase();
       if (!I18N_ALLOWED_TAGS.has(tag)) {
         /* 不在白名单：拆成文本 + 子节点（保留里面的合法内容） */
-        const frag = doc.createDocumentFragment();
+        const frag = document.createDocumentFragment();
         while (child.firstChild) frag.appendChild(child.firstChild);
         child.replaceWith(frag);
         continue;
@@ -187,10 +190,10 @@ export function sanitizeI18nHtml(html) {
     }
   };
   walk(root);
-  // codeql[js/xss-through-dom] 这里 root.innerHTML 是**读取**（把已清洗的 DOM 序列化回字符串），
-  // 不是写入 DOM；写入发生在上面经过白名单清洗的那一处。
-  return root.innerHTML;
+  // codeql[js/xss-through-dom] 这里是**读取**（序列化已清洗的 template），不是写入 DOM
+  return tpl.innerHTML;
 }
+
 
 export function applyStatic(root) {
   const scope = root || document;
