@@ -26,6 +26,12 @@ export default {
     'st.extTitle': '外部可用性监控',
     'st.extBody': '从全球多个节点定期请求本站，能测出本页测不到的故障（平台网关、DNS、线路）。事故记录与订阅在那里。',
     'st.extGo': '打开状态页 ↗',
+    'st.extStatus': '状态概览 ↗',
+    'st.extMaint': '维护计划 ↗',
+    'st.extIncidents': '历史故障 ↗',
+    'st.extContact': '联系我们 ↗',
+    'st.extRss': 'RSS 订阅 ↗',
+    'st.extNote': '维护公告、历史事件与邮件订阅都在外部状态页；本页是站内自检，两者互相印证。',
 
     /* ── 时间范围切换 ── */
     'st.range': '范围',
@@ -92,6 +98,12 @@ export default {
     'st.extTitle': 'External availability',
     'st.extBody': 'Independent probes from multiple regions can catch failures this page cannot: platform gateway, DNS, routing. Incident history and subscriptions live there.',
     'st.extGo': 'Open status page ↗',
+    'st.extStatus': 'Status ↗',
+    'st.extMaint': 'Maintenance ↗',
+    'st.extIncidents': 'Previous incidents ↗',
+    'st.extContact': 'Get in touch ↗',
+    'st.extRss': 'RSS feed ↗',
+    'st.extNote': 'Maintenance notices, incident history and email subscriptions live on the external status page. This page is an internal self-check; the two corroborate each other.',
 
     'st.range': 'Range',
     'st.uptimeBar': 'Hourly availability (green = all good, amber = some failures, red = mostly failing, grey = no samples)',

@@ -33,16 +33,39 @@ function sig(key, exp, secret) {
   return crypto.createHmac('sha256', secret).update(key + '.' + exp).digest('base64url').slice(0, 26);
 }
 
-/** 同源判定：Origin 优先，其次 Referer。都没有就拒绝（curl 直接打会被挡）。 */
+/** 同源判定：Origin 优先，其次 Referer。都没有就拒绝（curl 直接打会被挡）。
+ *
+ *  ⚠ 2026-11-08 生产事故：部署在反代后面时 `req.headers.host` 是网关改写后的
+ *     内部主机名，而 Origin / Referer 里带的是公开主机名 —— 两边永远对不上，
+ *     于是 manifest 对**所有人** 403，页面上表现是「看板娘静默消失」
+ *     （canvas 不画、控制台无报错、上线两天没人发现）。
+ *
+ *  修法：先读网关透传的 `x-forwarded-host`（多值时取第一个），读不到再退回 host。
+ *  本地直跑（无反代）行为完全不变。
+ *  另外允许用 `PHM_PUBLIC_HOST` 显式指定公开域名作为第三个锚点 —— 万一网关
+ *  连 x-forwarded-host 也剥掉，还有一条不依赖请求头的路。 */
 function sameOrigin(req) {
-  const host = (req.headers.host || '').toLowerCase();
+  /* ⚠ 2026-11-08 生产实测：CloudStudio Gateway 会把 **host 与 x-forwarded-host 一起**
+     改写成内部沙箱域名（3000-<id>.sandbox.cloudstudio.club），公开域名只出现在
+     Origin / Referer 里。所以「拿请求头当基准」这条路根本走不通 ——
+     必须有知道公开域名的白名单。 */
+  const xfh = (req.headers['x-forwarded-host'] || '').split(',')[0].trim().toLowerCase();
+  const pub = (process.env.PHM_PUBLIC_HOSTS || '')
+    .split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const hosts = new Set([
+    xfh,
+    (req.headers.host || '').toLowerCase(),
+    /* 公开域名：默认值写死一个，env 可覆盖/追加（部署侧不必配也能工作） */
+    'phm.app.workbuddy.host',
+    ...pub,
+  ].filter(Boolean));
   const origin = req.headers.origin;
   if (origin) {
-    try { return new URL(origin).host.toLowerCase() === host; } catch { return false; }
+    try { return hosts.has(new URL(origin).host.toLowerCase()); } catch { return false; }
   }
   const ref = req.headers.referer;
   if (ref) {
-    try { return new URL(ref).host.toLowerCase() === host; } catch { return false; }
+    try { return hosts.has(new URL(ref).host.toLowerCase()); } catch { return false; }
   }
   return false;
 }
