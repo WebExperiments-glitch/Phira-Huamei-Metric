@@ -21,6 +21,7 @@ var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStora
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=V0.27.1.0">
 <link rel="stylesheet" href="/css/ui-kit.css?v=V0.27.1.0">
+<link rel="stylesheet" href="/css/xili.css?v=V0.27.1.0">
 <style>
 .pfuser{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .pfuser img{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--card2)}
@@ -355,7 +356,10 @@ function render() {
   }
   const rows = Object.values(agg).sort((a, b) => String(b.last).localeCompare(String(a.last)));
   if (!rows.length) {
-    h += '<div class="empty">' + t('u.recent.empty') + '</div>';
+    h += '<div class="empty xl">'
+      + '<img src="/img/xili/xili-empty-160.webp" width="160" height="160" alt="" loading="lazy" decoding="async">'
+      + '<div class="xl-line">' + t('xl.empty') + '</div>'
+      + '<div class="xl-sub">' + t('u.recent.empty') + '</div></div>';
   } else {
     h += '<table><thead><tr><th>' + t('c.chart') + '</th><th>' + t('c.tier') + '</th>'
       + '<th class="r">' + t('u.col.best.acc') + '</th>'
