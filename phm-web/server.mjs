@@ -411,9 +411,8 @@ const apiRoutes = makeApiRoutes({
 });
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
-const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
-/* 看板娘成品图：不放在 public/，走签名 + 分块投递（见 lib/xili.mjs 顶部那段） */
-const xiliRoutes = makeXiliRoutes({ secret: WRITE_SECRET, secHeaders: SEC_HEADERS });
+const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS),
+  xiliRoutes = makeXiliRoutes({ secret: WRITE_SECRET, secHeaders: SEC_HEADERS });   /* 看板娘：签名+分块，见 lib/xili.mjs */
 /* 写谱链路的总开关：PHM_WRITE=off 时页面回说明页、接口 503。默认开。 */
 const WRITE_ENABLED = writeEnabled(process.env);
 const agentRoutes = makeAgentRoutes({ send, gate, gateAnalyze, readBody });
