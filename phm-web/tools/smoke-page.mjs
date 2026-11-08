@@ -333,7 +333,17 @@ for (const R of ROUTES) {
   for (const href of (info.navLinks || [])) {
     const target = new URL(href, BASE);
     const external = target.origin !== new URL(BASE).origin;
-    const rs = await fetch(target);
+    /* 外链除了会返回 5xx，还会**直接断连**（2026-11-08 实测
+       UND_ERR_SOCKET / other side closed，进程未捕获异常直接崩）。
+       所以网络层也要兜：外链失败记跳过，本站失败照旧抛。 */
+    let rs;
+    try {
+      rs = await fetch(target, external ? { signal: AbortSignal.timeout(10000) } : {});
+    } catch (e) {
+      if (!external) throw e;
+      skipped('导航项可访问 ' + href, 'via=network-error（上游断连：' + (e.cause?.code || e.name) + '）');
+      continue;
+    }
     /* ⚠ 外链（GitHub 仓库等）拿 5xx 时**记跳过，不算通过也不算失败**。
        2026-11-08 实测：GitHub Actions 的 runner 访问 github.com 返回 504，
        连着三轮把 audit 判红，而本站代码一行没坏。项目规矩早就写了
