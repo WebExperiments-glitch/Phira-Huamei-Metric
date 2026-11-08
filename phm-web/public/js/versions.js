@@ -19,9 +19,36 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.27.2.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.27.2.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.27.2.2', date: '2026-11-08',
+    zh: ['<b>上一版没修好，这次才是对的。</b> 网关把 Host 和 x-forwarded-host 一起改写了，'
+      + '所以"拿请求头当基准"根本行不通——改成公开域名白名单。',
+      '<b>自检接口现在会告诉你它收到了什么。</b> host / x-forwarded-host / origin / referer '
+      + '四个字段直出，遇到 403 不用再靠猜。'],
+    en: ['<b>The previous patch was not enough.</b> The gateway rewrites both Host and '
+      + 'x-forwarded-host, so comparing against request headers can never match; '
+      + 'the check is now an allowlist of public hostnames.',
+      '<b>The diagnostics endpoint now reports what it actually received</b> — host, '
+      + 'x-forwarded-host, origin, referer. No more guessing why a request got 403.'],
+  },
+  {
+    v: 'V0.27.2.1', date: '2026-11-08',
+    zh: ['<b>修一个上线两天没人发现的静默故障：看板娘一直没画出来。</b> '
+      + '同源校验拿的是被网关改写过的 Host，公开域名只在 x-forwarded-host 里，'
+      + '两边永远对不上 —— 于是所有请求都 403，canvas 不画、控制台也无报错。',
+      '<b>单文件客户端的 Key 之前会被网关悄悄盖掉。</b> '
+      + 'Authorization 头被网关写入自己的值，你的 Key 失效但界面照常，'
+      + '表现为静默降级成匿名配额。改用 x-phm-key，并加了自检按钮。'],
+    en: ['<b>Fixes a silent failure that went unnoticed for two days: the mascot never rendered.</b> '
+      + 'The same-origin check compared against a Host the gateway rewrites, while the public '
+      + 'hostname lives only in x-forwarded-host — so every request returned 403, no canvas, no error.',
+      '<b>The single-file client had its key silently overwritten by the gateway.</b> '
+      + 'Authorization is replaced upstream, so requests quietly fell back to the anonymous quota. '
+      + 'Switched to x-phm-key and added a self-check button.'],
+  },
   {
     v: 'V0.27.2.0', date: '2026-11-08',
     zh: ['<b>站点有看板娘了，但你不会在首页看见她。</b> 她叫汐里，只在两处出现：'

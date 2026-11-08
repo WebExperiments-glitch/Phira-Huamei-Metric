@@ -693,6 +693,13 @@ export function makeApiRoutes(deps) {
           'x-hm-token': String(h['x-hm-token'] || '').length,
           /* 解析结果：这次请求最终被当成什么身份（只看 kind，不暴露 key 内容） */
           key_seen: bearer(req) ? 'yes' : 'no',
+          /* ⚠ 2026-11-08 加：反代会改写 Host，而看板娘的同源门依赖它。
+             这里把三个 host 原样报出来（都是公开信息，非密钥），
+             否则「403 但不知道差在哪」只能靠猜 —— 今天就是这么卡住的。 */
+          host: String(h.host || ''),
+          'x-forwarded-host': String(h['x-forwarded-host'] || ''),
+          origin: String(h.origin || ''),
+          referer: String(h.referer || ''),
         };
       }
       return json(res, 200, body);
