@@ -326,14 +326,6 @@ node phm-web/tools/audit-baselines.mjs --split created
 │   ├── pipeline.py        #   ★ 流水线统一入口
 │   ├── calibrate_engine.py#   交付引擎留一法校准
 │   └── archive/           #   已归档的一次性脚本（23 个）
-├── assets/                # 看板娘与品牌资产（**闭源**，已 gitignore，不进仓库）
-│   ├── 01-世界观.md        #   三条世界法则、行规、方法之争
-│   ├── 02-汐里.md          #   名字来源、三层性格、语言规范
-│   ├── 03-视觉规范.md      #   三锚点、1:4 比例、配色、禁用清单
-│   ├── 04-提示词库.md      #   出图用的提示词
-│   ├── 05-交付与待办.md    #   图版清单、已知问题
-│   ├── 07-Live2D目标.md    #   Live2D 的范围与验收标准
-│   └── 08-管线选型.md      #   拆图→绑骨→moc3 的选型与成本
 ├── docs/                  # 文档（索引见 docs/README.md）
 └── _research/             # 调研素材与 APK 提取产物（不入版本控制）
 ```
