@@ -200,8 +200,15 @@ export function verifyOwnToken(token) {
 /** 生成账号 id。形如 `2107772020426018816`（19 位数字）——
  *  和平台那边发过来的 sub 长得一样，混在同一个 `owner_id` 列里不突兀。 */
 function newSub() {
-  const n = crypto.randomBytes(8).readBigUInt64BE() % 9000000000000000000n;
-  return (1000000000000000000n + n).toString();
+  /* ⚠ 拒绝采样，不要直接 `% 9e18` —— 取模偏差会让低位数字出现得更多。
+     这里生成的是账号 id（不是密钥），偏差本身危害有限，但既然要严格，
+     就用标准的「超出范围就重抽」。 */
+  const MAX = 9000000000000000000n;
+  const LIMIT = 1n << 64n;
+  const CEIL = LIMIT - (LIMIT % MAX);
+  let n;
+  do { n = crypto.randomBytes(8).readBigUInt64BE(); } while (n >= CEIL);
+  return (1000000000000000000n + (n % MAX)).toString();
 }
 
 function rpc(name, args) {

@@ -149,6 +149,46 @@ export function t(key, vars) {
  *   data-i18n-ph     → placeholder
  *   data-i18n-title  → title
  */
+
+/* ── i18n-html 白名单清洗 ────────────────────────────────────
+   ⚠ 为什么需要：i18n.js 会从远端合并字典，那份内容**不保证**是我们写的。
+     直接 innerHTML 插进 DOM 就是把远端内容当代码执行。
+   ⚠ 只放行字典里真实用到的标签 + a[href]（协议限 http/https/相对/锚点），
+     其余标签拆成文本、其余属性一律剥掉。 */
+const I18N_ALLOWED_TAGS = new Set(['b', 'strong', 'i', 'em', 'br', 'code', 'span',
+  'li', 'ul', 'ol', 'a', 'p', 'u', 's', 'small', 'sub', 'sup']);
+const I18N_SAFE_URL = /^(https?:\/\/|\/\/|#)/i;
+
+export function sanitizeI18nHtml(html) {
+  const src = String(html == null ? '' : html);
+  if (!src) return '';
+  if (typeof DOMParser === 'undefined') return '';
+  let doc;
+  try { doc = new DOMParser().parseFromString('<div>' + src + '</div>', 'text/html'); }
+  catch { return ''; }
+  const root = doc.body.firstChild;
+  if (!root) return '';
+  const walk = (node) => {
+    for (const child of Array.from(node.children)) {
+      walk(child);
+      const tag = child.tagName.toLowerCase();
+      if (!I18N_ALLOWED_TAGS.has(tag)) {
+        /* 不在白名单：拆成文本 + 子节点（保留里面的合法内容） */
+        const frag = doc.createDocumentFragment();
+        while (child.firstChild) frag.appendChild(child.firstChild);
+        child.replaceWith(frag);
+        continue;
+      }
+      for (const attr of Array.from(child.attributes)) {
+        const keep = tag === 'a' && attr.name === 'href' && I18N_SAFE_URL.test(attr.value);
+        if (!keep) child.removeAttribute(attr.name);
+      }
+    }
+  };
+  walk(root);
+  return root.innerHTML;
+}
+
 export function applyStatic(root) {
   const scope = root || document;
   let n = 0;
@@ -156,7 +196,14 @@ export function applyStatic(root) {
     el.textContent = t(el.getAttribute('data-i18n')); n++;
   });
   scope.querySelectorAll('[data-i18n-html]').forEach(function (el) {
-    el.innerHTML = t(el.getAttribute('data-i18n-html')); n++;
+    /* ⚠ 这里必须过白名单，不能直接 innerHTML = t(...)：
+       字典文件会**从远端合并**（合并时取远端那份），万一那份里混进了
+       <script> 或 on* 属性，就是一次实打实的 DOM XSS。
+       白名单按字典里**实际用到的**标签列（b/strong/i/em/br/code/span/li/ul/ol/a），
+       不在表里的一律拆成纯文本。 */
+    // codeql[js/xss-through-dom] 已过 sanitizeI18nHtml() 的标签+属性白名单
+    //（见上方实现）；CodeQL 不跟踪自定义清洗函数，故在此显式标注。
+    el.innerHTML = sanitizeI18nHtml(t(el.getAttribute('data-i18n-html'))); n++;
   });
   scope.querySelectorAll('[data-i18n-ph]').forEach(function (el) {
     el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph'))); n++;

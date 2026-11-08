@@ -958,6 +958,8 @@ document.addEventListener("click",async function(e){
          防不住 javascript: / data: 这类协议。不校验就等于把 <a href> 交给远端决定。 */
       if(!/^https?:\/\//i.test(url)){ csMsg(t("app.dl.badurl"),"err"); return; }
       const a=document.createElement("a");
+      // codeql[js/xss-through-dom] url 已在上一行用 /^https?:\/\// 白名单校验过；
+      // CodeQL 的污点分析不认这个正则（它只会跟着变量流走），属误报。
       a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
       document.body.appendChild(a); a.click(); a.remove();
       csMsg(t("app.dl.downloading",{name:esc(nm)}),"ok");
@@ -1239,6 +1241,8 @@ function pfMsg(text,col,kind){
   const panel=document.getElementById("ppanel");
   if(panel&&panel.style.display!=="none") return;      /* 面板开着，用户看得到 */
   if(typeof csMsg!=="function") return;
+  // codeql[js/xss-through-dom] plain 只用于**判断消息类型**（是否含"失败/错误"等），
+  // 不会进 DOM；真正显示消息走的是 textContent，不存在注入面。
   const plain=String(text).replace(/<[^>]*>/g,"");
   if(kind==null){
     kind=/失败|错误|无法|不支持|异常|没搜到/.test(plain)?"err"
