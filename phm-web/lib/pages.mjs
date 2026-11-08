@@ -39,6 +39,9 @@ export const CLEAN = {
   '/data': 'data.html', '/settings': 'settings.html',
   '/privacy': 'privacy.html', '/terms': 'terms.html',
   '/version': 'version.html', '/download': 'download.html',
+  /* 登录页：独立门面（不挂全局导航）。2026-11-08 加 ——
+     此前登录只藏在 /app 的折叠面板里，没人找得到。 */
+  '/login': 'login.html',
   '/developers': 'developers.html', '/platform': 'platform.html',
   '/developer': 'platform.html',   /* 旧链接兼容 */
   '/phm-api': 'phm-api.html', '/rulechart': 'rulechart.html',

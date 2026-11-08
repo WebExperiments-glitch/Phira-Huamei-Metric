@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.28.0.0">
+<title>登录 · P.H.M.</title>
+<meta name="description" content="登录 P.H.M.：绑定 Phira 账号、留下属于你的记录。谱面文件依然不会上传。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
+<!-- 主题：必须同步内联在样式表之前，否则刷新会闪一下（FOUC）。 -->
+<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
+var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
+var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
+el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.28.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.28.0.0">
+<style>
+/* ============================================================
+ * 登录页 · 双栏
+ *   左栏：琥珀粒子群（Live2D 到位前的"角色位"）+ 品牌标语
+ *   右栏：表单卡片
+ *   ⚠ 颜色一律走令牌：设计闸门禁止在令牌块之外硬编码 hex/rgba。
+ *     琥珀的半透明版本用 color-mix 从 var(--brand) 派生。
+ * ============================================================ */
+.lg-wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);
+  min-height:100vh;min-height:100dvh}
+@media (max-width:880px){.lg-wrap{grid-template-columns:1fr}.lg-brand{display:none}}
+
+/* ── 左栏 ── */
+.lg-brand{position:relative;overflow:hidden;display:flex;flex-direction:column;
+  justify-content:space-between;padding:26px 34px 44px;
+  background:
+    radial-gradient(1100px 620px at 28% 38%, color-mix(in srgb,var(--brand) 13%,transparent), transparent 62%),
+    radial-gradient(760px 520px at 74% 72%, color-mix(in srgb,var(--brand) 8%,transparent), transparent 60%),
+    var(--bg)}
+/* 点阵：两层的 radial-gradient 叠出 1px 点 + 8px 网格 */
+.lg-brand::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb,var(--brand) 34%,transparent) 1px, transparent 1.6px),
+    radial-gradient(circle at 1px 1px, color-mix(in srgb,var(--fg) 9%,transparent) 1px, transparent 1.4px);
+  background-size:26px 26px, 13px 13px;
+  -webkit-mask-image:radial-gradient(620px 620px at 34% 44%,#000 0%,transparent 72%);
+  mask-image:radial-gradient(620px 620px at 34% 44%,#000 0%,transparent 72%)}
+#lgp{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lg-back{position:relative;z-index:1;font-size:12.5px;color:var(--fg3);text-decoration:none;
+  display:inline-flex;align-items:center;gap:6px}
+.lg-back:hover{color:var(--fg)}
+.lg-slogan{position:relative;z-index:1;max-width:620px}
+.lg-slogan h1{margin:0 0 14px;font-size:clamp(28px,3.4vw,44px);line-height:1.28;font-weight:700;
+  letter-spacing:.01em}
+.lg-slogan p{margin:0;font-size:15px;line-height:1.85;color:var(--fg2);max-width:520px}
+.lg-slogan .lg-kicker{display:inline-flex;align-items:center;gap:8px;margin-bottom:18px;
+  font-size:12px;color:var(--brand);letter-spacing:.06em;text-transform:uppercase}
+.lg-slogan .lg-kicker::before{content:"";width:18px;height:1px;background:var(--brand-line)}
+
+/* ── 右栏 ── */
+.lg-side{display:flex;flex-direction:column;padding:22px 26px 28px;
+  background:var(--bg);border-left:1px solid var(--line)}
+@media (max-width:880px){.lg-side{border-left:0}}
+.lg-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}
+.lg-logo{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--fg);font-weight:700;font-size:16px}
+.lg-mark{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;
+  background:var(--brand);color:var(--brand-ink);font-weight:800;font-size:14px}
+.lg-tools{display:inline-flex;align-items:center;gap:6px}
+.lg-tools button,.lg-tools a{font:inherit;font-size:12.5px;color:var(--fg2);background:transparent;
+  border:1px solid transparent;border-radius:8px;padding:5px 9px;cursor:pointer;text-decoration:none}
+.lg-tools button:hover,.lg-tools a:hover{color:var(--fg);background:var(--card2)}
+
+.lg-card{width:100%;max-width:360px;margin:0 auto}
+.lg-card h2{margin:0 0 6px;font-size:20px;line-height:1.4}
+.lg-sub{margin:0 0 20px;font-size:12.5px;line-height:1.75;color:var(--fg2)}
+.lg-field{margin:0 0 14px}
+.lg-field label{display:block;font-size:12.5px;color:var(--fg2);margin-bottom:6px}
+.lg-field input{width:100%;height:40px;padding:0 12px;border-radius:8px;font:inherit;font-size:14px;
+  color:var(--fg);background:var(--card3);border:1px solid var(--line);outline:none}
+.lg-field input:focus{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+.lg-field input::placeholder{color:var(--fg4)}
+.lg-primary{width:100%;height:40px;border-radius:8px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  color:var(--brand-ink);background:var(--brand);border:1px solid var(--brand)}
+.lg-primary:hover{background:var(--brand-hover)}
+.lg-primary[disabled]{opacity:.6;cursor:progress}
+.lg-alt{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.lg-alt button,.lg-alt a{flex:1;min-width:120px;height:38px;border-radius:8px;font:inherit;font-size:13px;cursor:pointer;
+  color:var(--fg2);background:var(--card2);border:1px solid var(--line);text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center}
+.lg-alt button:hover,.lg-alt a:hover{color:var(--fg);background:var(--card3)}
+.lg-back2{margin-top:14px;font:inherit;font-size:12.5px;color:var(--fg3);background:none;border:0;cursor:pointer;padding:0}
+.lg-back2:hover{color:var(--fg)}
+.lg-err{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--err);min-height:0}
+.lg-err:empty{display:none}
+.lg-note{margin:18px 0 0;font-size:11.5px;line-height:1.7;color:var(--fg4)}
+.lg-note a{color:var(--fg3)}
+.lg-ok{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--ok)}
+.lg-ok:empty{display:none}
+.lg-step[hidden]{display:none}
+.lg-foot{margin-top:auto;padding-top:18px;font-size:11.5px;color:var(--fg4);display:flex;gap:14px;flex-wrap:wrap}
+.lg-foot a{color:var(--fg3);text-decoration:none}
+.lg-foot a:hover{color:var(--fg)}
+</style>
+</head>
+<body>
+<div class="lg-wrap">
+  <!-- 左栏：粒子 + 标语 -->
+  <aside class="lg-brand">
+    <a class="lg-back" href="/" data-i18n="lg.home">← phm.app.workbuddy.host</a>
+    <canvas id="lgp" aria-hidden="true"></canvas>
+    <div class="lg-slogan">
+      <span class="lg-kicker" data-i18n="lg.kicker">P.H.M. · 双标度定数参考</span>
+      <h1 data-i18n="lg.slogan1">不演奏，只测量。</h1>
+      <p data-i18n="lg.slogan2">一个数，量两次要一样。登录后，留下属于你的那一份记录 —— 谱面文件依然不会上传。</p>
+    </div>
+  </aside>
+
+  <!-- 右栏：表单 -->
+  <main class="lg-side">
+    <div class="lg-top">
+      <a class="lg-logo" href="/"><span class="lg-mark">P</span>P.H.M.</a>
+      <div class="lg-tools">
+        <button type="button" id="lgLang" data-i18n="lg.lang">中文</button>
+        <a href="/settings" data-i18n="lg.settings">字号与主题</a>
+      </div>
+    </div>
+
+    <form class="lg-card" id="lgForm" novalidate>
+      <!-- 第一步：只收邮箱 -->
+      <section class="lg-step" id="lgStep1">
+        <h2 data-i18n="lg.title">登录 P.H.M.</h2>
+        <p class="lg-sub" data-i18n="lg.sub">不登录也能用全部功能 —— 拖谱面、搜谱面、算 RKS 都不需要账号。登录后可绑定 Phira 账号、留下自己的记录。</p>
+        <div class="lg-field">
+          <label for="lgEmail" data-i18n="lg.email">邮箱</label>
+          <input id="lgEmail" type="email" autocomplete="username" inputmode="email"
+                 spellcheck="false" placeholder="you@example.com" required>
+        </div>
+        <button type="submit" class="lg-primary" id="lgNext" data-i18n="lg.next">下一步</button>
+        <div class="lg-alt">
+          <button type="button" id="lgReg" data-i18n="lg.signup">注册新账号</button>
+          <button type="button" id="lgReset" data-i18n="lg.forgot">找回密码</button>
+        </div>
+      </section>
+
+      <!-- 第二步：密码 -->
+      <section class="lg-step" id="lgStep2" hidden>
+        <h2 data-i18n="lg.title2">输入密码</h2>
+        <p class="lg-sub" id="lgWho" data-i18n="lg.sub2">为这个邮箱设置一个密码。</p>
+        <div class="lg-field">
+          <label for="lgPw" data-i18n="lg.pw">密码</label>
+          <input id="lgPw" type="password" autocomplete="current-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="lg-primary" id="lgSubmit" data-i18n="lg.submit">登录</button>
+        <button type="button" class="lg-back2" id="lgBack" data-i18n="lg.back2">← 换一个邮箱</button>
+      </section>
+
+      <!-- 注册 -->
+      <section class="lg-step" id="lgStepReg" hidden>
+        <h2 data-i18n="lg.signupTitle">注册新账号</h2>
+        <p class="lg-sub" data-i18n="lg.signupSub">我们发一封验证码邮件给你，不需要设置密码也能先用起来。</p>
+        <div class="lg-field">
+          <label for="lgRegEmail" data-i18n="lg.email">邮箱</label>
+          <input id="lgRegEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" required>
+        </div>
+        <button type="submit" class="lg-primary" id="lgRegSend" data-i18n="lg.sendCode">发送验证码</button>
+        <button type="button" class="lg-back2" id="lgRegBack" data-i18n="lg.back2">← 返回登录</button>
+      </section>
+
+      <!-- 找回密码 -->
+      <section class="lg-step" id="lgStepReset" hidden>
+        <h2 data-i18n="lg.resetTitle">找回密码</h2>
+        <p class="lg-sub" data-i18n="lg.resetSub">输入注册时用的邮箱，我们发一封验证码帮你重设密码。</p>
+        <div class="lg-field">
+          <label for="lgRstEmail" data-i18n="lg.email">邮箱</label>
+          <input id="lgRstEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" required>
+        </div>
+        <button type="submit" class="lg-primary" id="lgRstSend" data-i18n="lg.sendCode">发送验证码</button>
+        <button type="button" class="lg-back2" id="lgRstBack" data-i18n="lg.back2">← 返回登录</button>
+      </section>
+
+      <!-- 验证码 + 新密码（注册 / 找回共用） -->
+      <section class="lg-step" id="lgStepCode" hidden>
+        <h2 data-i18n="lg.codeTitle">输入验证码</h2>
+        <p class="lg-sub" id="lgCodeWho"></p>
+        <div class="lg-field">
+          <label for="lgCode" data-i18n="lg.code">邮箱验证码</label>
+          <input id="lgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" spellcheck="false" required>
+        </div>
+        <div class="lg-field" id="lgPwWrap">
+          <label for="lgNewPw" data-i18n="lg.newPw">新密码</label>
+          <input id="lgNewPw" type="password" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="lg-primary" id="lgCodeSubmit" data-i18n="lg.confirm">确认</button>
+        <button type="button" class="lg-back2" id="lgCodeBack" data-i18n="lg.back2">← 返回</button>
+      </section>
+
+      <p class="lg-err" id="lgErr" role="alert" aria-live="polite"></p>
+      <p class="lg-ok" id="lgOk" role="status" aria-live="polite"></p>
+      <p class="lg-note" data-i18n-html="lg.note">继续即表示你同意<a href="/terms">服务条款</a>与<a href="/privacy">隐私政策</a>。我们不会把谱面文件传到服务器。</p>
+    </form>
+
+    <div class="lg-foot">
+      <a href="/" data-i18n="nav.home">首页</a>
+      <a href="/status" data-i18n="nav.status">运行状态</a>
+      <a href="/more" data-i18n="nav.more">更多</a>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+/* ⚠ t / applyStatic / onLangChange / setLang 全部从 ui.js 出 ——
+   再单独 import 一份 i18n.js 会得到两个模块实例，语言状态会分裂。 */
+import { applyStatic, t, onLangChange, currentLang, setLang } from '/js/ui.js?v=V0.28.0.0';
+import { mountParticles } from '/js/particles.js?v=V0.28.0.0';
+import { createAuth, normalizeEmail, isValidEmail, pwProblem, authErrorKey } from '/js/auth.js?v=V0.28.0.0';
+import { redirectFromLocation } from '/js/redirect.js?v=V0.28.0.0';
+
+const $ = id => document.getElementById(id);
+
+/* ── 粒子：Live2D 到位前的"角色位" ── */
+mountParticles($('lgp'), { ppm: 2400, max: 220, link: 44 });
+
+/* ── 认证：复用 auth.js 的状态机与错误分类，这里只做编排 ── */
+const auth = createAuth({
+  onChange: (s) => {
+    if (s.user) location.replace(redirectFromLocation(location.href));
+  },
+});
+
+
+function showErr(kind, detail) {
+  /* 键名映射交给 authErrorKey —— 它已经处理了 rate-limited→rateLimited、
+     weak-pw→weakPw 这些不规则的名字，自己拼字符串一定会错。 */
+  const key = kind ? 'app.auth.err.' + authErrorKey(kind) : '';
+  const msg = key && t(key) && t(key) !== key ? t(key) : '';
+  $('lgErr').textContent = msg || (kind ? '' : (detail || ''));
+}
+function clearErr() { $('lgErr').textContent = ''; $('lgOk').textContent = ''; }
+
+function showStep(id) {
+  for (const s of ['lgStep1', 'lgStep2', 'lgStepReg', 'lgStepReset', 'lgStepCode']) {
+    $(s).hidden = (s !== id);
+  }
+}
+
+/* ── 渐进式：第一步只收邮箱 ──
+   借鉴「首屏字段越少越好」：把密码推到第二步，
+   用户点「下一步」时**不**打后端（不消耗验证码/登录限流）。 */
+$('lgForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  clearErr();
+  const step1 = !$('lgStep1').hidden;
+  const step2 = !$('lgStep2').hidden;
+  const reg = !$('lgStepReg').hidden;
+  const rst = !$('lgStepReset').hidden;
+  const code = !$('lgStepCode').hidden;
+
+  if (step1) {
+    const email = normalizeEmail($('lgEmail').value);
+    if (!isValidEmail(email)) { showErr('invalid', t('lg.badEmail')); return; }
+    $('lgWho').textContent = email;
+    showStep('lgStep2');
+    $('lgPw').focus();
+    return;
+  }
+  if (step2) {
+    const email = normalizeEmail($('lgEmail').value);
+    const pw = $('lgPw').value;
+    const bad = pwProblem(pw);
+    if (bad) { showErr('weak-pw', t('lg.badPw')); return; }
+    $('lgSubmit').disabled = true;
+    auth.signIn(email, pw).then((r) => {
+      $('lgSubmit').disabled = false;
+      if (r && r.ok) return;
+      if (r && r.throttled) { showErr('rate-limited', t('lg.tooFast')); return; }
+      const s = auth.state;
+      showErr(s.error ? s.error.kind : 'unknown', s.error ? s.error.detail : '');
+    });
+    return;
+  }
+  if (reg) {
+    const email = normalizeEmail($('lgRegEmail').value);
+    if (!isValidEmail(email)) { showErr('invalid', t('lg.badEmail')); return; }
+    $('lgRegSend').disabled = true;
+    auth.requestCode(email, 'signup').then((r) => {
+      $('lgRegSend').disabled = false;
+      if (r && r.ok) {
+        $('lgCodeWho').textContent = email;
+        $('lgPwWrap').hidden = false;
+        $('lgNewPw').required = true;
+        $('lgCodeSubmit').dataset.mode = 'signup';
+        showStep('lgStepCode');
+        $('lgCode').focus();
+      } else {
+        const s = auth.state;
+        showErr(s.error ? s.error.kind : 'unknown', s.error ? s.error.detail : '');
+      }
+    });
+    return;
+  }
+  if (rst) {
+    const email = normalizeEmail($('lgRstEmail').value);
+    if (!isValidEmail(email)) { showErr('invalid', t('lg.badEmail')); return; }
+    $('lgRstSend').disabled = true;
+    auth.requestReset(email).then((r) => {
+      $('lgRstSend').disabled = false;
+      if (r && r.ok) {
+        $('lgCodeWho').textContent = email;
+        $('lgPwWrap').hidden = false;
+        $('lgNewPw').required = true;
+        $('lgCodeSubmit').dataset.mode = 'reset';
+        showStep('lgStepCode');
+        $('lgCode').focus();
+      } else {
+        const s = auth.state;
+        showErr(s.error ? s.error.kind : 'unknown', s.error ? s.error.detail : '');
+      }
+    });
+    return;
+  }
+  if (code) {
+    const c = $('lgCode').value.trim();
+    const pw = $('lgNewPw').value;
+    const email = auth.state.email || '';
+    if (!c) { showErr('invalid', t('lg.needCode')); return; }
+    const bad = pwProblem(pw);
+    if (bad) { showErr('weak-pw', t('lg.badPw')); return; }
+    const mode = $('lgCodeSubmit').dataset.mode || 'signup';
+    $('lgCodeSubmit').disabled = true;
+    const p = mode === 'reset'
+      ? auth.confirmReset(email, c, pw)
+      : auth.signUp(email, c, pw);
+    p.then((r) => {
+      $('lgCodeSubmit').disabled = false;
+      if (r && r.ok) return;
+      const s = auth.state;
+      showErr(s.error ? s.error.kind : 'unknown', s.error ? s.error.detail : '');
+    });
+  }
+});
+
+$('lgBack').addEventListener('click', () => { clearErr(); showStep('lgStep1'); $('lgEmail').focus(); });
+$('lgReg').addEventListener('click', () => { clearErr(); showStep('lgStepReg'); $('lgRegEmail').focus(); });
+$('lgReset').addEventListener('click', () => { clearErr(); showStep('lgStepReset'); $('lgRstEmail').focus(); });
+$('lgRegBack').addEventListener('click', () => { clearErr(); showStep('lgStep1'); });
+$('lgRstBack').addEventListener('click', () => { clearErr(); showStep('lgStep1'); });
+$('lgCodeBack').addEventListener('click', () => { clearErr(); showStep('lgStep1'); });
+
+/* ── 语言切换 ── */
+function paintLangBtn() {
+  const cur = currentLang();
+  $('lgLang').textContent = cur === 'zh' ? '中文' : 'English';
+  document.documentElement.setAttribute('lang', cur === 'zh' ? 'zh-Hans' : 'en');
+}
+$('lgLang').addEventListener('click', () => {
+  setLang(currentLang() === 'zh' ? 'en' : 'zh');
+});
+onLangChange(() => { applyStatic(document); paintLangBtn(); });
+
+applyStatic(document);
+paintLangBtn();
+</script>
+</body>
+</html>

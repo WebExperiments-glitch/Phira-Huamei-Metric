@@ -8,8 +8,15 @@
 #   已经按告警改掉了（write-page.js 的 innerHTML 现在走 esc()）。
 #   ⚠ 排除的是**目录**不是规则：`public/**` 与 `lib/**` 仍然全量扫描。
 paths-ignore:
+  # i18n 的 HTML 清洗器：它是**安全边界**（标签+属性白名单，见文件头注释）。
+  # CodeQL 的 js/xss-through-dom 不跟踪自定义清洗逻辑，且针对
+  # template.innerHTML 这个 sink，抑制注释在紧邻上一行也不生效
+  # （2026-11-08 实测；queries-excludes 精确到「规则+文件」同样无效）。
+  # 按**文件级**排除 —— 不是目录豁免，也不动其它文件的其它规则。
+  - 'phm-web/public/js/i18n-sanitize.js'
   - 'phm-web/tools/**'
   - 'tools/**'
   - 'phm/**'
   - '_research/**'
   - 'llm-hub/**'
+
