@@ -19,9 +19,26 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.27.1.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.27.2.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.27.2.0', date: '2026-11-08',
+    zh: ['<b>站点有看板娘了，但你不会在首页看见她。</b> 她叫汐里，只在两处出现：'
+      + '找不到页面的时候（404）、以及搜不到东西的时候（空状态）。工具站不该挂一个常驻小人挡操作。',
+      '<b>图不再是"一张图"。</b> 成品被切成 6×6 块、每块单独签名、由浏览器在 canvas 上拼回来——'
+      + '右键"另存为"拿不到东西，抓到单块也只有 1/36。',
+      '<b>每张图里都藏了一个 ID。</b> 水印写进频域，能扛住 JPEG 重压和裁剪；'
+      + '但扛不住 AI 重绘——这是这类技术的天花板，不吹。'],
+    en: ['<b>The site has a mascot now — and you won't meet her on the home page.</b> Her name is Xili. '
+      + 'She appears in exactly two places: 404s and empty states. A tool site should not park a character '
+      + 'over the controls.',
+      '<b>The art is no longer "an image".</b> It is cut into a 6×6 grid, each tile signed separately, '
+      + 'reassembled on a canvas in the browser — "save image as" gets you nothing, and a single tile is 1/36.',
+      '<b>Every image carries an embedded ID.</b> The watermark lives in the frequency domain and survives '
+      + 'heavy JPEG compression and cropping; it does not survive AI redrawing — that is the ceiling of this '
+      + 'technique, and we won't pretend otherwise.'],
+  },
   {
     v: 'V0.27.1.0', date: '2026-11-07',
     zh: ['<b>导航收成了 9 项。</b> 原来一行平铺 13 个入口，谁也扫不完 —— 现在主路径只留「谱面」和「创作」，'
