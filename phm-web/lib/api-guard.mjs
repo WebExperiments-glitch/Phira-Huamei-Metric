@@ -217,6 +217,7 @@ function softChallenge(subject, now) {
    由 api-routes 的统一封装写成 HTTP 响应。 */
 export async function evaluateGuard(req, who, ip, opts = {}) {
   const { bodyText = '', endpoint = '', analysis = false, writeSecret = '' } = opts;
+  const where = endpoint ? ' on ' + endpoint : '';
   const now = Date.now();
 
   let proof = verifyProof(req, who);
@@ -273,7 +274,7 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
 
   const burst = await limit([{ k: 'api:burst:' + subject, max: burstMax }], burstMax, BURST_MS, { failClosed: true });
   if (!burst.ok) {
-    return { ok: false, status: 429, code: 'rate_limit_exceeded', message: 'burst limit exceeded',
+    return { ok: false, status: 429, code: 'rate_limit_exceeded', message: 'burst limit exceeded' + where,
       headers: { 'retry-after': String(Math.ceil(BURST_MS / 1000)) } };
   }
   const sustained = await limit([
@@ -285,7 +286,7 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
       return { ok: false, status: 503, code: 'rate_limit_unavailable',
         message: 'rate limiter temporarily unavailable', headers: { 'retry-after': '5' } };
     }
-    return { ok: false, status: 429, code: 'rate_limit_exceeded', message: 'too many requests; retry later',
+    return { ok: false, status: 429, code: 'rate_limit_exceeded', message: 'too many requests; retry later' + where,
       headers: { 'retry-after': '60' } };
   }
   if (analysis && isKey) {
