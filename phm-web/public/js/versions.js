@@ -19,9 +19,23 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.28.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.28.0.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.28.0.1', date: '2026-11-09',
+    zh: ['<b>玩家实测难度换了一版数据：样本 86 倍。</b> 反推用到的成绩从 15.8 万条扩到 1,357 万条，'
+      + '覆盖 1,700 → 9,230 张谱。同一批 4,532 张谱上，与谱师声明定数的相关性从 0.697 升到 <b>0.725</b>。',
+      '<b>整体数字反而降了（0.675），这不是退步。</b> 新覆盖的 4,698 张多是稀疏谱（相关性 0.625），'
+      + '把总数拉低了。分层看：10–29 人、30–99 人、≥100 人三个档位，新版全部比旧版更准。'
+      + '这句话也写进了数据文件的 note 里，免得以后有人只看一个数就下结论。'],
+    en: ['<b>Player-derived difficulty got a new dataset: 86× the samples.</b> The fit now uses 13.57M records '
+      + 'instead of 158K, covering 9,230 charts instead of 1,700. On the same 4,532 charts, agreement with '
+      + 'declared constants rose from 0.697 to <b>0.725</b>.',
+      '<b>The overall number went down (0.675) — that is not a regression.</b> The 4,698 newly covered charts '
+      + 'are mostly sparse (agreement 0.625) and drag the aggregate down. Split by sample size — 10–29, 30–99, '
+      + '≥100 players — the new version wins in every bucket. That caveat is written into the dataset note too.'],
+  },
   {
     v: 'V0.28.0.0', date: '2026-11-08',
     zh: ['<b>登录终于成了一个正经页面。</b> 以前它藏在谱面工作台的一个折叠面板里，'
