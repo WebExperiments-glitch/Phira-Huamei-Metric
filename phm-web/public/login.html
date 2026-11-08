@@ -210,6 +210,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 import { applyStatic, t, onLangChange, currentLang, setLang } from '/js/ui.js?v=V0.28.0.0';
 import { mountParticles } from '/js/particles.js?v=V0.28.0.0';
 import { createAuth, normalizeEmail, isValidEmail, pwProblem, authErrorKey } from '/js/auth.js?v=V0.28.0.0';
+import { redirectFromLocation } from '/js/redirect.js?v=V0.28.0.0';
 
 const $ = id => document.getElementById(id);
 
@@ -219,12 +220,10 @@ mountParticles($('lgp'), { ppm: 2400, max: 220, link: 44 });
 /* ── 认证：复用 auth.js 的状态机与错误分类，这里只做编排 ── */
 const auth = createAuth({
   onChange: (s) => {
-    if (s.user) {
-      const back = new URL(location.href).searchParams.get('redirect') || '/app';
-      location.replace(back);
-    }
+    if (s.user) location.replace(redirectFromLocation(location.href));
   },
 });
+
 
 function showErr(kind, detail) {
   /* 键名映射交给 authErrorKey —— 它已经处理了 rate-limited→rateLimited、

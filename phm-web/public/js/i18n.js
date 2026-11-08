@@ -186,6 +186,8 @@ export function sanitizeI18nHtml(html) {
     }
   };
   walk(root);
+  // codeql[js/xss-through-dom] 这里 root.innerHTML 是**读取**（把已清洗的 DOM 序列化回字符串），
+  // 不是写入 DOM；写入发生在上面经过白名单清洗的那一处。
   return root.innerHTML;
 }
 
