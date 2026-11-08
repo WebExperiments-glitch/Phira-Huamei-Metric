@@ -17,6 +17,7 @@ import {
   behavior, reference, engines, engine, versions, discrepancy,
   statusData, incidents, health, EXTRA_SCOPES,
 } from './api-extras.mjs';
+import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -63,7 +64,7 @@ function expiryFromDays(v) {
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-  'access-control-allow-headers': 'authorization, content-type, x-hm-token, x-api-key, x-phm-key',
+  'access-control-allow-headers': 'authorization, content-type, x-hm-token, x-api-key, x-phm-key, x-phm-ts, x-phm-nonce, x-phm-sig, x-phm-signer, x-phm-proof, x-phm-pow, x-phm-admin',
   'access-control-max-age': '86400',
 };
 
@@ -196,39 +197,25 @@ export function makeApiRoutes(deps) {
     return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes };
   }
 
-  async function gateApi(res, who, ip, { analysis = false } = {}) {
-    let r;
-    if (who.kind === 'key') {
-      r = await limit([{ k: 'api:k:' + who.id, max: RL.apiKeyHour }],
-        RL.apiKeyHour, HOUR, { failClosed: true });
-      if (r.ok && analysis) {
-        const a = await limit([{ k: 'api:analyze:' + who.id, max: RL.apiAnalyzeDay }],
-          RL.apiAnalyzeDay, DAY, { failClosed: true });
-        if (!a.ok) r = a;
-      }
-    } else {
-      /* ⚠ 匿名也要 failClosed（2026-10-24 审计）：原先只有 Key 路径关了失败，
-         匿名路径在计数库不可用时**退回进程内计数** —— 而部署是无状态的
-         （一请求一进程），进程内计数等于没有，于是限流静默消失。
-         匿名能触发的最贵操作是 `POST /analyses` 的重算（下载谱面 + 跑引擎，
-         并发槽只有 2），这条路一放开就等于免费算力放大器。
-
-         代价为零：API 每条路径本来都要读库，库挂了无论如何都会失败，
-         提前 503 只是把「坏结果」换成「明确的坏结果」。 */
-      r = await limit(
-        buildKeys('api', { ip }, { perIp: RL.apiAnonHour, perId: RL.apiAnonHour, global: RL.apiAnonGlobal }),
-        RL.apiAnonHour, HOUR, { failClosed: true });
+  /* 防控统一走 lib/api-guard.mjs（5 层 / 三档身份 / 保留匿名）。
+     这里只负责把结果翻译成 HTTP，并在响应完成时释放并发槽。 */
+  async function gateApi(res, who, ip, { analysis = false, bodyText = '', endpoint = '' } = {}) {
+    const g = await evaluateGuard(reqOf(res), who, ip, { analysis, bodyText, endpoint, writeSecret });
+    if (g.ok) {
+      if (g.release) res.once('finish', g.release);
+      return true;
     }
-    if (r.ok) return true;
-    if (r.via === 'db-down') {
-      apiErr(res, 503, 'server_error', 'rate_limit_unavailable',
-        'rate limiter temporarily unavailable', { 'retry-after': '5' });
-    } else {
-      apiErr(res, 429, 'rate_limit_error', 'rate_limit_exceeded',
-        'too many requests; retry later', rlHeaders(r));
-    }
+    const type = g.status === 429 ? 'rate_limit_error'
+      : g.status === 401 || g.status === 403 ? 'authentication_error' : 'invalid_request_error';
+    const body = g.body || { error: { type, code: g.code, message: g.message } };
+    json(res, g.status, body, g.headers || {});
     return false;
   }
+
+  /* evaluateGuard 需要原始 req（读请求头）。gateApi 的调用点只传了 res/who/ip，
+     这里用一个 WeakMap 把 res → req 关联起来，由 handle() 在入口登记。 */
+  const REQ_OF = new WeakMap();
+  function reqOf(res) { return REQ_OF.get(res) || { headers: {}, method: 'GET', url: '/' }; }
 
   function logUsage(who, endpoint, status, chartId, startMs) {
     if (!who || who.kind !== 'key') return;
@@ -432,7 +419,9 @@ export function makeApiRoutes(deps) {
       return apiErr(res, 400, 'invalid_request_error', 'invalid_chart_id', 'chart_id must be a positive integer');
     }
     if (!requireScope(res, who, 'analyses:write')) return;
-    if (!(await gateApi(res, who, ip, { analysis: true }))) return;
+    if (!(await gateApi(res, who, ip, {
+      analysis: true, endpoint: '/analyses', bodyText: JSON.stringify(body || {}),
+    }))) return;
     const t0 = Date.now();
     const ex = await dbFetch('/phm_charts?chart_id=eq.' + id + '&select=*');
     if (ex.ok && ex.body && ex.body !== '[]') {
@@ -536,7 +525,8 @@ export function makeApiRoutes(deps) {
   }
 
   async function handleKeys(req, res, method, path) {
-    const who = await requireAccount(req, res);
+    /* 层 4：管理员密钥独立于业务 API Key；未配置时仍走原来的账号 token。 */
+    const who = isAdmin(req) ? { sub: 'admin:phm' } : await requireAccount(req, res);
     if (!who) return;
 
     if (method === 'GET' && path === '/keys') {
@@ -687,6 +677,7 @@ export function makeApiRoutes(deps) {
   }
 
   async function handle(req, res, ip) {
+    REQ_OF.set(res, req);
     if (req.method === 'OPTIONS') {
       res.writeHead(204, CORS); res.end(); return;
     }
@@ -701,6 +692,7 @@ export function makeApiRoutes(deps) {
         service: serviceVersion || null,
         engine: engineVer || null,
         time: new Date().toISOString(),
+        guard: guardCapabilities(),
       };
       /* ?diag=1 —— 鉴权头自检。**只回长度，不回内容**：
          0 表示这个头没穿透到服务端（网关吞了/没发），>0 表示收到了。

@@ -40,6 +40,7 @@ const STEPS = [
   ['服务端 ↔ 浏览器定数一致', 'node', ['tools/verify-parity-v3.mjs']],
   ['参照集与真源同步', 'node', ['tools/gen-ref.mjs', '--check']],
   ['限流单测（73 条；真实 DB 路径另跑 PHM_TEST_DB=1）', 'node', ['tools/test-ratelimit.mjs']],
+  ['API 防控单测（16 条：签名 / DPoP / PoW / 分档）', 'node', ['tools/test-api-guard.mjs']],
   ['贡献凭证单测（11 条）', 'node', ['tools/test-contribute-ticket.mjs']],
   ['API Key 单测（8 条）', 'node', ['tools/test-api-keys.mjs']],
   ['OpenAPI 契约', 'node', ['tools/lint-openapi.mjs']],
