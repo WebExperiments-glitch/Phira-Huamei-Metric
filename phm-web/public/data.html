@@ -21,6 +21,7 @@ var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStora
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=V0.27.1.0">
 <link rel="stylesheet" href="/css/ui-kit.css?v=V0.27.1.0">
+<link rel="stylesheet" href="/css/xili.css?v=V0.27.1.0">
 <style>
 .sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin:12px 0}
 .sum{background:var(--card2);border-radius:10px;padding:10px 13px}
@@ -201,7 +202,10 @@ function render(j) {
   $('#hint').textContent = t('dt.hint', { a: rows.length, b: j.pageSize });
 
   if (!rows.length) {
-    $('#tbl').innerHTML = '<div class="empty">' + esc(t('dt.empty')) + '</div>';
+    $('#tbl').innerHTML = '<div class="empty xl">'
+      + '<img src="/img/xili/xili-empty-160.webp" width="160" height="160" alt="" loading="lazy" decoding="async">'
+      + '<div class="xl-line">' + esc(t('xl.empty')) + '</div>'
+      + '<div class="xl-sub">' + esc(t('dt.empty')) + '</div></div>';
     $('#pgwrap').innerHTML = pagerHTML({ page: 1, pages: 1, total: 0, pageSize: j.pageSize, sizes: SIZES });
     wirePager($('#pgwrap'), go, setSize);
     return;

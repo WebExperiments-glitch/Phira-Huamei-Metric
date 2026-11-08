@@ -112,3 +112,20 @@ release/
 # 基准测试的切分与结果（可由 tools/bench_suite.py prep/split 重建）
 data/bench/
 data/kaggle-ds/
+
+# 汐里（看板娘）资产：闭源。提示词、原图、过程稿一律不进公开仓库。
+# 站点实际展示的成品图放在 phm-web/public/img/xili/（那是 UI 的一部分，不是源资产）。
+/assets/
+
+# ── 汐里（看板娘）的成品碎块：不进仓库 ──
+# 仓库是 PUBLIC。把这些 6×6 碎块提交上去，等于把整图交出去：
+# 随便写个脚本拼一下就是原图，前面做的分块 + 签名就白做了。
+# 部署时它们随目录一起上传（部署不看 git），所以线上照样能取到。
+/phm-web/data/xili/
+
+# ── 水印与切图工具：含提取密码，属内部工具 ──
+# PASS_IMG / PASS_WM 写在这些文件里。公开出去等于把"怎么把水印提出来"也送人。
+/tools/wm-xili.py
+/tools/wm-bench.py
+/tools/cutout-xili.py
+/tools/build-xili-assets.py
