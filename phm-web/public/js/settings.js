@@ -52,6 +52,8 @@ export const KEYS = Object.freeze({
      ⚠ **故意不进 PLAIN_KEYS**：那份清单用于「导出设置」与「清空设置」，
        而 Key 是凭证，不该出现在导出文件里。
        代价是「清空设置」不会清掉它 —— 对凭证来说这是可接受的方向。 */
+  xiliOff:    'phm_xili_off',   /* 看板娘：用户点了 × 之后不再出现 */
+  xiliPos:    'phm_xili_pos',   /* 看板娘：拖到哪了（JSON {x,y}） */
   agentKey:   'phm_agent_key',
   agentModel: 'phm_agent_model',
 });
