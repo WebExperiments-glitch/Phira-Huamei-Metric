@@ -390,6 +390,14 @@ a:hover { text-decoration-thickness: 2px; }
   transition: color .14s, background .14s;
 }
 .nav .ghlink:hover { color: var(--fg); background: var(--card2); }
+/* 登录入口：2026-11-08 加。此前登录只藏在 /app 的折叠面板里，
+   导航上一个入口都没有 —— 用户找不到就等于没有。
+   样式与 .ghlink 一致（同一层级、同一个点击区），只是显示文字。 */
+.nav .navlogin {
+  display: inline-flex; align-items: center; height: 28px; padding: 0 9px;
+  border-radius: 8px; font-size: 13px; color: var(--fg2); text-decoration: none;
+}
+.nav .navlogin:hover { color: var(--fg); background: var(--card2); }
 
 /* 顶栏的全局搜索：默认只是图标，点开变成输入框。
    收起时只占 26px，但省掉了「先想清楚去 /data 还是 /packs」这一步。 */

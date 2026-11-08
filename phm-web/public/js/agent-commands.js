@@ -20,12 +20,12 @@
  *   这样做的好处：**审批发生在改动之前**，而不是改完再问。
  * ============================================================ */
 
-import { lintChart } from './chart-lint.js?v=V0.27.2.3';
-import { extractGeometry } from './chart-geom.js?v=V0.27.2.3';
-import { runScript } from './script-eval.js?v=V0.27.2.3';
-import { loadChart, reportFromChart } from './engine.js?v=V0.27.2.3';
-import { APP_VER } from './ui.js?v=V0.27.2.3';
-import { beatValue, toBeat, chartBeatToSec, chartSecToBeat } from './beat-time.js?v=V0.27.2.3';
+import { lintChart } from './chart-lint.js?v=V0.28.0.0';
+import { extractGeometry } from './chart-geom.js?v=V0.28.0.0';
+import { runScript } from './script-eval.js?v=V0.28.0.0';
+import { loadChart, reportFromChart } from './engine.js?v=V0.28.0.0';
+import { APP_VER } from './ui.js?v=V0.28.0.0';
+import { beatValue, toBeat, chartBeatToSec, chartSecToBeat } from './beat-time.js?v=V0.28.0.0';
 
 /* ── v2 权重（4 KB）──
    ⚠ 别再让 difficulty_estimate 当空壳：2026-10-25 实测里它只回了统计量加一句
