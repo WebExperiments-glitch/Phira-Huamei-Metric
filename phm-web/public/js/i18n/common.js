@@ -27,6 +27,8 @@ export default {
     'nav.status': '状态',
     'nav.download': '下载',
     'nav.more': '更多',
+    'xl.empty': '没有。换一个条件。',
+    'xl.nf': '这里没有东西可量。',
 
     /* ── 通用动作 ── */
     'c.clear': '清除',
@@ -160,6 +162,8 @@ export default {
     'nav.status': 'Status',
     'nav.download': 'Download',
     'nav.more': 'More',
+    'xl.empty': 'Nothing. Change a condition.',
+    'xl.nf': 'Nothing to measure here.',
 
     /* ── common ── */
     'c.clear': 'Clear',

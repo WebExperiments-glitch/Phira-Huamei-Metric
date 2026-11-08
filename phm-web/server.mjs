@@ -42,6 +42,7 @@ import { makeAgentRoutes } from './lib/agent-routes.mjs';
 /* API v1 路由（/api/v1/*）—— 独立模块，避免 server.mjs 破 900 行。 */
 import { makeApiRoutes } from './lib/api-routes.mjs';
 import { makeStatusRoutes, startStatusMonitor } from './lib/status.mjs';
+import { makeXiliRoutes } from './lib/xili.mjs';
 import { makeChartAssetRoutes } from './lib/chartassets.mjs';
 import { phiraProxy } from './lib/phira-proxy.mjs';
 import { makeRksRoutes } from './lib/rks-routes.mjs';
@@ -209,7 +210,9 @@ if (STATIC_ONLY) for (const f of RETIRED_HTML) PUBLIC_FILES.delete(f);
 /* ⚠ 每加一个目录都是往互联网上多开一扇门。fonts/ 是 2026-10-11 加的 ——
    标题用的思源宋体子集（83KB woff2）要自托管：CSP 里 font-src 只允许 'self'，
    而且中文站依赖 CDN 字体既慢又不可靠。这个目录里只应有裁好的 woff2。 */
-const PUBLIC_DIRS = ['js/', 'css/', 'data/', 'fonts/', 'vendor/'];
+/* img/ 只为看板娘汐里的成品图（2026-11-08 加）：webp，去掉了生成元数据。
+   这个目录里只放**已定稿的成品**；原图与提示词在仓库外的 assets/（闭源，不进 git）。 */
+const PUBLIC_DIRS = ['js/', 'css/', 'data/', 'fonts/', 'vendor/', 'img/'];
 const SAFE_EXT = new Set(['.js', '.mjs', '.css', '.png', '.svg', '.ico', '.webp', '.woff2', '.json']);
 function isPublicPath(rel) {
   if (PUBLIC_FILES.has(rel)) return true;
@@ -408,7 +411,8 @@ const apiRoutes = makeApiRoutes({
 });
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
-const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS),
+  xiliRoutes = makeXiliRoutes({ secret: WRITE_SECRET, secHeaders: SEC_HEADERS });   /* 看板娘：签名+分块，见 lib/xili.mjs */
 /* 写谱链路的总开关：PHM_WRITE=off 时页面回说明页、接口 503。默认开。 */
 const WRITE_ENABLED = writeEnabled(process.env);
 const agentRoutes = makeAgentRoutes({ send, gate, gateAnalyze, readBody });
@@ -442,6 +446,7 @@ const server = http.createServer(guardRequest(async (req, res) => {
 
   /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
   if (p === '/api/status') return statusRoutes(req, res, url);
+  if (p.startsWith('/api/xili/') && xiliRoutes(req, res, url)) return;
   if (p.startsWith('/api/phira-illust/') || p.startsWith('/api/phira-file/')) return chartAssets(req, res, url);
   /* 按近期成绩估 RKS —— 官方 B19 自 2026-03 起停更，这一条给它兜底 */
   if (p === '/api/rks' && await rksRoutes(req, res, url)) return;
