@@ -138,15 +138,30 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
      本页的探针打的是回环地址（进程活着就必然连通），只能证明「服务没卡死」，
      测不出平台网关 / DNS / 运营商网络的问题 —— 那恰好是用户最常遇到的。
      所以把外部监控放在最上面，本页自检降级为内部参考。 -->
-<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-  <div style="flex:1;min-width:220px">
-    <div style="font-size:14px;font-weight:600;margin-bottom:4px" data-i18n="st.extTitle">外部可用性监控</div>
-    <div class="dim2" style="font-size:12.5px;line-height:1.7" data-i18n="st.extBody">
-      从全球多个节点定期请求本站，能测出本页测不到的故障（平台网关、DNS、线路）。事故记录与订阅在那里。
-    </div>
+<!-- 2026-11-08：原来只有一个「打开状态页」按钮，用户根本走不到
+     Maintenance / Previous incidents / Get in touch 那几个栏目 ——
+     明明外部页四个都有，站内却像没搭。这里直接把入口摊开。
+     ⚠ Get in touch 在 BetterStack 里配置成回到本站首页，保持一致。 -->
+<div class="card" style="margin-bottom:14px">
+  <div style="font-size:14px;font-weight:600;margin-bottom:4px" data-i18n="st.extTitle">外部可用性监控</div>
+  <div class="dim2" style="font-size:12.5px;line-height:1.7;margin-bottom:10px" data-i18n="st.extBody">
+    从全球多个节点定期请求本站，能测出本页测不到的故障（平台网关、DNS、线路）。事故记录与订阅在那里。
   </div>
-  <a class="btn" href="https://phm.betteruptime.com" target="_blank" rel="noopener"
-     style="white-space:nowrap" data-i18n="st.extGo">打开状态页 ↗</a>
+  <div style="display:flex;gap:7px;flex-wrap:wrap">
+    <a class="btn" href="https://phm.betteruptime.com/" target="_blank" rel="noopener"
+       style="white-space:nowrap;font-size:12.5px" data-i18n="st.extStatus">状态概览 ↗</a>
+    <a class="btn" href="https://phm.betteruptime.com/maintenance" target="_blank" rel="noopener"
+       style="white-space:nowrap;font-size:12.5px" data-i18n="st.extMaint">维护计划 ↗</a>
+    <a class="btn" href="https://phm.betteruptime.com/incidents" target="_blank" rel="noopener"
+       style="white-space:nowrap;font-size:12.5px" data-i18n="st.extIncidents">历史故障 ↗</a>
+    <a class="btn" href="https://phm.app.workbuddy.host/" target="_blank" rel="noopener"
+       style="white-space:nowrap;font-size:12.5px" data-i18n="st.extContact">联系我们 ↗</a>
+    <a class="btn" href="https://phm.betteruptime.com/feed" target="_blank" rel="noopener"
+       style="white-space:nowrap;font-size:12.5px" data-i18n="st.extRss">RSS 订阅 ↗</a>
+  </div>
+  <div class="dim2" style="font-size:11.5px;line-height:1.6;margin-top:8px" data-i18n="st.extNote">
+    维护公告、历史事件与邮件订阅都在外部状态页；本页是站内自检，两者互相印证。
+  </div>
 </div>
 
 <!-- 事件区：总状态横幅 + 进行中的故障（Statuspage 那套词汇）。
