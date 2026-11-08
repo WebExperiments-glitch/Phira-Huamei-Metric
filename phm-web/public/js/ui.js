@@ -8,8 +8,8 @@
  * 这个文件是纯展示（把数字变成字），两者都不碰对方的领域。
  * ============================================================ */
 
-import { PHIRA_API } from './phira.js?v=V0.27.2.3';
-import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.27.2.3';
+import { PHIRA_API } from './phira.js?v=V0.28.0.0';
+import { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.28.0.0';
 
 export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };
 
@@ -100,6 +100,9 @@ export function renderNav(active) {
     /* GitHub 放顶栏右侧（2026-10-17 评审：站内的仓库入口原来只挂在某些页面的
        底部/中段，同一份链接散在好几处）。放在版本号前面 —— 版本号是**状态**，
        永远在最右，别被链接挤走。 */
+    /* 登录入口放 GitHub 之前：它是**站内的主功能入口**，
+       GitHub 是外链，重要度低一档。 */
+    + '<a class="navlogin" href="/login">' + esc(t('c.login')) + '</a>'
     + '<a class="ghlink" href="https://github.com/WebExperiments-glitch/Phira-Huamei-Metric"'
     + ' target="_blank" rel="noopener" aria-label="GitHub" title="GitHub · Phira-Huamei-Metric">'
     + '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">'
