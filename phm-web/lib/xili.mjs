@@ -45,9 +45,20 @@ function sig(key, exp, secret) {
  *  另外允许用 `PHM_PUBLIC_HOST` 显式指定公开域名作为第三个锚点 —— 万一网关
  *  连 x-forwarded-host 也剥掉，还有一条不依赖请求头的路。 */
 function sameOrigin(req) {
+  /* ⚠ 2026-11-08 生产实测：CloudStudio Gateway 会把 **host 与 x-forwarded-host 一起**
+     改写成内部沙箱域名（3000-<id>.sandbox.cloudstudio.club），公开域名只出现在
+     Origin / Referer 里。所以「拿请求头当基准」这条路根本走不通 ——
+     必须有知道公开域名的白名单。 */
   const xfh = (req.headers['x-forwarded-host'] || '').split(',')[0].trim().toLowerCase();
-  const pub = (process.env.PHM_PUBLIC_HOST || '').toLowerCase();
-  const hosts = new Set([xfh, (req.headers.host || '').toLowerCase(), pub].filter(Boolean));
+  const pub = (process.env.PHM_PUBLIC_HOSTS || '')
+    .split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const hosts = new Set([
+    xfh,
+    (req.headers.host || '').toLowerCase(),
+    /* 公开域名：默认值写死一个，env 可覆盖/追加（部署侧不必配也能工作） */
+    'phm.app.workbuddy.host',
+    ...pub,
+  ].filter(Boolean));
   const origin = req.headers.origin;
   if (origin) {
     try { return hosts.has(new URL(origin).host.toLowerCase()); } catch { return false; }
