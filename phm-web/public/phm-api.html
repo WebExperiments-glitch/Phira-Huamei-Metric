@@ -112,7 +112,9 @@ footer a{color:var(--fg3)}
     <div class="keyline">
       <span id="keyState" class="keymask">未保存 Key</span>
       <button class="btn ghost" id="showKey" type="button" style="padding:3px 9px;min-height:28px;font-size:12px">显示</button>
+      <button class="btn ghost" id="diagBtn" type="button" style="padding:3px 9px;min-height:28px;font-size:12px">自检 /meta?diag=1</button>
     </div>
+    <div class="status" id="diagStatus"></div>
     <details style="margin-top:12px">
       <summary style="color:var(--fg3);font-size:12.5px;cursor:pointer">高级：API 地址</summary>
       <div class="row" style="margin-top:8px">
@@ -148,6 +150,7 @@ footer a{color:var(--fg3)}
     </div>
     <div class="meta">
       <div><div class="k">标称定数</div><div class="v" id="rDiff">—</div></div>
+      <div><div class="k">标度差（参考）</div><div class="v" id="rDelta" title="ref_const 与 ref_official 基于两套标度，此差值仅供对照坐标，不是误差指标">—</div></div>
       <div><div class="k">PS 负荷</div><div class="v" id="rPs">—</div></div>
       <div><div class="k">物量</div><div class="v" id="rNotes">—</div></div>
       <div><div class="k">引擎</div><div class="v" id="rEng">—</div></div>
@@ -238,7 +241,12 @@ footer a{color:var(--fg3)}
     var k = getKey();
     if (!k) throw new Error('请先在「连接」里保存 API Key');
     opts = opts || {};
-    var headers = { authorization: 'Bearer ' + k };
+    /* 鉴权头用 x-phm-key（API 文档「认证」一节实测结论）：
+       ① Authorization：网关会写入它自己的值，把你的盖掉（自检可见 authorization 长度 ≈386B）；
+       ② x-api-key：网关把它当成自己的鉴权头消费掉，服务端收不到；
+       ③ x-phm-key：私有名字，网关不碰，稳定生效。
+       失效时的表现是静默降级成匿名（1000 次/小时 → 100 次/小时），只有用量页看得出来。 */
+    var headers = { 'x-phm-key': k };
     if (opts.body) headers['content-type'] = 'application/json';
     var res = await fetch(getBase() + path, {
       method: opts.method || 'GET',
@@ -279,6 +287,9 @@ footer a{color:var(--fg3)}
     $('#rNotes').textContent = d.notes == null ? '—' : d.notes;
     $('#rEng').textContent = d.engine_build || d.engine_ver || '—';
     $('#rCache').textContent = d.cached ? 'yes' : 'no';
+    $('#rDelta').textContent = (d.ref_const != null && d.ref_official != null)
+      ? (Number(d.ref_const) - Number(d.ref_official)).toFixed(3)
+      : '—';
     $('#rJson').textContent = JSON.stringify(d, null, 2);
     if (d.analyzed === false) {
       status($('#resultNote'), '这张谱还没有缓存，点「分析」让服务端算一次。', '');
@@ -361,12 +372,40 @@ footer a{color:var(--fg3)}
     try { localStorage.setItem(LS_KEY, v); } catch (e) { return status($('#connStatus'), '浏览器禁止存储，请检查隐私设置', 'err'); }
     paintKey(); status($('#connStatus'), '已保存，正在验证…', '');
     checkServer().then(refreshUsage);
+    $('#diagBtn').click();   /* 顺手自检穿透，别让 Key 静默降级成匿名 */
   };
   $('#clearKey').onclick = function () {
     try { localStorage.removeItem(LS_KEY); } catch (e) {}
     paintKey(); status($('#connStatus'), '已清除 Key', '');
   };
   $('#showKey').onclick = function () { keyHidden = !keyHidden; paintKey(); };
+  /* 自检：文档「认证」一节给的自检方法。diag 返回服务端实际收到的各鉴权头长度，
+     0 表示没穿透 —— 用它能当场判断 Key 是不是在静默降级成匿名。 */
+  $('#diagBtn').onclick = async function () {
+    var el = $('#diagStatus');
+    el.className = 'status'; el.textContent = '诊断中…';
+    try {
+      var r = await fetch(getBase() + '/meta?diag=1');
+      var j = await r.json();
+      var d = j.diag || {};
+      var k = getKey(), seen = d.key_seen === 'yes';
+      if (!k) {
+        el.textContent = '服务 v' + (j.service || '?') + ' · 引擎 ' + (j.engine || '?') + ' · 当前匿名身份（保存 Key 后再点自检可验证穿透）';
+        return;
+      }
+      var ok = seen && (d['x-phm-key'] || 0) > 0;
+      el.className = 'status' + (ok ? ' ok' : ' err');
+      el.textContent = '服务 v' + (j.service || '?') + ' · 引擎 ' + (j.engine || '?')
+        + ' · x-phm-key 到达 ' + (d['x-phm-key'] || 0) + 'B · key_seen=' + (d.key_seen || '—')
+        + (ok ? '（Key 身份生效，1000 次/小时）'
+             : '（⚠ Key 没送达服务端——你正以匿名身份被限流。换网络环境或检查网关）');
+      /* 对照组：网关注入的 authorization 长度也摆出来（非零 ≈ 说明该头确实被改写） */
+      if (d.authorization) el.textContent += ' · authorization=' + d.authorization + 'B（网关写入）';
+    } catch (e) {
+      el.className = 'status err';
+      el.textContent = '诊断失败：' + String(e.message || e);
+    }
+  };
   $('#saveBase').onclick = function () {
     var v = ($('#apiBase').value || '').trim();
     if (!/^https?:\/\//.test(v)) return status($('#connStatus'), 'API 地址必须以 http(s):// 开头', 'err');
