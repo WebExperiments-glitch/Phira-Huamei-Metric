@@ -106,7 +106,7 @@ phm-web/
 │       ├── versions-archive.js ← 版本历史的旧条目。拆开的原因：versions.js 只增不减，每次发版都会顶到 900 行上限
 │       └── sharecard.js       ← 谱面体检卡导出（横版 1200×630 / 竖版 1080×1920）
 │
-├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（80 个）
+├── tools/                     ← 生成物 / 测试 / 校验 / 发版脚本（81 个）
 │   ├── gen-ref.mjs            ← ★★ 参照集的**唯一真源**（产出上面两个数据文件）
 │   ├── gen-release.mjs        ← 从实际 exe 算大小 / sha256 / 客户端版本
 │   ├── warm-cache.mjs         ← ★ 批量预热共享定数缓存（默认填金标集）
@@ -176,6 +176,7 @@ phm-web/
 
 | 我想改… | 看这个 |
 |---|---|
+| 登录后跳转白名单 | `public/js/redirect.js` —— `?redirect=` 只允许**站内相对路径**。⚠ 这个参数完全由用户控制，放任它就是开放重定向（`//evil.example`）甚至 XSS（`javascript:`）。它**必须住在模块里**：内联在 HTML 里的安全代码没人能测。单测 `tools/test-redirect.mjs` 24 条 |
 | 登录页粒子群 | `public/js/particles.js` —— 弹簧回归 + 阻尼 + 鼠标斥力的 canvas 粒子，鼠标扫过把粒子弹开。**这是 Live2D 看板娘的占位**（见 `assets/07-Live2D目标.md`），Live2D 到位后换掉同一个位置。⚠ 颜色从 `--brand` 令牌读（跟随明暗主题），不硬编码色值；`prefers-reduced-motion` 只画静态一帧 |
 | 看板娘（404 / 空状态） | `public/js/xili-still.js` —— 从 `/api/xili/manifest/<key>` 拿签名，逐块取 6×6 碎块后在 canvas 拼。**不给整图文件**：单块只有 1/36 且带盲水印。失败即清空容器，不影响页面功能 |
 | 难度算法 / 特征 / k-NN | `public/js/engine.js` |
