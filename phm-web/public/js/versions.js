@@ -19,9 +19,21 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.27.2.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.27.2.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.27.2.2', date: '2026-11-08',
+    zh: ['<b>上一版没修好，这次才是对的。</b> 网关把 Host 和 x-forwarded-host 一起改写了，'
+      + '所以"拿请求头当基准"根本行不通——改成公开域名白名单。',
+      '<b>自检接口现在会告诉你它收到了什么。</b> host / x-forwarded-host / origin / referer '
+      + '四个字段直出，遇到 403 不用再靠猜。'],
+    en: ['<b>The previous patch was not enough.</b> The gateway rewrites both Host and '
+      + 'x-forwarded-host, so comparing against request headers can never match; '
+      + 'the check is now an allowlist of public hostnames.',
+      '<b>The diagnostics endpoint now reports what it actually received</b> — host, '
+      + 'x-forwarded-host, origin, referer. No more guessing why a request got 403.'],
+  },
   {
     v: 'V0.27.2.1', date: '2026-11-08',
     zh: ['<b>修一个上线两天没人发现的静默故障：看板娘一直没画出来。</b> '
