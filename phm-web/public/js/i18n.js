@@ -164,6 +164,7 @@ export function sanitizeI18nHtml(html) {
   if (!src) return '';
   if (typeof DOMParser === 'undefined') return '';
   let doc;
+  // codeql[js/xss-through-dom] src 已过下方 walk() 的标签+属性白名单；此处只解析与读取
   try { doc = new DOMParser().parseFromString('<div>' + src + '</div>', 'text/html'); }
   catch { return ''; }
   const root = doc.body.firstChild;
