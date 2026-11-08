@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.27.2.3">
+<meta name="app-version" content="V0.28.0.0">
 <title>P.H.M. 开发者文档 · API v1</title>
 <meta name="description" content="P.H.M. API v1：查询与分析 Phira / Phigros 谱面难度。免费，支持匿名与 API Key。">
 <script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
@@ -11,9 +11,9 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.27.2.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.27.2.3">
-<link rel="stylesheet" href="/css/api.css?v=V0.27.2.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.28.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.28.0.0">
+<link rel="stylesheet" href="/css/api.css?v=V0.28.0.0">
 </head>
 <body>
 <div class="wrap"><nav id="nav"></nav></div>
@@ -35,6 +35,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
     <div class="grp">v1.3 新增</div>
     <a href="#data">只读数据端点</a>
     <a href="#health">连通性探测</a>
+    <div class="grp">安全</div>
+    <a href="#guard">请求证明与防控</a>
     <a href="#keys">Key 管理</a>
     <div class="grp">参考</div>
     <a href="#errors">错误码</a>
@@ -304,6 +306,10 @@ print(r.json())</div>
       <tr><td>502</td><td><code>upstream_unavailable</code></td><td>Phira 上游暂时不可用（谱师 / 玩家接口）。<b>不是</b>「没有数据」，请重试而不是当作空结果</td></tr>
       <tr><td>502</td><td><code>stats_unavailable</code></td><td>统计服务暂时不可用</td></tr>
       <tr><td>502</td><td><code>data_unavailable</code></td><td>v1.3 只读端点的数据源暂时不可读</td></tr>
+      <tr><td>403</td><td><code>authentication_required</code></td><td>匿名触发了重算；请用 Key 或签名请求</td></tr>
+      <tr><td>401</td><td><code>invalid_signature</code> / <code>invalid_proof</code></td><td>签名过期、错误、nonce/jti 重放</td></tr>
+      <tr><td>428</td><td><code>precondition_required</code></td><td>需要完成 PoW 挑战</td></tr>
+      <tr><td>503</td><td><code>concurrency_limit</code></td><td>单身份在途请求超过 4</td></tr>
       <tr><td>503</td><td><code>analysis_busy</code> / <code>rate_limit_unavailable</code></td><td>分析并发已满 / 限流器故障</td></tr>
     </table>
 
@@ -359,8 +365,81 @@ print(r.json())</div>
       响应只回 ok / ms / 分类，不回内部主机名、连接串或上游正文。
     </div>
 
+    <h2 id="guard">请求证明与防控 <span class="api-tag">v1.4</span></h2>
+    <p>API 是公开的，但「公开」不等于「无限」。<b>匿名访问完整保留</b>，
+      只读接口照旧可用；被收紧的只有一件事：<b>匿名不能再触发谱面重算</b>
+      （下载谱面 + 跑引擎是全站最贵的操作，之前相当于免费算力放大器）。</p>
+
+    <table class="api-table">
+      <tr><th>档位</th><th>怎么获得</th><th>配额</th><th>能做重算吗</th></tr>
+      <tr><td><code>anon</code></td><td>什么都不带</td><td>100/h，突发 12/10s</td><td><b>不能</b></td></tr>
+      <tr><td><code>key</code></td><td><code>x-phm-key: sk-…</code></td><td>1000/h，突发 25/10s</td><td>能（200/天）</td></tr>
+      <tr><td><code>signed</code></td><td>HMAC 签名 <b>或</b> DPoP 证明</td><td>2000/h，突发 40/10s</td><td>能</td></tr>
+      <tr><td><code>admin</code></td><td><code>PHM_ADMIN_SECRET</code> + 时间戳签名</td><td>2000/h</td><td>管理 Key</td></tr>
+    </table>
+    <div class="api-note" style="margin:10px 0">
+      <b>兼容承诺：</b>所有增强都走<b>可选请求头</b>。一个头都不带的现有匿名客户端、
+      以及现有 <code>sk-</code> Key 客户端，行为完全不变（除了匿名重算被收口）。
+      <code>GET /api/v1/meta</code> 的 <code>guard</code> 字段会自述当前启用了哪些能力。
+    </div>
+
+    <h3>① HMAC 请求签名</h3>
+    <div class="api-code">x-phm-ts:      &lt;毫秒时间戳&gt;
+x-phm-nonce:   &lt;8..128 字符，一次性&gt;
+x-phm-sig:     base64url(HMAC-SHA256(base, secret))
+x-phm-signer:  &lt;可选，调用方标识&gt;
+
+base = METHOD + "\n" + PATH + "\n" + sha256(body) + "\n" + ts + "\n" + nonce
+PATH 是去掉 query 的完整路径，例如 /api/v1/analyses（含 /api/v1 前缀）</div>
+    <p>时间戳允许 ±5 分钟，nonce 用后即弃（10 分钟内不可复用）。
+      密钥取 <code>PHM_HMAC_SECRET</code>；未显式配置时由服务端写入凭据派生，
+      <b>那条路只面向可信的内部服务端</b>——要开放给第三方，请显式配置并分发该值。</p>
+
+    <h3>② DPoP 自包含证明（推荐给第三方）</h3>
+    <p>不需要注册、不需要预先交换密钥：客户端自己生成一对 P-256 密钥，把公钥放进请求头即可。</p>
+    <div class="api-code">x-phm-proof: base64url(header).base64url(payload).base64url(sig)
+
+header  = { "alg":"ES256", "typ":"dpop+jwt", "jwk": { 客户端公钥 JWK } }
+payload = { "htm":"GET", "htu":"/api/v1/charts", "iat": &lt;毫秒&gt;,
+            "jti": &lt;一次性 UUID&gt;, "jkt": &lt;可选，公钥指纹&gt; }
+sig     = ES256 签名，覆盖 header + "." + payload</div>
+    <p>服务端验签、核对 <code>htm/htu</code>、检查 <code>iat</code> 与 <code>jti</code> 重放。
+      带 <code>sk-</code> Key 时还会把公钥指纹与该 Key 绑定，之后换密钥即拒绝。</p>
+
+    <h3>③ PoW 挑战 / 行为熵 / 诱捕</h3>
+    <p>只对匿名生效。请求间隔异常均匀（或亚毫秒连发）时返回：</p>
+    <div class="api-code">HTTP 428 Precondition Required
+{ "challenge": { "seed":"…", "bits":2, "expires_at":"…" } }</div>
+    <p>求一个十六进制 <code>nonce</code> 使 <code>sha256(seed + ":" + nonce)</code> 以
+      <code>bits</code> 个 <code>0</code> 开头，重发时带 <code>x-phm-pow: &lt;nonce&gt;</code>。
+      难度默认 2（约几百次哈希，浏览器毫秒级）。连续失败会转入极轻量的诱捕响应，
+      不查库、不跑引擎——耗的是攻击者的时间，不是我们的算力。</p>
+
+    <h3>④ 管理员密钥</h3>
+    <p><code>/keys</code>（创建 / 轮换 / 吊销）除账号 token 外，新增一条独立通道：</p>
+    <div class="api-code">x-phm-admin: &lt;PHM_ADMIN_SECRET&gt;
+x-phm-ts:    &lt;毫秒时间戳，±60s&gt;
+x-phm-sig:   base64url(HMAC-SHA256("admin:" + ts, PHM_ADMIN_SECRET))</div>
+    <p>未配置 <code>PHM_ADMIN_SECRET</code> 时该通道<b>关闭</b>，账号 token 路径照旧。
+      绝不会回退到服务端内部密钥。</p>
+
+    <h3>环境变量</h3>
+    <table class="api-table">
+      <tr><th>变量</th><th>默认</th><th>作用</th></tr>
+      <tr><td><code>PHM_HMAC_SECRET</code></td><td>从写入凭据派生</td><td>HMAC 签名密钥</td></tr>
+      <tr><td><code>PHM_ADMIN_SECRET</code></td><td>空（关闭）</td><td>管理员通道</td></tr>
+      <tr><td><code>PHM_POW</code> / <code>PHM_ENTROPY</code> / <code>PHM_DECOY</code></td><td>开</td><td>置 <code>0</code> 分别关闭</td></tr>
+      <tr><td><code>PHM_POW_BITS</code></td><td>2</td><td>难度，1..4</td></tr>
+    </table>
+    <div class="api-note" style="margin:10px 0">
+      <b>无状态部署的边界：</b>nonce / jti / 行为记录都在进程内，重启即清空。
+      这是刻意的取舍——宁可重启后重新观察，也不把安全状态放进不可用的外部存储。
+      若需要跨进程防重放，应把这三张表挪到共享存储，属于后续重构。
+    </div>
+
     <h2 id="changelog">更新日志</h2>
     <ul>
+      <li><b>2026-11-08 · v1.4</b>：三档身份 + 五层防控（HMAC 签名 / DPoP 证明 / 按 subject 双桶限流 / 独立管理员密钥 / PoW·行为熵·诱捕）。匿名保留但禁止触发重算；所有增强通过可选请求头启用，现有客户端不受影响。</li>
       <li><b>2026-11-08 · v1.3</b>：新增 9 个只读端点（玩家实测难度 / 社区参照集 / 引擎权重 / 版本历史 / 状态 / 事件 / 标称差）与公开连通性探测 <code>/health</code>；scope 从 3 个扩到 7 个；OpenAPI 契约覆盖全部 20 个端点。</li>
       <li><b>2026-10-18 · v1.2</b>：新增 <code>/charts</code> 列表（分页 / 搜索 / 排序 / 过滤）、<code>/stats</code> 全库统计、<code>/charters/{uid}</code> 谱师作品、<code>/players/{uid}</code> 玩家资料；端点从 9 个扩到 13 个。鉴权头改为推荐 <code>x-phm-key</code>（原因见「认证」一节）。</li>
       <li><b>2026-10-17 · v1.1</b>：Key scopes / 过期 / 轮换；按 Key 用量；<code>/meta</code> 构建信息；OpenAPI 单一契约 <code>/api/v1/openapi.json</code>。</li>
@@ -390,8 +469,8 @@ print(r.json())</div>
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.27.2.3';
-import { installGuard } from '/js/guard.js?v=V0.27.2.3';
+import { renderNav } from '/js/ui.js?v=V0.28.0.0';
+import { installGuard } from '/js/guard.js?v=V0.28.0.0';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
