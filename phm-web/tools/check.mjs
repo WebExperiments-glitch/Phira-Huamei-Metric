@@ -42,6 +42,8 @@ const STEPS = [
   ['限流单测（73 条；真实 DB 路径另跑 PHM_TEST_DB=1）', 'node', ['tools/test-ratelimit.mjs']],
   ['API 防控单测（16 条：签名 / DPoP / PoW / 分档）', 'node', ['tools/test-api-guard.mjs']],
   ['跳转白名单单测（24 条：开放重定向 / XSS）', 'node', ['tools/test-redirect.mjs']],
+  ['压力与降级单测（43 条：成本分档 / 牺牲顺序）', 'node', ['tools/test-load.mjs']],
+  ['协议自洽评分单测（19 条：不误伤真人 / 识别伪装）', 'node', ['tools/test-trust.mjs']],
   ['贡献凭证单测（11 条）', 'node', ['tools/test-contribute-ticket.mjs']],
   ['API Key 单测（8 条）', 'node', ['tools/test-api-keys.mjs']],
   ['OpenAPI 契约', 'node', ['tools/lint-openapi.mjs']],

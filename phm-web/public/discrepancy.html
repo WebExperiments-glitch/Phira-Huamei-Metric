@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.28.0.3">
+<meta name="app-version" content="V0.29.0.0">
 <title>标称 vs 实测 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="谱面上的定数是谱师自己填的。这一页拿它和玩家实际打出来的难度对比，找出标注离真实体验最远的谱面。">
@@ -12,8 +12,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.28.0.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.28.0.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.29.0.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.29.0.0">
 <style>
 /* ── 统计条：四个数，等宽对齐 ──
    刻意不加彩色：唯一需要强调的只有「差 1 档以上」的占比，
@@ -103,8 +103,8 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 </div>
 
 <script type="module">
-import { t, applyStatic, onLangChange, renderNav, esc } from '/js/ui.js?v=V0.28.0.3';
-import { ROWS, META } from '/js/discrepancy-data.js?v=V0.28.0.3';
+import { t, applyStatic, onLangChange, renderNav, esc } from '/js/ui.js?v=V0.29.0.0';
+import { ROWS, META } from '/js/discrepancy-data.js?v=V0.29.0.0';
 
 let mode = 'abs';   /* abs | hi | lo */
 
