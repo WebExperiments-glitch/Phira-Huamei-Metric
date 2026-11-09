@@ -36,3 +36,5 @@ tools/_tmp*.py
 tools/_tmp*.mjs
 tools/_tmp*.sh
 build-app/
+admin-secret.txt
+admin2-hash.txt

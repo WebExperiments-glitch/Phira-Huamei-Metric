@@ -27,6 +27,9 @@
  *   文档里写清楚，别让人误以为是持久防重放。
  * ============================================================ */
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
 import { limit, tryEnter, leave, RL } from './ratelimit.mjs';
 import { TIERS } from './api-keys.mjs';
 import { trustSignals } from './api-trust.mjs';
@@ -36,9 +39,19 @@ const BURST_MS = 10_000;
 const TS_TOL = 300_000;
 const NONCE_TTL = 600_000;
 
+/* 一级管理员密码：优先环境变量，其次 admin-secret.txt（gitignore）。
+   文件是给"人"保管的口子 —— 换密码只要改文件，不用重新部署环境变量。 */
+function readAdminSecret() {
+  if (process.env.PHM_ADMIN_SECRET) return String(process.env.PHM_ADMIN_SECRET).trim();
+  try {
+    const ROOT = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
+    return fs.readFileSync(path.join(ROOT, 'admin-secret.txt'), 'utf8').trim();
+  } catch { return ''; }
+}
+
 const CFG = {
   hmac: process.env.PHM_HMAC_SECRET || '',
-  admin: process.env.PHM_ADMIN_SECRET || '',
+  admin: readAdminSecret(),
   pow: process.env.PHM_POW !== '0',
   entropy: process.env.PHM_ENTROPY !== '0',
   decoy: process.env.PHM_DECOY !== '0',
