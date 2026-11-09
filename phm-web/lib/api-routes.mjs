@@ -195,9 +195,12 @@ export function makeApiRoutes(deps) {
     const scopes = Array.isArray(j.scopes) && j.scopes.length
       ? j.scopes.filter(s => ALL_SCOPES.includes(s))
       : ALL_SCOPES.slice();
-    /* 档位由 owner 前缀推导（internal → admin，monitor/premium → premium）。 */
-    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes,
-      tier: tierOfOwner(j.owner_id) };
+    /* 档位以数据库的 plan 列为准（free 视作 normal）。
+       ⚠ 早先是按 owner 前缀猜的（internal→admin），那是加列前的临时办法；
+         现在 hm_api_keys.plan 是权威，改档位不用重建 key。 */
+    const plan = String(j.plan || 'free');
+    const tier = plan === 'admin' ? 'admin' : (plan === 'premium' ? 'premium' : 'normal');
+    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes, plan, tier };
   }
 
   /* 防控统一走 lib/api-guard.mjs（5 层 / 三档身份 / 保留匿名）。
