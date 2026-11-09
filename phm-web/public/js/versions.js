@@ -19,9 +19,26 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.28.0.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.28.0.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.28.0.2', date: '2026-11-09',
+    zh: ['<b>「分析谱面」那条监控红了一整夜，但不是服务挂了。</b> 昨晚把匿名的分析请求收口成 403，'
+      + '而状态页那条监控是匿名发的 —— 它测的东西已经不存在了。',
+      '<b>修法不是把监控删掉，而是给它一个真正能探的东西。</b> 新增 <code>/api/v1/analyses/probe</code>：'
+      + '公开、免 Key、免限流，检查数据库、引擎权重、缓存谱面，不下载谱面也不跑引擎。',
+      '<b>顺手把监控频率从 5 分钟降到 10 分钟。</b> 匿名配额只有每小时 100 次，'
+      + '7 条监控 5 分钟一次就要 84 次 —— 几乎打满，真实用户一来就得排队。'],
+    en: ['<b>The "analysis" monitor was red all night — but nothing was down.</b> Anonymous analysis '
+      + 'calls started returning 403 last night, and that monitor probes anonymously: it was measuring '
+      + 'something that no longer exists.',
+      '<b>The fix is not deleting the monitor, but giving it something real to probe.</b> New endpoint '
+      + '<code>/api/v1/analyses/probe</code>: public, keyless and rate-limit-free — it checks the database, '
+      + 'the engine weights and the cache, without downloading or running anything.',
+      '<b>Monitor frequency also went from 5 minutes to 10.</b> The anonymous quota is 100/hour; seven '
+      + 'monitors at 5-minute intervals already use 84 of them, leaving real users to queue.'],
+  },
   {
     v: 'V0.28.0.1', date: '2026-11-09',
     zh: ['<b>玩家实测难度换了一版数据：样本 86 倍。</b> 反推用到的成绩从 15.8 万条扩到 1,357 万条，'
