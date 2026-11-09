@@ -57,8 +57,12 @@ export function maskApiKey(key) {
 
 /** 生成一把新 key。返回 {key, hash, hint}；key 只应回给用户一次。 */
 export function generateApiKey() {
-  /* 32 字节 = 256 bit 熵，base64url 43 位。不用 hex：同样字节数下 hex 要 64 位，
-     肉眼更长但熵一样，base64url 更短更适合贴进配置。 */
-  const key = KEY_PREFIX + crypto.randomBytes(32).toString('base64url');
+  /* ⚠ 2026-11-09 回退到 16 字节 hex（128 bit）：
+     新版 43 位 base64url 在线上认证不过 —— 部署后 api-keys.mjs 的 KEY_RE
+     没跟着更新（同一个部署里 api-guard 的 capabilities 是新的，说明是
+     部分文件更新不一致）。128 bit 仍远高于暴力破解门槛（业界最低要求就是 128），
+     不为一个部署问题阻塞发布；等部署管线查清再切回 256 bit。
+     读取侧 KEY_RE 仍同时认两种格式，切回时不需要再改这里。 */
+  const key = KEY_PREFIX + crypto.randomBytes(16).toString('hex');
   return { key, hash: hashApiKey(key), hint: maskApiKey(key) };
 }

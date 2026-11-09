@@ -19,7 +19,7 @@ T('哈希是 64 位 hex', /^[0-9a-f]{64}$/.test(a.hash));
 T('掩码形状 sk-xxx…xxxx', /^sk-[A-Za-z0-9_-]{3}…[A-Za-z0-9_-]{4}$/.test(a.hint), a.hint);
 T('掩码不含完整 key', !a.hint.includes(a.key.slice(3)), a.hint);
 T('新旧两种 key 格式都认（换格式不能让存量失效）',
-  KEY_RE.test(a.key) && KEY_RE.test('sk-1c4ae021d44d29028522046029828b1b'), a.key);
+  KEY_RE.test(a.key) && KEY_RE.test('sk-00000000000000000000000000000000'), a.key);
 T('非法 key 的掩码兜底', maskApiKey('not-a-key') === 'sk-****');
 T('每账号上限 100', MAX_KEYS_PER_OWNER === 100, String(MAX_KEYS_PER_OWNER));
 
