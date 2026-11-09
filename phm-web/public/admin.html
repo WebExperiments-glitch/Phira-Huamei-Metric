@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.29.0.3">
+<meta name="app-version" content="V0.29.0.4">
 <meta name="robots" content="noindex,nofollow">
 <title>管理台 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
@@ -12,8 +12,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.29.0.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.29.0.3">
+<link rel="stylesheet" href="/css/base.css?v=V0.29.0.4">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.29.0.4">
 <style>
 /* 管理台：一屏能看完，不加装饰。颜色全部走令牌。 */
 .ad{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
@@ -102,9 +102,25 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
     <div class="card">
       <div class="row">
         <div><label for="pw2">二级密码（写操作时必填）</label><input id="pw2" type="password" autocomplete="off"></div>
+        <button class="ghost" id="btnTogglePw2">修改二级密码</button>
       </div>
       <div class="muted" style="margin-top:10px">
         ⚠ 二级密码只在你点"保存"时随请求发一次，不写 localStorage。
+      </div>
+
+      <!-- 修改二级密码：必须同时给旧密码，否则一次密码就能被改掉 -->
+      <div id="pw2Change" class="hide" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+        <div class="row">
+          <div><label for="pw2old">当前二级密码</label><input id="pw2old" type="password" autocomplete="off"></div>
+          <div><label for="pw2n1">新密码（10 位以上）</label><input id="pw2n1" type="password" autocomplete="new-password"></div>
+          <div><label for="pw2n2">再输一次</label><input id="pw2n2" type="password" autocomplete="new-password"></div>
+          <button id="btnChangePw2">确认修改</button>
+        </div>
+        <div class="err" id="pw2Err"></div>
+        <div class="muted" style="margin-top:10px">
+          改密码要验旧密码 —— 否则只有一级密码的人（运维）也能把你唯一的锁换掉。
+          忘记旧密码只能由运维在数据库里清空后重设，无法自助。
+        </div>
       </div>
     </div>
   </div>
@@ -238,6 +254,28 @@ $('btnSetPw2').onclick = async () => {
   $('pw2new').value = ''; $('pw2new2').value = '';
   show('panel');
   await loadAll();
+};
+
+$('btnTogglePw2').onclick = () => $('pw2Change').classList.toggle('hide');
+
+$('btnChangePw2').onclick = async () => {
+  err('pw2Err', '');
+  const a = $('pw2n1').value, b = $('pw2n2').value, oldpw = $('pw2old').value;
+  if (a.length < 10) { err('pw2Err', '新密码至少 10 位'); return; }
+  if (a !== b) { err('pw2Err', '两次输入不一致'); return; }
+  const h = Object.assign({ 'content-type': 'application/json' }, await adminHeaders());
+  h['x-phm-admin2'] = oldpw;                 /* 旧密码：服务端校验 */
+  const r = await fetch(API + '/admin/set-admin2', { method: 'POST', headers: h, body: JSON.stringify({ password: a }) });
+  let j = null; try { j = await r.json(); } catch { /* 空 */ }
+  if (r.status !== 200) {
+    err('pw2Err', '修改失败：' + ((j && j.error && (j.error.code || j.error.message)) || r.status));
+    return;
+  }
+  $('pw2old').value = ''; $('pw2n1').value = ''; $('pw2n2').value = '';
+  $('pw2').value = a;                         /* 顺手把当前操作密码换成新的 */
+  $('pw2Change').classList.add('hide');
+  err('pw2Err', '');
+  alert('二级密码已修改');
 };
 
 $('btnReload').onclick = () => loadAll();

@@ -19,9 +19,28 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.29.0.3';
+import { ARCHIVE } from './versions-archive.js?v=V0.29.0.4';
 
 export const RELEASES = [
+  {
+    v: 'V0.29.0.4', date: '2026-11-09',
+    zh: ['<b>二级密码之前存在服务器的文件里 —— 每次部署都会把它覆盖掉。</b> '
+      + '所以你设完之后再刷新，服务端会告诉你"还没设置"。这不是你操作错了，是存错了地方。'
+      + '现在改存数据库，部署多少次都不会丢。',
+      '<b>现在可以改密码了，但必须给旧密码。</b> 之前只有一级密码就能覆盖，'
+      + '那意味着运维能单独把你的锁换掉 —— 二级密码等于不存在。'
+      + '现在改密码要验旧密码，运维只有一级密码，改不了。',
+      '<b>忘记旧密码没有自助通道。</b> 只能由运维在数据库里清空后重设，'
+      + '而这件事会在操作记录里留下痕迹 —— 这是刻意的取舍：能救你，但不可能悄悄做。'],
+    en: ['<b>The second-level password was stored in a file on the server — and every deploy overwrote it.</b> '
+      + 'So after setting it, a refresh would report "not set yet". That was not your mistake; it was stored '
+      + 'in the wrong place. It now lives in the database and survives any number of deploys.',
+      '<b>You can change it now, but the current password is required.</b> Previously the first-level password '
+      + 'alone could overwrite it — meaning operations could replace your only lock, making the second factor '
+      + 'meaningless. Changing it now verifies the old one, and operations does not have it.',
+      '<b>There is no self-service reset if you forget it.</b> Only operations can clear and re-set it in the '
+      + 'database, and that leaves a trace. That is a deliberate trade-off: recoverable, but never silently.'],
+  },
   {
     v: 'V0.29.0.3', date: '2026-11-09',
     zh: ['<b>这一版只做一件事：把版本历史补全并写详细。</b> '
