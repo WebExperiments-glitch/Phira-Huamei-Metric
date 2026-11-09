@@ -18,6 +18,7 @@ import {
   statusData, incidents, health, analysisProbe, EXTRA_SCOPES,
 } from './api-extras.mjs';
 import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
+import { loadEnter, loadLeave, costOf, shouldShed, loadStats } from './api-load.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -200,6 +201,22 @@ export function makeApiRoutes(deps) {
   /* 防控统一走 lib/api-guard.mjs（5 层 / 三档身份 / 保留匿名）。
      这里只负责把结果翻译成 HTTP，并在响应完成时释放并发槽。 */
   async function gateApi(res, who, ip, { analysis = false, bodyText = '', endpoint = '' } = {}) {
+    /* 层 6：压力感知的选择性放弃（见 lib/api-load.mjs）。
+       ⚠ 必须在限流之前判：限流是"你用得太多"，这里是"全站都快撑不住了"，
+         后者更紧急 —— 继续让请求进来只会大家一起变慢直到连状态页都打不开。
+       廉价档（本地 JSON）永远不 shed：它是"我还活着"的最后证据。 */
+    const cost = costOf(reqOf(res).url);
+    const roughTier = who.kind === 'key' ? 'key' : 'anon';
+    const shed = shouldShed(cost, roughTier);
+    if (shed.shed) {
+      return apiErr(res, 503, 'server_error', 'load_shedding',
+        'server is under load; retry shortly',
+        { 'retry-after': String(shed.retryAfter || 5) });
+    }
+    const tLoad = Date.now();
+    loadEnter();
+    res.once('finish', () => loadLeave(Date.now() - tLoad));
+
     const g = await evaluateGuard(reqOf(res), who, ip, { analysis, bodyText, endpoint, writeSecret });
     if (g.ok) {
       if (g.release) res.once('finish', g.release);
@@ -693,6 +710,8 @@ export function makeApiRoutes(deps) {
         engine: engineVer || null,
         time: new Date().toISOString(),
         guard: guardCapabilities(),
+        /* 压力信号：给监控和排障用。level 变了但接口还通，说明降级在工作。 */
+        load: loadStats(),
       };
       /* ?diag=1 —— 鉴权头自检。**只回长度，不回内容**：
          0 表示这个头没穿透到服务端（网关吞了/没发），>0 表示收到了。
