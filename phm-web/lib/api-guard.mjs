@@ -29,6 +29,7 @@
 import crypto from 'node:crypto';
 import { limit, tryEnter, leave, RL } from './ratelimit.mjs';
 import { TIERS } from './api-keys.mjs';
+import { trustSignals } from './api-trust.mjs';
 
 const HOUR = 3_600_000;
 const BURST_MS = 10_000;
@@ -251,9 +252,12 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
       message: 'analysis requires an API key or a signed request; anonymous read-only access is retained' };
   }
 
-  /* 层 5：只对匿名做软挑战，正常浏览完全无感 */
+  /* 层 5：只对匿名做软挑战，正常浏览完全无感。
+     两个独立信号：行为熵（时序）+ 协议自洽（请求自己说不说得通）。
+     任一可疑就要求 PoW —— 真人几毫秒过，伪装者每请求都要付成本。 */
   if (tier === 'anon' && CFG.pow) {
-    const suspicious = CFG.entropy && behaviorOdd(subject, now);
+    const trust = trustSignals(req);
+    const suspicious = (CFG.entropy && behaviorOdd(subject, now)) || trust.sus;
     const c = challenges.get(subject);
     if (suspicious || (c && c.exp > now)) {
       const ch = softChallenge(subject, now);
@@ -269,7 +273,11 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
         return { ok: false, status: 428, code: 'precondition_required',
           message: 'proof of work required',
           headers: { 'retry-after': '1' },
-          body: { challenge: { seed: ch.seed, bits: CFG.difficulty, expires_at: new Date(ch.exp).toISOString() } } };
+          body: {
+            challenge: { seed: ch.seed, bits: CFG.difficulty, expires_at: new Date(ch.exp).toISOString() },
+            /* 原因码：方便调用方判断是"太密集"还是"协议不自洽" */
+            reason: trust.sus ? ('trust:' + trust.reasons.join(',')) : 'rate',
+          } };
       }
       challenges.delete(subject);
     }
