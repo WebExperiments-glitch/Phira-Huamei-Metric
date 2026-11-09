@@ -19,9 +19,89 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.29.0.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.29.0.3';
 
 export const RELEASES = [
+  {
+    v: 'V0.29.0.3', date: '2026-11-09',
+    zh: ['<b>这一版只做一件事：把版本历史补全并写详细。</b> '
+      + 'V0.29.0.0 和 V0.29.0.1 的用户向说明之前没写进页面数据源（一次脚本写入失败，被当成了成功），'
+      + '所以 /version 一直停在 V0.28.0.3 —— 你看到的就是这个。',
+      '<b>以后每条更新都按「为什么、动了什么、对你意味着什么」写。</b> '
+      + '不再只写「修了某某」，而是说清楚它原本错在哪、为什么错、以及你作为使用者会不会感觉到变化。',
+      '<b>另外顺手确认了一遍：</b>7 条监控现在全部正常，两份状态页通报已发布'
+      + '（一份讲监控探针与鉴权不同步，一份讲监控配置过脆 + 换密钥留了空档）。'],
+    en: ['<b>This release does one thing: complete the version history and write it properly.</b> '
+      + 'The user-facing notes for V0.29.0.0 and V0.29.0.1 never made it into the page data source '
+      + '(a script write failed and I treated it as success), so /version was stuck at V0.28.0.3.',
+      '<b>From now on every entry answers three questions:</b> why it was wrong, what changed, and what it '
+      + 'means for you — not just "fixed something".',
+      '<b>Also re-checked:</b> all seven monitors are green, and two status-page reports are published '
+      + '(one on monitors falling out of sync with auth, one on brittle monitor settings plus a key rotation gap).'],
+  },
+  {
+    v: 'V0.29.0.2', date: '2026-11-09',
+    zh: ['<b>补 /version 页的版本历史。</b> 上一版把用户向说明写进了 CHANGELOG，却漏了页面数据源 —— '
+      + '内部记录和对外页面是两份，只改一份就会「开发者知道、用户看不到」。',
+      '<b>教训：改完必须验证。</b> 这次不是脚本报错，而是脚本静默失败（Python 语法错误后我当成成功）。'
+      + '以后改 `versions.js` 一定验证 `RELEASES[0].v` 真的变了。'],
+    en: ['<b>Filling in the missing version history.</b> The previous release updated the internal changelog '
+      + 'but not the page data source — two separate files, and touching only one means developers know while '
+      + 'users see nothing.',
+      '<b>Lesson: verify after writing.</b> The script did not fail loudly; it failed silently. '
+      + 'Any change to `versions.js` now gets checked for `RELEASES[0].v` actually moving.'],
+  },
+  {
+    v: 'V0.29.0.1', date: '2026-11-09',
+    zh: ['<b>状态页红了一下午，原因是我们自己的监控配置太脆。</b> '
+      + '「谱师作品」「玩家资料」这两个接口要去上游 Phira 取数据，而上游本身就要 1.5~3.4 秒、还忽快忽慢。'
+      + '监控原来的超时是 30 秒、而且<b>只要失败一次就判红</b> —— 一次网络抖动就够。'
+      + '现在改成 45 秒超时 + 连续失败 3 次才算故障。',
+      '<b>换密钥时留了 15 分钟空档，7 条监控一起 401。</b> 这是操作失误：应该先上新的、确认生效，再撤旧的。'
+      + '空档期内所有监控都在用一把已吊销的钥匙。',
+      '<b>还清掉一处真实泄漏。</b> 一把监控用的密钥被写进了测试文件，而这个仓库是公开的。'
+      + '已吊销、已换成假值 —— 那把钥匙现在打过来只会得到 401。'],
+    en: ['<b>The status page was red all afternoon, and the cause was our own brittle monitoring config.</b> '
+      + 'Two endpoints call upstream Phira, which itself takes 1.5–3.4s and is jittery. The monitors were set '
+      + 'to a 30s timeout and <b>a single failure counted as down</b> — one network hiccup was enough. '
+      + 'Now 45s with three consecutive failures required.',
+      '<b>We left a 15-minute gap while rotating keys, so all seven monitors returned 401 at once.</b> '
+      + 'That was an operational mistake: add the new key and confirm it works before revoking the old one.',
+      '<b>One real leak was cleaned up.</b> A monitoring key had been written into a test file, and this '
+      + 'repository is public. It has been revoked and replaced with a dummy — that key now only gets 401.'],
+  },
+  {
+    v: 'V0.29.0.0', date: '2026-11-09',
+    zh: ['<b>API 的防护补完了，而且匿名没被砍。</b> 现在分三档：匿名只读、持 Key、带签名/证明；'
+      + '管理员另走一条独立通道。被收紧的只有一件事 —— 匿名不能再触发谱面重算，'
+      + '因为那条路原来等于一个免费算力放大器（下载谱面 + 跑引擎，并发槽只有 2）。',
+      '<b>多了管理台，还有两道锁。</b> <code>/admin</code> 用一级密码登录看全量密钥与调用量，'
+      + '但改档位、批申请这些写操作要再输一次只有站长知道的二级密码 —— '
+      + '一级密码运维也知道，只靠它等于运维一个人能改所有人的额度。',
+      '<b>多了压力感知：真被打了，会先牺牲昂贵的接口。</b> 本地数据类的接口（元信息、引擎权重、'
+      + '行为数据、探针）永远不放弃，因为它们不碰数据库，是「服务还活着」的最后证据；'
+      + '打上游和跑引擎的接口最先让路。牺牲顺序是 匿名 → 持 Key → 签名/管理员。',
+      '<b>还有一个不开验证码的真人判定。</b> 只怀疑「装作浏览器」的请求：'
+      + '声称是 Chrome 却不送客户端提示头、平台字段和 UA 自相矛盾、或者用导航模式调 API。'
+      + 'curl、脚本、监控这些<b>明说自己不是浏览器的，一分不扣</b>。'
+      + '可疑的请求不直接拒绝，只要求做一次几毫秒的算术题。'],
+    en: ['<b>The API guards are complete — and anonymous access was not removed.</b> Three tiers now: '
+      + 'anonymous read-only, keyed, and signed; admins get a separate channel. The only thing anonymous '
+      + 'users lost is the ability to trigger a recompute, which was effectively a free compute amplifier.',
+      '<b>There is an admin console now, behind two locks.</b> <code>/admin</code> signs in with the first '
+      + 'password to view keys and usage; changing tiers or approving requests needs a second password only '
+      + 'the site owner knows — operations knows the first one, so relying on it alone would mean ops can '
+      + 'change the quota of every key single-handedly.',
+      '<b>Load shedding landed: under pressure, expensive endpoints give way first.</b> Endpoints served from '
+      + 'local data (metadata, engine weights, behaviour data, the probe) are never shed, because they do not '
+      + 'touch the database and are the last proof that the service is alive. Upstream calls and recomputes '
+      + 'yield first. Order: anonymous → keyed → signed/admin.',
+      '<b>A captcha-free human check.</b> It only suspects requests that <i>pretend to be a browser</i>: '
+      + 'claiming Chrome without client hints, a platform field contradicting the user agent, or navigating '
+      + 'to an API endpoint. curl, scripts and monitors openly identify as non-browsers and <b>lose no points '
+      + 'at all</b>. Suspicious requests are not rejected — they only have to solve a few milliseconds of '
+      + 'arithmetic.'],
+  },
   {
     v: 'V0.28.0.3', date: '2026-11-09',
     zh: ['<b>PoW 挑战误伤了状态页监控。</b> 今天「全库统计」「玩家资料」各有几次 428 —— '
