@@ -28,6 +28,7 @@
  * ============================================================ */
 import crypto from 'node:crypto';
 import { limit, tryEnter, leave, RL } from './ratelimit.mjs';
+import { TIERS } from './api-keys.mjs';
 
 const HOUR = 3_600_000;
 const BURST_MS = 10_000;
@@ -274,12 +275,15 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
     }
   }
 
-  /* 层 3：突发 + 持续双桶，按 subject 而不是裸 IP */
+  /* 层 3：突发 + 持续双桶，按 subject 而不是裸 IP。
+     Key 的额度按档位取（normal 1000 / premium 5000 / admin 20000）——
+     admin 也不是无限：无限等于没有上限，被打时自己先挂。 */
   const isKey = who.kind === 'key';
-  const burstMax = tier === 'anon' ? 12 : (tier === 'signed' || admin ? 40 : 25);
-  const hourMax = admin ? RL.apiKeyHour * 2
-    : tier === 'anon' ? RL.apiAnonHour
-      : tier === 'signed' ? RL.apiKeyHour * 2 : RL.apiKeyHour;
+  const quota = TIERS[(who && who.tier) || 'normal'] || TIERS.normal;
+  const burstMax = tier === 'anon' ? 12
+    : (tier === 'signed' ? Math.max(40, quota.burst) : quota.burst);
+  const hourMax = tier === 'anon' ? RL.apiAnonHour
+    : (tier === 'signed' ? Math.max(RL.apiKeyHour * 2, quota.hour * 2) : quota.hour);
 
   const burst = await limit([{ k: 'api:burst:' + subject, max: burstMax }], burstMax, BURST_MS, { failClosed: true });
   if (!burst.ok) {
@@ -299,8 +303,9 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
       headers: { 'retry-after': '60' } };
   }
   if (analysis && isKey) {
-    const a = await limit([{ k: 'api:analyze:' + who.id, max: RL.apiAnalyzeDay }],
-      RL.apiAnalyzeDay, 86_400_000, { failClosed: true });
+    const dayMax = quota.analyzeDay || RL.apiAnalyzeDay;
+    const a = await limit([{ k: 'api:analyze:' + who.id, max: dayMax }],
+      dayMax, 86_400_000, { failClosed: true });
     if (!a.ok) return { ok: false, status: 429, code: 'rate_limit_exceeded',
       message: 'daily analysis quota exceeded', headers: { 'retry-after': '3600' } };
   }
@@ -316,8 +321,11 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
 
 export function guardCapabilities() {
   return {
-    tiers: ['anon', 'key', 'signed', 'admin'],
+    tiers: ['anon', 'normal', 'premium', 'admin', 'signed'],
+    /* 三档 Key 配额（由 owner 前缀推导；admin 也不是无限，见 lib/api-keys.mjs） */
+    quotas: TIERS,
     anonymous: { read: true, analysis: false, hour: RL.apiAnonHour, burst_per_10s: 12 },
+    key_formats: ['sk- + 43 base64url (256 bit, 新)', 'sk- + 32 hex (128 bit, 兼容存量)'],
     signed: { hour: RL.apiKeyHour * 2, burst_per_10s: 40 },
     features: {
       hmac_signature: true, dpop_proof: true, subject_rate_limit: true,
