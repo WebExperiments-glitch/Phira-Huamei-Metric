@@ -15,7 +15,7 @@ import {
 import { generateApiKey, hashApiKey } from './api-keys.mjs';
 import {
   behavior, reference, engines, engine, versions, discrepancy,
-  statusData, incidents, health, EXTRA_SCOPES,
+  statusData, incidents, health, analysisProbe, EXTRA_SCOPES,
 } from './api-extras.mjs';
 import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
 
@@ -718,6 +718,15 @@ export function makeApiRoutes(deps) {
         };
       }
       return json(res, 200, body);
+    }
+
+    /* 分析链路探针：公开、免 Key、**免限流**。
+       它是给状态页监控用的 —— 只做一次轻量查库 + 检查权重文件，
+       不下载谱面、不跑引擎，成本远低于一次真实分析。
+       ⚠ 放在 identify 之前是刻意的：匿名身份也能探，且不占匿名配额。 */
+    if (req.method === 'GET' && p === '/analyses/probe') {
+      const d = await analysisProbe({ dbFetch });
+      return json(res, d.ok ? 200 : 503, d);
     }
 
     if (req.method === 'GET' && p === '/openapi.json') {

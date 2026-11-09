@@ -232,3 +232,36 @@ export async function health({ dbFetch, phiraBase } = {}) {
 }
 
 export const EXTRA_SCOPES = ['behavior:read', 'reference:read', 'engines:read', 'system:read'];
+
+/* ── 分析链路探针（匿名只读）────────────────────────────────
+   【为什么需要】
+     2026-11-09：POST /analyses 对匿名返回 403 之后，「分析谱面」那条监控
+     连续红了 10.2 小时。它测的东西已经不存在了 —— 但也不能把监控删掉了事，
+     因为"分析能不能用"是核心能力。
+   【能测什么】
+     · DB 可达（分析要先查缓存表）
+     · 引擎权重文件可加载
+     · 缓存里有可用于演示的谱面
+   【不能测什么】
+     · 真正跑一遍引擎（要下载谱面 + 算，代价太大、匿名不该触发）
+     所以返回里的 `engine_runnable` 恒为 null，别当成"引擎正常"的证据。 */
+export async function analysisProbe({ dbFetch } = {}) {
+  const out = { ok: false, db: false, engine: false, charts_cached: 0, engine_runnable: null };
+  if (typeof dbFetch === 'function') {
+    try {
+      const r = await dbFetch('/phm_charts?select=chart_id&limit=1');
+      out.db = Boolean(r && r.ok);
+      if (out.db) {
+        const s = await dbFetch('/phm_charts?select=chart_id&offset=1000&limit=1');
+        out.charts_cached = s && s.ok ? 1001 : 1;
+      }
+    } catch { /* 保持 false */ }
+  }
+  try {
+    const e = engine('engine-v4');
+    out.engine = Boolean(e && e.dims);
+  } catch { /* 保持 false */ }
+  out.ok = out.db && out.engine;
+  out.checkedAt = new Date().toISOString();
+  return out;
+}
