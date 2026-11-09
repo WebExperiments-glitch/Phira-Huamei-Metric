@@ -23,7 +23,8 @@ const KNOWN_PATHS = ['/meta', '/charts', '/charts/{chart_id}', '/analyses', '/us
   /* v1.3（2026-11-08）：只读数据端点 + 公开连通性探测。
      新端点必须同时登记在这里，否则契约会变成「写了但没人实现」。 */
   '/behavior', '/reference', '/engines', '/engines/{id}',
-  '/versions', '/status', '/incidents', '/discrepancy', '/health'];
+  '/versions', '/status', '/incidents', '/discrepancy', '/health',
+  '/analyses/probe'];
 const KNOWN_SCOPES = new Set(['charts:read', 'analyses:write', 'usage:read',
   'behavior:read', 'reference:read', 'engines:read', 'system:read']);
 const METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);

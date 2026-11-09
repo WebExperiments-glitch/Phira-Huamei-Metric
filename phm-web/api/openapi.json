@@ -1794,6 +1794,33 @@
           }
         ]
       }
+    },
+    "/analyses/probe": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Analysis pipeline probe (public)",
+        "description": "公开、免 Key、免限流的只读探针：检查 DB 可达、引擎权重可加载、缓存里有谱面。不下载谱面、不跑引擎，因此 engine_runnable 恒为 null —— 它不是\"引擎正常\"的证据。供状态页监控使用。",
+        "operationId": "getAnalysesProbe",
+        "x-scopes": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "DB 与权重都可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "至少一项不可用"
+          }
+        }
+      }
     }
   }
 }
