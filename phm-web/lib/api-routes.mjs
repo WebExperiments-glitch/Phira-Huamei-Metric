@@ -195,7 +195,9 @@ export function makeApiRoutes(deps) {
     const scopes = Array.isArray(j.scopes) && j.scopes.length
       ? j.scopes.filter(s => ALL_SCOPES.includes(s))
       : ALL_SCOPES.slice();
-    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes };
+    /* 档位由 owner 前缀推导（internal → admin，monitor/premium → premium）。 */
+    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes,
+      tier: tierOfOwner(j.owner_id) };
   }
 
   /* 防控统一走 lib/api-guard.mjs（5 层 / 三档身份 / 保留匿名）。
