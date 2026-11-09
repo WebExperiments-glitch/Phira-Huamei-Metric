@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.29.0.4">
+<meta name="app-version" content="V0.29.0.5">
 <meta name="robots" content="noindex,nofollow">
 <title>管理台 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
@@ -12,8 +12,8 @@ var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-co
 var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
 var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
 el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.29.0.4">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.29.0.4">
+<link rel="stylesheet" href="/css/base.css?v=V0.29.0.5">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.29.0.5">
 <style>
 /* 管理台：一屏能看完，不加装饰。颜色全部走令牌。 */
 .ad{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
@@ -86,6 +86,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
       <div class="tabs">
         <button class="on" data-tab="keys">密钥</button>
         <button data-tab="reqs">升级申请</button>
+        <button data-tab="eps">端点调用</button>
         <button class="ghost" id="btnReload" style="margin-left:auto">刷新</button>
         <button class="ghost" id="btnLogout">退出</button>
       </div>
@@ -93,6 +94,14 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
         <th>owner</th><th>档位</th><th class="num">总调用</th><th class="num">24h</th>
         <th>最后状态</th><th>最后使用</th><th>掩码</th><th>操作</th>
       </tr></thead><tbody id="tbKeys"></tbody></table></div>
+      <div id="tabEps" class="hide"><table><thead><tr>
+        <th>端点</th><th class="num">调用</th><th class="num">错误</th>
+        <th class="num">p50</th><th class="num">最大</th><th>最后调用</th>
+      </tr></thead><tbody id="tbEps"></tbody></table>
+      <div class="muted" style="margin-top:10px">
+        只统计**带 Key 的调用**（24 小时）。匿名流量不写库 —— 无状态部署下每次请求一次写，
+        被打时等于给数据库加码；匿名的健康度由状态页的 7 条探针负责。
+      </div></div>
       <div id="tabReqs" class="hide"><table><thead><tr>
         <th>owner</th><th>申请</th><th>理由</th><th>提交时间</th><th>操作</th>
       </tr></thead><tbody id="tbReqs"></tbody></table></div>
@@ -176,6 +185,8 @@ async function loadAll() {
   }
   const tb = $('tbKeys'); tb.innerHTML = '';
   for (const x of k.body.keys || []) {
+    /* 已吊销的不显示 —— 列表里混着历史会让"现在有几把钥匙"看不清 */
+    if (x.revoked_at) continue;
     const tr = document.createElement('tr');
     const plan = String(x.plan || 'free');
     const cls = plan === 'admin' ? 'admin' : (plan === 'premium' ? 'premium' : 'free');
@@ -200,6 +211,24 @@ async function loadAll() {
     };
     tr.lastChild.append(sel, btn);
     tb.append(tr);
+  }
+
+  /* 端点统计 */
+  const eb = $('tbEps'); eb.innerHTML = '';
+  const eps = await adminCall('GET', '/admin/endpoints?hours=24');
+  if (eps.status === 200) {
+    const rows = eps.body.endpoints || [];
+    if (!rows.length) eb.innerHTML = '<tr><td colspan="6" class="muted">24 小时内没有带 Key 的调用</td></tr>';
+    for (const e of rows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + escA(e.endpoint) + '</td>'
+        + '<td class="num">' + e.calls + '</td>'
+        + '<td class="num">' + (e.errors || 0) + '</td>'
+        + '<td class="num">' + (e.p50_ms || 0) + ' ms</td>'
+        + '<td class="num">' + (e.max_ms || 0) + ' ms</td>'
+        + '<td>' + String(e.last_at || '').slice(0, 16).replace('T', ' ') + '</td>';
+      eb.append(tr);
+    }
   }
 
   const tr2 = $('tbReqs'); tr2.innerHTML = '';
@@ -286,6 +315,7 @@ for (const b of document.querySelectorAll('.tabs button[data-tab]')) {
     for (const x of document.querySelectorAll('.tabs button[data-tab]')) x.classList.toggle('on', x === b);
     $('tabKeys').classList.toggle('hide', b.dataset.tab !== 'keys');
     $('tabReqs').classList.toggle('hide', b.dataset.tab !== 'reqs');
+    $('tabEps').classList.toggle('hide', b.dataset.tab !== 'eps');
   };
 }
 

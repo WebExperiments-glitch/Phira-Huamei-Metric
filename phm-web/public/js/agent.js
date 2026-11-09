@@ -15,9 +15,9 @@
  *   解析一遍再序列化会丢掉 `usage`、`reasoning_content` 和增量结构。
  * ============================================================ */
 
-import { AGENT_PROMPT } from './agent-prompt.js?v=V0.29.0.4';
-import { createCommands, emptyChart } from './agent-commands.js?v=V0.29.0.4';
-import { ChartAgent } from './agent-runtime.js?v=V0.29.0.4';
+import { AGENT_PROMPT } from './agent-prompt.js?v=V0.29.0.5';
+import { createCommands, emptyChart } from './agent-commands.js?v=V0.29.0.5';
+import { ChartAgent } from './agent-runtime.js?v=V0.29.0.5';
 
 /**
  * 创建一套「写谱工作台」：一份谱面状态 + 一套命令 + 一个 agent。

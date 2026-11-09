@@ -142,6 +142,17 @@ export function makeAdminRoutes(deps) {
       return true;
     }
 
+    /* 按端点聚合的调用情况（只覆盖带 Key 的调用；匿名由状态页监控负责） */
+    if (method === 'GET' && p === '/admin/endpoints') {
+      const q = String(req.url.split('?')[1] || '');
+      const h = Number((/hours=(\d+)/.exec(q) || [])[1] || 24);
+      const r = await callApiRpc('hm_admin_endpoint_stats', { p_hours: Math.min(Math.max(h, 1), 720) });
+      const d = readRpcJson(r) || {};
+      if (!r.ok) { apiErr(res, 502, 'server_error', 'admin_unavailable', 'endpoint stats failed'); return true; }
+      json(res, 200, { ok: true, hours: d.hours || h, endpoints: d.endpoints || [] });
+      return true;
+    }
+
     if (method === 'GET' && p === '/admin/requests') {
       const status = String((req.url.split('?')[1] || '').replace(/^.*status=/, '') || 'pending');
       const r = await callApiRpc('hm_admin_tier_list', { p_status: status.slice(0, 20) });

@@ -19,9 +19,25 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.29.0.4';
+import { ARCHIVE } from './versions-archive.js?v=V0.29.0.5';
 
 export const RELEASES = [
+  {
+    v: 'V0.29.0.5', date: '2026-11-09',
+    zh: ['<b>管理台不再把已吊销的密钥列出来。</b> 之前 6 条里只有 2 条是活的，'
+      + '剩下 4 条是历史记录，看着像还在用、其实打过去只会 401。现在只显示有效的。',
+      '<b>新增「端点调用」页：按接口看调用次数、错误数、p50 与最大耗时。</b> '
+      + '谁能看出「哪个接口在被用、哪个在报错、哪个慢」，不用再靠猜。',
+      '<b>它只统计带 Key 的调用，匿名不记。</b> 这不是偷懒：无状态部署下每次请求都写一次库，'
+      + '真被打了等于给数据库再加一层负担。匿名的健康度交给状态页那 7 条探针，两边分工。'],
+    en: ['<b>The console no longer lists revoked keys.</b> Previously 6 rows showed up with only 2 alive; '
+      + 'the other 4 were history that looked active but returned 401. Only live keys now.',
+      '<b>New "endpoint calls" tab: per-route call counts, errors, p50 and max latency.</b> '
+      + 'You can see which endpoint is used, which is failing and which is slow without guessing.',
+      '<b>It counts keyed calls only; anonymous traffic is not logged.</b> Not laziness: with stateless '
+      + 'deployment every request would mean a database write, adding load exactly when being attacked. '
+      + 'Anonymous health is covered by the seven status-page probes instead.'],
+  },
   {
     v: 'V0.29.0.4', date: '2026-11-09',
     zh: ['<b>二级密码之前存在服务器的文件里 —— 每次部署都会把它覆盖掉。</b> '
