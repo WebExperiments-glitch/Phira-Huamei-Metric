@@ -19,9 +19,25 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.28.0.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.28.0.3';
 
 export const RELEASES = [
+  {
+    v: 'V0.28.0.3', date: '2026-11-09',
+    zh: ['<b>PoW 挑战误伤了状态页监控。</b> 今天「全库统计」「玩家资料」各有几次 428 —— '
+      + '那是防滥用挑战。触发条件写的是「请求间隔过于均匀」，可**定时监控本来就是均匀的**，'
+      + '间隔精确 600 秒。这条启发式在低频语境下是错的。',
+      '<b>修法不是关掉 PoW，而是给它加频率门槛。</b> 中位间隔超过 5 秒的流量不再做均匀性判定：'
+      + '监控、定时任务、正常轮询都不该被拦；真正的滥用要么高频，要么被「10 次/15 秒」的密度信号抓住。'
+      + '另加了一条回归单测，防止这个洞再被踩一次。'],
+    en: ['<b>The proof-of-work challenge was hitting our own status monitors.</b> Two monitors returned 428 '
+      + 'several times today. The trigger was "requests too evenly spaced" — but **a scheduled monitor is '
+      + 'evenly spaced by definition**, exactly 600 seconds apart. That heuristic is simply wrong at low rates.',
+      '<b>The fix is not disabling PoW, but giving it a frequency gate.</b> Above a median gap of 5 seconds, '
+      + 'even spacing no longer counts as abuse: monitors, cron jobs and ordinary polling are not what we '
+      + 'want to block. Real abuse is either high-frequency or caught by the 10-requests-in-15-seconds '
+      + 'density signal. A regression test now covers it.'],
+  },
   {
     v: 'V0.28.0.2', date: '2026-11-09',
     zh: ['<b>「分析谱面」那条监控红了一整夜，但不是服务挂了。</b> 昨晚把匿名的分析请求收口成 403，'

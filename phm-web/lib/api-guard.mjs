@@ -198,7 +198,16 @@ function behaviorOdd(subject, now) {
      抹掉密度，却会把 CV 搅乱（HTTP 实测连发 16 次 CV 仍 > 0.25）。
      PoW 只是几毫秒的低成本摩擦，误判代价远小于漏判，且只作用于匿名。 */
   if (now - arr[0] < 15_000) return true;
-  /* 辅助信号：间隔过于均匀 = 定时脚本 */
+  /* ⚠⚠ 2026-11-09 线上事故：状态页监控间隔精确 600s，CV ≈ 0，
+     被下面这条"间隔过于均匀 = 脚本"判成滥用 → 返回 428 → 监控红。
+     教训：**定时监控本身就是均匀的**，均匀性只在"高频"语境下才等于脚本。
+     所以加一道频率门槛：中位间隔 > 5s 的流量不适用这条启发式。
+     5s 以上的均匀请求（监控 / 定时任务 / 正常轮询）不是我们想拦的东西；
+     真正的滥用要么高频，要么被上面的密度信号抓住。 */
+  const sorted = gaps.slice().sort((a, b) => a - b);
+  const medGap = sorted[Math.floor(sorted.length / 2)];
+  if (medGap > 5_000) return false;
+  /* 辅助信号（仅限高频）：间隔过于均匀 = 脚本 */
   return Math.sqrt(varr) / mean < 0.25;
 }
 
