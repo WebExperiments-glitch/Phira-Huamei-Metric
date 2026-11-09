@@ -116,6 +116,27 @@ if (challenged) {
   }
 }
 
+/* ── 回归：低频均匀流量不该被当成脚本（2026-11-09 线上事故）──
+   状态页监控间隔精确 600s，CV≈0，被"间隔过于均匀"判成滥用 → 428 → 监控红。
+   真实影响：全库统计/玩家资料各红了若干次，加上另一条 403 的，状态页红了一整天。 */
+{
+  const realNow = Date.now;
+  let t = realNow();
+  Date.now = () => t;
+  let challenged = false;
+  try {
+    for (let i = 0; i < 12; i++) {
+      t += 600_000;                        /* 每 10 分钟一次，像监控 */
+      const r = await run(req({ headers: { 'user-agent': 'monitor-600s', 'accept-language': 'en' } }));
+      if (!r.ok && r.status === 428) { challenged = true; break; }
+      if (r.ok && r.release) r.release();
+    }
+  } finally {
+    Date.now = realNow;
+  }
+  T('★ 600s 间隔的定时监控不触发 PoW（今天是它打红了监控）', challenged === false);
+}
+
 /* ── 能力自述 ── */
 const caps = guardCapabilities();
 T('能力自述含三档与五层特性',
