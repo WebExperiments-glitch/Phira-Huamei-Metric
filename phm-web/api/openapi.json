@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "P.H.M. API",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "Phira / Phigros chart difficulty reference API. Free; anonymous and API-key access. v1.4 adds request-proof authentication (HMAC / DPoP), subject-based dual-bucket rate limiting, an independent admin secret and anonymous proof-of-work challenges. Anonymous read access is retained."
   },
   "servers": [
