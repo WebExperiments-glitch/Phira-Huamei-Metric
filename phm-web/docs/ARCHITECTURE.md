@@ -57,6 +57,7 @@
 | `/retired` | `retired.html`（**服务端模板**） | 下线说明页：告诉用户哪些功能撤了、还能用什么、去哪继续。由 `lib/retired.mjs` 读模板并替换 `__APP_VER__` / `__RETIRE_URL__` 后送出；文件本身**不在** `PUBLIC_FILES` 里，裸访问 404 |
 | `/packs` | `packs.html` | **谱面包**：浏览 Phira 公开谱面库，把任意谱面（曲绘 / 音乐 / chart JSON）在**浏览器本地**打成 `.pez` 包并下载。零中转 —— 服务器只代理 JSON 元数据，文件一律浏览器直连 Phira CDN（不烧我们的带宽、也不替上游再分发） |
 | `/more` | `more.html` | **全部功能入口**：导航只留谱面与创作两类，其余按用途分组平铺（2026-11-07 用户反馈 13 项平铺「有些杂乱」）。纯链接页，无状态 |
+| `/admin` | `admin.html` | **管理台**（`noindex`，不挂导航）：一级密码登录 → 列全部 key（档位/调用次数/最后状态）+ 升级申请审批。**写操作要二级密码**（scrypt 哈希存 `admin2-hash.txt`，明文永不落盘）。后端在 `lib/api-admin.mjs`，4 个端点全在 `identify` 之前分发 —— 管理通道不该占 API Key 配额、也不该被匿名限流影响 |
 | `/login` | `login.html` | **登录门面**：独立页，不挂全局导航（登录页挂导航等于分心）。双栏：左栏是 `public/js/particles.js` 的琥珀粒子群（Live2D 到位前的"角色位"占位，鼠标扫过会把粒子弹开），右栏是表单。**渐进式两步**：首屏只收邮箱，点「下一步」才出密码，注册 / 找回密码是同页的备选模式。登录逻辑复用 `public/js/auth.js` 的 `createAuth()`，页面只做编排 | 登录成功后跳 `?redirect=` 指定的页面（默认 `/app`），**但必须过 `public/js/redirect.js` 的站内相对路径白名单**（开放重定向 / XSS）；错误提示复用 `app.auth.err.*`，不另起一套键 |
 | `/status` | `status.html` | **运行状态**：20 个目标自检（页面/数据 60s，打 DB 的接口 5 分钟——见 `RL.apiAnonHour`），报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |

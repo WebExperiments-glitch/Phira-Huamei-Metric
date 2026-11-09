@@ -19,6 +19,7 @@ import {
 } from './api-extras.mjs';
 import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
 import { loadEnter, loadLeave, costOf, shouldShed, loadStats } from './api-load.mjs';
+import { makeAdminRoutes } from './api-admin.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -179,6 +180,13 @@ export function makeApiRoutes(deps) {
       body: JSON.stringify(Object.assign({ p_secret: writeSecret }, args)),
     }, 15000, 65536);
   }
+
+  /* 管理后台：受一级密码保护，写操作再要二级密码。
+     ⚠ 必须在 identify / gateApi 之前分发 —— 管理端点不该占 API Key 的配额，
+        也不该被匿名限流影响（运维通道要能在压力期用）。 */
+  const handleAdmin = makeAdminRoutes({
+    json, apiErr, readBody, isAdmin, callApiRpc,
+  });
 
   async function identify(req) {
     const key = bearer(req);
@@ -742,6 +750,12 @@ export function makeApiRoutes(deps) {
         };
       }
       return json(res, 200, body);
+    }
+
+    /* 管理后台（/admin/*）：一级密码 + 写操作二级密码 */
+    if (p.startsWith('/admin/')) {
+      const done = await handleAdmin(req, res, req.method, p);
+      if (done) return;
     }
 
     /* 分析链路探针：公开、免 Key、**免限流**。
