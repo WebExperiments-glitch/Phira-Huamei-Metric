@@ -28,6 +28,8 @@
  *   压力是**本进程**的感受，跨进程共享一个全局计数器反而会慢一拍。
  * ============================================================ */
 
+import { costOfPath } from './routes.mjs';
+
 const WINDOW = 40;          /* 最近多少次请求参与中位数 */
 const LAT = [];             /* 最近请求耗时（ms） */
 let inflight = 0;
@@ -66,14 +68,15 @@ export function pressure() {
   return { level, inflight, p50: Math.round(med), window: LAT.length, shedTotal };
 }
 
-/* 路径 → 成本档。用 req.url 判，免得每个 gateApi 调用点都要多传一个参数。 */
-export function costOf(pathname) {
+/* 路径 → 成本档。
+   ⚠ 2026-11-10 改：不再用正则猜（原来是 /^\/(charters|players)\// → expensive）。
+     正则和真实路由会漂 —— 加个新端点忘了改，它就是"永不放弃"的 cheap 档。
+     现在从 lib/routes.mjs 的路由表读，表是唯一真源。 */
+export function costOf(pathname, method = 'GET') {
   const p = String(pathname || '').split('?')[0].replace(/^\/api\/v1/, '') || '/';
-  if (p === '/analyses' || /^\/(charters|players)\//.test(p)) return 'expensive';
-  if (/^\/(meta|openapi\.json|engines|versions|behavior|reference|status|incidents|health|analyses\/probe)/.test(p)) {
-    return 'cheap';
-  }
-  return 'normal';
+  /* ⚠ 必须带 method：表里 POST /analyses 是 expensive，
+     只按路径查会落到 GET 分支找不到 → 退回 normal，降级时它就不会被优先牺牲。 */
+  return costOfPath(p, method);
 }
 
 /* 身份优先级：数字越大越"该被保" */

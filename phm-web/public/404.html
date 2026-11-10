@@ -39,9 +39,15 @@ a.btn.p:hover{background:rgba(232,163,61,.1);color:var(--amber)}
 <!-- 主题：必须**同步内联**在样式表之前 —— 模块是异步的，等它跑完页面
      已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。
      读的键与 /js/settings.js 的 KEYS.theme 一致（phm_theme）。 -->
-<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
-var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);})();</script>
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <style>
 /* 汐里 · 404：图在 404 大字上方。用「空」表情（face-baseline-v1）。 */
 .xl-404{display:flex;justify-content:center;margin:14px auto 6px;min-height:1px}

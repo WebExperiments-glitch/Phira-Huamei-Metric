@@ -218,7 +218,7 @@ export function makeApiRoutes(deps) {
        ⚠ 必须在限流之前判：限流是"你用得太多"，这里是"全站都快撑不住了"，
          后者更紧急 —— 继续让请求进来只会大家一起变慢直到连状态页都打不开。
        廉价档（本地 JSON）永远不 shed：它是"我还活着"的最后证据。 */
-    const cost = costOf(reqOf(res).url);
+    const cost = costOf(reqOf(res).url, reqOf(res).method);
     const roughTier = who.kind === 'key' ? 'key' : 'anon';
     const shed = shouldShed(cost, roughTier);
     if (shed.shed) {

@@ -19,9 +19,11 @@ const T = (name, cond, got) => {
 };
 
 /* ── 成本分类：分错档等于把贵的当便宜的放过去 ── */
+/* ⚠ 必须带 method：POST /analyses 才是 expensive，
+   成本档现在由 lib/routes.mjs 的路由表决定，不是按路径正则猜。 */
 const CASES = [
-  ['/api/v1/analyses', 'expensive'],
-  ['/api/v1/analyses?x=1', 'expensive'],
+  ['/api/v1/analyses', 'expensive', 'POST'],
+  ['/api/v1/analyses?x=1', 'expensive', 'POST'],
   ['/api/v1/charters/257272', 'expensive'],
   ['/api/v1/players/257272', 'expensive'],
   ['/api/v1/meta', 'cheap'],
@@ -34,9 +36,9 @@ const CASES = [
   ['/api/v1/stats', 'normal'],
   ['/api/v1/discrepancy', 'normal'],
 ];
-for (const [path, want] of CASES) {
-  const got = costOf(path);
-  T(`成本分类 ${path} → ${want}`, got === want, got);
+for (const [path, want, method] of CASES) {
+  const got = costOf(path, method || 'GET');
+  T(`成本分类 ${method || 'GET'} ${path} → ${want}`, got === want, got);
 }
 
 /* ── 正常压力：什么都不该拦 ── */
