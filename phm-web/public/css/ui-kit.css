@@ -252,3 +252,29 @@ button.primary:hover {
    动它就是动全站最重要的页面，收益却只是"少一块看不见的 DOM"。
    js/auth.js 仍会跑（它的 fetch 现在拿 410），只是没人看得见 —— 已登记进 HANDOVER 待办。 */
 #authBtn, #authpanel { display: none !important; }
+
+/* ── 返回上一层的链接 ────────────────────────────────────────
+ * 为什么不用 .btn：返回是"导航动作"，不是"提交动作"。
+ * 做成按钮会和数据区的操作按钮抢注意力，这里要的是**可见但不打扰**。
+ * 用 inline-flex 而不是 block —— 点击热区只包住文字，不横跨整行
+ * （横跨整行时鼠标在右侧空白处也能点，反而误触）。 */
+.backlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 10px;
+  font-size: 13px;
+  color: var(--fg3);
+  text-decoration: none;
+  transition: color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.backlink:hover { color: var(--brand); transform: translateX(-2px); }
+.backlink:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+/* 减弱动效：不要位移，只变色 */
+@media (prefers-reduced-motion: reduce) {
+  .backlink:hover { transform: none; }
+}

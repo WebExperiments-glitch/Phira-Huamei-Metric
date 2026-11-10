@@ -3,8 +3,8 @@
  * 18 个页面只需要这个，却被整个 ui.js（533 行）拖着一起下载。
  */
 
-import { esc } from './format.js?v=V0.29.0.5';
-import { onLangChange, t } from '../i18n.js?v=V0.29.0.5';
+import { esc } from './format.js?v=V0.30.0.0';
+import { onLangChange, t } from '../i18n.js?v=V0.30.0.0';
 export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).content || '—';
 
 const NAV = [

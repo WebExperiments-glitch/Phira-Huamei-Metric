@@ -19,9 +19,39 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.29.0.5';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.0.0', date: '2026-11-10',
+    zh: ['<b>「更多」页之前根本没有导航栏。</b> 那页的容器 id 写成了 topbar，'
+      + '而导航模块只认 nav —— 于是这个页面从上线起就没有顶部菜单，没人发现。'
+      + '已修正，并顺手加了「← 返回首页」。',
+      '<b>按钮按下现在有反馈了。</b> 之前全站只有 13 处颜色过渡、2 处形变，'
+      + '按下去和没按一样。现在按下缩到 97%（约 1.2px），90 毫秒完成 —— '
+      + '手感靠快不靠幅度大。可点击的卡片悬停会轻抬 2px。',
+      '<b>切主题不再"整页闪一下"。</b> 改成从你点击的位置扩散一个圆，'
+      + '420 毫秒盖满全屏。不支持该特性的浏览器、开了「减弱动效」的、'
+      + '以及连点两次的情况，都自动退回瞬时切换。',
+      '<b>代码结构拆了两处。</b> 前端 ui.js 从 533 行拆成 4 个模块（21 个页面的引用一行没改）；'
+      + '后端的接口成本分档从「正则猜路径」改成一张表，新加接口忘了登记会被检查拦住。',
+      '<b>本地检查从 82 秒降到 38 秒。</b> 82 项检查改成并发跑（默认 16 路），'
+      + '输出各自缓冲不交错。'],
+    en: ['<b>The "More" page had no navigation bar at all.</b> Its container id was topbar while the nav '
+      + 'module only looks for nav — so the page shipped without a top menu and nobody noticed. Fixed, '
+      + 'plus a "back to home" link.',
+      '<b>Buttons now respond to being pressed.</b> Before there were only 13 colour transitions and 2 '
+      + 'transforms site-wide; pressing a button did nothing. Now it scales to 97% (about 1.2px) in 90ms — '
+      + 'feel comes from speed, not amplitude. Clickable cards lift 2px on hover.',
+      '<b>Theme switching no longer flashes the whole page.</b> A circle now expands from where you clicked, '
+      + 'covering the screen in 420ms. Unsupported browsers, reduced-motion users and double-clicks all fall '
+      + 'back to an instant switch.',
+      '<b>Two pieces of structure were untangled.</b> Frontend: ui.js went from 533 lines to 4 modules with '
+      + 'zero changes to the 21 pages importing it. Backend: endpoint cost tiers moved from regex guessing to '
+      + 'an explicit table — adding an endpoint without registering it now fails a check.',
+      '<b>Local checks went from 82s to 38s</b> by running 82 steps concurrently (16 lanes by default) with '
+      + 'buffered output.'],
+  },
   {
     v: 'V0.29.0.5', date: '2026-11-09',
     zh: ['<b>管理台不再把已吊销的密钥列出来。</b> 之前 6 条里只有 2 条是活的，'
