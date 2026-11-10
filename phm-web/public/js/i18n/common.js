@@ -11,6 +11,11 @@
  * ============================================================ */
 export default {
   zh: {
+    'foot.privacy': '隐私政策',
+    'foot.collect': '个人信息收集清单',
+    'foot.terms': '用户协议',
+    'foot.status': '运行状态',
+    'foot.meta': '谱面文件不上传，仅在本机处理',
     /* ── 导航 ── */
     'nav.home': '首页',
     'nav.app': '算定数',
@@ -146,6 +151,11 @@ export default {
   },
 
   en: {
+    'foot.privacy': 'Privacy',
+    'foot.collect': 'Data we collect',
+    'foot.terms': 'Terms',
+    'foot.status': 'Status',
+    'foot.meta': 'Chart files never leave your device',
     /* ── nav ── */
     'nav.home': 'Home',
     'nav.app': 'Analyze',

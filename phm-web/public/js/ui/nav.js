@@ -3,8 +3,8 @@
  * 18 个页面只需要这个，却被整个 ui.js（533 行）拖着一起下载。
  */
 
-import { esc } from './format.js?v=V0.30.1.0';
-import { onLangChange, t } from '../i18n.js?v=V0.30.1.0';
+import { esc } from './format.js?v=V0.30.1.2';
+import { onLangChange, t } from '../i18n.js?v=V0.30.1.2';
 export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).content || '—';
 
 const NAV = [
@@ -51,6 +51,8 @@ function wireNavSticky() {
 }
 
 export function renderNav(active) {
+  /* 页脚一并渲染 —— 见文件末尾 renderFoot 的注释 */
+  try { renderFoot(); } catch (e) { /* 页脚失败不该连累导航 */ }
   if (active) _navActive = active;
   const el = document.getElementById('nav');
   if (!el) return;
@@ -119,3 +121,36 @@ onLangChange(function () { renderNav(); });
  * 格式化
  * ══════════════════════════════════════════════════════════════ */
 
+/* ── 页脚 ──────────────────────────────────────────────────────
+ * 【为什么必须由代码渲染，而不是每个页面手写】
+ *   26 个页面的 #foot 全是空标签 —— 结果就是**全站没有任何隐私政策入口**。
+ *   用户想找协议只能猜到 /privacy 这个 URL（2026-11-10 实测反馈「入口有些隐蔽」）。
+ *
+ * 【为什么挂在 renderNav 里】
+ *   renderNav 已经被 18 个页面调用。在这里顺带渲染页脚，等于零改页面就补上入口。
+ *   宁可耦合一点，也不要再去改 18 个 HTML。
+ *
+ * 【合规要求】个人信息处理者必须在**显著位置**提供隐私政策入口。
+ *   页脚是最低要求；设置页里还另有一条（见 settings.html）。 */
+export function renderFoot() {
+  /* ⚠ 不是所有页面都有 <footer id="foot">：index.html 与 app.html 就没有。
+     所以找不到就**自己建一个**插到 body 末尾 —— 否则首页永远看不到隐私入口，
+     而那恰恰是访客最可能落地的地方。 */
+  let el = document.getElementById('foot');
+  if (!el) {
+    el = document.createElement('footer');
+    el.id = 'foot';
+    el.style.cssText = 'max-width:var(--wrap,1100px);margin:0 auto;padding:0 16px';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div class="foot-links">'
+    + '<a href="/privacy">' + esc(t('foot.privacy')) + '</a>'
+    + '<span class="foot-sep">·</span>'
+    + '<a href="/privacy#collect">' + esc(t('foot.collect')) + '</a>'
+    + '<span class="foot-sep">·</span>'
+    + '<a href="/terms">' + esc(t('foot.terms')) + '</a>'
+    + '<span class="foot-sep">·</span>'
+    + '<a href="/status">' + esc(t('foot.status')) + '</a>'
+    + '</div>'
+    + '<div class="foot-meta">' + esc(t('foot.meta')) + ' · ' + esc(APP_VER) + '</div>';
+}

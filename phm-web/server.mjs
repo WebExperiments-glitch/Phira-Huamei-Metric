@@ -239,7 +239,7 @@ const SEC_HEADERS = {
     /* ⚠ phira.5wyxi.com 是**谱面文件与曲绘**的 CDN（不是 API）。
       /packs 与 /app?chart=<id> 都靠浏览器直连它取文件 ——
       不放进 connect-src 的话 fetch 会被 CSP 直接拦掉，页面表现是「点了没反应」。 */
-    "connect-src 'self' https://api.phira.cn https://phira.5wyxi.com https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
+    "connect-src 'self' https://api.phira.cn https://phira.5wyxi.com https://phira-cdn.5wyxi.com https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
     "form-action 'self'",
     /* frame-ancestors 交给 X-Frame-Options: DENY —— 写在 CSP 里会被 Chrome 报
        「keyword 'none' alongside with other sources」，功能重复且有告警 */

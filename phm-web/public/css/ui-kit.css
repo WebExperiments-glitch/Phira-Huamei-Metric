@@ -278,3 +278,34 @@ button.primary:hover {
 @media (prefers-reduced-motion: reduce) {
   .backlink:hover { transform: none; }
 }
+
+/* ── 页脚（合规入口）────────────────────────────────────────
+ * 26 个页面的 #foot 原本全是空标签 —— 全站找不到隐私政策。
+ * 现在由 js/ui/nav.js 的 renderFoot() 统一渲染。
+ * 样式要「存在感足够但不抢内容」：正文色降一档，字号与辅助文字同级。 */
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 4px;
+  margin: 28px 0 0;
+  font-size: 0.78125rem;      /* 12.5px */
+}
+.foot-links a {
+  color: var(--fg3);
+  text-decoration: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.foot-links a:hover { color: var(--brand); background: var(--card2); }
+.foot-links a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.foot-sep { color: var(--fg3); opacity: .5; user-select: none; }
+.foot-meta {
+  margin: 6px 0 30px;
+  text-align: center;
+  font-size: 0.71875rem;      /* 11.5px */
+  color: var(--fg3);
+  opacity: .8;
+}

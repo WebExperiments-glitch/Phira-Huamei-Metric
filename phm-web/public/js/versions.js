@@ -19,9 +19,35 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.1.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.1.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.1.2', date: '2026-11-10',
+    zh: ['<b>上一版加了页脚，但首页看不到 —— 因为首页根本没有页脚那个标签。</b> '
+      + '现在改成「没有就自己建一个」，26 个页面全都有入口了。'],
+    en: ['<b>The previous release added a footer, but the home page still had none — because the home page '
+      + 'had no footer element at all.</b> It now creates one when missing; all 26 pages have the links.'],
+  },
+  {
+    v: 'V0.30.1.1', date: '2026-11-10',
+    zh: ['<b>全站现在有页脚了 —— 也就是说，终于找得到隐私政策。</b> '
+      + '26 个页面的页脚标签一直是空的，想找协议只能自己猜网址。'
+      + '现在每页底部都有「隐私政策 / 个人信息收集清单 / 用户协议 / 运行状态」。',
+      '<b>谱面包页的「关于这些包」四条说明一直是空的。</b> '
+      + '文案都写好了，但页面初次加载时没触发填充，只有切换语言才会出现。已修。',
+      '<b>不再列出审核未通过的谱面。</b> 上游会把它们一起返回，我们不替它做内容审查，'
+      + '但也不主动分发 —— 这类谱可能含违规曲绘或元数据。'
+      + '「未官方收录」不在此列，那是常态。'],
+    en: ['<b>The whole site has a footer now — which means the privacy policy is finally findable.</b> '
+      + 'The footer element on all 26 pages was empty; finding the policy meant guessing the URL. '
+      + 'Every page now links to privacy, the data-we-collect list, terms and status.',
+      '<b>The four explanatory notes on the packs page were always blank.</b> The strings existed, but the '
+      + 'page never triggered the fill on first load — only on a language switch. Fixed.',
+      '<b>Charts that failed review are no longer listed.</b> Upstream returns them alongside everything else. '
+      + 'We do not review content on their behalf, but we will not voluntarily distribute it either. '
+      + 'Being "not officially ranked" is different and stays listed — that is the normal state.'],
+  },
   {
     v: 'V0.30.1.0', date: '2026-11-10',
     zh: ['<b>字号设置从来没生效过，现在才真的能调。</b> 设置页那三档（小/中/大）一直点得动，'
