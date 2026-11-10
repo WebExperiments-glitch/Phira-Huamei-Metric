@@ -20,7 +20,9 @@ import {
 import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
 import { loadEnter, loadLeave, costOf, shouldShed, loadStats } from './api-load.mjs';
 import { makeAdminRoutes } from './api-admin.mjs';
-import { proxyFile } from './api-files.mjs';
+import { handleFileRoute } from './api-files.mjs';
+import { makeStatsHandler } from './api-stats.mjs';
+import { withCache, cacheStats } from './api-cache.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -185,6 +187,11 @@ export function makeApiRoutes(deps) {
   /* 管理后台：受一级密码保护，写操作再要二级密码。
      ⚠ 必须在 identify / gateApi 之前分发 —— 管理端点不该占 API Key 的配额，
         也不该被匿名限流影响（运维通道要能在压力期用）。 */
+  /* 全站统计单独成模块（api-routes 已到 900 行上限） */
+  const handleStats = makeStatsHandler({
+    requireScope, gateApi, dbFetch, logUsage, apiErr, json, withCache,
+  });
+
   const handleAdmin = makeAdminRoutes({
     json, apiErr, readBody, isAdmin, callApiRpc,
   });
@@ -327,19 +334,7 @@ export function makeApiRoutes(deps) {
   /* ── GET /stats ── 全库统计（共多少谱、覆盖多少、引擎版本分布）
    * 复用网页端同一份 `phm_stats` RPC；**失败时不透传上游报错正文**
    * （那里面可能有表名/字段名，属于内部结构）。 */
-  async function handleStats(req, res, who, ip) {
-    if (!requireScope(res, who, 'charts:read')) return;
-    if (!(await gateApi(res, who, ip))) return;
-    const t0 = Date.now();
-    const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
-    logUsage(who, '/stats', r.ok ? 200 : 502, null, t0);
-    if (!r.ok) return apiErr(res, 502, 'server_error', 'stats_unavailable', 'statistics temporarily unavailable');
-    let j;
-    try { j = JSON.parse(r.body); } catch {
-      return apiErr(res, 502, 'server_error', 'stats_unparseable', 'statistics could not be parsed');
-    }
-    return json(res, 200, j);
-  }
+
 
   /* ── GET /charters/{uid} ── 某谱师上传的谱面（附本站已算出的定数）
    *
@@ -696,10 +691,14 @@ export function makeApiRoutes(deps) {
     if (!requireScope(res, who, scope)) return;
     if (!(await gateApi(res, who, ip))) return;
     const t0 = Date.now();
+
+    /* 结果缓存（DB 在新加坡，每次查库 ~190ms 跨境）：见 lib/api-cache.mjs */
+    const url = String((res && res.req && res.req.url) || '');
     try {
-      const data = await fn();
+      const r = await withCache(url, endpoint, fn);
+      if (r.cached) res.setHeader('x-cache', r.hit ? 'hit' : 'miss');
       logUsage(who, endpoint, 200, null, t0);
-      return json(res, 200, data);
+      return json(res, 200, r.data);
     } catch (e) {
       console.warn('[phm] ' + endpoint + ' failed: ' + String(e && e.message || e));
       logUsage(who, endpoint, 502, null, t0);
@@ -731,7 +730,7 @@ export function makeApiRoutes(deps) {
         time: new Date().toISOString(),
         guard: guardCapabilities(),
         /* 压力信号：给监控和排障用。level 变了但接口还通，说明降级在工作。 */
-        load: loadStats(),
+        load: { ...loadStats(), cache: cacheStats() },
       };
       /* ?diag=1 —— 鉴权头自检。**只回长度，不回内容**：
          0 表示这个头没穿透到服务端（网关吞了/没发），>0 表示收到了。
@@ -843,15 +842,13 @@ export function makeApiRoutes(deps) {
       const n = Number(qp.get(k));
       return Number.isInteger(n) && n >= lo && n <= hi ? n : d;
     };
-    /* 上游文件中转 —— 见 lib/api-files.mjs 顶部：上游 CDN 缺 Allow-Origin，
-       浏览器直连必失败。这里直写 res（流式），不走 json() 包装。 */
+    /* 上游文件中转（上游 CDN 缺 Allow-Origin，浏览器直连必失败，见 api-files.mjs） */
     if (req.method === 'GET' && p === '/file') {
       if (!requireScope(res, who, 'charts:read')) return;
       const t0 = Date.now();
       await gateApi(res, who, ip, { endpoint: '/file' });
       if (res.writableEnded) return;                  /* 被限流/降级拦下了 */
-      const u = qp.get('u') || '';
-      await proxyFile(res, u, { json, apiErr });
+      await handleFileRoute(res, reqOf(res).url, { json, apiErr });
       logUsage(who, '/file', res.statusCode || 200, null, t0);
       return;
     }

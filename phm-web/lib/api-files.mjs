@@ -104,3 +104,10 @@ export async function proxyFile(res, rawUrl, { json, apiErr } = {}) {
   });
   return true;
 }
+
+/* 路由处理入口：由 api-routes 在鉴权后调用，避免那个文件继续变长。 */
+export async function handleFileRoute(res, reqUrl, deps) {
+  const q = String(reqUrl || '').split('?')[1] || '';
+  const u = new URLSearchParams(q).get('u') || '';
+  await proxyFile(res, u, deps);
+}

@@ -183,13 +183,13 @@ button.primary:hover {
    给的是可点的具体值，不是"请输入用户名"这种没有信息量的提示。 */
 .exrow {
   display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
-  margin-top: 13px; font-size: 12px; color: var(--fg3); line-height: 1.5;
+  margin-top: 13px; font-size: 0.75rem; color: var(--fg3); line-height: 1.5;
 }
 .exrow .lbl { flex: none; color: var(--fg3); }
 /* ⚠ 选择器必须带 .exrow 前缀：`.chip` 这个名字 app.html 里已经在用
    （结果卡之间的切换胶囊），全局限定会把它一起改掉。 */
 .exrow .chip {
-  font: inherit; font-size: 12px;
+  font: inherit; font-size: 0.75rem;
   padding: 3px 11px; border-radius: 999px;
   border: 1px solid var(--line2); background: transparent; color: var(--fg2);
   cursor: pointer;
@@ -207,9 +207,9 @@ button.primary:hover {
    原文一整段（三段话）压在输入框上面，把要填的东西推到首屏之外。
    折叠后只留一行标题，想懂的人自己点开 —— 说明从**障碍**变回**补充**。 */
 .why { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
-.why summary { font-size: 12.5px; color: var(--fg3); }
+.why summary { font-size: 0.7812rem; color: var(--fg3); }
 .why summary:hover { color: var(--fg); }
-.why .fd { margin-top: 8px; font-size: 12.5px; color: var(--fg2); line-height: 1.75; }
+.why .fd { margin-top: 8px; font-size: 0.7812rem; color: var(--fg2); line-height: 1.75; }
 .why .fd b { color: var(--fg); }
 
 /* ── 全局兜底提示（js/guard.js 用）──
@@ -232,7 +232,7 @@ button.primary:hover {
   pointer-events: none;
 }
 .phm-guard-item {
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   padding: 9px 13px;
   border-radius: 10px;
@@ -263,7 +263,7 @@ button.primary:hover {
   align-items: center;
   gap: 6px;
   margin: 2px 0 10px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--fg3);
   text-decoration: none;
   transition: color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);

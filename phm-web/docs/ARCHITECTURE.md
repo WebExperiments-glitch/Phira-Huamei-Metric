@@ -274,6 +274,9 @@ js/i18n/settings.js ← 设置页（set.*）
 |---|---|---|---|
 | 引擎 | `public/js/engine.js` | 解析 ZIP（RPE/PGR/**PEC**）、算特征、双参照 k-NN 定数 | 不碰 DOM / 存储 / 网络 |
 | 参照集 | `public/js/ref-official.js` + `public/data/ref-com.json` | **唯一真源是 `tools/gen-ref.mjs`**；输出物不要手改 | 不放算法，只放数据 |
+| 代码索引补丁 | `tools/patch-codebase-search.mjs` | 给 `@teknologika/mcp-codebase-search` 的语言映射加 `.mjs` / `.cjs` | 那个工具只认 .js/.jsx/.py/.ts/.tsx，而我们后端全是 .mjs —— 首次索引时 80 个文件被跳过。`.mjs` 与 `.js` 在 tree-sitter 眼里是同一套语法，加两个键即可。**改的是全局包，`npm update -g` 后必须重跑**（脚本幂等） |
+| 全站统计 | `lib/api-stats.mjs` | `GET /stats` 的处理（查库 + 60s 缓存 + 错误兜底） | 做成工厂函数是因为要用 api-routes 的 requireScope/gateApi/dbFetch 等闭包，显式注入比提升到全局干净；api-routes 已到 900 行上限，按职责切出来的 |
+| 结果缓存 | `lib/api-cache.mjs` | 内存 TTL 缓存，只给白名单端点：`/stats` 60s、`/reference` 30s、`/behavior` 30s、`/discrepancy` 60s、`/engines` 300s | 数据库在 AWS 新加坡，每查一次付 ~190ms 跨境；这些结果几分钟都不变。命中时连库都不碰，响应头带 `x-cache: hit/miss`，`/meta` 的 `load.cache` 暴露条目数。**白名单而非黑名单** —— 新端点默认不缓存，避免把带身份的数据缓存后发给别人。`?nocache=1` 强制穿透 |
 | 上游文件中转 | `lib/api-files.mjs` | `GET /api/v1/file?u=` 流式转发 `phira.5wyxi.com` / `phira-cdn.5wyxi.com` | ⚠ **为什么必须存在**：上游 2026-11 起 303 跳到 `phira-cdn.5wyxi.com`，而那个 CDN 缺 `Access-Control-Allow-Origin` → 浏览器直连必然 `Failed to fetch`（打包下载从上线起就坏，真因在此）。前端先试直连、失败回落这里；上游修好 CORS 就自动回到零中转。白名单域名 + 120MB + 25s 超时。**已知缺陷**：不碰 DB 却会因 DB 慢被判 critical 而降级误伤，压力模型该区分「DB 压力」与「出口带宽压力」，待改 |
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
