@@ -19,15 +19,15 @@
  *   这个文件只减不增。
  * ============================================================ */
 
-export * from './ui/format.js?v=V0.30.1.0';
-export * from './ui/nav.js?v=V0.30.1.0';
-export * from './ui/data.js?v=V0.30.1.0';
-export * from './ui/widgets.js?v=V0.30.1.0';
+export * from './ui/format.js?v=V0.30.1.2';
+export * from './ui/nav.js?v=V0.30.1.2';
+export * from './ui/data.js?v=V0.30.1.2';
+export * from './ui/widgets.js?v=V0.30.1.2';
 
 /* ⚠ 这几个是**再导出**（re-export），不是本文件的实现。
    原始 ui.js 第 14 行就是 `export { PHIRA_API, t, applyStatic, onLangChange, currentLang, setLang };`
    —— 页面从 ui.js 里取 t / applyStatic，靠的就是这一行。
    拆模块时漏了它，导致 17 个页面报 "does not provide an export named 'applyStatic'"
    并整体不执行（导航空白）。这类"隐式中转"是胶水层最容易被忽略的部分。 */
-export { PHIRA_API } from './phira.js?v=V0.30.1.0';
-export { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.30.1.0';
+export { PHIRA_API } from './phira.js?v=V0.30.1.2';
+export { t, applyStatic, onLangChange, currentLang, setLang } from './i18n.js?v=V0.30.1.2';
