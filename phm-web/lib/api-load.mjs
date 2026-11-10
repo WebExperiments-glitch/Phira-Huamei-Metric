@@ -46,9 +46,14 @@ const T = {
 
 export function loadEnter() { inflight += 1; }
 
-export function loadLeave(ms) {
+export function loadLeave(ms, sample = true) {
   inflight = Math.max(0, inflight - 1);
-  if (Number.isFinite(ms) && ms >= 0) {
+  /* sample=false：只减在途数，**不把耗时计入压力窗口**。
+     用于"天然就慢"的端点 —— 典型是 /file 中转：传一个 8MB 的谱面包
+     花 2 秒很正常，但这条记录会把 p50 拉到 2 秒，让全站误以为在被打。
+     2026-11-10 实测踩过：/file 自己把自己所在的 expensive 档判成 busy，
+     于是它自己也被 503。 */
+  if (sample && Number.isFinite(ms) && ms >= 0) {
     LAT.push(ms);
     if (LAT.length > WINDOW) LAT.shift();
   }
@@ -88,6 +93,10 @@ function rank(tier) {
 
 /* 返回 {shed:boolean, retryAfter?:number, reason?:string} */
 export function shouldShed(cost, tier) {
+  /* 排障旁路：本地/CI 里 DB 跨境慢会把压力判成 critical，
+     连**根本不碰数据库**的端点（如 /file 中转）也被砍掉。
+     要验证转发逻辑本身就得先绕过它。线上不要设这个。 */
+  if (process.env.PHM_NO_SHED === '1') return { shed: false };
   const pr = pressure();
   if (pr.level === 'normal') return { shed: false };
 

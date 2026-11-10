@@ -19,9 +19,44 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.0.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.0.2', date: '2026-11-10',
+    zh: ['<b>修一个自己坑自己的 bug：中转下载会把自己判成"服务器过载"。</b> '
+      + '传一个 8MB 的谱面包要 2 秒，这很正常，但那条耗时记录被算进了全站压力统计，'
+      + '于是系统以为整个站点都在被打，把下载请求自己给拒了。',
+      '<b>现在带宽类请求不参与压力计算。</b> 它们天然就慢，而且不碰数据库、不跑引擎 —— '
+      + '用"计算拥塞"的尺子去量它们必然是误判。'],
+    en: ['<b>Fixing a bug where the download proxy flagged itself as overloaded.</b> Moving an 8MB pack takes '
+      + 'about 2 seconds, which is normal — but that duration fed into the site-wide pressure average, so the '
+      + 'system concluded the whole site was under attack and rejected the download itself.',
+      '<b>Bandwidth-bound requests no longer count toward pressure.</b> They are slow by nature and touch '
+      + 'neither the database nor the engine — measuring them with a compute-congestion ruler is a guaranteed '
+      + 'false positive.'],
+  },
+  {
+    v: 'V0.30.0.1', date: '2026-11-10',
+    zh: ['<b>「打包下载」从上线起就是坏的，现在修好了。</b> 点下去只会看到「所有文件都没取到」——'
+      + '不是偶发，是每次都失败。',
+      '<b>原因不在我们这边。</b> 谱面文件原来由浏览器直接从 Phira 的镜像下载，'
+      + '而上游这个月改成了跳转到另一个 CDN 域名 —— 那个 CDN 的跨域响应缺了关键的一个头，'
+      + '浏览器一律拒绝。我们改不了别人的服务器配置。',
+      '<b>现在改由我们的服务器代取。</b> 浏览器仍会先试直连（万一上游哪天修好了，就自动恢复成零中转），'
+      + '失败立刻转由服务器取回再转给你 —— 实测 8.5MB 的包 0.38 秒。'
+      + '代价是会占一点我们的出口带宽，所以加了白名单、120MB 上限和 25 秒超时。'],
+    en: ['<b>"Download as pack" has been broken since launch. It is fixed now.</b> Clicking it only ever said '
+      + '"no files could be fetched" — not intermittently, every single time.',
+      '<b>The cause was not on our side.</b> Chart files used to be fetched by the browser directly from '
+      + 'Phira mirrored storage; upstream switched to redirecting to another CDN domain this month, and that '
+      + 'CDN response is missing a critical cross-origin header. Browsers reject it outright. We cannot change '
+      + 'someone else's server config.',
+      '<b>Our server now fetches on your behalf.</b> The browser still tries the direct route first (so if '
+      + 'upstream fixes it, we go back to zero proxying), then falls back to our server, which streams the file '
+      + 'through — an 8.5MB pack in 0.38s in testing. It costs us some egress bandwidth, so it is restricted '
+      + 'to an allowlist with a 120MB cap and a 25s timeout.'],
+  },
   {
     v: 'V0.30.0.0', date: '2026-11-10',
     zh: ['<b>「更多」页之前根本没有导航栏。</b> 那页的容器 id 写成了 topbar，'

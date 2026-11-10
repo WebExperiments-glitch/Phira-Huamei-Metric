@@ -274,6 +274,7 @@ js/i18n/settings.js ← 设置页（set.*）
 |---|---|---|---|
 | 引擎 | `public/js/engine.js` | 解析 ZIP（RPE/PGR/**PEC**）、算特征、双参照 k-NN 定数 | 不碰 DOM / 存储 / 网络 |
 | 参照集 | `public/js/ref-official.js` + `public/data/ref-com.json` | **唯一真源是 `tools/gen-ref.mjs`**；输出物不要手改 | 不放算法，只放数据 |
+| 上游文件中转 | `lib/api-files.mjs` | `GET /api/v1/file?u=` 流式转发 `phira.5wyxi.com` / `phira-cdn.5wyxi.com` | ⚠ **为什么必须存在**：上游 2026-11 起 303 跳到 `phira-cdn.5wyxi.com`，而那个 CDN 缺 `Access-Control-Allow-Origin` → 浏览器直连必然 `Failed to fetch`（打包下载从上线起就坏，真因在此）。前端先试直连、失败回落这里；上游修好 CORS 就自动回到零中转。白名单域名 + 120MB + 25s 超时。**已知缺陷**：不碰 DB 却会因 DB 慢被判 critical 而降级误伤，压力模型该区分「DB 压力」与「出口带宽压力」，待改 |
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
 | 身份 / 账号 | `lib/hm.mjs` + `lib/hm-accounts.mjs` + `lib/hm-code-routes.mjs` | huamei 身份校验；自建账号（scrypt + 自签 HS256）；验证码路由（发码 / 验码 / 重置） | 不把平台 token 当可信身份；不用登录密码碰 Phira |
