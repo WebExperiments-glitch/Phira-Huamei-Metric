@@ -1821,6 +1821,56 @@
           }
         }
       }
+    },
+    "/file": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Proxy an upstream chart file",
+        "description": "把 phira.5wyxi.com / phira-cdn.5wyxi.com 的文件流式转发给浏览器。存在的原因：上游 2026-11 起 303 跳到 CDN，而那个 CDN 的响应缺 Access-Control-Allow-Origin —— 浏览器直连必然 \"Failed to fetch\"。只允许白名单域名，单文件上限 120MB，25 秒超时。",
+        "operationId": "getFile",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "parameters": [
+          {
+            "name": "u",
+            "in": "query",
+            "required": true,
+            "description": "完整的上游文件 URL",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文件内容（流式）",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "域名不在白名单"
+          },
+          "413": {
+            "description": "超过 120MB"
+          },
+          "502": {
+            "description": "上游不可达或返回错误"
+          },
+          "504": {
+            "description": "上游超时"
+          }
+        }
+      }
     }
   }
 }

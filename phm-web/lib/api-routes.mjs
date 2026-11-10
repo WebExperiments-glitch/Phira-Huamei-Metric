@@ -20,6 +20,7 @@ import {
 import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
 import { loadEnter, loadLeave, costOf, shouldShed, loadStats } from './api-load.mjs';
 import { makeAdminRoutes } from './api-admin.mjs';
+import { proxyFile } from './api-files.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -220,7 +221,13 @@ export function makeApiRoutes(deps) {
        廉价档（本地 JSON）永远不 shed：它是"我还活着"的最后证据。 */
     const cost = costOf(reqOf(res).url, reqOf(res).method);
     const roughTier = who.kind === 'key' ? 'key' : 'anon';
-    const shed = shouldShed(cost, roughTier);
+    /* /file 是"天然慢"的带宽端点：传 8MB 要 2 秒，不代表全站拥塞。
+       它既不碰数据库、也不跑引擎，用计算压力模型去判它必然误伤
+       （2026-11-10：它把自己的 p50 拉到 2 秒，把自己判成 busy 然后 503）。
+       所以：不参与 shed 判断，耗时也不计入压力窗口。 */
+    const isBandwidth = costOf(reqOf(res).url, reqOf(res).method) === 'expensive'
+      && String(reqOf(res).url || '').startsWith('/api/v1/file');
+    const shed = isBandwidth ? { shed: false } : shouldShed(cost, roughTier);
     if (shed.shed) {
       return apiErr(res, 503, 'server_error', 'load_shedding',
         'server is under load; retry shortly',
@@ -228,7 +235,7 @@ export function makeApiRoutes(deps) {
     }
     const tLoad = Date.now();
     loadEnter();
-    res.once('finish', () => loadLeave(Date.now() - tLoad));
+    res.once('finish', () => loadLeave(Date.now() - tLoad, !isBandwidth));
 
     const g = await evaluateGuard(reqOf(res), who, ip, { analysis, bodyText, endpoint, writeSecret });
     if (g.ok) {
@@ -836,6 +843,19 @@ export function makeApiRoutes(deps) {
       const n = Number(qp.get(k));
       return Number.isInteger(n) && n >= lo && n <= hi ? n : d;
     };
+    /* 上游文件中转 —— 见 lib/api-files.mjs 顶部：上游 CDN 缺 Allow-Origin，
+       浏览器直连必失败。这里直写 res（流式），不走 json() 包装。 */
+    if (req.method === 'GET' && p === '/file') {
+      if (!requireScope(res, who, 'charts:read')) return;
+      const t0 = Date.now();
+      await gateApi(res, who, ip, { endpoint: '/file' });
+      if (res.writableEnded) return;                  /* 被限流/降级拦下了 */
+      const u = qp.get('u') || '';
+      await proxyFile(res, u, { json, apiErr });
+      logUsage(who, '/file', res.statusCode || 200, null, t0);
+      return;
+    }
+
     if (req.method === 'GET' && p === '/behavior') {
       return handleExtra(res, who, ip, 'behavior:read', '/behavior',
         () => behavior({ chartId: qp.get('chart_id'), limit: num('limit', 100, 1, 500), offset: num('offset', 0, 0, 100000) }));
