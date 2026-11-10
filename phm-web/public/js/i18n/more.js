@@ -7,6 +7,7 @@
 export default {
   zh: {
     'more.title': '更多',
+    'more.back': '返回首页',
     'more.sub': '主路径之外的功能都收在这里，按用途分组。',
     'more.g1': '谱面',
     'more.g2': '创作',
@@ -27,6 +28,7 @@ export default {
   },
   en: {
     'more.title': 'More',
+    'more.back': 'Back to home',
     'more.sub': 'Everything outside the main path, grouped by what it does.',
     'more.g1': 'Charts',
     'more.g2': 'Creation',
