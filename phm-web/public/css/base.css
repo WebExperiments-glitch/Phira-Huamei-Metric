@@ -64,6 +64,12 @@
   --card:  #161412;      /* 卡片：浮一层 */
   --card2: #1d1b18;      /* 次级面 / 行悬浮 */
   --card3: #262320;      /* 输入框 / 激活态：浮最高 */
+  /* 代码块：2026-11-10 之前 api.css 里硬编码 #0d1117，暗色主题下
+     它和 --bg(#0e0d0b) 几乎同色 → 整块看不见边界，复制选中后更是全黑。
+     收成一族令牌，明暗各一套。 */
+  --code-bg: #1a1815;
+  --code-fg: #e8e3da;
+  --code-line: #332f29;
   --fg:    #efebe4;      /* 主文字 */
   --fg-prose: #ddd6cb;   /* 长文正文：比 --fg 略暗，读整段不刺眼 */
   --fg2:   #b5aea3;      /* 次要文字 */
@@ -217,6 +223,9 @@
   --card:  #fffdf9;
   --card2: #efebe4;
   --card3: #e5e0d7;
+  --code-bg: #f7f4ee;
+  --code-fg: #2f2a24;
+  --code-line: #ddd6ca;
   --fg:    #1d1a16;
   --fg-prose: #2a2623;  /* 长文正文：不用纯黑，眼睛更松 */
   --fg2:   #4a443c;
@@ -363,14 +372,14 @@ a:hover { text-decoration-thickness: 2px; }
   .nav.stuck { background: var(--bg); }
 }
 .nav .brand {
-  font-size: 19px; letter-spacing: .3px; font-weight: 500; color: var(--fg);
+  font-size: 1.1875rem; letter-spacing: .3px; font-weight: 500; color: var(--fg);
   margin-right: 12px; text-decoration: none;
 }
 .nav .brand b { color: var(--brand); }
 .nav .brand:hover { text-decoration: none; }
 .nav .links { display: flex; gap: 3px; flex-wrap: wrap; align-items: baseline; }
 .nav .links a {
-  color: var(--fg2); padding: 5px 11px; border-radius: var(--r-sm); font-size: 13.5px;
+  color: var(--fg2); padding: 5px 11px; border-radius: var(--r-sm); font-size: 0.8438rem;
   text-decoration: none; border: 1px solid transparent;
   transition: color .14s var(--ease), background .14s var(--ease);
 }
@@ -395,7 +404,7 @@ a:hover { text-decoration-thickness: 2px; }
    样式与 .ghlink 一致（同一层级、同一个点击区），只是显示文字。 */
 .nav .navlogin {
   display: inline-flex; align-items: center; height: 28px; padding: 0 9px;
-  border-radius: 8px; font-size: 13px; color: var(--fg2); text-decoration: none;
+  border-radius: 8px; font-size: 0.8125rem; color: var(--fg2); text-decoration: none;
 }
 .nav .navlogin:hover { color: var(--fg); background: var(--card2); }
 
@@ -416,7 +425,7 @@ a:hover { text-decoration-thickness: 2px; }
 .nav .navqi {
   width: 150px; height: 26px; margin-left: 4px; padding: 0 8px;
   border: 1px solid var(--line2); border-radius: 7px; background: var(--card3);
-  color: var(--fg); font-size: 12px; font-family: inherit;
+  color: var(--fg); font-size: 0.75rem; font-family: inherit;
 }
 .nav .navqi:focus { outline: none; border-color: var(--brand-line); }
 .nav .navqi::-webkit-search-cancel-button { -webkit-appearance: none; }
@@ -430,7 +439,7 @@ a:hover { text-decoration-thickness: 2px; }
   box-shadow: var(--sh-card);
 }
 .card h2 { font-size: var(--t-lg); font-weight: 600; margin-bottom: 5px; word-break: break-word; }
-.card h3 { font-size: 14.5px; font-weight: 600; color: var(--fg2); margin: 18px 0 8px; }
+.card h3 { font-size: 0.9062rem; font-weight: 600; color: var(--fg2); margin: 18px 0 8px; }
 .card .sub { font-size: var(--t-sm); color: var(--fg3); margin-bottom: 12px; }
 /* ── 长段落限宽 ──
    中文一行超过 ~45 个字就难扫读了（评审实测现在有 60–75 字）。
@@ -450,7 +459,7 @@ a:hover { text-decoration-thickness: 2px; }
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: 9px; cursor: pointer;
   border: 1px solid var(--line2); background: var(--card2); color: var(--fg);
-  font-size: 13.5px; font-family: inherit; line-height: 1.4;
+  font-size: 0.8438rem; font-family: inherit; line-height: 1.4;
   transition: border-color .14s var(--ease), background .14s var(--ease),
               color .14s var(--ease);
 }
@@ -480,9 +489,9 @@ a:hover { text-decoration-thickness: 2px; }
 .row.tight { gap: 6px; }
 
 /* ── 表格 ─────────────────────────────────────────────── */
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 th {
-  text-align: left; font-weight: 500; color: var(--fg3); font-size: 11.5px;
+  text-align: left; font-weight: 500; color: var(--fg3); font-size: 0.7188rem;
   letter-spacing: .04em; padding: 6px 8px; border-bottom: 1px solid var(--line);
 }
 td { padding: 7px 8px; border-bottom: 1px solid var(--line); }
@@ -492,7 +501,7 @@ td.r, th.r { text-align: right; }
 
 /* ── 徽标 / 药丸 ──────────────────────────────────────── */
 .pill {
-  display: inline-block; padding: 1px 8px; border-radius: 20px; font-size: 11.5px;
+  display: inline-block; padding: 1px 8px; border-radius: 20px; font-size: 0.7188rem;
   border: 1px solid var(--line2); color: var(--fg2); background: var(--card2);
 }
 /* ⚠ 边框色必须从**语义令牌**派生，不能写死 rgbs。
@@ -519,7 +528,7 @@ td.r, th.r { text-align: right; }
   padding: 10px 13px 10px 31px;
   border-radius: var(--r); margin: 10px 0;
   background: var(--card2); border: 1px solid var(--line);
-  font-size: 12.8px; line-height: 1.68; color: var(--fg2);
+  font-size: 0.8rem; line-height: 1.68; color: var(--fg2);
 }
 .status::before {
   content: ""; position: absolute; left: 14px; top: 15px;
@@ -537,7 +546,7 @@ td.r, th.r { text-align: right; }
 .note {
   padding: 12px 14px; border-radius: var(--r); background: var(--card2);
   border: 1px solid var(--line);
-  font-size: 12.8px; color: var(--fg2); margin: 12px 0; line-height: 1.72;
+  font-size: 0.8rem; color: var(--fg2); margin: 12px 0; line-height: 1.72;
 }
 .note b { color: var(--fg); }
 .note.info { background: var(--card2); }
@@ -553,15 +562,15 @@ a.verfoot { color: inherit; text-decoration: none; border-bottom: 1px solid tran
   transition: color .15s, border-color .15s; cursor: pointer; }
 a.verfoot:hover { color: var(--brand); border-bottom-color: var(--brand-line); }
 
-.empty { padding: 26px 10px; text-align: center; color: var(--fg3); font-size: 13px; }
+.empty { padding: 26px 10px; text-align: center; color: var(--fg3); font-size: 0.8125rem; }
 
 /* ── 页脚 ─────────────────────────────────────────────── */
 footer {
   margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line);
-  font-size: 12px; color: var(--fg3); line-height: 1.75;
+  font-size: 0.75rem; color: var(--fg3); line-height: 1.75;
 }
 footer .fd { margin-top: 6px; }
-details summary { cursor: pointer; color: var(--fg2); font-size: 12.5px; }
+details summary { cursor: pointer; color: var(--fg2); font-size: 0.7812rem; }
 details summary:hover { color: var(--fg); }
 
 /* ── 分页器 ───────────────────────────────────────────────
@@ -569,27 +578,27 @@ details summary:hover { color: var(--fg); }
    所以样式也必须只有一份 —— 否则会出现"数据页的翻页键长得不一样"。 */
 .pager{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;
   padding-top:12px;border-top:1px solid var(--line)}
-.pginfo{font-size:12.5px;color:var(--fg2);flex:1;min-width:150px}
+.pginfo{font-size: 0.7812rem;color:var(--fg2);flex:1;min-width:150px}
 .pginfo b{color:var(--fg);font-variant-numeric:tabular-nums}
 .pgbtns{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
 .pg{background:var(--card2);border:1px solid var(--line2);color:var(--fg2);
-  border-radius:6px;min-width:30px;padding:4px 7px;font-size:12.5px;cursor:pointer;
+  border-radius:6px;min-width:30px;padding:4px 7px;font-size: 0.7812rem;cursor:pointer;
   font-family:inherit;font-variant-numeric:tabular-nums}
 .pg:hover:not(:disabled){border-color:var(--amber);color:var(--fg)}
 .pg:disabled{opacity:.35;cursor:not-allowed}
 .pg.on{background:var(--amber);color:var(--brand-ink);border-color:var(--amber);font-weight:600}
 .pgecl{color:var(--fg3);padding:0 2px}
 .pgsel{background:var(--card2);border:1px solid var(--line2);color:var(--fg2);
-  border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit}
+  border-radius:6px;padding:4px 6px;font-size: 0.75rem;font-family:inherit}
 
 /* ── 术语表 ─────────────────────────────────────────────
    反馈最集中的一条：「官谱标度 / B19 / RKS / p99 这些黑话像天书」。
    做法不是删术语（内行要用），而是点开就能看。 */
-.gloss{margin:12px 0 0;font-size:12.8px}
+.gloss{margin:12px 0 0;font-size: 0.8rem}
 .gloss dl{margin:10px 0 0;padding-left:2px}
-.gloss dt{color:var(--amber);font-weight:600;margin-top:10px;font-size:13px}
+.gloss dt{color:var(--amber);font-weight:600;margin-top:10px;font-size: 0.8125rem}
 .gloss dd{color:var(--fg2);margin:3px 0 0;line-height:1.72}
-.gloss summary{font-size:13px}
+.gloss summary{font-size: 0.8125rem}
 
 /* ── 档位徽标（能识别就上色，识别不了显示「未标注」而不是 ?）──
    ⚠ 文字色必须走 --on-color，不能写死 #0d1117：
@@ -598,7 +607,7 @@ details summary:hover { color: var(--fg); }
      （--ok #1a7f37 / --info #0969da …），压冷黑会糊成一团。
      --on-color 的深色值是 #201705（暖褐）、浅色值是 #ffffff，两个方向都对。 */
 .tier{display:inline-block;min-width:24px;text-align:center;padding:1px 5px;border-radius:5px;
-  font-size:10.5px;font-weight:600;color:var(--on-color)}
+  font-size: 0.6562rem;font-weight:600;color:var(--on-color)}
 
 /* ── 骨架屏 ───────────────────────────────────────────── */
 .skel { background: linear-gradient(90deg, var(--card2) 25%, var(--card3) 50%, var(--card2) 75%);
@@ -624,7 +633,7 @@ details summary:hover { color: var(--fg); }
      ⚠ 只动 padding 与字号，不动字号档位令牌：顶栏是索引，不是正文，
        允许比正文小一档（这也是全站唯一允许这么做的地方）。 */
   .nav { padding: 8px 0 10px; margin-bottom: 16px; }
-  .nav .links a { padding: 4px 8px; font-size: 12.5px; }
+  .nav .links a { padding: 4px 8px; font-size: 0.7812rem; }
   /* 版本号是**状态**不是导航：手机上藏起它不影响任何操作，
      而页脚仍然能点进版本历史。 */
   .nav .ver { display: none; }
@@ -633,7 +642,7 @@ details summary:hover { color: var(--fg); }
 @media (max-width: 560px) {
   body { padding: 14px 12px 44px; }
   .card { padding: 15px 15px; }
-  .nav .brand { font-size: 17px; }
+  .nav .brand { font-size: 1.0625rem; }
 }
 
 /* 控件与组件样式已拆到 /css/ui-kit.css（2026-10-17）——

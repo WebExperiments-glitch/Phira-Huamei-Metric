@@ -19,9 +19,62 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.0.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.1.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.1.0', date: '2026-11-10',
+    zh: ['<b>字号设置从来没生效过，现在才真的能调。</b> 设置页那三档（小/中/大）一直点得动，'
+      + '但选了没反应 —— 因为全站 179 处字号写的是固定像素，而设置改的是根元素的基准字号，'
+      + '两者根本不相干。现在把这 179 处换成相对单位，视觉上一点没变，但从此跟随你的选择。',
+      '<b>开发者页的代码块在深色主题下是一整块纯黑。</b> 那段样式硬编码了 GitHub 的暗色配色，'
+      + '和我们的深色背景几乎同色，字都看不清，复制出来更是全黑。现在改用主题色板，明暗各一套。',
+      '<b>统计类接口加了缓存。</b> 数据库在新加坡、服务在北京，每查一次要等约 190 毫秒。'
+      + '全站统计这类一分钟都不变的数据现在直接走缓存，命中时连数据库都不碰。'],
+    en: ['<b>Font size never actually worked; now it does.</b> The three steps in settings (small / medium / '
+      + 'large) were clickable but did nothing — 179 font sizes across the site were fixed pixel values, while '
+      + 'the setting changed the root base size. The two had nothing to do with each other. All 179 now use '
+      + 'relative units: visually identical, but they follow your choice from now on.',
+      '<b>Code blocks on the developer page were a solid black slab in dark theme.</b> That style hardcoded '
+      + 'GitHub dark colours, nearly identical to our dark background — text was unreadable and copying gave '
+      + 'you black on black. It now uses the theme palette with separate light and dark sets.',
+      '<b>Statistics endpoints are cached.</b> The database is in Singapore and the service in Beijing, so '
+      + 'every query costs about 190ms. Site-wide stats that change once a minute now come from cache, '
+      + 'touching the database not at all.'],
+  },
+  {
+    v: 'V0.30.0.4', date: '2026-11-10',
+    zh: ['<b>上一版的缓存其实没生效，这一版才真的生效。</b> '
+      + '全站统计走的是它自己的处理函数，不走我加缓存的那条路 —— '
+      + '所以「加了缓存」的结果是缓存条目一直是 0。',
+      '<b>顺手把那个函数挪进了独立文件。</b> 主路由文件已经顶到 900 行上限，'
+      + '再往里塞东西迟早出事 —— 按职责切出来比压缩注释干净。'],
+    en: ['<b>The cache from the previous release never actually took effect; this one does.</b> The stats endpoint '
+      + 'has its own handler and did not go through the path where the cache was added — so '
+      + 'caching was "on" while the cache itself stayed empty.',
+      '<b>The handler also moved into its own file.</b> The main router had hit the 900-line ceiling; splitting '
+      + 'by responsibility is cleaner than squeezing comments.'],
+  },
+  {
+    v: 'V0.30.0.3', date: '2026-11-10',
+    zh: ['<b>给几个"从来不变"的接口加了缓存。</b> 全站统计、参照表、行为数据这些，'
+      + '几分钟都不会变一次，但之前每来一个访客就要跨境查一次数据库 —— '
+      + '数据库在新加坡，服务在北京，一次往返约 190 毫秒。',
+      '<b>现在命中缓存时连数据库都不碰。</b> 统计类缓存 60 秒，参照表 30 秒。'
+      + '响应头会带 <code>x-cache: hit</code> 或 <code>miss</code>，自己就能看出来。'
+      + '另外加了 <code>?nocache=1</code>，需要看实时数据时可以强行穿透。',
+      '<b>没缓存列表页。</b> <code>/charts</code> 这类你要看最新数据的地方一律不缓存 —— '
+      + '缓存的是"晚 30 秒也没人在意"的那几个。'],
+    en: ['<b>Caching the endpoints that never really change.</b> Site-wide statistics, reference tables and '
+      + 'behaviour data shift once every few minutes at most, yet every visitor triggered a cross-border '
+      + 'database round trip — the database is in Singapore, the service in Beijing, about 190ms each way.',
+      '<b>On a cache hit the database is not touched at all.</b> 60 seconds for statistics, 30 for reference '
+      + 'tables. Responses carry <code>x-cache: hit</code> or <code>miss</code> so you can see it, and '
+      + '<code>?nocache=1</code> forces a fresh read when you need real-time numbers.',
+      '<b>List endpoints are deliberately not cached.</b> Anything where you expect the newest data — '
+      + 'like <code>/charts</code> — always goes to the database. Only the "30 seconds late is fine" ones '
+      + 'are cached.'],
+  },
   {
     v: 'V0.30.0.2', date: '2026-11-10',
     zh: ['<b>修一个自己坑自己的 bug：中转下载会把自己判成"服务器过载"。</b> '
@@ -51,7 +104,7 @@ export const RELEASES = [
       '<b>The cause was not on our side.</b> Chart files used to be fetched by the browser directly from '
       + 'Phira mirrored storage; upstream switched to redirecting to another CDN domain this month, and that '
       + 'CDN response is missing a critical cross-origin header. Browsers reject it outright. We cannot change '
-      + 'someone else's server config.',
+      + 'someone else’s server config.',
       '<b>Our server now fetches on your behalf.</b> The browser still tries the direct route first (so if '
       + 'upstream fixes it, we go back to zero proxying), then falls back to our server, which streams the file '
       + 'through — an 8.5MB pack in 0.38s in testing. It costs us some egress bandwidth, so it is restricted '
