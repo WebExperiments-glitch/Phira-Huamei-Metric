@@ -9,11 +9,15 @@
 <meta name="description" content="P.H.M. 服务运行状态：每分钟自检一次，报可用率与真实处理耗时。">
 <!-- 主题：必须同步内联在样式表之前 —— 模块是异步的，等它跑完页面
      已经按默认色画过一帧了，刷新时就会闪一下（FOUC）。 -->
-<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
-var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
-var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
-el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=V0.29.0.5">
 <link rel="stylesheet" href="/css/ui-kit.css?v=V0.29.0.5">
 <style>
