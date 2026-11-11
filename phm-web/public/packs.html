@@ -237,7 +237,12 @@ async function fetchPackPage(page) {
      曲绘或元数据。`ranked`（是否官方收录）不过滤：未收录是常态，
      全站绝大多数谱都是 ranked=false，滤掉等于把列表清空。 */
   const raw = (d.results || []).filter(c => c && c.reviewed !== false);
-  return { total: raw.length, items: raw.map(cleanChart).filter(Boolean) };
+  /* ⚠ total 必须用 d.count（全库 9758），不能改成 raw.length ——
+     那是**当前页过滤后**的条数（最多 30），会让分页逻辑以为全库只有 30 条，
+     "加载更多"永远不出现（2026-11-11 CI 的 smoke 抓到：
+     "有更多可加载（未把全库一次塞进 DOM） → false"）。
+     过滤只影响本页条目数，不影响总数。 */
+  return { total: Number(d.count) || 0, items: raw.map(cleanChart).filter(Boolean) };
 }
 
 async function loadPackPage(page) {
