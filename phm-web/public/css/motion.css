@@ -187,3 +187,87 @@ html.mv-on [data-mv-list] > .mv-in { opacity: 1; transform: none; }
     opacity: 1 !important; transform: none !important; clip-path: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+ * 交互手感（2026-11-10 追加）
+ * ══════════════════════════════════════════════════════════════
+ * 【为什么加这一段】
+ *   之前全站的过渡几乎只有 border-color / background / color ——
+ *   这些**每帧都要重绘**，而且只表达"颜色变了"，不表达"你按到了"。
+ *   一个按钮按下没有任何形变，手感就是"点了没反应"。
+ *
+ * 【只动 transform】按 2026 的共识：只有 transform / opacity 走合成器，
+ *   在低端机上也能 60fps；动 width/height/box-shadow 必然掉帧。
+ *   所以下面所有反馈都用 scale / translateY，不碰尺寸与阴影位置。
+ *
+ * 【为什么 .97 而不是 .9】按钮 40px 高，scale(.9) 会缩 4px，看起来像
+ *   "整块在跳"；.97 只缩 1.2px，是"按下去一点"的暗示。手感靠的是**快**
+ *   （90ms 进），不是幅度大。
+ * ══════════════════════════════════════════════════════════════ */
+
+/* ── 按下反馈：进得快、回得慢 ────────────────────────────────
+ * 按下 90ms（几乎是即时反馈），松开交给元素自己的 transition 慢慢回弹。
+ * 这是 iOS 与 Material 都用的节奏：按下要"脆"，回弹要"软"。 */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+label.switch:active,
+summary:active {
+  transform: scale(.97);
+  transition: transform 90ms var(--ease);
+}
+
+/* .btn 原本是 translateY(1px)，保留"往下沉"的实体感，再加一点缩放 */
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(.985);
+  transition: transform 90ms var(--ease);
+}
+
+/* ── 可点击卡片：悬停轻抬 ────────────────────────────────────
+ * 只给**真的是链接**的卡片加，否则会给不可点的卡片错误暗示。
+ * 用 translateY 而不是 margin-top —— 后者触发布局，整行都会动。 */
+a.card,
+a.console-card,
+.scalecard[href] {
+  transition: transform var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+a.card:hover,
+a.console-card:hover,
+.scalecard[href]:hover {
+  transform: translateY(-2px);
+}
+
+/* ── 主题切换的圆形扩散 ────────────────────────────────────
+ * js/settings.js 的 applyThemeAnimated() 会从点击处画一个 circle 展开。
+ * 这里要做的是**关掉默认的整页交叉淡入**，否则会和 clip-path 打架：
+ * 两层同时在动，看起来像"整页闪了一下 + 有个圆在变大"。 */
+@supports (view-transition-name: root) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  ::view-transition-old(root) { z-index: 1; }   /* 旧主题在下面 */
+  ::view-transition-new(root) { z-index: 2; }   /* 新主题从圆心盖上来 */
+}
+
+/* ── 减弱动效：以上全部失效 ──────────────────────────────────
+ * 注意是"取消变换"而不是"把时长调 0" —— 时长归零后 scale(.97) 依然存在，
+ * 只是瞬间发生，看起来反而是抖动。 */
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  label.switch:active,
+  summary:active,
+  .btn:active:not(:disabled) {
+    transform: none !important;
+  }
+  a.card:hover,
+  a.console-card:hover,
+  .scalecard[href]:hover {
+    transform: none !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}

@@ -27,16 +27,31 @@
  *   文档里写清楚，别让人误以为是持久防重放。
  * ============================================================ */
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
 import { limit, tryEnter, leave, RL } from './ratelimit.mjs';
+import { TIERS } from './api-keys.mjs';
+import { trustSignals } from './api-trust.mjs';
 
 const HOUR = 3_600_000;
 const BURST_MS = 10_000;
 const TS_TOL = 300_000;
 const NONCE_TTL = 600_000;
 
+/* 一级管理员密码：优先环境变量，其次 admin-secret.txt（gitignore）。
+   文件是给"人"保管的口子 —— 换密码只要改文件，不用重新部署环境变量。 */
+function readAdminSecret() {
+  if (process.env.PHM_ADMIN_SECRET) return String(process.env.PHM_ADMIN_SECRET).trim();
+  try {
+    const ROOT = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
+    return fs.readFileSync(path.join(ROOT, 'admin-secret.txt'), 'utf8').trim();
+  } catch { return ''; }
+}
+
 const CFG = {
   hmac: process.env.PHM_HMAC_SECRET || '',
-  admin: process.env.PHM_ADMIN_SECRET || '',
+  admin: readAdminSecret(),
   pow: process.env.PHM_POW !== '0',
   entropy: process.env.PHM_ENTROPY !== '0',
   decoy: process.env.PHM_DECOY !== '0',
@@ -250,9 +265,12 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
       message: 'analysis requires an API key or a signed request; anonymous read-only access is retained' };
   }
 
-  /* 层 5：只对匿名做软挑战，正常浏览完全无感 */
+  /* 层 5：只对匿名做软挑战，正常浏览完全无感。
+     两个独立信号：行为熵（时序）+ 协议自洽（请求自己说不说得通）。
+     任一可疑就要求 PoW —— 真人几毫秒过，伪装者每请求都要付成本。 */
   if (tier === 'anon' && CFG.pow) {
-    const suspicious = CFG.entropy && behaviorOdd(subject, now);
+    const trust = trustSignals(req);
+    const suspicious = (CFG.entropy && behaviorOdd(subject, now)) || trust.sus;
     const c = challenges.get(subject);
     if (suspicious || (c && c.exp > now)) {
       const ch = softChallenge(subject, now);
@@ -268,18 +286,25 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
         return { ok: false, status: 428, code: 'precondition_required',
           message: 'proof of work required',
           headers: { 'retry-after': '1' },
-          body: { challenge: { seed: ch.seed, bits: CFG.difficulty, expires_at: new Date(ch.exp).toISOString() } } };
+          body: {
+            challenge: { seed: ch.seed, bits: CFG.difficulty, expires_at: new Date(ch.exp).toISOString() },
+            /* 原因码：方便调用方判断是"太密集"还是"协议不自洽" */
+            reason: trust.sus ? ('trust:' + trust.reasons.join(',')) : 'rate',
+          } };
       }
       challenges.delete(subject);
     }
   }
 
-  /* 层 3：突发 + 持续双桶，按 subject 而不是裸 IP */
+  /* 层 3：突发 + 持续双桶，按 subject 而不是裸 IP。
+     Key 的额度按档位取（normal 1000 / premium 5000 / admin 20000）——
+     admin 也不是无限：无限等于没有上限，被打时自己先挂。 */
   const isKey = who.kind === 'key';
-  const burstMax = tier === 'anon' ? 12 : (tier === 'signed' || admin ? 40 : 25);
-  const hourMax = admin ? RL.apiKeyHour * 2
-    : tier === 'anon' ? RL.apiAnonHour
-      : tier === 'signed' ? RL.apiKeyHour * 2 : RL.apiKeyHour;
+  const quota = TIERS[(who && who.tier) || 'normal'] || TIERS.normal;
+  const burstMax = tier === 'anon' ? 12
+    : (tier === 'signed' ? Math.max(40, quota.burst) : quota.burst);
+  const hourMax = tier === 'anon' ? RL.apiAnonHour
+    : (tier === 'signed' ? Math.max(RL.apiKeyHour * 2, quota.hour * 2) : quota.hour);
 
   const burst = await limit([{ k: 'api:burst:' + subject, max: burstMax }], burstMax, BURST_MS, { failClosed: true });
   if (!burst.ok) {
@@ -299,8 +324,9 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
       headers: { 'retry-after': '60' } };
   }
   if (analysis && isKey) {
-    const a = await limit([{ k: 'api:analyze:' + who.id, max: RL.apiAnalyzeDay }],
-      RL.apiAnalyzeDay, 86_400_000, { failClosed: true });
+    const dayMax = quota.analyzeDay || RL.apiAnalyzeDay;
+    const a = await limit([{ k: 'api:analyze:' + who.id, max: dayMax }],
+      dayMax, 86_400_000, { failClosed: true });
     if (!a.ok) return { ok: false, status: 429, code: 'rate_limit_exceeded',
       message: 'daily analysis quota exceeded', headers: { 'retry-after': '3600' } };
   }
@@ -316,8 +342,11 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
 
 export function guardCapabilities() {
   return {
-    tiers: ['anon', 'key', 'signed', 'admin'],
+    tiers: ['anon', 'normal', 'premium', 'admin', 'signed'],
+    /* 三档 Key 配额（由 owner 前缀推导；admin 也不是无限，见 lib/api-keys.mjs） */
+    quotas: TIERS,
     anonymous: { read: true, analysis: false, hour: RL.apiAnonHour, burst_per_10s: 12 },
+    key_formats: ['sk- + 43 base64url (256 bit, 新)', 'sk- + 32 hex (128 bit, 兼容存量)'],
     signed: { hour: RL.apiKeyHour * 2, burst_per_10s: 40 },
     features: {
       hmac_signature: true, dpop_proof: true, subject_rate_limit: true,

@@ -19,9 +19,304 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.28.0.3';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.3.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.3.2', date: '2026-11-11',
+    zh: ['<b>清掉了代码注释里的"日记"。</b> 最近几个文件里我写了不少"我上次错在哪"的检讨，'
+      + '那些该进提交记录，不该留在代码里。现在只保留"为什么必须这样写"，'
+      + '防止有人改回去 —— 这是注释唯一的用处。'],
+    en: ['<b>Cleaned diary entries out of code comments.</b> Recent files had notes like what I got wrong last '
+      + 'time; those belong in commit history, not in the code. What remains is only why a line must stay the '
+      + 'way it is — the one job a comment has.'],
+  },
+  {
+    v: 'V0.30.3.1', date: '2026-11-11',
+    zh: ['<b>「关于这些包」下面的四条说明，这次真的修好了。</b> 上次我说修好了，'
+      + '其实改的是「以为改到了」—— 那次替换静默失败，那一行代码压根没进文件。'
+      + '这次改完我抓了渲染后的页面，四条都在。',
+      '<b>写谱页的「导入音频」框之前被压成一条竖线。</b> 原因是那个框用的是 label 标签，'
+      + '默认是行内元素，而里面装的是块级内容 —— 边框只包住了第一个字，'
+      + '把副标题的字也挤掉半截。</b>',
+      '<b>写谱页的公式样式被 CSP 拦了。</b> KaTeX 的样式表从 CDN 加载，'
+      + '而我们的安全策略只放行了脚本、没放行样式，公式排版一直是坏的。'],
+    en: ['<b>The four notes under these packs are actually fixed this time.</b> Last time I said fixed, '
+      + 'I had changed what I thought I changed — the substitution silently failed and the line never '
+      + 'reached the file. This time I dumped the rendered page and checked all four are there.',
+      '<b>The audio drop zone on the writing page was squashed into a thin vertical strip.</b> It is a label '
+      + 'element, which is inline by default, while its contents are block-level — so the dashed border wrapped '
+      + 'only the first character and clipped the subtitle text.',
+      '<b>KaTeX styles were blocked by our own CSP.</b> The stylesheet loads from a CDN, and our policy allowed '
+      + 'the script but not the style. Formula layout had been broken all along.'],
+  },
+  {
+    v: 'V0.30.2.1', date: '2026-11-11',
+    zh: ['<b>补上上一版漏掉的政策版本号。</b> 内容都更新了，但页头还写着 v1.3 / 2026-10-17 —— '
+      + '改文件时回滚过一次，把版本号一起退回去了。现在是对的：v1.4 / 2026-11-11。'],
+    en: ['<b>Fixing the policy version number the previous release missed.</b> The content was updated but '
+      + 'the header still read v1.3 / 2026-10-17 — a rollback took the version with it. '
+      + 'It now reads v1.4 / 2026-11-11.'],
+  },
+  {
+    v: 'V0.30.1.2', date: '2026-11-10',
+    zh: ['<b>上一版加了页脚，但首页看不到 —— 因为首页根本没有页脚那个标签。</b> '
+      + '现在改成「没有就自己建一个」，26 个页面全都有入口了。'],
+    en: ['<b>The previous release added a footer, but the home page still had none — because the home page '
+      + 'had no footer element at all.</b> It now creates one when missing; all 26 pages have the links.'],
+  },
+  {
+    v: 'V0.30.1.1', date: '2026-11-10',
+    zh: ['<b>全站现在有页脚了 —— 也就是说，终于找得到隐私政策。</b> '
+      + '26 个页面的页脚标签一直是空的，想找协议只能自己猜网址。'
+      + '现在每页底部都有「隐私政策 / 个人信息收集清单 / 用户协议 / 运行状态」。',
+      '<b>谱面包页的「关于这些包」四条说明一直是空的。</b> '
+      + '文案都写好了，但页面初次加载时没触发填充，只有切换语言才会出现。已修。',
+      '<b>不再列出审核未通过的谱面。</b> 上游会把它们一起返回，我们不替它做内容审查，'
+      + '但也不主动分发 —— 这类谱可能含违规曲绘或元数据。'
+      + '「未官方收录」不在此列，那是常态。'],
+    en: ['<b>The whole site has a footer now — which means the privacy policy is finally findable.</b> '
+      + 'The footer element on all 26 pages was empty; finding the policy meant guessing the URL. '
+      + 'Every page now links to privacy, the data-we-collect list, terms and status.',
+      '<b>The four explanatory notes on the packs page were always blank.</b> The strings existed, but the '
+      + 'page never triggered the fill on first load — only on a language switch. Fixed.',
+      '<b>Charts that failed review are no longer listed.</b> Upstream returns them alongside everything else. '
+      + 'We do not review content on their behalf, but we will not voluntarily distribute it either. '
+      + 'Being "not officially ranked" is different and stays listed — that is the normal state.'],
+  },
+  {
+    v: 'V0.30.1.0', date: '2026-11-10',
+    zh: ['<b>字号设置从来没生效过，现在才真的能调。</b> 设置页那三档（小/中/大）一直点得动，'
+      + '但选了没反应 —— 因为全站 179 处字号写的是固定像素，而设置改的是根元素的基准字号，'
+      + '两者根本不相干。现在把这 179 处换成相对单位，视觉上一点没变，但从此跟随你的选择。',
+      '<b>开发者页的代码块在深色主题下是一整块纯黑。</b> 那段样式硬编码了 GitHub 的暗色配色，'
+      + '和我们的深色背景几乎同色，字都看不清，复制出来更是全黑。现在改用主题色板，明暗各一套。',
+      '<b>统计类接口加了缓存。</b> 数据库在新加坡、服务在北京，每查一次要等约 190 毫秒。'
+      + '全站统计这类一分钟都不变的数据现在直接走缓存，命中时连数据库都不碰。'],
+    en: ['<b>Font size never actually worked; now it does.</b> The three steps in settings (small / medium / '
+      + 'large) were clickable but did nothing — 179 font sizes across the site were fixed pixel values, while '
+      + 'the setting changed the root base size. The two had nothing to do with each other. All 179 now use '
+      + 'relative units: visually identical, but they follow your choice from now on.',
+      '<b>Code blocks on the developer page were a solid black slab in dark theme.</b> That style hardcoded '
+      + 'GitHub dark colours, nearly identical to our dark background — text was unreadable and copying gave '
+      + 'you black on black. It now uses the theme palette with separate light and dark sets.',
+      '<b>Statistics endpoints are cached.</b> The database is in Singapore and the service in Beijing, so '
+      + 'every query costs about 190ms. Site-wide stats that change once a minute now come from cache, '
+      + 'touching the database not at all.'],
+  },
+  {
+    v: 'V0.30.0.4', date: '2026-11-10',
+    zh: ['<b>上一版的缓存其实没生效，这一版才真的生效。</b> '
+      + '全站统计走的是它自己的处理函数，不走我加缓存的那条路 —— '
+      + '所以「加了缓存」的结果是缓存条目一直是 0。',
+      '<b>顺手把那个函数挪进了独立文件。</b> 主路由文件已经顶到 900 行上限，'
+      + '再往里塞东西迟早出事 —— 按职责切出来比压缩注释干净。'],
+    en: ['<b>The cache from the previous release never actually took effect; this one does.</b> The stats endpoint '
+      + 'has its own handler and did not go through the path where the cache was added — so '
+      + 'caching was "on" while the cache itself stayed empty.',
+      '<b>The handler also moved into its own file.</b> The main router had hit the 900-line ceiling; splitting '
+      + 'by responsibility is cleaner than squeezing comments.'],
+  },
+  {
+    v: 'V0.30.0.3', date: '2026-11-10',
+    zh: ['<b>给几个"从来不变"的接口加了缓存。</b> 全站统计、参照表、行为数据这些，'
+      + '几分钟都不会变一次，但之前每来一个访客就要跨境查一次数据库 —— '
+      + '数据库在新加坡，服务在北京，一次往返约 190 毫秒。',
+      '<b>现在命中缓存时连数据库都不碰。</b> 统计类缓存 60 秒，参照表 30 秒。'
+      + '响应头会带 <code>x-cache: hit</code> 或 <code>miss</code>，自己就能看出来。'
+      + '另外加了 <code>?nocache=1</code>，需要看实时数据时可以强行穿透。',
+      '<b>没缓存列表页。</b> <code>/charts</code> 这类你要看最新数据的地方一律不缓存 —— '
+      + '缓存的是"晚 30 秒也没人在意"的那几个。'],
+    en: ['<b>Caching the endpoints that never really change.</b> Site-wide statistics, reference tables and '
+      + 'behaviour data shift once every few minutes at most, yet every visitor triggered a cross-border '
+      + 'database round trip — the database is in Singapore, the service in Beijing, about 190ms each way.',
+      '<b>On a cache hit the database is not touched at all.</b> 60 seconds for statistics, 30 for reference '
+      + 'tables. Responses carry <code>x-cache: hit</code> or <code>miss</code> so you can see it, and '
+      + '<code>?nocache=1</code> forces a fresh read when you need real-time numbers.',
+      '<b>List endpoints are deliberately not cached.</b> Anything where you expect the newest data — '
+      + 'like <code>/charts</code> — always goes to the database. Only the "30 seconds late is fine" ones '
+      + 'are cached.'],
+  },
+  {
+    v: 'V0.30.0.2', date: '2026-11-10',
+    zh: ['<b>修一个自己坑自己的 bug：中转下载会把自己判成"服务器过载"。</b> '
+      + '传一个 8MB 的谱面包要 2 秒，这很正常，但那条耗时记录被算进了全站压力统计，'
+      + '于是系统以为整个站点都在被打，把下载请求自己给拒了。',
+      '<b>现在带宽类请求不参与压力计算。</b> 它们天然就慢，而且不碰数据库、不跑引擎 —— '
+      + '用"计算拥塞"的尺子去量它们必然是误判。'],
+    en: ['<b>Fixing a bug where the download proxy flagged itself as overloaded.</b> Moving an 8MB pack takes '
+      + 'about 2 seconds, which is normal — but that duration fed into the site-wide pressure average, so the '
+      + 'system concluded the whole site was under attack and rejected the download itself.',
+      '<b>Bandwidth-bound requests no longer count toward pressure.</b> They are slow by nature and touch '
+      + 'neither the database nor the engine — measuring them with a compute-congestion ruler is a guaranteed '
+      + 'false positive.'],
+  },
+  {
+    v: 'V0.30.0.1', date: '2026-11-10',
+    zh: ['<b>「打包下载」从上线起就是坏的，现在修好了。</b> 点下去只会看到「所有文件都没取到」——'
+      + '不是偶发，是每次都失败。',
+      '<b>原因不在我们这边。</b> 谱面文件原来由浏览器直接从 Phira 的镜像下载，'
+      + '而上游这个月改成了跳转到另一个 CDN 域名 —— 那个 CDN 的跨域响应缺了关键的一个头，'
+      + '浏览器一律拒绝。我们改不了别人的服务器配置。',
+      '<b>现在改由我们的服务器代取。</b> 浏览器仍会先试直连（万一上游哪天修好了，就自动恢复成零中转），'
+      + '失败立刻转由服务器取回再转给你 —— 实测 8.5MB 的包 0.38 秒。'
+      + '代价是会占一点我们的出口带宽，所以加了白名单、120MB 上限和 25 秒超时。'],
+    en: ['<b>"Download as pack" has been broken since launch. It is fixed now.</b> Clicking it only ever said '
+      + '"no files could be fetched" — not intermittently, every single time.',
+      '<b>The cause was not on our side.</b> Chart files used to be fetched by the browser directly from '
+      + 'Phira mirrored storage; upstream switched to redirecting to another CDN domain this month, and that '
+      + 'CDN response is missing a critical cross-origin header. Browsers reject it outright. We cannot change '
+      + 'someone else’s server config.',
+      '<b>Our server now fetches on your behalf.</b> The browser still tries the direct route first (so if '
+      + 'upstream fixes it, we go back to zero proxying), then falls back to our server, which streams the file '
+      + 'through — an 8.5MB pack in 0.38s in testing. It costs us some egress bandwidth, so it is restricted '
+      + 'to an allowlist with a 120MB cap and a 25s timeout.'],
+  },
+  {
+    v: 'V0.30.0.0', date: '2026-11-10',
+    zh: ['<b>「更多」页之前根本没有导航栏。</b> 那页的容器 id 写成了 topbar，'
+      + '而导航模块只认 nav —— 于是这个页面从上线起就没有顶部菜单，没人发现。'
+      + '已修正，并顺手加了「← 返回首页」。',
+      '<b>按钮按下现在有反馈了。</b> 之前全站只有 13 处颜色过渡、2 处形变，'
+      + '按下去和没按一样。现在按下缩到 97%（约 1.2px），90 毫秒完成 —— '
+      + '手感靠快不靠幅度大。可点击的卡片悬停会轻抬 2px。',
+      '<b>切主题不再"整页闪一下"。</b> 改成从你点击的位置扩散一个圆，'
+      + '420 毫秒盖满全屏。不支持该特性的浏览器、开了「减弱动效」的、'
+      + '以及连点两次的情况，都自动退回瞬时切换。',
+      '<b>代码结构拆了两处。</b> 前端 ui.js 从 533 行拆成 4 个模块（21 个页面的引用一行没改）；'
+      + '后端的接口成本分档从「正则猜路径」改成一张表，新加接口忘了登记会被检查拦住。',
+      '<b>本地检查从 82 秒降到 38 秒。</b> 82 项检查改成并发跑（默认 16 路），'
+      + '输出各自缓冲不交错。'],
+    en: ['<b>The "More" page had no navigation bar at all.</b> Its container id was topbar while the nav '
+      + 'module only looks for nav — so the page shipped without a top menu and nobody noticed. Fixed, '
+      + 'plus a "back to home" link.',
+      '<b>Buttons now respond to being pressed.</b> Before there were only 13 colour transitions and 2 '
+      + 'transforms site-wide; pressing a button did nothing. Now it scales to 97% (about 1.2px) in 90ms — '
+      + 'feel comes from speed, not amplitude. Clickable cards lift 2px on hover.',
+      '<b>Theme switching no longer flashes the whole page.</b> A circle now expands from where you clicked, '
+      + 'covering the screen in 420ms. Unsupported browsers, reduced-motion users and double-clicks all fall '
+      + 'back to an instant switch.',
+      '<b>Two pieces of structure were untangled.</b> Frontend: ui.js went from 533 lines to 4 modules with '
+      + 'zero changes to the 21 pages importing it. Backend: endpoint cost tiers moved from regex guessing to '
+      + 'an explicit table — adding an endpoint without registering it now fails a check.',
+      '<b>Local checks went from 82s to 38s</b> by running 82 steps concurrently (16 lanes by default) with '
+      + 'buffered output.'],
+  },
+  {
+    v: 'V0.29.0.5', date: '2026-11-09',
+    zh: ['<b>管理台不再把已吊销的密钥列出来。</b> 之前 6 条里只有 2 条是活的，'
+      + '剩下 4 条是历史记录，看着像还在用、其实打过去只会 401。现在只显示有效的。',
+      '<b>新增「端点调用」页：按接口看调用次数、错误数、p50 与最大耗时。</b> '
+      + '谁能看出「哪个接口在被用、哪个在报错、哪个慢」，不用再靠猜。',
+      '<b>它只统计带 Key 的调用，匿名不记。</b> 这不是偷懒：无状态部署下每次请求都写一次库，'
+      + '真被打了等于给数据库再加一层负担。匿名的健康度交给状态页那 7 条探针，两边分工。'],
+    en: ['<b>The console no longer lists revoked keys.</b> Previously 6 rows showed up with only 2 alive; '
+      + 'the other 4 were history that looked active but returned 401. Only live keys now.',
+      '<b>New "endpoint calls" tab: per-route call counts, errors, p50 and max latency.</b> '
+      + 'You can see which endpoint is used, which is failing and which is slow without guessing.',
+      '<b>It counts keyed calls only; anonymous traffic is not logged.</b> Not laziness: with stateless '
+      + 'deployment every request would mean a database write, adding load exactly when being attacked. '
+      + 'Anonymous health is covered by the seven status-page probes instead.'],
+  },
+  {
+    v: 'V0.29.0.4', date: '2026-11-09',
+    zh: ['<b>二级密码之前存在服务器的文件里 —— 每次部署都会把它覆盖掉。</b> '
+      + '所以你设完之后再刷新，服务端会告诉你"还没设置"。这不是你操作错了，是存错了地方。'
+      + '现在改存数据库，部署多少次都不会丢。',
+      '<b>现在可以改密码了，但必须给旧密码。</b> 之前只有一级密码就能覆盖，'
+      + '那意味着运维能单独把你的锁换掉 —— 二级密码等于不存在。'
+      + '现在改密码要验旧密码，运维只有一级密码，改不了。',
+      '<b>忘记旧密码没有自助通道。</b> 只能由运维在数据库里清空后重设，'
+      + '而这件事会在操作记录里留下痕迹 —— 这是刻意的取舍：能救你，但不可能悄悄做。'],
+    en: ['<b>The second-level password was stored in a file on the server — and every deploy overwrote it.</b> '
+      + 'So after setting it, a refresh would report "not set yet". That was not your mistake; it was stored '
+      + 'in the wrong place. It now lives in the database and survives any number of deploys.',
+      '<b>You can change it now, but the current password is required.</b> Previously the first-level password '
+      + 'alone could overwrite it — meaning operations could replace your only lock, making the second factor '
+      + 'meaningless. Changing it now verifies the old one, and operations does not have it.',
+      '<b>There is no self-service reset if you forget it.</b> Only operations can clear and re-set it in the '
+      + 'database, and that leaves a trace. That is a deliberate trade-off: recoverable, but never silently.'],
+  },
+  {
+    v: 'V0.29.0.3', date: '2026-11-09',
+    zh: ['<b>这一版只做一件事：把版本历史补全并写详细。</b> '
+      + 'V0.29.0.0 和 V0.29.0.1 的用户向说明之前没写进页面数据源（一次脚本写入失败，被当成了成功），'
+      + '所以 /version 一直停在 V0.28.0.3 —— 你看到的就是这个。',
+      '<b>以后每条更新都按「为什么、动了什么、对你意味着什么」写。</b> '
+      + '不再只写「修了某某」，而是说清楚它原本错在哪、为什么错、以及你作为使用者会不会感觉到变化。',
+      '<b>另外顺手确认了一遍：</b>7 条监控现在全部正常，两份状态页通报已发布'
+      + '（一份讲监控探针与鉴权不同步，一份讲监控配置过脆 + 换密钥留了空档）。'],
+    en: ['<b>This release does one thing: complete the version history and write it properly.</b> '
+      + 'The user-facing notes for V0.29.0.0 and V0.29.0.1 never made it into the page data source '
+      + '(a script write failed and I treated it as success), so /version was stuck at V0.28.0.3.',
+      '<b>From now on every entry answers three questions:</b> why it was wrong, what changed, and what it '
+      + 'means for you — not just "fixed something".',
+      '<b>Also re-checked:</b> all seven monitors are green, and two status-page reports are published '
+      + '(one on monitors falling out of sync with auth, one on brittle monitor settings plus a key rotation gap).'],
+  },
+  {
+    v: 'V0.29.0.2', date: '2026-11-09',
+    zh: ['<b>补 /version 页的版本历史。</b> 上一版把用户向说明写进了 CHANGELOG，却漏了页面数据源 —— '
+      + '内部记录和对外页面是两份，只改一份就会「开发者知道、用户看不到」。',
+      '<b>教训：改完必须验证。</b> 这次不是脚本报错，而是脚本静默失败（Python 语法错误后我当成成功）。'
+      + '以后改 `versions.js` 一定验证 `RELEASES[0].v` 真的变了。'],
+    en: ['<b>Filling in the missing version history.</b> The previous release updated the internal changelog '
+      + 'but not the page data source — two separate files, and touching only one means developers know while '
+      + 'users see nothing.',
+      '<b>Lesson: verify after writing.</b> The script did not fail loudly; it failed silently. '
+      + 'Any change to `versions.js` now gets checked for `RELEASES[0].v` actually moving.'],
+  },
+  {
+    v: 'V0.29.0.1', date: '2026-11-09',
+    zh: ['<b>状态页红了一下午，原因是我们自己的监控配置太脆。</b> '
+      + '「谱师作品」「玩家资料」这两个接口要去上游 Phira 取数据，而上游本身就要 1.5~3.4 秒、还忽快忽慢。'
+      + '监控原来的超时是 30 秒、而且<b>只要失败一次就判红</b> —— 一次网络抖动就够。'
+      + '现在改成 45 秒超时 + 连续失败 3 次才算故障。',
+      '<b>换密钥时留了 15 分钟空档，7 条监控一起 401。</b> 这是操作失误：应该先上新的、确认生效，再撤旧的。'
+      + '空档期内所有监控都在用一把已吊销的钥匙。',
+      '<b>还清掉一处真实泄漏。</b> 一把监控用的密钥被写进了测试文件，而这个仓库是公开的。'
+      + '已吊销、已换成假值 —— 那把钥匙现在打过来只会得到 401。'],
+    en: ['<b>The status page was red all afternoon, and the cause was our own brittle monitoring config.</b> '
+      + 'Two endpoints call upstream Phira, which itself takes 1.5–3.4s and is jittery. The monitors were set '
+      + 'to a 30s timeout and <b>a single failure counted as down</b> — one network hiccup was enough. '
+      + 'Now 45s with three consecutive failures required.',
+      '<b>We left a 15-minute gap while rotating keys, so all seven monitors returned 401 at once.</b> '
+      + 'That was an operational mistake: add the new key and confirm it works before revoking the old one.',
+      '<b>One real leak was cleaned up.</b> A monitoring key had been written into a test file, and this '
+      + 'repository is public. It has been revoked and replaced with a dummy — that key now only gets 401.'],
+  },
+  {
+    v: 'V0.29.0.0', date: '2026-11-09',
+    zh: ['<b>API 的防护补完了，而且匿名没被砍。</b> 现在分三档：匿名只读、持 Key、带签名/证明；'
+      + '管理员另走一条独立通道。被收紧的只有一件事 —— 匿名不能再触发谱面重算，'
+      + '因为那条路原来等于一个免费算力放大器（下载谱面 + 跑引擎，并发槽只有 2）。',
+      '<b>多了管理台，还有两道锁。</b> <code>/admin</code> 用一级密码登录看全量密钥与调用量，'
+      + '但改档位、批申请这些写操作要再输一次只有站长知道的二级密码 —— '
+      + '一级密码运维也知道，只靠它等于运维一个人能改所有人的额度。',
+      '<b>多了压力感知：真被打了，会先牺牲昂贵的接口。</b> 本地数据类的接口（元信息、引擎权重、'
+      + '行为数据、探针）永远不放弃，因为它们不碰数据库，是「服务还活着」的最后证据；'
+      + '打上游和跑引擎的接口最先让路。牺牲顺序是 匿名 → 持 Key → 签名/管理员。',
+      '<b>还有一个不开验证码的真人判定。</b> 只怀疑「装作浏览器」的请求：'
+      + '声称是 Chrome 却不送客户端提示头、平台字段和 UA 自相矛盾、或者用导航模式调 API。'
+      + 'curl、脚本、监控这些<b>明说自己不是浏览器的，一分不扣</b>。'
+      + '可疑的请求不直接拒绝，只要求做一次几毫秒的算术题。'],
+    en: ['<b>The API guards are complete — and anonymous access was not removed.</b> Three tiers now: '
+      + 'anonymous read-only, keyed, and signed; admins get a separate channel. The only thing anonymous '
+      + 'users lost is the ability to trigger a recompute, which was effectively a free compute amplifier.',
+      '<b>There is an admin console now, behind two locks.</b> <code>/admin</code> signs in with the first '
+      + 'password to view keys and usage; changing tiers or approving requests needs a second password only '
+      + 'the site owner knows — operations knows the first one, so relying on it alone would mean ops can '
+      + 'change the quota of every key single-handedly.',
+      '<b>Load shedding landed: under pressure, expensive endpoints give way first.</b> Endpoints served from '
+      + 'local data (metadata, engine weights, behaviour data, the probe) are never shed, because they do not '
+      + 'touch the database and are the last proof that the service is alive. Upstream calls and recomputes '
+      + 'yield first. Order: anonymous → keyed → signed/admin.',
+      '<b>A captcha-free human check.</b> It only suspects requests that <i>pretend to be a browser</i>: '
+      + 'claiming Chrome without client hints, a platform field contradicting the user agent, or navigating '
+      + 'to an API endpoint. curl, scripts and monitors openly identify as non-browsers and <b>lose no points '
+      + 'at all</b>. Suspicious requests are not rejected — they only have to solve a few milliseconds of '
+      + 'arithmetic.'],
+  },
   {
     v: 'V0.28.0.3', date: '2026-11-09',
     zh: ['<b>PoW 挑战误伤了状态页监控。</b> 今天「全库统计」「玩家资料」各有几次 428 —— '

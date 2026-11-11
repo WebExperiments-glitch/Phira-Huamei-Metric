@@ -57,6 +57,7 @@
 | `/retired` | `retired.html`（**服务端模板**） | 下线说明页：告诉用户哪些功能撤了、还能用什么、去哪继续。由 `lib/retired.mjs` 读模板并替换 `__APP_VER__` / `__RETIRE_URL__` 后送出；文件本身**不在** `PUBLIC_FILES` 里，裸访问 404 |
 | `/packs` | `packs.html` | **谱面包**：浏览 Phira 公开谱面库，把任意谱面（曲绘 / 音乐 / chart JSON）在**浏览器本地**打成 `.pez` 包并下载。零中转 —— 服务器只代理 JSON 元数据，文件一律浏览器直连 Phira CDN（不烧我们的带宽、也不替上游再分发） |
 | `/more` | `more.html` | **全部功能入口**：导航只留谱面与创作两类，其余按用途分组平铺（2026-11-07 用户反馈 13 项平铺「有些杂乱」）。纯链接页，无状态 |
+| `/admin` | `admin.html` | **管理台**（`noindex`，不挂导航）：一级密码登录 → 列全部 key（档位/调用次数/最后状态）+ 升级申请审批。**写操作要二级密码**（scrypt 哈希存 `admin2-hash.txt`，明文永不落盘）。后端在 `lib/api-admin.mjs`，4 个端点全在 `identify` 之前分发 —— 管理通道不该占 API Key 配额、也不该被匿名限流影响 |
 | `/login` | `login.html` | **登录门面**：独立页，不挂全局导航（登录页挂导航等于分心）。双栏：左栏是 `public/js/particles.js` 的琥珀粒子群（Live2D 到位前的"角色位"占位，鼠标扫过会把粒子弹开），右栏是表单。**渐进式两步**：首屏只收邮箱，点「下一步」才出密码，注册 / 找回密码是同页的备选模式。登录逻辑复用 `public/js/auth.js` 的 `createAuth()`，页面只做编排 | 登录成功后跳 `?redirect=` 指定的页面（默认 `/app`），**但必须过 `public/js/redirect.js` 的站内相对路径白名单**（开放重定向 / XSS）；错误提示复用 `app.auth.err.*`，不另起一套键 |
 | `/status` | `status.html` | **运行状态**：20 个目标自检（页面/数据 60s，打 DB 的接口 5 分钟——见 `RL.apiAnonHour`），报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
@@ -273,6 +274,12 @@ js/i18n/settings.js ← 设置页（set.*）
 |---|---|---|---|
 | 引擎 | `public/js/engine.js` | 解析 ZIP（RPE/PGR/**PEC**）、算特征、双参照 k-NN 定数 | 不碰 DOM / 存储 / 网络 |
 | 参照集 | `public/js/ref-official.js` + `public/data/ref-com.json` | **唯一真源是 `tools/gen-ref.mjs`**；输出物不要手改 | 不放算法，只放数据 |
+| 代码索引补丁 | `tools/patch-codebase-search.mjs` | 给 `@teknologika/mcp-codebase-search` 的语言映射加 `.mjs` / `.cjs` | 那个工具只认 .js/.jsx/.py/.ts/.tsx，而我们后端全是 .mjs —— 首次索引时 80 个文件被跳过。`.mjs` 与 `.js` 在 tree-sitter 眼里是同一套语法，加两个键即可。**改的是全局包，`npm update -g` 后必须重跑**（脚本幂等） |
+| 全站统计 | `lib/api-stats.mjs` | `GET /stats` 的处理（查库 + 60s 缓存 + 错误兜底） | 做成工厂函数是因为要用 api-routes 的 requireScope/gateApi/dbFetch 等闭包，显式注入比提升到全局干净；api-routes 已到 900 行上限，按职责切出来的 |
+| 查询历史 | `lib/api-lookups.mjs` | `GET/POST/DELETE /api/v1/lookups` | **留存的地基**：现在用户查完一张谱就关掉，没有回来的理由。主体优先 `acct:<id>`，否则 `cid:<浏览器UUID>`（匿名也能用，绑账号后跨设备）。存 `chart_id / times / first_at / last_at / seen_ref`，**不存关键词、IP、UA**。`seen_ref` 是钩子核心 —— 下次能算「参考定数从 15.30 变成 15.42」。⚠ 匿名主体由前端上报、理论上可伪造，但能看到的只是公开的 chart_id，危害有限；账号路径由服务端从 token 派生，不可伪造。⚠ 新增了「你查了哪些谱」这类关联数据，隐私政策清单表里已同步一行 |
+| 结果缓存 | `lib/api-cache.mjs` | 内存 TTL 缓存，只给白名单端点：`/stats` 60s、`/reference` 30s、`/behavior` 30s、`/discrepancy` 60s、`/engines` 300s | 数据库在 AWS 新加坡，每查一次付 ~190ms 跨境；这些结果几分钟都不变。命中时连库都不碰，响应头带 `x-cache: hit/miss`，`/meta` 的 `load.cache` 暴露条目数。**白名单而非黑名单** —— 新端点默认不缓存，避免把带身份的数据缓存后发给别人。`?nocache=1` 强制穿透 |
+| 部署维护窗口 | `tools/deploy-maint.mjs` | 部署前后在 BetterStack 状态页挂 `maintenance` 公告（`--start <分钟>` / `--end` / `--status`） | 部署会让服务重启几十秒，监控在那个窗口里必然失败 → 状态页红一片，外部以为站挂了，实际是计划内更新。挂维护公告后状态页显示"维护中"而不是"故障" —— **这是公开可见的，不是掩盖**。⚠ 边界：窗口内**真故障也不会红**，所以部署后必须自己验证，不能依赖监控兜底；窗口默认 10 分钟不要太长；**绝不因为"现在出故障了"去开窗口**。⚠ 用 report 而非暂停监控：暂停后忘了恢复 = 永久失去告警，而 report 带 ends_at 会到期自动结束 |
+| 上游文件中转 | `lib/api-files.mjs` | `GET /api/v1/file?u=` 流式转发 `phira.5wyxi.com` / `phira-cdn.5wyxi.com` | ⚠ **为什么必须存在**：上游 2026-11 起 303 跳到 `phira-cdn.5wyxi.com`，而那个 CDN 缺 `Access-Control-Allow-Origin` → 浏览器直连必然 `Failed to fetch`（打包下载从上线起就坏，真因在此）。前端先试直连、失败回落这里；上游修好 CORS 就自动回到零中转。白名单域名 + 120MB + 25s 超时。**已知缺陷**：不碰 DB 却会因 DB 慢被判 critical 而降级误伤，压力模型该区分「DB 压力」与「出口带宽压力」，待改 |
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
 | 身份 / 账号 | `lib/hm.mjs` + `lib/hm-accounts.mjs` + `lib/hm-code-routes.mjs` | huamei 身份校验；自建账号（scrypt + 自签 HS256）；验证码路由（发码 / 验码 / 重置） | 不把平台 token 当可信身份；不用登录密码碰 Phira |
@@ -288,6 +295,8 @@ js/i18n/settings.js ← 设置页（set.*）
 | 写谱边界与开关 | `lib/write-scope.mjs` | 写谱链路的**文件清单**（`WRITE_OWNED`）、可引用的主站模块白名单（`WRITE_MAY_USE`）、总开关 `PHM_WRITE`，以及关闭时那张**不依赖任何外链**的说明页。守卫在 `tools/test-write-scope.mjs`（已挂 `npm run check`） | 写谱不拆站但也不再开发：边界靠清单+测试守，出问题靠环境变量一键关，不用回滚整站。详见 `docs/WRITE-LINK.md` |
 | AI 写谱代理 | `lib/agent-routes.mjs` | `POST /api/agent/chat`：把 `{model,system,messages,tools}` 转给 DeepSeek，**SSE 原样透传不重组**（重组会丢 usage / reasoning_content）。Key 只在服务端，浏览器拿不到。未配 `PHM_AGENT_KEY` 时 fail-closed 返回 503 并说明原因 | Key 不能进浏览器；没有 Key 绝不"降级成本地规则生成"，那会让用户以为模型在写 |
 | API Key | `lib/api-keys.mjs` | 生成 `sk-<32 hex>`、sha256 哈希、开放平台掩码；每账号最多 100 把 | 明文只返回一次；库里不存明文 |
+| 协议自洽评分 | `lib/api-trust.mjs` | 判断"是不是真人"但**不弹验证**：只怀疑"装作浏览器"的（UA 说 Chrome 却不送 sec-ch-ua / 无 sec-fetch / 无 origin / platform 与 UA 矛盾 / navigate 调 API），**明说是脚本的不扣分**（curl/python/监控 UA）。低分不直接拒，只要求 PoW | ⚠ 我们拿不到 TLS/JA4、真实 IP、头部顺序 —— 全被 CloudStudio 网关终结，所以只能做应用层自洽性；判定是**叠加**的，单信号不触发（避免误伤）|
+| API 压力与降级 | `lib/api-load.mjs` | 压力感知（在途数 + 最近 40 次耗时中位数）→ 按**成本分档**选择性放弃：cheap（本地 JSON，永不 shed）/ normal（单次查库）/ expensive（上游、重算）；牺牲顺序 匿名 → Key → 签名/管理员 | 限流解决"某个调用方用得太多"，它解决"所有人一起用/被打"；廉价档永远保，因为那是"我还活着"的最后证据；`/meta` 的 `load` 字段暴露当前压力 |
 | API v1 防控 | `lib/api-guard.mjs` | 三档身份（anon / key / signed / admin）+ 五层：HMAC 请求签名、DPoP 自包含证明、按 subject 双桶限流与并发上限、独立管理员密钥、PoW 挑战 / 行为熵 / 诱捕响应 | 匿名保留但禁止触发重算；所有增强走可选请求头，不带头的现有客户端行为不变；防重放状态在进程内，重启清空 |
 | API v1 只读扩展 | `lib/api-extras.mjs` | v1.3 的 9 个端点：玩家实测难度 / 社区参照集 / 引擎权重 / 版本历史 / 状态 / 事件 / 标称差 + `/health` 连通性探测。数据全来自 `public/data/*.json`、`CHANGELOG.md`、`status.mjs` 与 `phm_charts` | 只读；不写库、不触发重算；异常细节只进服务端日志；新端点必须同时登记到 `api/openapi.json` 与 `tools/lint-openapi.mjs` 的 KNOWN_PATHS |
 | API v1 | `lib/api-routes.mjs` | `/api/v1/*`：查询 / 分析 / 用量 / Key 管理 / 轮换；匿名与 Key 配额；scope 校验 | 不写引擎逻辑；认证与用量全走 RPC；契约在 `api/openapi.json` |

@@ -39,7 +39,7 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .topbar .back {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--fg3);
   text-decoration: none;
 }
@@ -50,7 +50,7 @@ body {
   border: 1px solid transparent;
   border-radius: var(--r-sm);
   color: var(--fg2);
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   text-decoration: none;
 }
 .topbar nav a:hover { background: var(--card2); color: var(--fg); }
@@ -78,7 +78,7 @@ body {
 .meta {
   margin-bottom: 26px;
   color: var(--fg3);
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   line-height: 1.8;
 }
 
@@ -87,7 +87,7 @@ body {
 .doc .lead {
   margin-bottom: 1.4em;
   color: var(--fg2);
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.8;
 }
 .doc .lead p:last-child { margin-bottom: 0; }
@@ -114,14 +114,14 @@ body {
   width: 100%;
   margin: 0 0 1.4em;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.6;
 }
 .doc th {
   padding: 9px 12px;
   border-bottom: 1px solid var(--line2);
   color: var(--fg3);
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   font-weight: 600;
   text-align: left;
 }
@@ -137,7 +137,7 @@ body {
   padding-top: 16px;
   border-top: 1px solid var(--line);
   color: var(--fg3);
-  font-size: 12.5px;
+  font-size: 0.7812rem;
 }
 
 /* 小屏：版心退到全宽，表格允许横向滚动 */
@@ -145,3 +145,29 @@ body {
   body { padding: 14px 14px 48px; }
   .doc table { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* ── 文档里的表格（隐私政策「个人信息收集清单」用）────────────
+ * 之前全站没有表格样式 —— 隐私页那 10 行 5 列的清单会挤成一团。
+ * 小屏不能横向撑破页面，所以外层包一层可横向滚动的容器。 */
+.tbl-wrap { overflow-x: auto; margin: 14px 0 18px; -webkit-overflow-scrolling: touch; }
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;      /* 13px */
+  line-height: 1.6;
+  min-width: 620px;          /* 五列低于这个宽度就没法读了 */
+}
+.tbl th, .tbl td {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.tbl th {
+  background: var(--card2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tbl tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--card2) 45%, transparent); }
+.tbl td:first-child { font-weight: 500; color: var(--fg); }
+.tbl td { color: var(--fg2); }

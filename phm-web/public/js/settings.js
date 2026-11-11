@@ -300,9 +300,71 @@ export const size = {
   apply: applySize,
 };
 
+/* ── 主题切换的圆形扩散（View Transitions）──────────────────
+ * 【为什么值得做】主题从浅到深是**整页换色**，瞬时切换会"跳"一下，
+ *   像页面重载了。用 View Transitions 从你点击的位置扩散出去，
+ *   视觉上"这一下是我按的"，而不是"页面闪了"。
+ *
+ * 【为什么不改调用点】theme.set() 是所有切换的唯一入口。
+ *   这里在 pointerdown 阶段记住最后点击坐标（capture + passive，
+ *   不干扰任何业务监听），set() 时直接拿来用 —— 调用方一行都不用改。
+ *
+ * 【降级】不支持 startViewTransition、开了 reduced-motion、
+ *   或者上一次过渡还没结束 —— 一律直接切换，不排队不卡顿。
+ *   ⚠ View Transition 期间页面会被"冻结"快照，连点两次会抛
+ *     InvalidStateError，所以用 _vtBusy 挡住第二次。 */
+let _lastPoint = null;
+let _vtBusy = false;
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('pointerdown', (e) => {
+    _lastPoint = { x: e.clientX, y: e.clientY };
+  }, { capture: true, passive: true });
+}
+
+function canTransition() {
+  return typeof document !== 'undefined'
+    && typeof document.startViewTransition === 'function'
+    && !_vtBusy
+    && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+export function applyThemeAnimated(mode) {
+  if (!canTransition()) return applyTheme(mode);
+
+  _vtBusy = true;
+  const done = () => { _vtBusy = false; };
+  let vt;
+  try {
+    vt = document.startViewTransition(() => { applyTheme(mode); });
+  } catch (e) {
+    _vtBusy = false;
+    return applyTheme(mode);
+  }
+
+  /* 圆心：最后点击位置；没有就取视口中心 */
+  const pt = _lastPoint || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  /* 半径取到最远角，保证圆能盖满整屏 */
+  const r = Math.hypot(
+    Math.max(pt.x, window.innerWidth - pt.x),
+    Math.max(pt.y, window.innerHeight - pt.y),
+  );
+
+  vt.ready.then(() => {
+    document.documentElement.animate(
+      { clipPath: ['circle(0 at ' + pt.x + 'px ' + pt.y + 'px)',
+        'circle(' + r + 'px at ' + pt.x + 'px ' + pt.y + 'px)'] },
+      { duration: 420, easing: 'cubic-bezier(.16,1,.3,1)',
+        pseudoElement: '::view-transition-new(root)' },
+    );
+  }).catch(() => {});   /* 快照失败不要影响切换本身 */
+
+  vt.finished.then(done, done);
+  return applyTheme(mode);   /* 立即把属性设好，动画只是视觉层 */
+}
+
 export const theme = {
   get() { return get(KEYS.theme, 'auto'); },
-  set(m) { set(KEYS.theme, m); applyTheme(m); return true; },
+  set(m) { set(KEYS.theme, m); applyThemeAnimated(m); return true; },
   /** 把 'auto' 解析成实际生效的 'dark' / 'light' */
   resolved(m) {
     const mode = m || theme.get();
@@ -452,3 +514,22 @@ try {
     inventory, exportAll, clearAll,
   });
 } catch (e) { /* 无 window 时跳过 */ }
+
+/* ── 假名化会话 id ─────────────────────────────────────────────
+ * 查询历史（"我查过哪些谱"）需要一个稳定主体；强制注册会挡掉大多数人，
+ * 所以匿名用本地 UUID，绑定账号后由服务端换成 acct:<id>。
+ * 它是**假名化**不是匿名 —— 稳定可关联，政策里如实这么写。 */
+export function getCid() {
+  try {
+    const v = localStorage.getItem(KEYS.cid);
+    if (v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return v;
+    const fresh = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
+      });
+    localStorage.setItem(KEYS.cid, fresh);
+    return fresh;
+  } catch (e) { return ''; }
+}

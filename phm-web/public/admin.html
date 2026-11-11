@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.30.3.2">
+<meta name="robots" content="noindex,nofollow">
+<title>管理台 · P.H.M.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.30.3.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.2">
+<style>
+/* 管理台：一屏能看完，不加装饰。颜色全部走令牌。 */
+.ad{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+.ad h1{font-size:20px;margin:0 0 4px}
+.ad .sub{font-size:12.5px;color:var(--fg3);margin:0 0 22px;line-height:1.7}
+.ad .card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:16px 18px;margin:0 0 16px}
+.ad .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.ad label{display:block;font-size:12px;color:var(--fg3);margin-bottom:5px}
+.ad input{height:38px;padding:0 11px;border-radius:8px;font:inherit;font-size:13.5px;
+  color:var(--fg);background:var(--card3);border:1px solid var(--line);outline:none;min-width:260px}
+.ad input:focus{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+.ad button{height:38px;padding:0 15px;border-radius:8px;font:inherit;font-size:13.5px;font-weight:600;
+  cursor:pointer;color:var(--brand-ink);background:var(--brand);border:1px solid var(--brand)}
+.ad button:hover{background:var(--brand-hover)}
+.ad button.ghost{background:var(--card2);color:var(--fg2);border-color:var(--line);font-weight:500}
+.ad button.ghost:hover{color:var(--fg);background:var(--card3)}
+.ad button[disabled]{opacity:.55;cursor:progress}
+.ad table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.ad th,.ad td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ad th{color:var(--fg3);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+.ad td.num{text-align:right}
+.ad .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;
+  border:1px solid var(--line);color:var(--fg2)}
+.ad .pill.free{color:var(--fg3)}
+.ad .pill.premium{color:var(--brand);border-color:var(--brand-line);background:var(--brand-soft)}
+.ad .pill.admin{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.ad .err{color:var(--err);font-size:12.5px;margin-top:10px;white-space:pre-wrap}
+.ad .ok{color:var(--ok);font-size:12.5px;margin-top:10px}
+.ad .muted{color:var(--fg4);font-size:11.5px;line-height:1.75}
+.ad .tabs{display:flex;gap:6px;margin:0 0 12px}
+.ad .tabs button{height:32px;padding:0 12px;font-size:12.5px;font-weight:500;
+  background:var(--card2);color:var(--fg2);border:1px solid var(--line)}
+.ad .tabs button.on{background:var(--brand-soft);color:var(--brand);border-color:var(--brand-line)}
+.ad .hide{display:none}
+</style>
+</head>
+<body>
+<div class="ad">
+  <h1>P.H.M. 管理台</h1>
+  <p class="sub">
+    <b>一级密码</b>用于登录与只读查看；<b>二级密码</b>用于任何写操作（改档位 / 批申请）。
+    二级密码只有站点主人知道，明文不落盘、不过网存储（服务端只存 scrypt 哈希）。
+  </p>
+
+  <!-- 登录 -->
+  <div class="card" id="loginCard">
+    <div class="row">
+      <div><label for="pw1">一级密码</label><input id="pw1" type="password" autocomplete="off" placeholder="adm1-…"></div>
+      <button id="btnLogin">登录</button>
+    </div>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <!-- 设置二级密码 -->
+  <div class="card hide" id="setupCard">
+    <div class="row">
+      <div><label for="pw2new">设置二级密码（仅你自己知道，10 位以上）</label><input id="pw2new" type="password" autocomplete="new-password"></div>
+      <div><label for="pw2new2">再输一次</label><input id="pw2new2" type="password" autocomplete="new-password"></div>
+      <button id="btnSetPw2">保存</button>
+    </div>
+    <div class="muted" style="margin-top:10px">
+      保存后服务端只留 scrypt 哈希。**忘记只能由运维重置**（重置会使旧密码立即失效）。
+    </div>
+    <div class="err" id="setupErr"></div>
+  </div>
+
+  <!-- 主面板 -->
+  <div class="hide" id="panel">
+    <div class="card">
+      <div class="tabs">
+        <button class="on" data-tab="keys">密钥</button>
+        <button data-tab="reqs">升级申请</button>
+        <button data-tab="eps">端点调用</button>
+        <button class="ghost" id="btnReload" style="margin-left:auto">刷新</button>
+        <button class="ghost" id="btnLogout">退出</button>
+      </div>
+      <div id="tabKeys"><table><thead><tr>
+        <th>owner</th><th>档位</th><th class="num">总调用</th><th class="num">24h</th>
+        <th>最后状态</th><th>最后使用</th><th>掩码</th><th>操作</th>
+      </tr></thead><tbody id="tbKeys"></tbody></table></div>
+      <div id="tabEps" class="hide"><table><thead><tr>
+        <th>端点</th><th class="num">调用</th><th class="num">错误</th>
+        <th class="num">p50</th><th class="num">最大</th><th>最后调用</th>
+      </tr></thead><tbody id="tbEps"></tbody></table>
+      <div class="muted" style="margin-top:10px">
+        只统计**带 Key 的调用**（24 小时）。匿名流量不写库 —— 无状态部署下每次请求一次写，
+        被打时等于给数据库加码；匿名的健康度由状态页的 7 条探针负责。
+      </div></div>
+      <div id="tabReqs" class="hide"><table><thead><tr>
+        <th>owner</th><th>申请</th><th>理由</th><th>提交时间</th><th>操作</th>
+      </tr></thead><tbody id="tbReqs"></tbody></table></div>
+      <div class="err" id="panelErr"></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div><label for="pw2">二级密码（写操作时必填）</label><input id="pw2" type="password" autocomplete="off"></div>
+        <button class="ghost" id="btnTogglePw2">修改二级密码</button>
+      </div>
+      <div class="muted" style="margin-top:10px">
+        ⚠ 二级密码只在你点"保存"时随请求发一次，不写 localStorage。
+      </div>
+
+      <!-- 修改二级密码：必须同时给旧密码，否则一次密码就能被改掉 -->
+      <div id="pw2Change" class="hide" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+        <div class="row">
+          <div><label for="pw2old">当前二级密码</label><input id="pw2old" type="password" autocomplete="off"></div>
+          <div><label for="pw2n1">新密码（10 位以上）</label><input id="pw2n1" type="password" autocomplete="new-password"></div>
+          <div><label for="pw2n2">再输一次</label><input id="pw2n2" type="password" autocomplete="new-password"></div>
+          <button id="btnChangePw2">确认修改</button>
+        </div>
+        <div class="err" id="pw2Err"></div>
+        <div class="muted" style="margin-top:10px">
+          改密码要验旧密码 —— 否则只有一级密码的人（运维）也能把你唯一的锁换掉。
+          忘记旧密码只能由运维在数据库里清空后重设，无法自助。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const $ = i => document.getElementById(i);
+const API = '/api/v1';
+let PW1 = '';
+
+/* 一级密码 → 每次请求现算 HMAC 签名（服务端校验 ±60s） */
+const enc = new TextEncoder();
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf)))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+async function adminHeaders() {
+  const ts = String(Date.now());
+  const key = await crypto.subtle.importKey('raw', enc.encode(PW1),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode('admin:' + ts));
+  return { 'x-phm-admin': PW1, 'x-phm-ts': ts, 'x-phm-sig': b64u(sig) };
+}
+
+async function adminCall(method, path, body, withPw2) {
+  const h = Object.assign({ 'content-type': 'application/json' }, await adminHeaders());
+  if (withPw2) h['x-phm-admin2'] = $('pw2').value;
+  const r = await fetch(API + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+  let j = null; try { j = await r.json(); } catch { /* 空 */ }
+  return { status: r.status, body: j };
+}
+
+function show(which) {
+  $('loginCard').classList.toggle('hide', which !== 'login');
+  $('setupCard').classList.toggle('hide', which !== 'setup');
+  $('panel').classList.toggle('hide', which !== 'panel');
+}
+const err = (id, m) => { $(id).textContent = m || ''; };
+
+async function afterLogin() {
+  const s = await adminCall('GET', '/admin/state');
+  if (s.status === 401) { err('loginErr', '一级密码不对'); return; }
+  if (s.body && s.body.admin2_set === false) { show('setup'); return; }
+  show('panel');
+  await loadAll();
+}
+
+async function loadAll() {
+  err('panelErr', '');
+  const [k, r] = await Promise.all([adminCall('GET', '/admin/keys'), adminCall('GET', '/admin/requests?status=pending')]);
+  if (k.status !== 200 || r.status !== 200) {
+    err('panelErr', '读取失败：' + ((k.body && k.body.error && k.body.error.code) || k.status));
+    return;
+  }
+  const tb = $('tbKeys'); tb.innerHTML = '';
+  for (const x of k.body.keys || []) {
+    /* 已吊销的不显示 —— 列表里混着历史会让"现在有几把钥匙"看不清 */
+    if (x.revoked_at) continue;
+    const tr = document.createElement('tr');
+    const plan = String(x.plan || 'free');
+    const cls = plan === 'admin' ? 'admin' : (plan === 'premium' ? 'premium' : 'free');
+    tr.innerHTML = '<td>' + escA(x.owner || '—') + '</td>'
+      + '<td><span class="pill ' + cls + '">' + escA(plan) + '</span></td>'
+      + '<td class="num">' + (x.calls_total ?? 0) + '</td>'
+      + '<td class="num">' + (x.calls_24h ?? 0) + '</td>'
+      + '<td>' + (x.last_status == null ? '—' : x.last_status) + '</td>'
+      + '<td>' + (x.last_used_at ? String(x.last_used_at).slice(0, 16).replace('T', ' ') : '—') + '</td>'
+      + '<td class="muted">' + escA(x.hint || '—') + '</td><td></td>';
+    const sel = document.createElement('select');
+    sel.innerHTML = ['free', 'premium', 'admin'].map(p => '<option' + (p === plan ? ' selected' : '') + '>' + p + '</option>').join('');
+    sel.style.cssText = 'height:28px;border-radius:6px;background:var(--card3);color:var(--fg);border:1px solid var(--line)';
+    const btn = document.createElement('button');
+    btn.className = 'ghost'; btn.textContent = '保存'; btn.style.cssText = 'height:28px;padding:0 10px;margin-left:6px';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const res = await adminCall('POST', '/admin/plan', { id: x.id, plan: sel.value }, true);
+      btn.disabled = false;
+      err('panelErr', res.status === 200 ? '' : ('改档位失败：' + ((res.body && res.body.error && res.body.error.code) || res.status)));
+      if (res.status === 200) loadAll();
+    };
+    tr.lastChild.append(sel, btn);
+    tb.append(tr);
+  }
+
+  /* 端点统计 */
+  const eb = $('tbEps'); eb.innerHTML = '';
+  const eps = await adminCall('GET', '/admin/endpoints?hours=24');
+  if (eps.status === 200) {
+    const rows = eps.body.endpoints || [];
+    if (!rows.length) eb.innerHTML = '<tr><td colspan="6" class="muted">24 小时内没有带 Key 的调用</td></tr>';
+    for (const e of rows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + escA(e.endpoint) + '</td>'
+        + '<td class="num">' + e.calls + '</td>'
+        + '<td class="num">' + (e.errors || 0) + '</td>'
+        + '<td class="num">' + (e.p50_ms || 0) + ' ms</td>'
+        + '<td class="num">' + (e.max_ms || 0) + ' ms</td>'
+        + '<td>' + String(e.last_at || '').slice(0, 16).replace('T', ' ') + '</td>';
+      eb.append(tr);
+    }
+  }
+
+  const tr2 = $('tbReqs'); tr2.innerHTML = '';
+  const list = r.body.requests || [];
+  if (!list.length) {
+    tr2.innerHTML = '<tr><td colspan="5" class="muted">没有待处理的申请</td></tr>';
+  }
+  for (const q of list) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + escA(q.owner) + '</td>'
+      + '<td>' + escA(q.from_plan) + ' → ' + escA(q.to_plan) + '</td>'
+      + '<td class="muted">' + escA((q.reason || '').slice(0, 60)) + '</td>'
+      + '<td>' + String(q.created_at || '').slice(0, 16).replace('T', ' ') + '</td><td></td>';
+    for (const [txt, ok] of [['批准', true], ['拒绝', false]]) {
+      const b = document.createElement('button');
+      b.className = ok ? '' : 'ghost';
+      b.textContent = txt; b.style.cssText = 'height:28px;padding:0 10px;margin-right:6px';
+      b.onclick = async () => {
+        b.disabled = true;
+        const res = await adminCall('POST', '/admin/decide', { id: q.id, approve: ok }, true);
+        b.disabled = false;
+        err('panelErr', res.status === 200 ? '' : ('处理失败：' + ((res.body && res.body.error && res.body.error.code) || res.status)));
+        if (res.status === 200) loadAll();
+      };
+      tr.lastChild.append(b);
+    }
+    tr2.append(tr);
+  }
+}
+
+function escA(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+$('btnLogin').onclick = async () => {
+  PW1 = $('pw1').value.trim();
+  if (!PW1) { err('loginErr', '先填一级密码'); return; }
+  err('loginErr', '');
+  $('btnLogin').disabled = true;
+  await afterLogin();
+  $('btnLogin').disabled = false;
+};
+
+$('btnSetPw2').onclick = async () => {
+  const a = $('pw2new').value, b = $('pw2new2').value;
+  err('setupErr', '');
+  if (a.length < 10) { err('setupErr', '至少 10 位'); return; }
+  if (a !== b) { err('setupErr', '两次输入不一致'); return; }
+  const r = await adminCall('POST', '/admin/set-admin2', { password: a });
+  if (r.status !== 200) { err('setupErr', '保存失败：' + ((r.body && r.body.error && r.body.error.code) || r.status)); return; }
+  $('pw2new').value = ''; $('pw2new2').value = '';
+  show('panel');
+  await loadAll();
+};
+
+$('btnTogglePw2').onclick = () => $('pw2Change').classList.toggle('hide');
+
+$('btnChangePw2').onclick = async () => {
+  err('pw2Err', '');
+  const a = $('pw2n1').value, b = $('pw2n2').value, oldpw = $('pw2old').value;
+  if (a.length < 10) { err('pw2Err', '新密码至少 10 位'); return; }
+  if (a !== b) { err('pw2Err', '两次输入不一致'); return; }
+  const h = Object.assign({ 'content-type': 'application/json' }, await adminHeaders());
+  h['x-phm-admin2'] = oldpw;                 /* 旧密码：服务端校验 */
+  const r = await fetch(API + '/admin/set-admin2', { method: 'POST', headers: h, body: JSON.stringify({ password: a }) });
+  let j = null; try { j = await r.json(); } catch { /* 空 */ }
+  if (r.status !== 200) {
+    err('pw2Err', '修改失败：' + ((j && j.error && (j.error.code || j.error.message)) || r.status));
+    return;
+  }
+  $('pw2old').value = ''; $('pw2n1').value = ''; $('pw2n2').value = '';
+  $('pw2').value = a;                         /* 顺手把当前操作密码换成新的 */
+  $('pw2Change').classList.add('hide');
+  err('pw2Err', '');
+  alert('二级密码已修改');
+};
+
+$('btnReload').onclick = () => loadAll();
+$('btnLogout').onclick = () => { PW1 = ''; $('pw1').value = ''; $('pw2').value = ''; show('login'); };
+
+for (const b of document.querySelectorAll('.tabs button[data-tab]')) {
+  b.onclick = () => {
+    for (const x of document.querySelectorAll('.tabs button[data-tab]')) x.classList.toggle('on', x === b);
+    $('tabKeys').classList.toggle('hide', b.dataset.tab !== 'keys');
+    $('tabReqs').classList.toggle('hide', b.dataset.tab !== 'reqs');
+    $('tabEps').classList.toggle('hide', b.dataset.tab !== 'eps');
+  };
+}
+
+/* 进页面先试一次记住的一级密码？不记 —— 管理台不该有"免登录"状态。 */
+show('login');
+</script>
+</body>
+</html>

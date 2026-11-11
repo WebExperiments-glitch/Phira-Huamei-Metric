@@ -12,7 +12,8 @@
  *   CI 里没有 write-secret.txt，workflow 会注入一个**假的** PHM_WRITE_SECRET，
  *   只为让签/验凭证的单测能跑；它不是生产凭据。
  * ============================================================ */
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,6 +43,8 @@ const STEPS = [
   ['限流单测（73 条；真实 DB 路径另跑 PHM_TEST_DB=1）', 'node', ['tools/test-ratelimit.mjs']],
   ['API 防控单测（16 条：签名 / DPoP / PoW / 分档）', 'node', ['tools/test-api-guard.mjs']],
   ['跳转白名单单测（24 条：开放重定向 / XSS）', 'node', ['tools/test-redirect.mjs']],
+  ['压力与降级单测（43 条：成本分档 / 牺牲顺序）', 'node', ['tools/test-load.mjs']],
+  ['协议自洽评分单测（19 条：不误伤真人 / 识别伪装）', 'node', ['tools/test-trust.mjs']],
   ['贡献凭证单测（11 条）', 'node', ['tools/test-contribute-ticket.mjs']],
   ['API Key 单测（8 条）', 'node', ['tools/test-api-keys.mjs']],
   ['OpenAPI 契约', 'node', ['tools/lint-openapi.mjs']],
@@ -73,18 +76,68 @@ const STEPS = [
 
 let failed = 0;
 const failures = [];
-for (const [name, cmd, args] of STEPS) {
-  console.log('\n──────── ' + name + ' ────────');
-  const r = spawnSync(cmd, args, { cwd: DIR, stdio: 'inherit', env: process.env });
-  if (r.error) {
-    failed++; failures.push(name + ' (' + r.error.message + ')');
-  } else if (r.status !== 0) {
-    failed++; failures.push(name);
+/* ── 并发执行 ────────────────────────────────────────────────
+   每个子进程的输出单独缓冲，完成后整块写出去 —— 并发写 stdout 会交错，
+   一旦混在一起，失败项的输出根本没法读。
+   原来 82 个检查串行 spawnSync 实测 81.8 秒，绝大部分时间在等进程启停。 */
+const JOBS = Math.max(1, Number(process.env.CHECK_JOBS)
+  || Math.max(2, (os.availableParallelism ? os.availableParallelism() : os.cpus().length) - 2));
+
+function runOne([name, cmd, args]) {
+  return new Promise((resolve) => {
+    const t0 = Date.now();
+    const child = spawn(cmd, args, { cwd: DIR, env: process.env });
+    const chunks = [];
+    child.stdout.on('data', (d) => chunks.push(d));
+    child.stderr.on('data', (d) => chunks.push(d));
+    const done = (code, err) => resolve({
+      name, code, err, ms: Date.now() - t0, out: Buffer.concat(chunks).toString('utf8'),
+    });
+    child.on('error', (e) => done(-1, e.message));
+    child.on('close', (code) => done(code, null));
+  });
+}
+
+const results = new Array(STEPS.length);
+let cursor = 0;
+const tAll = Date.now();
+
+async function worker() {
+  for (;;) {
+    const i = cursor++;
+    if (i >= STEPS.length) return;
+    const [name] = STEPS[i];
+    const r = await runOne(STEPS[i]);
+    results[i] = r;
+    process.stdout.write('\n──────── ' + name + ' ────────\n' + (r.out || ''));
+    if (r.err) { failed += 1; failures.push(name + ' (' + r.err + ')'); }
+    else if (r.code !== 0) { failed += 1; failures.push(name); }
+    const doneN = results.filter(Boolean).length;
+    if (doneN % 10 === 0 || doneN === STEPS.length) {
+      process.stdout.write('  … 进度 ' + doneN + '/' + STEPS.length
+        + '（' + ((Date.now() - tAll) / 1000).toFixed(1) + 's，并发 ' + JOBS + '）\n');
+    }
   }
 }
 
+await Promise.all(Array.from({ length: Math.min(JOBS, STEPS.length) }, worker));
+
 console.log('\n════════════════════════════════');
 if (failed === 0) {
+
+/* 最慢 5 项：并发只能压到"最长那条链"，长尾得单独看。
+   例如某项在等固定超时，加并发对它无效 —— 只有把输出摆出来才知道该优化谁。 */
+const slow = results.filter(Boolean).sort((a, b) => b.ms - a.ms).slice(0, 5);
+if (slow.length) {
+  process.stdout.write('\n  最慢 5 项（并发压不掉的长尾）：\n');
+  for (const r of slow) {
+    process.stdout.write('    ' + String((r.ms / 1000).toFixed(1)).padStart(6) + 's  ' + r.name + '\n');
+  }
+  const total = results.reduce((s, r) => s + (r && r.ms ? r.ms : 0), 0);
+  process.stdout.write('  串行总耗时约 ' + (total / 1000).toFixed(1) + 's，'
+    + '墙钟 ' + ((Date.now() - tAll) / 1000).toFixed(1) + 's，并发 ' + JOBS + ' 路\n');
+}
+
   console.log('全部检查通过 ✓（' + STEPS.length + ' 项）');
   console.log('浏览器测试另跑：node tools/smoke-page.mjs <base> / verify-pages / test-ui-flows / test-api-routes');
   process.exit(0);

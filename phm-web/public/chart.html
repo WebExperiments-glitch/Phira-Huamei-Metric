@@ -3,15 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="app-version" content="V0.28.0.3">
+<meta name="app-version" content="V0.30.3.2">
 <!--seo-->
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/css/base.css?v=V0.28.0.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.28.0.3">
-<script>
-/* 防闪烁：在首帧之前把主题定下来（与其它页同款） */
-(function(){try{var t=localStorage.getItem("phm_theme")||"auto";var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");}catch(e){}})();
-</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.30.3.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.2">
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <style>
 /* 详情页专用：曲绘做主视觉，其余复用站点组件 */
 .cd-hero{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
@@ -120,9 +125,10 @@
 <script type="module">
 import {
   renderNav, esc, t, applyStatic, onLangChange, APP_VER, loadChartCache, f1, f2,
-} from '/js/ui.js?v=V0.28.0.3';
-import { installGuard } from '/js/guard.js?v=V0.28.0.3';
-import { illustProxy } from '/js/chartfiles-core.mjs?v=V0.28.0.3';
+} from '/js/ui.js?v=V0.30.3.2';
+import { installGuard } from '/js/guard.js?v=V0.30.3.2';
+import { getCid } from '/js/settings.js?v=V0.30.3.2';
+import { illustProxy } from '/js/chartfiles-core.mjs?v=V0.30.3.2';
 
 try { installGuard(t); } catch (e) {}
 renderNav('');
@@ -148,6 +154,23 @@ async function bootDetail() {
   } catch (e) {}
 
   paint(meta, cacheRow);
+  recordLookup();
+}
+
+/* 记一次查询 —— 留存的地基：下次他回来能看到「你查过这个」，
+   以及「这张谱的参考定数变了」。
+   ⚠ 整段包在 try 里、fetch 带 catch：记录失败绝不能影响页面。 */
+function recordLookup() {
+  try {
+    const cid = getCid();
+    if (!cid) return;
+    fetch('/api/v1/lookups', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-phm-cid': cid },
+      body: JSON.stringify({ chart_id: ID }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) { /* 忽略 */ }
 }
 
 function paint(m, c) {

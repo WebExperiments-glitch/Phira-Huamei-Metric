@@ -18,6 +18,12 @@ import {
   statusData, incidents, health, analysisProbe, EXTRA_SCOPES,
 } from './api-extras.mjs';
 import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
+import { loadEnter, loadLeave, costOf, shouldShed, loadStats } from './api-load.mjs';
+import { makeAdminRoutes } from './api-admin.mjs';
+import { handleFileRoute } from './api-files.mjs';
+import { makeStatsHandler } from './api-stats.mjs';
+import { makeLookupRoutes } from './api-lookups.mjs';
+import { withCache, cacheStats } from './api-cache.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -179,6 +185,20 @@ export function makeApiRoutes(deps) {
     }, 15000, 65536);
   }
 
+  /* 管理后台：受一级密码保护，写操作再要二级密码。
+     ⚠ 必须在 identify / gateApi 之前分发 —— 管理端点不该占 API Key 的配额，
+        也不该被匿名限流影响（运维通道要能在压力期用）。 */
+  const handleStats = makeStatsHandler({
+    requireScope, gateApi, dbFetch, logUsage, apiErr, json, withCache,
+  });
+
+  /* 查询历史（留存地基）—— 单独成模块（api-routes 已到 900 行上限） */
+  const handleLookup = makeLookupRoutes({ requireScope, gateApi, callApiRpc, logUsage, apiErr, json, readBody });
+
+  const handleAdmin = makeAdminRoutes({
+    json, apiErr, readBody, isAdmin, callApiRpc,
+  });
+
   async function identify(req) {
     const key = bearer(req);
     if (!key) return { kind: 'anon' };
@@ -194,12 +214,39 @@ export function makeApiRoutes(deps) {
     const scopes = Array.isArray(j.scopes) && j.scopes.length
       ? j.scopes.filter(s => ALL_SCOPES.includes(s))
       : ALL_SCOPES.slice();
-    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes };
+    /* 档位以数据库的 plan 列为准（free 视作 normal）。
+       ⚠ 早先是按 owner 前缀猜的（internal→admin），那是加列前的临时办法；
+         现在 hm_api_keys.plan 是权威，改档位不用重建 key。 */
+    const plan = String(j.plan || 'free');
+    const tier = plan === 'admin' ? 'admin' : (plan === 'premium' ? 'premium' : 'normal');
+    return { kind: 'key', id: j.id, ownerId: j.owner_id || null, hash, scopes, plan, tier };
   }
 
   /* 防控统一走 lib/api-guard.mjs（5 层 / 三档身份 / 保留匿名）。
      这里只负责把结果翻译成 HTTP，并在响应完成时释放并发槽。 */
   async function gateApi(res, who, ip, { analysis = false, bodyText = '', endpoint = '' } = {}) {
+    /* 层 6：压力感知的选择性放弃（见 lib/api-load.mjs）。
+       ⚠ 必须在限流之前判：限流是"你用得太多"，这里是"全站都快撑不住了"，
+         后者更紧急 —— 继续让请求进来只会大家一起变慢直到连状态页都打不开。
+       廉价档（本地 JSON）永远不 shed：它是"我还活着"的最后证据。 */
+    const cost = costOf(reqOf(res).url, reqOf(res).method);
+    const roughTier = who.kind === 'key' ? 'key' : 'anon';
+    /* /file 是"天然慢"的带宽端点：传 8MB 要 2 秒，不代表全站拥塞。
+       它既不碰数据库、也不跑引擎，用计算压力模型去判它必然误伤
+       （2026-11-10：它把自己的 p50 拉到 2 秒，把自己判成 busy 然后 503）。
+       所以：不参与 shed 判断，耗时也不计入压力窗口。 */
+    const isBandwidth = costOf(reqOf(res).url, reqOf(res).method) === 'expensive'
+      && String(reqOf(res).url || '').startsWith('/api/v1/file');
+    const shed = isBandwidth ? { shed: false } : shouldShed(cost, roughTier);
+    if (shed.shed) {
+      return apiErr(res, 503, 'server_error', 'load_shedding',
+        'server is under load; retry shortly',
+        { 'retry-after': String(shed.retryAfter || 5) });
+    }
+    const tLoad = Date.now();
+    loadEnter();
+    res.once('finish', () => loadLeave(Date.now() - tLoad, !isBandwidth));
+
     const g = await evaluateGuard(reqOf(res), who, ip, { analysis, bodyText, endpoint, writeSecret });
     if (g.ok) {
       if (g.release) res.once('finish', g.release);
@@ -290,19 +337,7 @@ export function makeApiRoutes(deps) {
   /* ── GET /stats ── 全库统计（共多少谱、覆盖多少、引擎版本分布）
    * 复用网页端同一份 `phm_stats` RPC；**失败时不透传上游报错正文**
    * （那里面可能有表名/字段名，属于内部结构）。 */
-  async function handleStats(req, res, who, ip) {
-    if (!requireScope(res, who, 'charts:read')) return;
-    if (!(await gateApi(res, who, ip))) return;
-    const t0 = Date.now();
-    const r = await dbFetch('/rpc/phm_stats', { method: 'POST', body: '{}' });
-    logUsage(who, '/stats', r.ok ? 200 : 502, null, t0);
-    if (!r.ok) return apiErr(res, 502, 'server_error', 'stats_unavailable', 'statistics temporarily unavailable');
-    let j;
-    try { j = JSON.parse(r.body); } catch {
-      return apiErr(res, 502, 'server_error', 'stats_unparseable', 'statistics could not be parsed');
-    }
-    return json(res, 200, j);
-  }
+
 
   /* ── GET /charters/{uid} ── 某谱师上传的谱面（附本站已算出的定数）
    *
@@ -659,10 +694,14 @@ export function makeApiRoutes(deps) {
     if (!requireScope(res, who, scope)) return;
     if (!(await gateApi(res, who, ip))) return;
     const t0 = Date.now();
+
+    /* 结果缓存（DB 在新加坡，每次查库 ~190ms 跨境）：见 lib/api-cache.mjs */
+    const url = String((res && res.req && res.req.url) || '');
     try {
-      const data = await fn();
+      const r = await withCache(url, endpoint, fn);
+      if (r.cached) res.setHeader('x-cache', r.hit ? 'hit' : 'miss');
       logUsage(who, endpoint, 200, null, t0);
-      return json(res, 200, data);
+      return json(res, 200, r.data);
     } catch (e) {
       console.warn('[phm] ' + endpoint + ' failed: ' + String(e && e.message || e));
       logUsage(who, endpoint, 502, null, t0);
@@ -693,6 +732,8 @@ export function makeApiRoutes(deps) {
         engine: engineVer || null,
         time: new Date().toISOString(),
         guard: guardCapabilities(),
+        /* 压力信号：给监控和排障用。level 变了但接口还通，说明降级在工作。 */
+        load: { ...loadStats(), cache: cacheStats() },
       };
       /* ?diag=1 —— 鉴权头自检。**只回长度，不回内容**：
          0 表示这个头没穿透到服务端（网关吞了/没发），>0 表示收到了。
@@ -718,6 +759,12 @@ export function makeApiRoutes(deps) {
         };
       }
       return json(res, 200, body);
+    }
+
+    /* 管理后台（/admin/*）：一级密码 + 写操作二级密码 */
+    if (p.startsWith('/admin/')) {
+      const done = await handleAdmin(req, res, req.method, p);
+      if (done) return;
     }
 
     /* 分析链路探针：公开、免 Key、**免限流**。
@@ -798,6 +845,20 @@ export function makeApiRoutes(deps) {
       const n = Number(qp.get(k));
       return Number.isInteger(n) && n >= lo && n <= hi ? n : d;
     };
+    if (p === '/lookups' && ['GET', 'POST', 'DELETE'].includes(req.method)
+      && await handleLookup(req, res, who, ip, p, qp)) return;
+
+    /* 上游文件中转（上游 CDN 缺 Allow-Origin，浏览器直连必失败，见 api-files.mjs） */
+    if (req.method === 'GET' && p === '/file') {
+      if (!requireScope(res, who, 'charts:read')) return;
+      const t0 = Date.now();
+      await gateApi(res, who, ip, { endpoint: '/file' });
+      if (res.writableEnded) return;                  /* 被限流/降级拦下了 */
+      await handleFileRoute(res, reqOf(res).url, { json, apiErr });
+      logUsage(who, '/file', res.statusCode || 200, null, t0);
+      return;
+    }
+
     if (req.method === 'GET' && p === '/behavior') {
       return handleExtra(res, who, ip, 'behavior:read', '/behavior',
         () => behavior({ chartId: qp.get('chart_id'), limit: num('limit', 100, 1, 500), offset: num('offset', 0, 0, 100000) }));

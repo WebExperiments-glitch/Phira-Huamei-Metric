@@ -57,6 +57,20 @@ const FILES = walk(path.join(ROOT, 'public')).concat(
   [path.join(ROOT, 'server.mjs')].filter(existsSync),
 ).map(p => ({ abs: p, rel: path.relative(ROOT, p).replace(/\\/g, '/') }));
 
+/* 文件级豁免：源码里写 `lint-slop:allow <规则名>` 即跳过该文件的该规则。
+   只给"本身就是模板/生成器"的文件用 —— 例如 tools/theme-snippet.js 里
+   那段 localStorage 是要注入到页面的**模板内容**，不是散的页面代码。
+   豁免随文件走，不集中在配置里 —— 否则改文件的人看不见。 */
+const ALLOW_CACHE = new Map();
+function allowed(abs, rule) {
+  let src = ALLOW_CACHE.get(abs);
+  if (src === undefined) {
+    try { src = readFileSync(abs, 'utf8'); } catch { src = ''; }
+    ALLOW_CACHE.set(abs, src);
+  }
+  return src.includes('lint-slop:allow ' + rule);
+}
+
 const problems = [];
 const add = (rule, file, line, msg, why) => problems.push({ rule, file, line, msg, why });
 
@@ -104,7 +118,7 @@ for (const f of FILES) {
     if (/\*\//.test(l)) inBlock = false;
     if (isComment) return;
     const m = /localStorage\s*\.\s*(getItem|setItem|removeItem)\s*\(/.exec(l);
-    if (m) add('裸-localStorage', f.rel, i + 1,
+    if (m && !allowed(f.abs, '裸-localStorage')) add('裸-localStorage', f.rel, i + 1,
       `直接调用了 localStorage.${m[1]}()` ,
       '键名与默认值应集中在 js/settings.js；散着写必然出现「A 页写 B 页读不到」');
   });

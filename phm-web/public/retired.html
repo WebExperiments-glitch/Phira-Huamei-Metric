@@ -9,11 +9,15 @@
 <title>未启用的功能 · P.H.M.</title>
 <!-- 主题防闪烁：必须**同步内联**在样式表之前。键名与 js/settings.js 的 KEYS 一致。
      （lint-slop 对 .html 里的这段有专门豁免，别改成模块 —— 模块是异步的，会闪一帧。） -->
-<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
-var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
-var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
-el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <link rel="stylesheet" href="/css/base.css?v=__APP_VER__">
 <link rel="stylesheet" href="/css/ui-kit.css?v=__APP_VER__">
 </head>

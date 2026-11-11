@@ -3,17 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.28.0.3">
+<meta name="app-version" content="V0.30.3.2">
 <title>P.H.M. 开发者文档 · API v1</title>
 <meta name="description" content="P.H.M. API v1：查询与分析 Phira / Phigros 谱面难度。免费，支持匿名与 API Key。">
-<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
-var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
-var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
-el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.28.0.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.28.0.3">
-<link rel="stylesheet" href="/css/api.css?v=V0.28.0.3">
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.30.3.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.2">
+<link rel="stylesheet" href="/css/api.css?v=V0.30.3.2">
 </head>
 <body>
 <div class="wrap"><nav id="nav"></nav></div>
@@ -37,6 +41,7 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
     <a href="#health">连通性探测</a>
     <div class="grp">安全</div>
     <a href="#guard">请求证明与防控</a>
+    <a href="#load">压力与降级</a>
     <a href="#keys">Key 管理</a>
     <div class="grp">参考</div>
     <a href="#errors">错误码</a>
@@ -310,6 +315,7 @@ print(r.json())</div>
       <tr><td>401</td><td><code>invalid_signature</code> / <code>invalid_proof</code></td><td>签名过期、错误、nonce/jti 重放</td></tr>
       <tr><td>428</td><td><code>precondition_required</code></td><td>需要完成 PoW 挑战</td></tr>
       <tr><td>503</td><td><code>concurrency_limit</code></td><td>单身份在途请求超过 4</td></tr>
+      <tr><td>503</td><td><code>load_shedding</code></td><td>服务压力过高，主动放弃便宜以外的请求；按 Retry-After 退避</td></tr>
       <tr><td>503</td><td><code>analysis_busy</code> / <code>rate_limit_unavailable</code></td><td>分析并发已满 / 限流器故障</td></tr>
     </table>
 
@@ -437,8 +443,32 @@ x-phm-sig:   base64url(HMAC-SHA256("admin:" + ts, PHM_ADMIN_SECRET))</div>
       若需要跨进程防重放，应把这三张表挪到共享存储，属于后续重构。
     </div>
 
+    <h2 id="load">压力与降级 <span class="api-tag">v1.5</span></h2>
+    <p>限流解决的是「某个调用方用太多」；这一层解决的是<b>所有人一起用，或者服务被打</b>——
+      每个调用方都没超自己的额度，但总在途请求和下游延迟已经爆了。那种时候继续一视同仁地接，
+      结果就是全部变慢直到连状态页都打不开。</p>
+    <p>所以我们<b>按成本选择性放弃</b>，而不是平等地接住所有请求：</p>
+    <table class="api-table">
+      <tr><th>成本档</th><th>包含</th><th>压力下</th></tr>
+      <tr><td><code>cheap</code></td><td><code>/meta</code> <code>/engines</code> <code>/versions</code> <code>/behavior</code> <code>/reference</code> <code>/analyses/probe</code></td><td><b>永不放弃</b> —— 它不碰数据库，是「服务还活着」的最后证据</td></tr>
+      <tr><td><code>normal</code></td><td><code>/charts</code> <code>/charts/{id}</code> <code>/stats</code> <code>/discrepancy</code></td><td>压力大时先对匿名降额，持 Key 保留</td></tr>
+      <tr><td><code>expensive</code></td><td><code>/charters/{uid}</code> <code>/players/{uid}</code> <code>POST /analyses</code></td><td><b>最先被牺牲</b>（打上游 / 跑引擎）</td></tr>
+    </table>
+    <p>牺牲顺序是 <b>匿名 → API Key → 签名 / 管理员</b>。也就是说：压力期持 Key 的第三方还能用，
+      签名请求与管理员通道始终保留（那是运维通道，砍掉等于自断手脚）。</p>
+    <div class="api-code">HTTP 503 Service Unavailable
+Retry-After: 5
+
+{ "error": { "type": "server_error", "code": "load_shedding",
+             "message": "server is under load; retry shortly" } }</div>
+    <p><code>GET /api/v1/meta</code> 的 <code>load</code> 字段会实时暴露压力
+      （<code>level</code> / <code>inflight</code> / <code>p50</code> / <code>shedTotal</code>）。
+      看到 <code>level</code> 变成 <code>busy</code> 或 <code>critical</code> 但接口还通，
+      说明降级在工作 —— 这时候请<b>退避重试</b>，不要立刻重发。</p>
+
     <h2 id="changelog">更新日志</h2>
     <ul>
+      <li><b>2026-11-09 · v1.5</b>：新增压力感知与选择性放弃（<code>503 load_shedding</code>）：按成本分档，廉价读永不放弃，昂贵操作最先让路；牺牲顺序 匿名 → Key → 签名/管理员。<code>/meta</code> 暴露 <code>load</code> 压力信号。</li>
       <li><b>2026-11-08 · v1.4</b>：三档身份 + 五层防控（HMAC 签名 / DPoP 证明 / 按 subject 双桶限流 / 独立管理员密钥 / PoW·行为熵·诱捕）。匿名保留但禁止触发重算；所有增强通过可选请求头启用，现有客户端不受影响。</li>
       <li><b>2026-11-08 · v1.3</b>：新增 9 个只读端点（玩家实测难度 / 社区参照集 / 引擎权重 / 版本历史 / 状态 / 事件 / 标称差）与公开连通性探测 <code>/health</code>；scope 从 3 个扩到 7 个；OpenAPI 契约覆盖全部 20 个端点。</li>
       <li><b>2026-10-18 · v1.2</b>：新增 <code>/charts</code> 列表（分页 / 搜索 / 排序 / 过滤）、<code>/stats</code> 全库统计、<code>/charters/{uid}</code> 谱师作品、<code>/players/{uid}</code> 玩家资料；端点从 9 个扩到 13 个。鉴权头改为推荐 <code>x-phm-key</code>（原因见「认证」一节）。</li>
@@ -469,8 +499,8 @@ x-phm-sig:   base64url(HMAC-SHA256("admin:" + ts, PHM_ADMIN_SECRET))</div>
 </footer>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.28.0.3';
-import { installGuard } from '/js/guard.js?v=V0.28.0.3';
+import { renderNav } from '/js/ui.js?v=V0.30.3.2';
+import { installGuard } from '/js/guard.js?v=V0.30.3.2';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

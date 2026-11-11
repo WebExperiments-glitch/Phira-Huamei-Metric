@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "P.H.M. API",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "Phira / Phigros chart difficulty reference API. Free; anonymous and API-key access. v1.4 adds request-proof authentication (HMAC / DPoP), subject-based dual-bucket rate limiting, an independent admin secret and anonymous proof-of-work challenges. Anonymous read access is retained."
   },
   "servers": [
@@ -1818,6 +1818,140 @@
           },
           "503": {
             "description": "至少一项不可用"
+          }
+        }
+      }
+    },
+    "/file": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Proxy an upstream chart file",
+        "description": "把 phira.5wyxi.com / phira-cdn.5wyxi.com 的文件流式转发给浏览器。存在的原因：上游 2026-11 起 303 跳到 CDN，而那个 CDN 的响应缺 Access-Control-Allow-Origin —— 浏览器直连必然 \"Failed to fetch\"。只允许白名单域名，单文件上限 120MB，25 秒超时。",
+        "operationId": "getFile",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "parameters": [
+          {
+            "name": "u",
+            "in": "query",
+            "required": true,
+            "description": "完整的上游文件 URL",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "文件内容（流式）",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "域名不在白名单"
+          },
+          "413": {
+            "description": "超过 120MB"
+          },
+          "502": {
+            "description": "上游不可达或返回错误"
+          },
+          "504": {
+            "description": "上游超时"
+          }
+        }
+      }
+    },
+    "/lookups": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Recent chart lookups",
+        "operationId": "listLookups",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "该浏览器/账号最近查过的谱面，附带「参考定数相对你上次看到的值变化了多少」。匿名可用（按 x-phm-cid 归集）。",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "历史列表"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Record a lookup",
+        "operationId": "recordLookup",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "记录一次查询。返回 prev_ref（你上次看到该谱的参考定数），供前端提示变化。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chart_id"
+                ],
+                "properties": {
+                  "chart_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已记录"
+          },
+          "400": {
+            "description": "chart_id 非法"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Clear lookup history",
+        "operationId": "clearLookups",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "清空当前主体（cid 或账号）的查询历史。用户权利，不区分身份。",
+        "responses": {
+          "200": {
+            "description": "已清空"
           }
         }
       }

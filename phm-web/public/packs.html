@@ -3,19 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.28.0.3">
+<meta name="app-version" content="V0.30.3.2">
 <title>谱面包 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="把任意 Phira 谱面连同曲绘、音频打成 .pez 包。文件在你的浏览器里直连下载，不经我们的服务器。">
-<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
-var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-var el=document.documentElement;el.setAttribute("data-theme",d?"dark":"light");el.setAttribute("data-theme-mode",t);
-var f="serif",z="m";try{f=localStorage.getItem("phm_font")||"serif";z=localStorage.getItem("phm_size")||"m";}catch(e){}
-el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.28.0.3">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.28.0.3">
-<link rel="stylesheet" href="/css/motion.css?v=V0.28.0.3">
-<script type="module" src="/js/motion.js?v=V0.28.0.3"></script>
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.30.3.2">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.2">
+<link rel="stylesheet" href="/css/motion.css?v=V0.30.3.2">
+<script type="module" src="/js/motion.js?v=V0.30.3.2"></script>
 <style>
 /* ── 卡片网格 ──
    grid 而非 flex：卡片等高，且窗口变窄时自动降列。
@@ -185,10 +189,10 @@ el.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");el.setAttribute("da
 <script type="module">
 import {
   renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER,
-} from '/js/ui.js?v=V0.28.0.3';
-import { installGuard } from '/js/guard.js?v=V0.28.0.3';
-import { cleanChart, searchText, FILE_KINDS } from '/js/chartfiles-core.mjs?v=V0.28.0.3';
-import { packPez, saveBlob, fileUrlOf } from '/js/chartfiles.js?v=V0.28.0.3';
+} from '/js/ui.js?v=V0.30.3.2';
+import { installGuard } from '/js/guard.js?v=V0.30.3.2';
+import { cleanChart, searchText, FILE_KINDS } from '/js/chartfiles-core.mjs?v=V0.30.3.2';
+import { packPez, saveBlob, fileUrlOf } from '/js/chartfiles.js?v=V0.30.3.2';
 
 installGuard(t);
 renderNav();
@@ -228,7 +232,17 @@ async function fetchPackPage(page) {
   const r = await fetch(base + '?page=' + page, { cache: 'no-cache' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const d = await r.json();
-  return { total: Number(d.count) || 0, items: (d.results || []).map(cleanChart).filter(Boolean) };
+  /* ⚠ 过滤「未审核」（reviewed === false）：上游 API 会把审核未通过的谱面
+     一起返回，我们不替它做内容审查，但也不主动分发 —— 这类谱可能含违规
+     曲绘或元数据。`ranked`（是否官方收录）不过滤：未收录是常态，
+     全站绝大多数谱都是 ranked=false，滤掉等于把列表清空。 */
+  const raw = (d.results || []).filter(c => c && c.reviewed !== false);
+  /* ⚠ total 必须用 d.count（全库 9758），不能改成 raw.length ——
+     那是**当前页过滤后**的条数（最多 30），会让分页逻辑以为全库只有 30 条，
+     "加载更多"永远不出现（2026-11-11 CI 的 smoke 抓到：
+     "有更多可加载（未把全库一次塞进 DOM） → false"）。
+     过滤只影响本页条目数，不影响总数。 */
+  return { total: Number(d.count) || 0, items: raw.map(cleanChart).filter(Boolean) };
 }
 
 async function loadPackPage(page) {
@@ -484,7 +498,10 @@ onLangChange(renderPacks);
 const qp = new URLSearchParams(location.search);
 if (qp.get('q')) { S.q = qp.get('q'); $('q').value = S.q; }
 
-loadPackPage(1);
-</script>
+  /* 静态文案只在 onLangChange 里填过，初次加载要自己补一次 ——
+     否则 data-i18n-html 的元素是空标签，页面上只剩序号。 */
+  applyStatic();
+  loadPackPage(1);
+  </script>
 </body>
 </html>

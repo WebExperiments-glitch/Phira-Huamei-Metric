@@ -195,7 +195,7 @@ const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.ht
   '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
   'status.html', 'more.html', 'packs.html', 'render.html', 'agent.html', 'write.html',
-  'discrepancy.html', 'login.html',
+  'discrepancy.html', 'login.html', 'admin.html',
   /* 末尾三个是许可证正文：按**名字**放行，别往 SAFE_EXT 加 .txt（见 docs/README「许可证」） */
   'fonts/OFL-LXGWWenKai.txt', 'fonts/OFL-NotoSerifSC.txt', 'vendor/uqr-LICENSE']);
 if (STATIC_ONLY) for (const f of RETIRED_HTML) PUBLIC_FILES.delete(f);
@@ -233,13 +233,13 @@ const SEC_HEADERS = {
   'content-security-policy': [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-    "style-src 'self' 'unsafe-inline'",
+    /* ⚠ jsdelivr 也要进 style-src：KaTeX 的 CSS 走它，只放行 script-src 会让公式排版垮掉 */    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
     /* ⚠ phira.5wyxi.com 是**谱面文件与曲绘**的 CDN（不是 API）。
       /packs 与 /app?chart=<id> 都靠浏览器直连它取文件 ——
       不放进 connect-src 的话 fetch 会被 CSP 直接拦掉，页面表现是「点了没反应」。 */
-    "connect-src 'self' https://api.phira.cn https://phira.5wyxi.com https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
+    "connect-src 'self' https://api.phira.cn https://phira.5wyxi.com https://phira-cdn.5wyxi.com https://phm.app.workbuddy.host https://cdn.jsdelivr.net",
     "form-action 'self'",
     /* frame-ancestors 交给 X-Frame-Options: DENY —— 写在 CSP 里会被 Chrome 报
        「keyword 'none' alongside with other sources」，功能重复且有告警 */

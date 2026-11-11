@@ -1,0 +1,31 @@
+{
+  "at": "2026-11-11T13:09:50.924Z",
+  "out": "D:\\自研AI 生成谱面\\phm-web\\data\\backup\\2026-11-11T13-09-48",
+  "tables": {
+    "hm_api_keys": {
+      "exists": true,
+      "rows": 6,
+      "bytes": 1898
+    },
+    "hm_api_key_meta": {
+      "exists": true,
+      "rows": 0,
+      "bytes": 2
+    },
+    "hm_api_usage": {
+      "exists": true,
+      "rows": 11566,
+      "bytes": 1986177
+    },
+    "hm_accounts": {
+      "exists": true,
+      "rows": 0,
+      "bytes": 2
+    },
+    "phm_secrets": {
+      "exists": true,
+      "rows": 2,
+      "bytes": 174
+    }
+  }
+}

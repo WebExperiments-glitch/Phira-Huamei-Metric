@@ -183,13 +183,13 @@ button.primary:hover {
    给的是可点的具体值，不是"请输入用户名"这种没有信息量的提示。 */
 .exrow {
   display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
-  margin-top: 13px; font-size: 12px; color: var(--fg3); line-height: 1.5;
+  margin-top: 13px; font-size: 0.75rem; color: var(--fg3); line-height: 1.5;
 }
 .exrow .lbl { flex: none; color: var(--fg3); }
 /* ⚠ 选择器必须带 .exrow 前缀：`.chip` 这个名字 app.html 里已经在用
    （结果卡之间的切换胶囊），全局限定会把它一起改掉。 */
 .exrow .chip {
-  font: inherit; font-size: 12px;
+  font: inherit; font-size: 0.75rem;
   padding: 3px 11px; border-radius: 999px;
   border: 1px solid var(--line2); background: transparent; color: var(--fg2);
   cursor: pointer;
@@ -207,9 +207,9 @@ button.primary:hover {
    原文一整段（三段话）压在输入框上面，把要填的东西推到首屏之外。
    折叠后只留一行标题，想懂的人自己点开 —— 说明从**障碍**变回**补充**。 */
 .why { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
-.why summary { font-size: 12.5px; color: var(--fg3); }
+.why summary { font-size: 0.7812rem; color: var(--fg3); }
 .why summary:hover { color: var(--fg); }
-.why .fd { margin-top: 8px; font-size: 12.5px; color: var(--fg2); line-height: 1.75; }
+.why .fd { margin-top: 8px; font-size: 0.7812rem; color: var(--fg2); line-height: 1.75; }
 .why .fd b { color: var(--fg); }
 
 /* ── 全局兜底提示（js/guard.js 用）──
@@ -232,7 +232,7 @@ button.primary:hover {
   pointer-events: none;
 }
 .phm-guard-item {
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
   padding: 9px 13px;
   border-radius: 10px;
@@ -252,3 +252,60 @@ button.primary:hover {
    动它就是动全站最重要的页面，收益却只是"少一块看不见的 DOM"。
    js/auth.js 仍会跑（它的 fetch 现在拿 410），只是没人看得见 —— 已登记进 HANDOVER 待办。 */
 #authBtn, #authpanel { display: none !important; }
+
+/* ── 返回上一层的链接 ────────────────────────────────────────
+ * 为什么不用 .btn：返回是"导航动作"，不是"提交动作"。
+ * 做成按钮会和数据区的操作按钮抢注意力，这里要的是**可见但不打扰**。
+ * 用 inline-flex 而不是 block —— 点击热区只包住文字，不横跨整行
+ * （横跨整行时鼠标在右侧空白处也能点，反而误触）。 */
+.backlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 10px;
+  font-size: 0.8125rem;
+  color: var(--fg3);
+  text-decoration: none;
+  transition: color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.backlink:hover { color: var(--brand); transform: translateX(-2px); }
+.backlink:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+/* 减弱动效：不要位移，只变色 */
+@media (prefers-reduced-motion: reduce) {
+  .backlink:hover { transform: none; }
+}
+
+/* ── 页脚（合规入口）────────────────────────────────────────
+ * 26 个页面的 #foot 原本全是空标签 —— 全站找不到隐私政策。
+ * 现在由 js/ui/nav.js 的 renderFoot() 统一渲染。
+ * 样式要「存在感足够但不抢内容」：正文色降一档，字号与辅助文字同级。 */
+.foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 4px;
+  margin: 28px 0 0;
+  font-size: 0.78125rem;      /* 12.5px */
+}
+.foot-links a {
+  color: var(--fg3);
+  text-decoration: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.foot-links a:hover { color: var(--brand); background: var(--card2); }
+.foot-links a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.foot-sep { color: var(--fg3); opacity: .5; user-select: none; }
+.foot-meta {
+  margin: 6px 0 30px;
+  text-align: center;
+  font-size: 0.71875rem;      /* 11.5px */
+  color: var(--fg3);
+  opacity: .8;
+}

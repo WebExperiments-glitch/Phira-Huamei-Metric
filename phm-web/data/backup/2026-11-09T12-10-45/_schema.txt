@@ -1,0 +1,38 @@
+
+=== hm_api_keys (9 列) ===
+  id                     uuid                   null=NO  default=gen_random_uuid()
+  owner_id               text                   null=YES  default=—
+  name                   text                   null=NO  default='default'::text
+  hint                   text                   null=NO  default=—
+  key_hash               text                   null=NO  default=—
+  plan                   text                   null=NO  default='free'::text
+  created_at             timestamp with time zone null=NO  default=now()
+  last_used_at           timestamp with time zone null=YES  default=—
+  revoked_at             timestamp with time zone null=YES  default=—
+
+=== hm_api_key_meta (4 列) ===
+  key_id                 uuid                   null=NO  default=—
+  scopes                 ARRAY                  null=NO  default='{charts:read,analyses:write,usage:read}'::text[]
+  expires_at             timestamp with time zone null=YES  default=—
+  created_at             timestamp with time zone null=NO  default=now()
+
+=== hm_api_usage (7 列) ===
+  id                     bigint                 null=NO  default=—
+  key_id                 uuid                   null=YES  default=—
+  endpoint               text                   null=NO  default=—
+  status                 integer                null=NO  default=—
+  chart_id               integer                null=YES  default=—
+  duration_ms            integer                null=YES  default=—
+  created_at             timestamp with time zone null=NO  default=now()
+
+=== hm_accounts (6 列) ===
+  sub                    text                   null=NO  default=—
+  email                  text                   null=NO  default=—
+  pass_hash              text                   null=NO  default=—
+  salt                   text                   null=NO  default=—
+  created_at             timestamp with time zone null=NO  default=now()
+  updated_at             timestamp with time zone null=NO  default=now()
+
+=== phm_secrets (2 列) ===
+  k                      text                   null=NO  default=—
+  v                      text                   null=NO  default=—

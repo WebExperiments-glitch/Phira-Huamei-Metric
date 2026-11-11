@@ -3,12 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.28.0.3">
+<meta name="app-version" content="V0.30.3.2">
 <title>P.H.M. API 客户端 · 单文件</title>
 <meta name="description" content="P.H.M. 单文件 API 客户端：填 API Key 即可查询/分析 Phira 谱面难度。零依赖，一个 HTML 文件。">
-<script>(function(){var t="auto";try{t=localStorage.getItem("phm_theme")||"auto";}catch(e){}
-var d=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
-document.documentElement.setAttribute("data-theme",d?"dark":"light");})();</script>
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <style>
 :root{
   --bg:#f6f3ee;--card:#fffdf9;--card2:#efebe4;--fg:#1d1a16;--fg2:#4a443c;--fg3:#665f55;

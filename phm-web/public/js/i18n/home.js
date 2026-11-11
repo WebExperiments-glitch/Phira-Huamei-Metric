@@ -3,6 +3,8 @@
  * ============================================================ */
 export default {
   zh: {
+    'home.recent': '最近查过',
+    'home.recentClear': '清空',
     'home.h1': '这首歌到底有多难？',
     'home.sub': '搜一下就知道：<b>定数是多少</b>、难在哪、跟哪些歌最像。<br>不用登录，也不会上传你的任何文件。',
     'home.cta1': '算定数',
@@ -79,6 +81,8 @@ export default {
       + '拖进首页虚线框，纯本机解析，<b>文件不会上传</b>。',
   },
   en: {
+    'home.recent': 'Recently viewed',
+    'home.recentClear': 'Clear',
     'home.h1': 'How hard is this song, really?',
     'home.sub': 'Drop a chart pack in and the structural constant is computed in your browser — <b>both scales</b>,<br>plus how tight that number is. <b>Nothing is uploaded</b>, and no sign-in is needed.',
     'home.cta1': 'Analyze',
