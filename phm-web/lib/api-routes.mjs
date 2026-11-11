@@ -22,6 +22,7 @@ import { loadEnter, loadLeave, costOf, shouldShed, loadStats } from './api-load.
 import { makeAdminRoutes } from './api-admin.mjs';
 import { handleFileRoute } from './api-files.mjs';
 import { makeStatsHandler } from './api-stats.mjs';
+import { makeLookupRoutes } from './api-lookups.mjs';
 import { withCache, cacheStats } from './api-cache.mjs';
 
 const HOUR = 3_600_000;
@@ -187,10 +188,12 @@ export function makeApiRoutes(deps) {
   /* 管理后台：受一级密码保护，写操作再要二级密码。
      ⚠ 必须在 identify / gateApi 之前分发 —— 管理端点不该占 API Key 的配额，
         也不该被匿名限流影响（运维通道要能在压力期用）。 */
-  /* 全站统计单独成模块（api-routes 已到 900 行上限） */
   const handleStats = makeStatsHandler({
     requireScope, gateApi, dbFetch, logUsage, apiErr, json, withCache,
   });
+
+  /* 查询历史（留存地基）—— 单独成模块（api-routes 已到 900 行上限） */
+  const handleLookup = makeLookupRoutes({ requireScope, gateApi, callApiRpc, logUsage, apiErr, json, readBody });
 
   const handleAdmin = makeAdminRoutes({
     json, apiErr, readBody, isAdmin, callApiRpc,
@@ -842,6 +845,9 @@ export function makeApiRoutes(deps) {
       const n = Number(qp.get(k));
       return Number.isInteger(n) && n >= lo && n <= hi ? n : d;
     };
+    if (p === '/lookups' && ['GET', 'POST', 'DELETE'].includes(req.method)
+      && await handleLookup(req, res, who, ip, p, qp)) return;
+
     /* 上游文件中转（上游 CDN 缺 Allow-Origin，浏览器直连必失败，见 api-files.mjs） */
     if (req.method === 'GET' && p === '/file') {
       if (!requireScope(res, who, 'charts:read')) return;

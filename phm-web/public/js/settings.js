@@ -514,3 +514,26 @@ try {
     inventory, exportAll, clearAll,
   });
 } catch (e) { /* 无 window 时跳过 */ }
+
+/* ── 假名化会话 id ─────────────────────────────────────────────
+ * 【它是干什么的】查询历史（"我查过哪些谱"）需要一个稳定主体。
+ *   强制注册会把绝大多数人挡在门外，所以匿名用一个本地 UUID 归集；
+ *   绑定账号后由服务端换成 acct:<id>，历史能跨设备带走。
+ *
+ * 【为什么叫"假名化"而不是"匿名"】它稳定、可长期关联 —— 政策里写明
+ *   「这是假名化标识、不是匿名」，不夸大。想彻底断开，清空查询历史即可。
+ * ⚠ 以前 KEYS.cid 只有定义、没有生成逻辑，等于这个功能一直没启用。 */
+export function getCid() {
+  try {
+    const v = localStorage.getItem(KEYS.cid);
+    if (v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return v;
+    const fresh = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
+      });
+    localStorage.setItem(KEYS.cid, fresh);
+    return fresh;
+  } catch (e) { return ''; }
+}
