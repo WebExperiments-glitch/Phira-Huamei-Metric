@@ -19,9 +19,28 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.3.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.3.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.3.1', date: '2026-11-11',
+    zh: ['<b>「关于这些包」下面的四条说明，这次真的修好了。</b> 上次我说修好了，'
+      + '其实改的是「以为改到了」—— 那次替换静默失败，那一行代码压根没进文件。'
+      + '这次改完我抓了渲染后的页面，四条都在。',
+      '<b>写谱页的「导入音频」框之前被压成一条竖线。</b> 原因是那个框用的是 label 标签，'
+      + '默认是行内元素，而里面装的是块级内容 —— 边框只包住了第一个字，'
+      + '把副标题的字也挤掉半截。</b>',
+      '<b>写谱页的公式样式被 CSP 拦了。</b> KaTeX 的样式表从 CDN 加载，'
+      + '而我们的安全策略只放行了脚本、没放行样式，公式排版一直是坏的。'],
+    en: ['<b>The four notes under these packs are actually fixed this time.</b> Last time I said fixed, '
+      + 'I had changed what I thought I changed — the substitution silently failed and the line never '
+      + 'reached the file. This time I dumped the rendered page and checked all four are there.',
+      '<b>The audio drop zone on the writing page was squashed into a thin vertical strip.</b> It is a label '
+      + 'element, which is inline by default, while its contents are block-level — so the dashed border wrapped '
+      + 'only the first character and clipped the subtitle text.',
+      '<b>KaTeX styles were blocked by our own CSP.</b> The stylesheet loads from a CDN, and our policy allowed '
+      + 'the script but not the style. Formula layout had been broken all along.'],
+  },
   {
     v: 'V0.30.2.1', date: '2026-11-11',
     zh: ['<b>补上上一版漏掉的政策版本号。</b> 内容都更新了，但页头还写着 v1.3 / 2026-10-17 —— '

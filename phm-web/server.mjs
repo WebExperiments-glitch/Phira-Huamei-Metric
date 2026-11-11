@@ -233,7 +233,7 @@ const SEC_HEADERS = {
   'content-security-policy': [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-    "style-src 'self' 'unsafe-inline'",
+    /* ⚠ jsdelivr 也要进 style-src：KaTeX 的 CSS 走它，只放行 script-src 会让公式排版垮掉 */    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
     /* ⚠ phira.5wyxi.com 是**谱面文件与曲绘**的 CDN（不是 API）。
