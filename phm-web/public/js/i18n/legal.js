@@ -26,7 +26,7 @@ export default {
      * 隐私政策（pv.）—— public/privacy.html
      * ══════════════════════════════════════════════════════════ */
     'pv.h1': '<b>P.H.M.</b> Standard 隐私政策',
-    'pv.meta': '版本 v1.3 · 生效日期 2026-10-17 · 适用站点 <code>phm.app.workbuddy.host</code>',
+    'pv.meta': '版本 v1.4 · 生效日期 2026-11-11 · 适用站点 <code>phm.app.workbuddy.host</code>',
     'pv.lead':
       '<b>一句话概括：</b>你的<b>谱面文件永远不会离开你的设备</b>；只有当你查询 '
       + '<b>你自己确认过的 Phira 账号</b>时，才会把成绩数据（Phira UID、用户名、谱面名、定数、ACC、单曲 RKS）'
@@ -178,6 +178,17 @@ export default {
       + '<span class="meta">联系方式</span>：以 phira.cn 公示的渠道为准。<br>'
       + '<span class="meta">处理方式</span>：由本站<b>服务端</b>发起 HTTPS 只读请求，不随附你的账号身份或登录凭据。<br>'
       + '<span class="meta">涉及信息</span>：谱面 id、谱师 uid（均为公开数据）；你查询玩家时发出的用户名 / UID。',
+    'pv.li.7.4':
+      '<b>Neon（AWS 新加坡区域）</b> —— 业务数据库托管。<b>这是本站唯一的跨境存储</b>。'
+      + '<br><span class="meta">联系方式</span>：neon.com；也可由本站转达（见第 10 节）。'
+      + '<br><span class="meta">处理方式</span>：TLS 传输加密、静态加密；启用行级安全；仅服务端持写入凭据，浏览器不直连。'
+      + '<br><span class="meta">涉及信息</span>：账号标识、登录邮箱、密码哈希、API 密钥哈希与调用计数、贡献的成绩与谱面特征。'
+      + '<br><span class="meta">⚠ 跨境说明</span>：数据存储于<b>新加坡</b>，不在中国大陆境内。若你不接受跨境存储，请不要注册账号或上传成绩 —— 查询类功能不依赖账号即可使用。',
+    'pv.li.7.5':
+      '<b>Better Stack（betterstack.com）</b> —— 状态页与可用性监控。'
+      + '<br><span class="meta">联系方式</span>：betterstack.com。'
+      + '<br><span class="meta">处理方式</span>：定时从多个地域向本站发出只读探测请求；本站不向其回传任何用户数据。'
+      + '<br><span class="meta">涉及信息</span>：探测请求的来源 IP 与 User-Agent（由监控方自行记录，不经过本站）。',
     'pv.li.7.3':
       '<b>jsDelivr CDN（jsdelivr.com）</b> —— 分发云服务 SDK 脚本。<br>'
       + '<span class="meta">联系方式</span>：jsdelivr.com。<br>'
@@ -378,7 +389,7 @@ export default {
      * Privacy Policy (pv.) — public/privacy.html
      * ══════════════════════════════════════════════════════════ */
     'pv.h1': '<b>P.H.M.</b> Standard Privacy Policy',
-    'pv.meta': 'Version v1.3 · Effective 2026-10-17 · Applies to <code>phm.app.workbuddy.host</code>',
+    'pv.meta': 'Version v1.4 · Effective 2026-11-11 · Applies to <code>phm.app.workbuddy.host</code>',
     'pv.lead':
       '<b>In one sentence:</b> your <b>chart files never leave your device</b>; only when you look up '
       + '<b>a Phira account you have confirmed as your own</b> is score data (Phira UID, username, chart '
@@ -556,6 +567,17 @@ export default {
       + '<span class="meta">Contact</span>: as published on phira.cn.<br>'
       + '<span class="meta">Method</span>: read-only HTTPS requests made by our <b>server</b>, carrying no account identity or credentials of yours.<br>'
       + '<span class="meta">Data</span>: chart id and charter uid (both public); the username / UID you submit when looking up a player.',
+    'pv.li.7.4':
+      '<b>Neon (AWS Singapore)</b> — hosted business database. <b>This is the only cross-border storage</b> on the site.'
+      + '<br><span class="meta">Contact</span>: neon.com; or ask us to relay (see section 10).'
+      + '<br><span class="meta">How</span>: TLS in transit, encryption at rest, row-level security; only the server holds write credentials, browsers never connect directly.'
+      + '<br><span class="meta">Data</span>: account identifier, login email, password hash, API key hashes and counters, submitted scores and chart features.'
+      + '<br><span class="meta">⚠ Cross-border</span>: data is stored in <b>Singapore</b>, outside mainland China. If you do not accept cross-border storage, please do not register or upload scores — all lookup features work without an account.',
+    'pv.li.7.5':
+      '<b>Better Stack (betterstack.com)</b> — status page and uptime monitoring.'
+      + '<br><span class="meta">Contact</span>: betterstack.com.'
+      + '<br><span class="meta">How</span>: scheduled read-only probes from several regions; we send them no user data.'
+      + '<br><span class="meta">Data</span>: probe source IP and User-Agent, recorded by the monitor itself, not by us.',
     'pv.li.7.3':
       '<b>jsDelivr CDN (jsdelivr.com)</b> \u2014 delivering the cloud SDK script.<br>'
       + '<span class="meta">Contact</span>: jsdelivr.com.<br>'

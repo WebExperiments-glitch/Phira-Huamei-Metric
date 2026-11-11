@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 与各页同源的版本号（bump-version.py 一并改）。smoke 有一条断言盯着它。 -->
-<meta name="app-version" content="V0.30.1.2">
+<meta name="app-version" content="V0.30.2.1">
 <title>隐私政策 · P.H.M. Standard</title>
 <meta name="description" content="P.H.M. Standard 隐私政策：我们收集什么、如何使用、如何存储、你拥有哪些权利。">
 <meta name="robots" content="index,follow">
@@ -21,12 +21,12 @@ d.setAttribute("data-theme",dark?"dark":"light");
 d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
 d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
 d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.30.1.2">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.1.2">
+<link rel="stylesheet" href="/css/base.css?v=V0.30.2.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.2.1">
 <!-- ⚠ 必须**先** base.css 再 docs.css：前者给令牌与标题字体，
      后者只负责阅读排版。以前这里只链了 docs.css，
      所以法务页完全在另一套令牌里长大 —— 白底蓝链接，像换了个网站。 -->
-<link rel="stylesheet" href="/css/docs.css?v=V0.30.1.2">
+<link rel="stylesheet" href="/css/docs.css?v=V0.30.2.1">
 </head>
 <body>
 <div class="doc">
@@ -166,8 +166,64 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
     <li data-i18n-html="pv.li.7.1"><b>WorkBuddy 云服务（腾讯）</b> —— 数据库托管、静态分发、网页端账号认证、邮箱验证码发送。<br><span class="meta">联系方式</span>：平台客服；也可由本站转达（见第 10 节）。<br><span class="meta">处理方式</span>：传输与存储加密；启用行级安全；huamei 账号的密码仅以 <b>scrypt 哈希</b>存储，明文不落库、不写日志。<br><span class="meta">涉及信息</span>：登录邮箱、密码哈希、账号标识、绑定的 Phira UID 与显示名、邮箱验证码状态、贡献的成绩。</li>
     <li data-i18n-html="pv.li.7.2"><b>Phira（api.phira.cn）</b> —— 读取公开的谱面元数据与谱面文件，供定数计算。<br><span class="meta">联系方式</span>：以 phira.cn 公示的渠道为准。<br><span class="meta">处理方式</span>：由本站<b>服务端</b>发起 HTTPS 只读请求，不随附你的账号身份或登录凭据。<br><span class="meta">涉及信息</span>：谱面 id、谱师 uid（均为公开数据）；你查询玩家时发出的用户名 / UID。</li>
     <li data-i18n-html="pv.li.7.3"><b>jsDelivr CDN（jsdelivr.com）</b> —— 分发云服务 SDK 脚本。<br><span class="meta">联系方式</span>：jsdelivr.com。<br><span class="meta">处理方式</span>：常规 CDN 静态分发；脚本版本已用 SRI 完整性校验钉死，本站不向其发送任何账号信息。<br><span class="meta">涉及信息</span>：IP、User-Agent（CDN 服务的固有行为）。</li>
+    <li data-i18n-html="pv.li.7.4"><b>Neon（AWS 新加坡区域）</b> —— 业务数据库托管。</li>
+    <li data-i18n-html="pv.li.7.5"><b>Better Stack（betterstack.com）</b> —— 状态页与可用性监控。</li>
   </ul>
   <p data-i18n="pv.p.7.b">此外没有任何其它对外提供：本站不接入广告或数据分析 SDK，不向第三方出售或交换个人信息。</p>
+
+  <h2 id="collect" data-i18n="pv.h2.11">11. 个人信息收集清单</h2>
+  <p data-i18n-html="pv.p.11.a">下表是本站<b>实际存储</b>的全部个人信息项。"
+    "「位置」一栏区分「本机」与「服务器」——<b>存在本机的东西不会上传</b>。</p>
+  <div class="tbl-wrap"><table class="tbl">
+    <thead><tr>
+      <th data-i18n="pv.t.h1">信息项</th>
+      <th data-i18n="pv.t.h2">位置</th>
+      <th data-i18n="pv.t.h3">用途</th>
+      <th data-i18n="pv.t.h4">是否必需</th>
+      <th data-i18n="pv.t.h5">保存期限</th>
+    </tr></thead>
+    <tbody>
+      <tr><td data-i18n="pv.t.1a">登录邮箱</td><td data-i18n="pv.t.1b">本机 + 服务器</td>
+          <td data-i18n="pv.t.1c">账号标识与找回</td><td data-i18n="pv.t.1d">注册才需要</td>
+          <td data-i18n="pv.t.1e">账号存续期间；注销即删</td></tr>
+      <tr><td data-i18n="pv.t.2a">密码（scrypt 哈希）</td><td data-i18n="pv.t.2b">服务器</td>
+          <td data-i18n="pv.t.2c">登录校验，明文不落库</td><td data-i18n="pv.t.2d">注册才需要</td>
+          <td data-i18n="pv.t.2e">同上</td></tr>
+      <tr><td data-i18n="pv.t.3a">Phira UID / 显示名</td><td data-i18n="pv.t.3b">本机 + 服务器</td>
+          <td data-i18n="pv.t.3c">展示「你的记录」、成绩归属</td><td data-i18n="pv.t.3d">绑定才需要</td>
+          <td data-i18n="pv.t.3e">解绑即删</td></tr>
+      <tr><td data-i18n="pv.t.4a">成绩（分数 / 准度 / 判定数 / 速度 / mods）</td><td data-i18n="pv.t.4b">服务器</td>
+          <td data-i18n="pv.t.4c">校准定数参考</td><td data-i18n="pv.t.4d">可一键关闭</td>
+          <td data-i18n="pv.t.4e">关闭后不再上传，已有记录可申请删除</td></tr>
+      <tr><td data-i18n="pv.t.5a">谱面结构特征</td><td data-i18n="pv.t.5b">服务器</td>
+          <td data-i18n="pv.t.5c">难度计算</td><td data-i18n="pv.t.5d">随上传</td>
+          <td data-i18n="pv.t.5e">与成绩同生命周期</td></tr>
+      <tr><td data-i18n="pv.t.6a">API 密钥（SHA-256 哈希）</td><td data-i18n="pv.t.6b">服务器</td>
+          <td data-i18n="pv.t.6c">接口鉴权与配额</td><td data-i18n="pv.t.6d">用 API 才需要</td>
+          <td data-i18n="pv.t.6e">吊销即刻失效</td></tr>
+      <tr><td data-i18n="pv.t.7a">接口调用日志（端点 / 状态码 / 耗时 / 时间）</td><td data-i18n="pv.t.7b">服务器</td>
+          <td data-i18n="pv.t.7c">配额统计与故障排查</td><td data-i18n="pv.t.7d">必需（技术）</td>
+          <td data-i18n="pv.t.7e">滚动保留，不关联 IP</td></tr>
+      <tr><td data-i18n="pv.t.8a">IP 地址</td><td data-i18n="pv.t.8b">内存（不落库）</td>
+          <td data-i18n="pv.t.8c">限流防滥用</td><td data-i18n="pv.t.8d">必需（技术）</td>
+          <td data-i18n="pv.t.8e">仅进程生命周期，重启即清</td></tr>
+      <tr><td data-i18n="pv.t.9a">主题 / 字体 / 字号 / 语言</td><td data-i18n="pv.t.9b">仅本机</td>
+          <td data-i18n="pv.t.9c">界面偏好</td><td data-i18n="pv.t.9d">否</td>
+          <td data-i18n="pv.t.9e">不上传，清除浏览器数据即删</td></tr>
+      <tr><td data-i18n="pv.t.10a">最近查询记录</td><td data-i18n="pv.t.10b">仅本机</td>
+          <td data-i18n="pv.t.10c">快速回看</td><td data-i18n="pv.t.10d">否</td>
+          <td data-i18n="pv.t.10e">不上传</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="perm" data-i18n="pv.h2.12">12. 应用权限说明</h2>
+  <p data-i18n-html="pv.p.12.a">本站是<b>网页应用</b>，没有传统意义上的系统权限申请。浏览器会用到下面这些能力，每一项都可以在你的浏览器设置里单独关闭：</p>
+  <ul>
+    <li data-i18n-html="pv.li.12.1"><b>本地存储（localStorage）</b> —— 保存主题、字体、字号、语言、登录态与最近记录。<b>关闭后站点仍可只读使用</b>，但每次刷新都要重新设置偏好。</li>
+    <li data-i18n-html="pv.li.12.2"><b>剪贴板写入</b> —— 仅在你点「复制密钥」时写入一次，不读取剪贴板内容。</li>
+    <li data-i18n-html="pv.li.12.3"><b>文件读取</b> —— 只读取你主动拖入或选择的谱面文件，且<b>全程在本机解析</b>，不上传原文件。</li>
+  </ul>
+  <p data-i18n-html="pv.p.12.b"><b>本站不申请、也不使用</b>：摄像头、麦克风、地理位置、通讯录、短信、相册、通知推送权限。</p>
 
   <h2 data-i18n="pv.h2.8">8. 我们不做什么</h2>
   <ul>
@@ -202,8 +258,8 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 </div>
 
 <script type="module">
-import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.30.1.2';
-import { installGuard } from '/js/guard.js?v=V0.30.1.2';
+import { applyStatic, onLangChange, currentLang } from '/js/ui.js?v=V0.30.2.1';
+import { installGuard } from '/js/guard.js?v=V0.30.2.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

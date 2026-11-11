@@ -145,3 +145,29 @@ body {
   body { padding: 14px 14px 48px; }
   .doc table { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* ── 文档里的表格（隐私政策「个人信息收集清单」用）────────────
+ * 之前全站没有表格样式 —— 隐私页那 10 行 5 列的清单会挤成一团。
+ * 小屏不能横向撑破页面，所以外层包一层可横向滚动的容器。 */
+.tbl-wrap { overflow-x: auto; margin: 14px 0 18px; -webkit-overflow-scrolling: touch; }
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;      /* 13px */
+  line-height: 1.6;
+  min-width: 620px;          /* 五列低于这个宽度就没法读了 */
+}
+.tbl th, .tbl td {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.tbl th {
+  background: var(--card2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tbl tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--card2) 45%, transparent); }
+.tbl td:first-child { font-weight: 500; color: var(--fg); }
+.tbl td { color: var(--fg2); }

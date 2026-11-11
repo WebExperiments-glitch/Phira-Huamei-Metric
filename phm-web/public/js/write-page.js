@@ -11,12 +11,12 @@
  *      但默认关闭（省钱、快），需要时才开。
  * ============================================================ */
 
-import { renderNav, applyStatic, onLangChange, t, esc } from './ui.js?v=V0.30.1.2';
-import * as S from './settings.js?v=V0.30.1.2';
-import { createWriter } from './agent.js?v=V0.30.1.2';
-import { analyzeFile, ensurePlayableAudio } from './audio-analysis.js?v=V0.30.1.2';
-import { buildPez } from './rulechart.js?v=V0.30.1.2';
-import { renderMarkdown } from './markdown.js?v=V0.30.1.2';
+import { renderNav, applyStatic, onLangChange, t, esc } from './ui.js?v=V0.30.2.1';
+import * as S from './settings.js?v=V0.30.2.1';
+import { createWriter } from './agent.js?v=V0.30.2.1';
+import { analyzeFile, ensurePlayableAudio } from './audio-analysis.js?v=V0.30.2.1';
+import { buildPez } from './rulechart.js?v=V0.30.2.1';
+import { renderMarkdown } from './markdown.js?v=V0.30.2.1';
 
 const $ = (s) => document.querySelector(s);
 const log = $('#log');
