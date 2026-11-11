@@ -19,9 +19,17 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.1.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.2.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.2.1', date: '2026-11-11',
+    zh: ['<b>补上上一版漏掉的政策版本号。</b> 内容都更新了，但页头还写着 v1.3 / 2026-10-17 —— '
+      + '改文件时回滚过一次，把版本号一起退回去了。现在是对的：v1.4 / 2026-11-11。'],
+    en: ['<b>Fixing the policy version number the previous release missed.</b> The content was updated but '
+      + 'the header still read v1.3 / 2026-10-17 — a rollback took the version with it. '
+      + 'It now reads v1.4 / 2026-11-11.'],
+  },
   {
     v: 'V0.30.1.2', date: '2026-11-10',
     zh: ['<b>上一版加了页脚，但首页看不到 —— 因为首页根本没有页脚那个标签。</b> '
