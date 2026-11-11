@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.30.3.0">
+<meta name="app-version" content="V0.30.3.1">
 <title>版本历史 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="description" content="P.H.M. Standard 的版本历史：每个版本修了什么、改了什么。只列用户能感知的变化。">
@@ -20,8 +20,8 @@ d.setAttribute("data-theme",dark?"dark":"light");
 d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
 d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
 d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.30.3.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.30.3.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.1">
 <style>
 /* ── 版本列表：一条时间线 ──
    设计上刻意**不用彩色徽标**：唯一的强调色只留给"最新"那一条，
@@ -86,10 +86,10 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 </div>
 
 <script type="module">
-import { renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER } from '/js/ui.js?v=V0.30.3.0';
+import { renderNav, esc, applyStatic, t, onLangChange, currentLang, APP_VER } from '/js/ui.js?v=V0.30.3.1';
 
-import { RELEASES } from '/js/versions.js?v=V0.30.3.0';
-import { installGuard } from '/js/guard.js?v=V0.30.3.0';
+import { RELEASES } from '/js/versions.js?v=V0.30.3.1';
+import { installGuard } from '/js/guard.js?v=V0.30.3.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

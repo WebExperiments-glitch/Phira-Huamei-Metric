@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.30.3.0">
+<meta name="app-version" content="V0.30.3.1">
 <title>自动写谱 · P.H.M.</title>
 <meta name="description" content="导入 MP3，提取 BPM / 拍点 / 段落，用一句话让 AI 写谱，或直接自动生成，下载 .pez。音频全程本地，不上传。">
 <script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
@@ -15,10 +15,10 @@ d.setAttribute("data-theme",dark?"dark":"light");
 d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
 d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
 d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.30.3.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.0">
-<link rel="stylesheet" href="/css/motion.css?v=V0.30.3.0">
-<script type="module" src="/js/motion.js?v=V0.30.3.0"></script>
+<link rel="stylesheet" href="/css/base.css?v=V0.30.3.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.1">
+<link rel="stylesheet" href="/css/motion.css?v=V0.30.3.1">
+<script type="module" src="/js/motion.js?v=V0.30.3.1"></script>
 <style>
 .rc-wrap{max-width:1060px;margin:0 auto}
 .rc-hero{text-align:center;padding:18px 0 4px}
@@ -27,7 +27,11 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 .rc-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:16px 0}
 .rc-card h2{font-size:16px;margin:0 0 4px}
 .rc-card .sub{color:var(--fg3);font-size:12px;line-height:1.65;margin-bottom:12px}
-.drop{border:1.5px dashed var(--line2);border-radius:12px;padding:26px 18px;text-align:center;background:var(--card2);cursor:pointer;transition:border-color .15s,background .15s}
+/* ⚠ display:block 不可省：<label> 默认是 inline，而里面装的是块级 <div>。
+   少了这一行，虚线边框只包住"第一个字符"的宽度 —— 整个拖放区被压成
+   一条竖着的窄边，副标题的文字也被挤进边框里被裁掉半截
+   （2026-11-11 用户截图：'支持浏览器能解码' 显示成 '寸浏览器能解码'）。 */
+.drop{display:block;border:1.5px dashed var(--line2);border-radius:12px;padding:26px 18px;text-align:center;background:var(--card2);cursor:pointer;transition:border-color .15s,background .15s}
 .drop:hover,.drop.hover{border-color:var(--brand);background:var(--brand-soft)}
 .drop .big{font-size:15px;color:var(--fg)} .drop .big b{color:var(--brand)}
 .drop .hint{font-size:12px;color:var(--fg3);margin-top:6px}
@@ -237,13 +241,13 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
    三层报告用 esc() 转义文本，漏了它 → 点「生成谱面」直接 ReferenceError，
    页面表现是「点了没反应」。t 之前也漏了，被 try{installGuard(t)} 吞掉，
    所以守卫其实一直拿到 undefined。 */
-import { renderNav, esc, t } from '/js/ui.js?v=V0.30.3.0';
+import { renderNav, esc, t } from '/js/ui.js?v=V0.30.3.1';
 
-import { analyzeFile } from '/js/audio-analysis.js?v=V0.30.3.0';
-import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.30.3.0';
-import { installGuard } from '/js/guard.js?v=V0.30.3.0';
+import { analyzeFile } from '/js/audio-analysis.js?v=V0.30.3.1';
+import { buildChartFromAnalysis, buildPez, detectDifficulty } from '/js/rulechart.js?v=V0.30.3.1';
+import { installGuard } from '/js/guard.js?v=V0.30.3.1';
 
-import * as S from '/js/settings.js?v=V0.30.3.0';
+import * as S from '/js/settings.js?v=V0.30.3.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -449,7 +453,7 @@ let aiWriter = null, aiBusy = false;
    ⚠ 版本串要和别的 import 同串，否则会变成两个模块实例（状态分裂）。 */
 let __agentMod = null;
 function agentModule() {
-  if (!__agentMod) __agentMod = import('/js/agent.js?v=V0.30.3.0');
+  if (!__agentMod) __agentMod = import('/js/agent.js?v=V0.30.3.1');
   return __agentMod;
 }
 
