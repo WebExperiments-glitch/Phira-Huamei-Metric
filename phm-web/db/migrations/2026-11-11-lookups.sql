@@ -148,6 +148,11 @@ begin
   return jsonb_build_object('ok', true, 'deleted', n);
 end $$;
 
+-- 行级安全：所有读写都走 SECURITY DEFINER 函数，匿名/登录角色连表级权限都没有。
+-- （2026-11-11 补：建表时漏了这两行，被 pre-push 的 review-gate 拦下才补）
+alter table public.hm_lookups enable row level security;
+revoke all on public.hm_lookups from anon, authenticated;
+
 revoke all on function public.hm_lookup_touch(text, text, bigint, numeric) from public;
 revoke all on function public.hm_lookup_list(text, text, int) from public;
 revoke all on function public.hm_lookup_merge(text, text, text) from public;
