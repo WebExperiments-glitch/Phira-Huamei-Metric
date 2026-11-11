@@ -1871,6 +1871,90 @@
           }
         }
       }
+    },
+    "/lookups": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Recent chart lookups",
+        "operationId": "listLookups",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "该浏览器/账号最近查过的谱面，附带「参考定数相对你上次看到的值变化了多少」。匿名可用（按 x-phm-cid 归集）。",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "历史列表"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Record a lookup",
+        "operationId": "recordLookup",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "记录一次查询。返回 prev_ref（你上次看到该谱的参考定数），供前端提示变化。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chart_id"
+                ],
+                "properties": {
+                  "chart_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已记录"
+          },
+          "400": {
+            "description": "chart_id 非法"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Clear lookup history",
+        "operationId": "clearLookups",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "清空当前主体（cid 或账号）的查询历史。用户权利，不区分身份。",
+        "responses": {
+          "200": {
+            "description": "已清空"
+          }
+        }
+      }
     }
   }
 }

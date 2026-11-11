@@ -465,3 +465,70 @@ border-left:3px solid var(--pattern);font-size: 0.75rem;color:var(--fg2);line-he
 .pcurve b{color:var(--fg)}
 .pcnote{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line);
 font-size: 0.6875rem;color:var(--fg3);line-height:1.65}
+
+/* ── 首页「最近查过」────────────────────────────────────────
+ * 回访钩子：默认隐藏（JS 拉到历史才显示），所以新访客看不到空面板。
+ * 布局用 grid 而不是 flex —— 谱名长短差异极大，grid 能保证
+ * 右边的定数与变化标记**始终对齐**，不会因为歌名长短而跳动。 */
+.recent { margin: 18px 0 6px; }
+.recent-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.recent-head h2 {
+  margin: 0;
+  font-size: 0.875rem;      /* 14px */
+  font-weight: 600;
+  color: var(--fg2);
+}
+.recent-head .ghost { font-size: 0.75rem; color: var(--fg3); }
+.recent-list { display: flex; flex-direction: column; gap: 2px; }
+.recent-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--fg);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.recent-item:hover { background: var(--card2); transform: translateX(2px); }
+.recent-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;     /* 13px */
+}
+.recent-lv {
+  font-size: 0.6875rem;     /* 11px */
+  color: var(--fg3);
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.recent-ref {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: var(--fg2);
+  min-width: 3.2em;
+  text-align: right;
+}
+/* 变化标记：不做好坏判断（难度涨不涨不是好事也不是坏事），只标方向 */
+.recent-delta {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.6875rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.recent-delta.up { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.recent-delta.down { color: var(--fg3); background: var(--card2); }
+@media (prefers-reduced-motion: reduce) {
+  .recent-item:hover { transform: none; }
+}

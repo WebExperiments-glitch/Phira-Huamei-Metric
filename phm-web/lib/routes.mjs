@@ -55,6 +55,11 @@ export const ROUTES = [
   /* ── 打上游 / 跑引擎：expensive ── */
   { m: 'GET', p: '/charters/:uid', cost: 'expensive', scope: 'charts:read' },
   { m: 'GET', p: '/players/:uid', cost: 'expensive', scope: 'charts:read' },
+  /* 查询历史：留存的地基（见 lib/api-lookups.mjs）。廉价档 —— 只碰一张小表。 */
+  { m: 'GET', p: '/lookups', cost: 'normal', scope: 'charts:read' },
+  { m: 'POST', p: '/lookups', cost: 'normal', scope: 'charts:read' },
+  { m: 'DELETE', p: '/lookups', cost: 'normal', scope: 'charts:read' },
+
   /* 上游文件中转：浏览器直连 CDN 因缺 CORS 头必然失败（见 lib/api-files.mjs）。
      算 expensive —— 它要拿我们的出口带宽去换上游文件。 */
   { m: 'GET', p: '/file', cost: 'expensive', scope: 'charts:read' },
