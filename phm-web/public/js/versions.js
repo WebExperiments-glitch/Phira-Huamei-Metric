@@ -19,9 +19,18 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.3.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.3.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.3.2', date: '2026-11-11',
+    zh: ['<b>清掉了代码注释里的"日记"。</b> 最近几个文件里我写了不少"我上次错在哪"的检讨，'
+      + '那些该进提交记录，不该留在代码里。现在只保留"为什么必须这样写"，'
+      + '防止有人改回去 —— 这是注释唯一的用处。'],
+    en: ['<b>Cleaned diary entries out of code comments.</b> Recent files had notes like what I got wrong last '
+      + 'time; those belong in commit history, not in the code. What remains is only why a line must stay the '
+      + 'way it is — the one job a comment has.'],
+  },
   {
     v: 'V0.30.3.1', date: '2026-11-11',
     zh: ['<b>「关于这些包」下面的四条说明，这次真的修好了。</b> 上次我说修好了，'

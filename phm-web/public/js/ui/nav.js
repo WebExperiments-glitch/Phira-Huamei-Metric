@@ -3,8 +3,8 @@
  * 18 个页面只需要这个，却被整个 ui.js（533 行）拖着一起下载。
  */
 
-import { esc } from './format.js?v=V0.30.3.1';
-import { onLangChange, t } from '../i18n.js?v=V0.30.3.1';
+import { esc } from './format.js?v=V0.30.3.2';
+import { onLangChange, t } from '../i18n.js?v=V0.30.3.2';
 export const APP_VER = (document.querySelector('meta[name="app-version"]') || {}).content || '—';
 
 const NAV = [
@@ -122,16 +122,9 @@ onLangChange(function () { renderNav(); });
  * ══════════════════════════════════════════════════════════════ */
 
 /* ── 页脚 ──────────────────────────────────────────────────────
- * 【为什么必须由代码渲染，而不是每个页面手写】
- *   26 个页面的 #foot 全是空标签 —— 结果就是**全站没有任何隐私政策入口**。
- *   用户想找协议只能猜到 /privacy 这个 URL（2026-11-10 实测反馈「入口有些隐蔽」）。
- *
- * 【为什么挂在 renderNav 里】
- *   renderNav 已经被 18 个页面调用。在这里顺带渲染页脚，等于零改页面就补上入口。
- *   宁可耦合一点，也不要再去改 18 个 HTML。
- *
- * 【合规要求】个人信息处理者必须在**显著位置**提供隐私政策入口。
- *   页脚是最低要求；设置页里还另有一条（见 settings.html）。 */
+ * 26 个页面的 #foot 都是空标签 → 全站没有隐私政策入口（合规要求"显著位置"）。
+ * 挂在 renderNav 里：它已被 18 个页面调用，等于零改 HTML 就补上入口。
+ * 找不到 #foot 就自己建一个 —— index/app 两页连那个标签都没有。 */
 export function renderFoot() {
   /* ⚠ 不是所有页面都有 <footer id="foot">：index.html 与 app.html 就没有。
      所以找不到就**自己建一个**插到 body 末尾 —— 否则首页永远看不到隐私入口，
