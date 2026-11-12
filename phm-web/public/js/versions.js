@@ -19,9 +19,26 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.3.4';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.4.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.4.0', date: '2026-11-12',
+    zh: ['<b>注册不用再收邮箱验证码了 —— 一步填完就能建号。</b> '
+      + '原因很实际：没有自己的域名，所有邮件服务商都要验证域名（SMTP2GO 连注册都要求 @你的域名），'
+      + '而域名要备案。发不出验证码，注册链就断了。',
+      '<b>代价是任意邮箱都能注册，包括别人的邮箱。</b> 这一点我写在这里，不藏。'
+      + '之所以敢接受：没绑 Phira 的账号上传不了成绩、进不了榜单 —— 垃圾账号没有收益。'
+      + '身份验证的门槛放在 Phira 绑定上，而不是邮箱上。'],
+    en: ['<b>Sign-up no longer needs an emailed code — one step and the account exists.</b> '
+      + 'The reason is practical: without a domain of our own, every email provider requires domain '
+      + 'verification (SMTP2GO even demands an @yourdomain address to sign up), and a domain needs ICP filing. '
+      + 'No deliverable code, no sign-up.',
+      '<b>The cost is that any address can register, including someone else’s.</b> That is written here '
+      + 'rather than hidden. It is acceptable because an account without a linked Phira profile cannot upload '
+      + 'scores or enter rankings — a spam account gains nothing. The identity gate sits at Phira binding, '
+      + 'not at the mailbox.'],
+  },
   {
     v: 'V0.30.3.4', date: '2026-11-12',
     zh: ['<b>登录时现在会额外下发一枚 HttpOnly Cookie。</b> 这枚 cookie 带着登录凭据，'

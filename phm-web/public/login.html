@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.30.3.4">
+<meta name="app-version" content="V0.30.4.0">
 <title>登录 · P.H.M.</title>
 <meta name="description" content="登录 P.H.M.：绑定 Phira 账号、留下属于你的记录。谱面文件依然不会上传。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
@@ -17,8 +17,8 @@ d.setAttribute("data-theme",dark?"dark":"light");
 d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
 d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
 d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.30.3.4">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.3.4">
+<link rel="stylesheet" href="/css/base.css?v=V0.30.4.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.4.0">
 <style>
 /* ============================================================
  * 登录页 · 双栏
@@ -163,7 +163,13 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
           <label for="lgRegEmail" data-i18n="lg.email">邮箱</label>
           <input id="lgRegEmail" type="email" autocomplete="username" inputmode="email" spellcheck="false" required>
         </div>
-        <button type="submit" class="lg-primary" id="lgRegSend" data-i18n="lg.sendCode">发送验证码</button>
+        <!-- 2026-11-12：注册不再需要邮箱验证码（没有域名，发不出邮件）。
+             密码从第二步挪到这里 —— 一步填完直接建号。 -->
+        <div class="lg-field">
+          <label for="lgRegPw" data-i18n="lg.newPw">新密码</label>
+          <input id="lgRegPw" type="password" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="lg-primary" id="lgRegSend" data-i18n="lg.createAccount">创建账号</button>
         <button type="button" class="lg-back2" id="lgRegBack" data-i18n="lg.back2">← 返回登录</button>
       </section>
 
@@ -211,10 +217,10 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <script type="module">
 /* ⚠ t / applyStatic / onLangChange / setLang 全部从 ui.js 出 ——
    再单独 import 一份 i18n.js 会得到两个模块实例，语言状态会分裂。 */
-import { applyStatic, t, onLangChange, currentLang, setLang } from '/js/ui.js?v=V0.30.3.4';
-import { mountParticles } from '/js/particles.js?v=V0.30.3.4';
-import { createAuth, normalizeEmail, isValidEmail, pwProblem, authErrorKey } from '/js/auth.js?v=V0.30.3.4';
-import { redirectFromLocation } from '/js/redirect.js?v=V0.30.3.4';
+import { applyStatic, t, onLangChange, currentLang, setLang } from '/js/ui.js?v=V0.30.4.0';
+import { mountParticles } from '/js/particles.js?v=V0.30.4.0';
+import { createAuth, normalizeEmail, isValidEmail, pwProblem, authErrorKey } from '/js/auth.js?v=V0.30.4.0';
+import { redirectFromLocation } from '/js/redirect.js?v=V0.30.4.0';
 
 const $ = id => document.getElementById(id);
 
@@ -282,20 +288,16 @@ $('lgForm').addEventListener('submit', (e) => {
   if (reg) {
     const email = normalizeEmail($('lgRegEmail').value);
     if (!isValidEmail(email)) { showErr('invalid', t('lg.badEmail')); return; }
+    const pw = String($('lgRegPw').value || '');
     $('lgRegSend').disabled = true;
-    auth.requestCode(email, 'signup').then((r) => {
+    /* 2026-11-12：一步建号，不再发验证码。
+       顺序注意：signUp(emailRaw, code, password) —— code 在第二位。 */
+    auth.signUp(email, '', pw).then((r) => {
       $('lgRegSend').disabled = false;
-      if (r && r.ok) {
-        $('lgCodeWho').textContent = email;
-        $('lgPwWrap').hidden = false;
-        $('lgNewPw').required = true;
-        $('lgCodeSubmit').dataset.mode = 'signup';
-        showStep('lgStepCode');
-        $('lgCode').focus();
-      } else {
-        const s = auth.state;
-        showErr(s.error ? s.error.kind : 'unknown', s.error ? s.error.detail : '');
-      }
+      if (r && r.ok) { location.href = '/'; return; }
+      if (r && r.throttled) { showErr('rate-limited', t('lg.tooFast')); return; }
+      const s = auth.state;
+      showErr(s.error ? s.error.kind : 'unknown', s.error ? s.error.detail : '');
     });
     return;
   }

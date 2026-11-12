@@ -327,11 +327,13 @@ export function createAuth(opts) {
 
   async function signUp(emailRaw, code, password) {
     const email = normalizeEmail(emailRaw);
-    if (!state.pending || state.pending.email !== email) {
-      setError({ kind: 'invalid', detail: 'no pending code' });
-      notify();
-      return { ok: false };
-    }
+      /* 2026-11-12：不再在本地拦「必须先发码」。
+         后端已改为默认不要求验证码（没有域名发不出邮件），
+         所以这里直接提交、由服务端判定：
+           · 不要求 → 空 code 直接注册成功
+           · 要求   → 返回 code_required，界面再提示去拿码
+         本地拦截反而会在「关掉验证码」时把注册卡死（原来就是这么死的）。 */
+      const codeTrim = String(code || '').trim();
     const prob = pwProblem(password);
     if (prob) {
       setError({ kind: 'weak-pw', detail: prob });
@@ -341,10 +343,10 @@ export function createAuth(opts) {
     /* ⚠ 同上：弱密码、没发码这些本地就能判的，不该吃掉节流窗口 */
     if (!throttleOf('signUp')) return { ok: false, throttled: true };
     return runAction(async () => {
-      const res = await call('/api/hm/register', {
-        method: 'POST',
-        body: { email, password, code: String(code || '').trim() },
-      });
+        const res = await call('/api/hm/register', {
+          method: 'POST',
+          body: { email, password, code: codeTrim },
+        });
       if (!res.ok) {
         const k = errKind(res);
         setError({ kind: k, detail: String((res.data && res.data.error) || '') });

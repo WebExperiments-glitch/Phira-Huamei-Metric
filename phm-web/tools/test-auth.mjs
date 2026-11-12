@@ -195,9 +195,15 @@ G('8 · 注册流程');
     storage: memStore(), onChange: () => {},
   });
   const r = await auth.signUp('a@b.com', '123456', 'Abcdefghij1!');
-  T('没发过码 → 拒绝', r.ok === false);
-  T('错误是「没有待验证的码」',
-    auth.state.error && /pending/.test(String(auth.state.error.detail)),
+  /* 2026-11-12 行为变更：注册不再要求先发验证码。
+     原因是没有自有域名 → 发不出邮件 → 发码必然失败，本地拦「没发过码」
+     等于把注册彻底卡死。现在直接把 code 交给服务端判定：
+       · 服务端不要求（默认）→ 空 code 也能建号
+       · 服务端要求（REQUIRE_EMAIL_CODE=1）→ 返回 code_required，界面再提示
+     这个 fake 返回 ok:true，所以应当成功。 */
+  T('没发过码 → 仍然提交，由服务端判定', r.ok === true);
+  T('不应再出现「没有待验证的码」这类本地拦截',
+    !(auth.state.error && /pending/.test(String(auth.state.error.detail))),
     JSON.stringify(auth.state.error));
 }
 {

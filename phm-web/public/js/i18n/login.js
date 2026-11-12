@@ -7,6 +7,7 @@
  * ============================================================ */
 export default {
   zh: {
+    'lg.createAccount': '创建账号',
     'lg.home': '← phm.app.workbuddy.host',
     'lg.kicker': 'P.H.M. · 双标度定数参考',
     'lg.slogan1': '不演奏，只测量。',
@@ -40,6 +41,7 @@ export default {
     'lg.needCode': '先填收到的验证码。',
   },
   en: {
+    'lg.createAccount': 'Create account',
     'lg.home': '← phm.app.workbuddy.host',
     'lg.kicker': 'P.H.M. · dual-scale difficulty reference',
     'lg.slogan1': 'She does not play. She measures.',
