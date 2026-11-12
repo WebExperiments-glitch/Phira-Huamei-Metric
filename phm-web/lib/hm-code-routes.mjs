@@ -9,6 +9,8 @@
  * 模块本身不 import server.mjs，避免循环依赖。
  */
 
+import { tokenCookie } from './cookies.mjs';
+
 /** @param deps `{send, gate, gateCode, gateAuth, readBody, ip, sendCode, resetPassword}`
  *  返回两个可直接 await 的处理函数，参数都是 `(res, body)`。 */
 export function makeCodeRoutes(deps) {
@@ -98,6 +100,13 @@ export function makeCodeRoutes(deps) {
       if (clientErr && r.detail) payload.detail = r.detail;
       return send(res, clientErr ? 400 : 401, JSON.stringify(payload));
     }
+    /* 同时下发 HttpOnly Cookie（token 迁移第二步）。
+       JS 读不到它 —— XSS 就偷不走账号。
+       ⚠ 响应体里的 token 仍然保留：Windows 客户端 huamei 还在读它。
+         要删它得先确认那个客户端已经改完，不能一刀切。 */
+    try {
+      res.setHeader('Set-Cookie', tokenCookie(r.token, { secure: true }));
+    } catch (e) { /* 设头失败不该连累登录本身 */ }
     /* token 只在响应体里回一次，**不落服务端日志** —— 它是 bearer 凭据。 */
     return send(res, 200, JSON.stringify({ ok: true, sub: r.sub, token: r.token }));
   }

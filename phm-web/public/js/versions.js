@@ -19,9 +19,20 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.3.3';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.3.4';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.3.4', date: '2026-11-12',
+    zh: ['<b>登录时现在会额外下发一枚 HttpOnly Cookie。</b> 这枚 cookie 带着登录凭据，'
+      + '但 JavaScript 读不到它 —— 就算页面上被注入脚本，也偷不走。',
+      '<b>响应体里的 token 还在，所以这次仍无感知变化。</b> '
+      + 'Windows 客户端还在读响应体里的 token，删它之前要先确认那边改完 —— 不能一刀切。'],
+    en: ['<b>Sign-in now also sets an HttpOnly cookie.</b> It carries the login credential but JavaScript '
+      + 'cannot read it — an injected script on the page cannot steal it.',
+      '<b>The token in the response body is still there, so nothing changes visibly yet.</b> The Windows '
+      + 'client still reads it, so it can only be removed after that client is updated — no blanket cutover.'],
+  },
   {
     v: 'V0.30.3.3', date: '2026-11-12',
     zh: ['<b>登录凭据开始从 localStorage 迁出，这是第一步。</b> '
