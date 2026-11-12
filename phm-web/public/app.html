@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- 版本号唯一来源就是这个 meta。标题里刻意不带版本 ——
      曾经 <title> / 页头 / 页脚 / README 四处各写一份，改一处忘三处。 -->
-<meta name="app-version" content="V0.30.4.0">
+<meta name="app-version" content="V0.30.4.1">
 <title>算定数 · P.H.M.</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1117'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23e8a33d'%3EP%3C/text%3E%3C/svg%3E">
 <meta name="color-scheme" content="dark">
@@ -39,11 +39,11 @@ d.setAttribute("data-theme",dark?"dark":"light");
 d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
 d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
 d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.30.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.4.0">
-<link rel="stylesheet" href="/css/motion.css?v=V0.30.4.0">
-<script type="module" src="/js/motion.js?v=V0.30.4.0"></script>
-<link rel="stylesheet" href="/css/app.css?v=V0.30.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.30.4.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.4.1">
+<link rel="stylesheet" href="/css/motion.css?v=V0.30.4.1">
+<script type="module" src="/js/motion.js?v=V0.30.4.1"></script>
+<link rel="stylesheet" href="/css/app.css?v=V0.30.4.1">
 </head>
 <body>
 <div class="wrap">
@@ -208,15 +208,15 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <script type="module">
 /* 共享界面工具层（导航 / 术语表 / i18n）。用**静态 import** —— 动态 import 会让
    同一模块拿到两个实例的风险，且本页需要 t() 在所有渲染点可用。 */
-import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.30.4.0';
+import { renderNav, glossaryHTML, applyStatic, t, onLangChange, currentLang, markJa } from '/js/ui.js?v=V0.30.4.1';
 
 /* 首页接力：用户在落地页就把 .pez 拖进来了，那里只做暂存，真正的解析在这里。
    文件用 IndexedDB 交接（Blob 不能进 sessionStorage），取出即删。 */
-import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.30.4.0';
-import { createAuth, authErrorKey } from '/js/auth.js?v=V0.30.4.0';
-import { installGuard } from '/js/guard.js?v=V0.30.4.0';
-import { initDeepLink } from '/js/deeplink.js?v=V0.30.4.0';
-import { fillBehav } from '/js/behav.js?v=V0.30.4.0';
+import { claim as claimHandoff, handedOver } from '/js/handoff.js?v=V0.30.4.1';
+import { createAuth, authErrorKey } from '/js/auth.js?v=V0.30.4.1';
+import { installGuard } from '/js/guard.js?v=V0.30.4.1';
+import { initDeepLink } from '/js/deeplink.js?v=V0.30.4.1';
+import { fillBehav } from '/js/behav.js?v=V0.30.4.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -1803,6 +1803,15 @@ function renderPlayStat(s){
 async function analyzeByChartId(cid,btn){
   btn.disabled=true; const label=btn.textContent; btn.textContent=t("app.calc.doing");
   csMsg(t("app.calc.waiting"));
+  /* 服务端要「下载谱面 → 解析 → 提特征 → 跑模型」，通常 20~40 秒，谱面越大越久。
+     前端拿不到真实阶段（接口是一次性返回），所以这里只做一件诚实的事：
+     **让时间看得见**。用户盯着一个不动的"等待中"会以为卡死；
+     显示已等 12 秒，他就知道它在动。不放假进度条 —— 那才是骗人。 */
+  const t0 = Date.now();
+  const tick = setInterval(function () {
+    const sec = Math.round((Date.now() - t0) / 1000);
+    csMsg(t("app.calc.elapsed", { s: String(sec) }));
+  }, 1000);
   try{
     const r=await fetchTO("/api/analyze",90000,{method:"POST",
       headers:{"content-type":"application/json"},
@@ -1822,6 +1831,7 @@ async function analyzeByChartId(cid,btn){
   }catch(e){
     csMsg(t("app.calc.fail",{e:esc((e&&e.message)||t("app.err.net"))}),"err");
   }
+  clearInterval(tick);
   btn.disabled=false; btn.textContent=label;
 }
 

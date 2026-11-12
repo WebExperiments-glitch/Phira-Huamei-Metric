@@ -8,6 +8,7 @@
  * ============================================================ */
 export default {
   zh: {
+    'app.calc.elapsed': '正在分析… 已等待 {s} 秒（通常 20~40 秒，谱面越大越久）',
     /* ── 页头：标语 + 顶部搜索 ──
        `app.head.h1` 是这一页的**语义标题**（见 app.html 里那个 .sr-only h1）：
        视觉上这页直接以标语开场，但它需要有一个一级标题，否则读屏用户
@@ -408,6 +409,7 @@ export default {
   },
 
   en: {
+    'app.calc.elapsed': 'Analyzing… {s}s elapsed (usually 20–40s; larger charts take longer)',
     /* ── header: slogan + top search ──
        `app.head.h1` is this page's semantic heading (rendered as the .sr-only h1
        in app.html): visually the page opens with the slogan, but it still needs a

@@ -19,9 +19,28 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.4.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.4.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.4.1', date: '2026-11-12',
+    zh: ['<b>「找回密码」暂时下掉了。</b> 它要发邮箱验证码，而我们发不出信 —— '
+      + '留着这个按钮等于让用户点了必然失败。邮件配好后删两个字就能恢复。',
+      '<b>API Key 弹窗现在有进有出了。</b> 之前打开、关闭都是瞬间出现，'
+      + '没有任何过渡。参照 Kimi 的做法补上了 淡入 + 缩放上移，'
+      + '并且尊重系统的「减少动效」设置。',
+      '<b>谱面分析时能看到「已等待 N 秒」了。</b> 那个接口要跑 20~40 秒，'
+      + '以前只有一句不动的「等待中」，用户会以为卡死。'
+      + '没有做假进度条 —— 时间是真的，那就只显示时间。'],
+    en: ['<b>Forgot-password is temporarily gone.</b> It needs an emailed code and we cannot send email — '
+      + 'leaving the button there meant users would click it and always fail. Two words to restore once mail works.',
+      '<b>The API key dialog now has an exit, not just an entrance.</b> It used to appear and vanish instantly '
+      + 'with no transition. Following what Kimi does, it now fades and scales in, and respects the system '
+      + 'reduce-motion setting.',
+      '<b>Chart analysis now shows elapsed seconds.</b> That endpoint takes 20–40s; before it showed a frozen '
+      + 'waiting message and users assumed it had hung. No fake progress bar — the elapsed time is real, '
+      + 'so only that is shown.'],
+  },
   {
     v: 'V0.30.4.0', date: '2026-11-12',
     zh: ['<b>注册不用再收邮箱验证码了 —— 一步填完就能建号。</b> '

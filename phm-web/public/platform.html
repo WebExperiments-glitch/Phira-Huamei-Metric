@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.30.4.0">
+<meta name="app-version" content="V0.30.4.1">
 <title>API 开放平台 · P.H.M.</title>
 <meta name="description" content="P.H.M. API 开放平台：查看调用用量、管理 API Key、接入免费的谱面难度查询/分析接口。">
 <script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
@@ -15,9 +15,9 @@ d.setAttribute("data-theme",dark?"dark":"light");
 d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
 d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
 d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.30.4.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.4.0">
-<link rel="stylesheet" href="/css/api.css?v=V0.30.4.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.30.4.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.30.4.1">
+<link rel="stylesheet" href="/css/api.css?v=V0.30.4.1">
 <style>
 .platwrap{max-width:1100px;grid-template-columns:190px minmax(0,1fr);gap:28px}
 .plat-side{position:sticky;top:74px;align-self:start;font-size:13px}
@@ -46,10 +46,20 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 .scope-row input{width:auto;min-height:0;accent-color:var(--brand)}
 .key-scopes{display:flex;gap:3px;flex-wrap:wrap}
 .key-scope{display:inline-block;font-size:10.5px;border:1px solid var(--line);border-radius:99px;padding:1px 7px;color:var(--fg3);white-space:nowrap}
-.modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;
+  /* 进出场成对：原来只有 hidden 的 display 切换，打开/关闭都是瞬间出现 ——
+     对比 Kimi 那种「有进有出」的观感，差的就是这几行过渡。
+     打开时先去掉 hidden，下一帧再加 .open，浏览器才有机会播过渡。 */
+  opacity:0;transition:opacity .18s var(--ease)}
+.modal.open{opacity:1}
 .modal[hidden]{display:none}
 .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45)}
-.modal-card{position:relative;width:100%;max-width:520px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 18px 60px rgba(0,0,0,.25)}
+.modal-card{position:relative;width:100%;max-width:520px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:0 18px 60px rgba(0,0,0,.25);transform:scale(.96) translateY(8px);transition:transform .22s var(--ease)}
+  .modal.open .modal-card{transform:none}
+  @media(prefers-reduced-motion:reduce){
+    .modal,.modal-card{transition:none}
+    .modal-card{transform:none}
+  }
 .modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .modal-head h2{font-size:17px;margin:0}
 .modal-x{border:0;background:transparent;color:var(--fg3);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
@@ -176,10 +186,10 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <div id="toast" class="toast" hidden></div>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.30.4.0';
+import { renderNav } from '/js/ui.js?v=V0.30.4.1';
 
-import { createAuth } from '/js/auth.js?v=V0.30.4.0';
-import { installGuard } from '/js/guard.js?v=V0.30.4.0';
+import { createAuth } from '/js/auth.js?v=V0.30.4.1';
+import { installGuard } from '/js/guard.js?v=V0.30.4.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
@@ -210,12 +220,16 @@ function openKeyModal(key, hint) {
   $('#newKeyHint').textContent = hint || '';
   $('#copyNewKey').textContent = '复制';
   modal.hidden = false;
+  /* 下一帧再加 .open：同一帧里同时改 display 和 opacity 不会触发过渡 */
+  requestAnimationFrame(function () { modal.classList.add('open'); });
   document.body.style.overflow = 'hidden';
 }
 function closeKeyModal() {
   const modal = $('#keyModal');
   if (!modal) return;
-  modal.hidden = true;
+  /* 先撤 .open 播完出场再 hidden —— 直接 hidden 会让过渡来不及跑 */
+  modal.classList.remove('open');
+  setTimeout(function () { modal.hidden = true; }, 220);
   document.body.style.overflow = '';
 }
 
