@@ -58,6 +58,18 @@
   font-display: swap;
 }
 
+/* 思源黑体 Bold 子集（8.1MB → 59KB）。
+   2026-11-12 新增第三套标题字：原来的「黑」直接用系统栈，Windows 是微软雅黑、
+   macOS 是苹方 —— 同一个标题在不同机器上观感差别很大。这一档给个统一的。
+   ⚠ 同样只有 330 个字符（标题用字），正文缺字会掉回系统栈，这是设计不是 bug。 */
+@font-face {
+  font-family: 'PHM Sans';
+  src: url('/fonts/display-sans.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ── 中性色：一条亮度阶梯（不是功能分类）── */
   --bg:    #0e0d0b;      /* 画布：最底（暖调，与琥珀同温层，见 DESIGN.md §8.1）*/
@@ -182,6 +194,9 @@
   --font-display: 'PHM Display', "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
   /* 楷体档位的字体栈：子集没覆盖到的字掉回系统楷体，再掉回宋体 */
   --font-kai: 'PHM Kai', "LXGW WenKai", "Kaiti SC", "KaiTi", "STKaiti",
+
+  /* 思源黑体：统一各平台的标题观感 */
+  --font-sans: 'PHM Sans', system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
               "Noto Serif SC", serif;
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
                "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC",

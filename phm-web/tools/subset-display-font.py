@@ -44,6 +44,14 @@ FACES = {
         'name': '思源宋体 SemiBold',
         'note': '约 11MB，只下一次',
     },
+    'sans': {
+        'src':  os.path.join(FONTS, '.cache-NotoSansSC-Bold.otf'),
+        'out':  os.path.join(FONTS, 'display-sans.woff2'),
+        'url':  ('https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/'
+                 'Sans/SubsetOTF/SC/NotoSansSC-Bold.otf'),
+        'name': '思源黑体 Bold',
+        'note': '约 3MB，比宋体小得多',
+    },
     'kai': {
         'src':  os.path.join(FONTS, '.cache-LXGWWenKai-Regular.ttf'),
         'out':  os.path.join(FONTS, 'display-kai.woff2'),

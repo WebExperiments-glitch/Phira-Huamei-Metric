@@ -19,9 +19,21 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.4.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.5.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.5.0', date: '2026-11-12',
+    zh: ['<b>「黑」这一档不再是系统字体了。</b> 以前选「黑」，Windows 上是微软雅黑、'
+      + 'macOS 上是苹方 —— 同一个标题在两台机器上观感差很多。现在换成思源黑体，统一。',
+      '<b>只多下载 59 KB。</b> 完整思源黑体 8.1 MB，但标题用到的字只有 330 个，'
+      + '裁完就 59 KB。而且不选这一档，浏览器一辈子不会请求它。'],
+    en: ['<b>The sans option is no longer the system font.</b> It used to mean Microsoft YaHei on Windows '
+      + 'and PingFang on macOS — the same heading looked noticeably different across machines. It is now '
+      + 'Source Han Sans, consistent everywhere.',
+      '<b>It costs 59 KB.</b> The full font is 8.1 MB, but headings only use 330 distinct characters, so the '
+      + 'subset is 59 KB. And if you never pick this option, the browser never requests it.'],
+  },
   {
     v: 'V0.30.4.1', date: '2026-11-12',
     zh: ['<b>「找回密码」暂时下掉了。</b> 它要发邮箱验证码，而我们发不出信 —— '

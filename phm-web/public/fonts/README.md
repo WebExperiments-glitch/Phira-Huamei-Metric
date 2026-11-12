@@ -10,6 +10,7 @@
 |---|---|---|---|---|
 | `display-serif.woff2` | **Noto Serif SC SemiBold** | [`notofonts/noto-cjk`](https://github.com/notofonts/noto-cjk) `Serif/SubsetOTF/SC/NotoSerifSC-SemiBold.otf`（经 jsDelivr CDN） | SIL OFL 1.1 | [`OFL-NotoSerifSC.txt`](OFL-NotoSerifSC.txt) |
 | `display-kai.woff2` | **LXGW WenKai Regular**（霞鹜文楷，基于 Fontworks Klee One） | [`lxgw/LxgwWenKai-Lite`](https://github.com/lxgw/LxgwWenKai-Lite) | SIL OFL 1.1 | [`OFL-LXGWWenKai.txt`](OFL-LXGWWenKai.txt) |
+| `display-sans.woff2` | **Noto Sans SC Bold** | [`notofonts/noto-cjk`](https://github.com/notofonts/noto-cjk) `Sans/SubsetOTF/SC/NotoSansSC-Bold.otf`（经 jsDelivr CDN） | SIL OFL 1.1 | 与 serif 同源，见 `OFL-NotoSerifSC.txt` |
 
 > ⚠ **注意名字对不上**：脚本注释里写「思源宋体」，但这两个子集的实际内部族名是
 > **Noto Serif SC SemiBold**（`Noto Serif CJK` 与 `Source Han Serif` 是同一套字体的

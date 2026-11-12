@@ -152,9 +152,14 @@ button.primary:hover {
      自动跟着变，不用挨个改。这就是当初把字体抽成令牌的用处。
    ⚠ 字号用 html 的 font-size 百分比来缩放，配合各处的 rem/em 生效；
      写死 px 的地方（少数）不跟随 —— 那些是刻意固定的（比如表格数字）。 */
-:root[data-font="sans"] {
-  --font-display: var(--font-body);
-}
+  :root[data-font="sans"] {
+    /* 2026-11-12 之前是 var(--font-body)：等于「系统字体」，Windows 微软雅黑、
+       macOS 苹方，同一个标题两台机器观感差很多。现在换成思源黑体子集（59KB），
+       跨平台一致。
+       ⚠ 子集只有 330 个字（标题用字）。正文不受影响 —— 正文走 --font-body，
+         这一档只改 --font-display。缺字会掉回系统栈，是设计不是 bug。 */
+    --font-display: var(--font-sans);
+  }
 /* 霞鹜文楷：只给标题与数字用。
    ⚠ 文楷只有 Regular 一个字重，而标题的 CSS 写着 font-weight:600 ——
      不关掉合成加粗的话，浏览器会拿 Regular **算法伪造**一遍粗体，
