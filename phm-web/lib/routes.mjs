@@ -60,6 +60,11 @@ export const ROUTES = [
   { m: 'POST', p: '/lookups', cost: 'normal', scope: 'charts:read' },
   { m: 'DELETE', p: '/lookups', cost: 'normal', scope: 'charts:read' },
 
+  /* 人类难度标注（投票）：抽谱 / 投票 / 今日进度。见 lib/api-votes.mjs */
+  { m: 'GET',  p: '/votes/next',  cost: 'normal', scope: 'charts:read' },
+  { m: 'POST', p: '/votes',       cost: 'normal', scope: 'charts:read' },
+  { m: 'GET',  p: '/votes/today', cost: 'normal', scope: 'charts:read' },
+
   /* 上游文件中转：浏览器直连 CDN 因缺 CORS 头必然失败（见 lib/api-files.mjs）。
      算 expensive —— 它要拿我们的出口带宽去换上游文件。 */
   { m: 'GET', p: '/file', cost: 'expensive', scope: 'charts:read' },

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>难度标注 · P.H.M.</title>
+<meta name="app-version" content="V0.31.0.0">
+<link rel="stylesheet" href="/css/base.css" />
+<link rel="stylesheet" href="/css/ui-kit.css" />
+<style>
+  /* 这一页是效率工具，不是展示页：字号略大、间距紧凑、按钮要够大。
+     一天点 50 张，任何一次多余点击都会累积成疲劳。 */
+  .vt-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:18px 0 10px; }
+  .vt-head h1 { margin:0; font-size:var(--t-lg); }
+  .vt-count { font-size:12.5px; color:var(--fg3); }
+  .vt-count b { color:var(--brand); font-size:15px; }
+
+  .vt-card { padding:18px 20px; }
+  .vt-name { margin:0 0 4px; font-size:17px; line-height:1.4; }
+  .vt-meta { font-size:12.5px; color:var(--fg3); display:flex; flex-wrap:wrap; gap:4px 14px; }
+  .vt-meta b { color:var(--fg2); font-weight:600; }
+
+  .vt-dl { display:inline-flex; align-items:center; gap:6px; margin:14px 0 4px; }
+
+  .vt-sec { margin-top:16px; }
+  .vt-sec > h3 { margin:0 0 8px; font-size:12px; font-weight:600; color:var(--fg3);
+    letter-spacing:.04em; text-transform:uppercase; }
+
+  /* 数字按钮：一行排开，一眼扫完。不用下拉 —— 下拉要两次点击且看不见选项 */
+  .vt-nums { display:flex; flex-wrap:wrap; gap:6px; }
+  .vt-num { min-width:44px; height:38px; padding:0 10px; border-radius:9px;
+    border:1px solid var(--line); background:var(--card2); color:var(--fg);
+    font:600 15px/1 var(--font-body); font-variant-numeric:tabular-nums;
+    cursor:pointer; transition:background .12s, border-color .12s; }
+  .vt-num:hover { border-color:var(--brand); }
+  .vt-num.on { background:var(--brand); border-color:var(--brand); color:var(--on-color); }
+  .vt-num.small { min-width:36px; height:34px; font-size:13.5px; font-weight:500; }
+
+  .vt-picked { margin:14px 0 0; font-size:13px; color:var(--fg2); }
+  .vt-picked b { font-size:19px; color:var(--brand); font-variant-numeric:tabular-nums; }
+
+  .vt-acts { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .vt-acts .btn { flex:1 1 auto; min-width:120px; }
+  .vt-acts .ghost { flex:0 1 auto; min-width:90px; }
+
+  .vt-msg { margin-top:12px; font-size:12.5px; min-height:18px; }
+  .vt-msg.ok { color:var(--ok); }
+  .vt-msg.err { color:var(--err); }
+
+  .vt-empty { padding:28px 20px; text-align:center; color:var(--fg3); font-size:13px; }
+  @media (max-width:520px) {
+    .vt-num { min-width:38px; height:34px; font-size:14px; }
+    .vt-num.small { min-width:32px; height:30px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav id="nav"></nav>
+
+  <div class="vt-head">
+    <h1>难度标注</h1>
+    <div class="vt-count">今日已投 <b id="today">0</b> 张</div>
+  </div>
+
+  <div class="card vt-card" id="area">
+    <div class="vt-empty">正在抽谱…</div>
+  </div>
+
+  <p class="dim2" style="font-size:12px;margin:16px 0 30px;line-height:1.7">
+    抽到的是<b>你还没投过</b>的谱。先下载 zip 导入 Phira 打一遍，再回来给数字。<br>
+    <b>打不过也是有效答案</b> —— 10 个人说打不过，比 3 个人投 16.0 更能说明它难。
+  </p>
+
+  <div id="foot"></div>
+</div>
+
+<script type="module">
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.31.0.0';
+import { getCid, get as sget, set as sset } from '/js/settings.js?v=V0.31.0.0';
+
+renderNav('');
+
+const $ = (s) => document.querySelector(s);
+const area = $('#area');
+
+/* 用户自报的能力档：决定抽谱范围。存本地，下次不用再选。 */
+const BAND_KEY = 'phm_vote_band';
+let band = Number(sget(BAND_KEY, '0')) || 0;
+
+let cur = null;         /* 当前谱 */
+let pickedBig = null;
+let pickedSmall = null;
+let played = false;     /* 点过下载 → 质量加权 */
+
+function cid() { try { return getCid(); } catch (e) { return ''; } }
+
+async function vtApi(path, opt) {
+  const c = cid();
+  const r = await fetch(path, {
+    ...(opt || {}),
+    headers: { ...(opt && opt.headers), ...(c ? { 'x-phm-cid': c } : {}) },
+  });
+  let j = null;
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error((j && j.error) || ('HTTP ' + r.status));
+  return j;
+}
+
+/* 大数范围：按能力档收窄。不打这一档就仍给 8~18 全范围 */
+function range() {
+  if (!band) return [8, 18];
+  return [Math.max(6, band - 1.5), Math.min(20, band + 1.5)];
+}
+
+function vtFmt(v) { return v == null ? '—' : Number(v).toFixed(2); }
+
+async function next() {
+  pickedBig = null; pickedSmall = null; played = false;
+  area.innerHTML = '<div class="vt-empty">正在抽谱…</div>';
+  try {
+    const [lo, hi] = range();
+    const j = await vtApi('/api/v1/votes/next?lo=' + lo + '&hi=' + hi + (band ? '&band=' + band : ''));
+    if (!j || !j.item) { renderEmpty(); return; }
+    cur = j.item;
+    renderPick();
+  } catch (e) {
+    area.innerHTML = '<div class="vt-empty">抽谱失败：' + esc(String(e.message || e)) + '</div>';
+  }
+}
+
+function renderEmpty() {
+  area.innerHTML = '<div class="vt-empty">这个范围里你已经全投过了。<br>换个能力档试试，或者明天再来。</div>';
+}
+
+function renderPick() {
+  const c = cur;
+  const bigs = [];
+  const [lo, hi] = range();
+  for (let i = Math.floor(lo); i <= Math.ceil(hi); i++) bigs.push(i);
+
+  area.innerHTML =
+    '<h2 class="vt-name">' + esc(c.name || ('#' + c.chart_id)) + '</h2>'
+    + '<div class="vt-meta">'
+    + '<span>等级 <b>' + esc(c.level || '—') + '</b></span>'
+    + '<span>标称 <b>' + vtFmt(c.difficulty) + '</b></span>'
+    + (c.charter ? '<span>谱师 <b>' + esc(c.charter) + '</b></span>' : '')
+    + '<span>已有 <b>' + (c.votes || 0) + '</b> 票</span>'
+    + '</div>'
+    + '<a class="btn vt-dl" id="dl" href="/chart/' + c.chart_id + '">查看详情 / 下载</a>'
+    + '<div class="vt-sec"><h3>整数部分</h3><div class="vt-nums" id="bigs">'
+    + bigs.map(function (n) { return '<button class="vt-num" data-big="' + n + '">' + n + '</button>'; }).join('')
+    + '</div></div>'
+    + '<div class="vt-sec"><h3>小数部分</h3><div class="vt-nums" id="smalls">'
+    + Array.from({ length: 10 }, function (_, i) {
+        return '<button class="vt-num small" data-small="' + i + '">.' + i + '</button>';
+      }).join('')
+    + '</div></div>'
+    + '<div class="vt-picked" id="picked">还没选</div>'
+    + '<div class="vt-acts">'
+    + '<button class="btn" id="submit" disabled>提交</button>'
+    + '<button class="ghost" id="tooHard">打不过</button>'
+    + '<button class="ghost" id="skip">跳过</button>'
+    + '</div>'
+    + '<div class="vt-msg" id="msg"></div>';
+
+  /* 下载按钮：点过就算 played（质量权重，不是防作弊） */
+  $('#dl').addEventListener('click', function () { played = true; });
+
+  $('#bigs').addEventListener('click', function (e) {
+    const b = e.target.closest('[data-big]');
+    if (!b) return;
+    pickedBig = Number(b.dataset.big);
+    $('#bigs').querySelectorAll('.vt-num').forEach(function (x) { x.classList.toggle('on', x === b); });
+    refreshPicked();
+  });
+  $('#smalls').addEventListener('click', function (e) {
+    const b = e.target.closest('[data-small]');
+    if (!b) return;
+    pickedSmall = Number(b.dataset.small);
+    $('#smalls').querySelectorAll('.vt-num').forEach(function (x) { x.classList.toggle('on', x === b); });
+    refreshPicked();
+  });
+
+  $('#submit').addEventListener('click', function () { vtSubmit('rated'); });
+  $('#tooHard').addEventListener('click', function () { vtSubmit('too_hard'); });
+  $('#skip').addEventListener('click', next);
+}
+
+function refreshPicked() {
+  const p = $('#picked');
+  if (pickedBig == null || pickedSmall == null) { p.textContent = '还没选'; return; }
+  const v = pickedBig + pickedSmall / 10;
+  p.innerHTML = '你给的是 <b>' + v.toFixed(1) + '</b> （标称 ' + vtFmt(cur.difficulty) + '）';
+  $('#submit').disabled = false;
+}
+
+async function vtSubmit(verdict) {
+  const msg = $('#msg');
+  const btn = verdict === 'rated' ? $('#submit') : $('#tooHard');
+  btn.disabled = true;
+  const value = verdict === 'rated' ? (pickedBig + pickedSmall / 10) : null;
+  try {
+    const j = await vtApi('/api/v1/votes', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        chart_id: cur.chart_id, verdict: verdict, value: value,
+        played: played, band: band || null,
+      }),
+    });
+    if (j && j.ok) {
+      const parts = ['已记录'];
+      if (j.avg != null) parts.push('大家平均 ' + Number(j.avg).toFixed(2));
+      if (j.total) parts.push('共 ' + j.total + ' 票');
+      if (j.too_hard) parts.push(j.too_hard + ' 人说打不过');
+      msg.className = 'vt-msg ok';
+      msg.textContent = parts.join(' · ');
+      loadToday();
+      setTimeout(next, 700);
+    } else {
+      msg.className = 'vt-msg err';
+      msg.textContent = '没记上：' + ((j && j.error) || '未知原因');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    msg.className = 'vt-msg err';
+    msg.textContent = '提交失败：' + String(e.message || e);
+    btn.disabled = false;
+  }
+}
+
+async function loadToday() {
+  try {
+    const j = await vtApi('/api/v1/votes/today');
+    $('#today').textContent = (j && j.today) || 0;
+  } catch (e) { /* 进度不是关键，失败不打断 */ }
+}
+
+/* 首次进来先问能力档 —— 只问一次，之后从本地读 */
+function askBand() {
+  area.innerHTML =
+    '<h2 class="vt-name">你大概能打到多少？</h2>'
+    + '<p class="vt-meta" style="margin:6px 0 14px">只用于决定抽什么范围的谱。抽到远超水平的谱，你只会打不过。</p>'
+    + '<div class="vt-nums">'
+    + [[12, '12 以下'], [14, '12–14'], [16, '14–16'], [18, '16 以上']].map(function (x) {
+        return '<button class="vt-num" data-band="' + x[0] + '" style="min-width:96px">' + x[1] + '</button>';
+      }).join('')
+    + '</div>';
+  area.querySelectorAll('[data-band]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      band = Number(b.dataset.band);
+      sset(BAND_KEY, String(band));
+      next();
+    });
+  });
+}
+
+loadToday();
+if (!band) askBand(); else next();
+</script>
+</body>
+</html>

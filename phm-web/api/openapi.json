@@ -1955,6 +1955,113 @@
           }
         }
       }
+    },
+    "/votes/next": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Pick an unvoted chart",
+        "operationId": "pickVoteChart",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "随机返回一张「你这个主体还没投过」的谱面，用于人类难度标注。",
+        "parameters": [
+          {
+            "name": "lo",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 8
+            }
+          },
+          {
+            "name": "hi",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 18
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "一张谱面或 null"
+          }
+        }
+      }
+    },
+    "/votes": {
+      "post": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Cast a difficulty vote",
+        "operationId": "castVote",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "verdict=rated 时给 value（1~25）；too_hard / too_easy 时 value 留空。一人一谱一票，可改。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chart_id"
+                ],
+                "properties": {
+                  "chart_id": {
+                    "type": "integer"
+                  },
+                  "verdict": {
+                    "type": "string",
+                    "enum": [
+                      "rated",
+                      "too_hard",
+                      "too_easy"
+                    ]
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "played": {
+                    "type": "boolean"
+                  },
+                  "band": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "聚合结果（total / avg / too_hard）"
+          }
+        }
+      }
+    },
+    "/votes/today": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Today vote count",
+        "operationId": "todayVotes",
+        "x-scopes": [
+          "charts:read"
+        ],
+        "description": "今日已投票数（给自己看的进度）。",
+        "responses": {
+          "200": {
+            "description": "today 计数"
+          }
+        }
+      }
     }
   }
 }

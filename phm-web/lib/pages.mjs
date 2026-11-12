@@ -38,6 +38,8 @@ export const CLEAN = {
   '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
   '/data': 'data.html', '/settings': 'settings.html',
   '/privacy': 'privacy.html', '/terms': 'terms.html',
+  /* /test：人类难度标注（投票）。noindex —— 不希望被搜到，也不进站点表 */
+  '/test': 'test.html',
   '/version': 'version.html', '/download': 'download.html',
   /* 登录页：独立门面（不挂全局导航）。2026-11-08 加 ——
      此前登录只藏在 /app 的折叠面板里，没人找得到。 */

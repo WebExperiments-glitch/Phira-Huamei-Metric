@@ -25,6 +25,7 @@ import { makeStatsHandler } from './api-stats.mjs';
 import { makeLookupRoutes } from './api-lookups.mjs';
 import { withCache, cacheStats } from './api-cache.mjs';
 import { tokenFromRequest } from './cookies.mjs';
+import { makeVoteRoutes } from './api-votes.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -191,6 +192,7 @@ export function makeApiRoutes(deps) {
   /* 查询历史（留存地基）—— 单独成模块（api-routes 已到 900 行上限） */
   const handleLookup = makeLookupRoutes({ requireScope, gateApi, callApiRpc, logUsage, apiErr, json, readBody });
 
+  const handleVotes = makeVoteRoutes({ requireScope, gateApi, callApiRpc, logUsage, apiErr, json, readBody });
   const handleAdmin = makeAdminRoutes({
     json, apiErr, readBody, isAdmin, callApiRpc,
   });
@@ -841,6 +843,8 @@ export function makeApiRoutes(deps) {
       const n = Number(qp.get(k));
       return Number.isInteger(n) && n >= lo && n <= hi ? n : d;
     };
+    if (p.startsWith('/votes') && (await handleVotes(req, res, who, ip, p, qp))) return;
+
     if (p === '/lookups' && ['GET', 'POST', 'DELETE'].includes(req.method)
       && await handleLookup(req, res, who, ip, p, qp)) return;
 

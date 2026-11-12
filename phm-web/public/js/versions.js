@@ -19,9 +19,30 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.5.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.0.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.0.0', date: '2026-11-12',
+    zh: ['<b>新增「难度标注」页（/test）—— 这是给模型找「人类判断」的第一步。</b> '
+      + '我们有 6,566 万条玩家成绩，但用它们反推难度只能解释 12% 的方差：'
+      + '打了多少分，不等于觉得多难。缺的是有人直接说「这谱我觉得 15.8」。',
+      '<b>流程是：随机抽一张你还没投过的谱 → 下载 zip 打一遍 → 点两个数字（整数+小数）。</b> '
+      + '关键是**「打不过」也是一个按钮** —— 不收这个信号，抽到超纲谱的人只会关页面，'
+      + '结果难谱永远没票、样本全偏向简单谱。',
+      '<b>按你的水平抽谱。</b> 第一次进来问一句「你大概能打到多少」，之后只抽 ±1.5 范围内的。'
+      + '抽到远超自己水平的谱，除了打不过什么也得不到。'],
+    en: ['<b>A new "difficulty labelling" page at /test — the first step toward getting human judgement.</b> '
+      + 'We have 65.66 million player records, but using them to infer difficulty explains only 12% of the '
+      + 'variance: how well someone scored is not how hard they found it. What is missing is someone saying '
+      + '"this chart feels like 15.8".',
+      '<b>The flow: draw a random chart you have not voted on, download the zip, play it, then pick two numbers.</b> '
+      + 'The key detail is that <b>"I cannot clear this" is also a button</b> — without that signal, anyone '
+      + 'handed a chart far above their level simply closes the tab, so hard charts never get votes and the '
+      + 'sample skews entirely toward easy ones.',
+      '<b>Charts are drawn around your level.</b> It asks once what you can roughly clear, then only picks '
+      + 'within ±1.5 of that. A chart far above your level gives you nothing but a failed attempt.'],
+  },
   {
     v: 'V0.30.5.0', date: '2026-11-12',
     zh: ['<b>「黑」这一档不再是系统字体了。</b> 以前选「黑」，Windows 上是微软雅黑、'

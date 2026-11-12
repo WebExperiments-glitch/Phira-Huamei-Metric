@@ -24,7 +24,7 @@ const KNOWN_PATHS = ['/meta', '/charts', '/charts/{chart_id}', '/analyses', '/us
      新端点必须同时登记在这里，否则契约会变成「写了但没人实现」。 */
   '/behavior', '/reference', '/engines', '/engines/{id}',
   '/versions', '/status', '/incidents', '/discrepancy', '/health',
-  '/analyses/probe', '/file', '/lookups'];
+  '/analyses/probe', '/file', '/lookups', '/votes', '/votes/next', '/votes/today'];
 const KNOWN_SCOPES = new Set(['charts:read', 'analyses:write', 'usage:read',
   'behavior:read', 'reference:read', 'engines:read', 'system:read']);
 const METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
