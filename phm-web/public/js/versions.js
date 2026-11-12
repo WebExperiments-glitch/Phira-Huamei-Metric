@@ -19,9 +19,26 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.30.3.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.30.3.3';
 
 export const RELEASES = [
+  {
+    v: 'V0.30.3.3', date: '2026-11-12',
+    zh: ['<b>登录凭据开始从 localStorage 迁出，这是第一步。</b> '
+      + '目前的组合是「token 存在 localStorage」+「CSP 允许内联脚本」——'
+      + '页面上只要被注入一段脚本，账号就能被拿走。',
+      '<b>这一版只改服务端：让它同时接受 Cookie 和原来的请求头。</b> '
+      + '前端一行没动，所以你感觉不到任何变化。'
+      + '之所以分两步，是因为托管网关会不会吃掉 Cookie 头还不确定 —— '
+      + '先确认它不挡，再改前端。'],
+    en: ['<b>Login credentials have started moving out of localStorage. This is step one.</b> '
+      + 'The current combination is a token in localStorage plus a CSP that allows inline scripts — '
+      + 'a single injected script on any page is enough to take an account.',
+      '<b>This release changes only the server: it now accepts a cookie alongside the existing header.</b> '
+      + 'The frontend is untouched, so nothing is visibly different. It is split into two steps because '
+      + 'it is not yet confirmed whether the hosting gateway strips the Cookie header — verify that first, '
+      + 'then change the frontend.'],
+  },
   {
     v: 'V0.30.3.2', date: '2026-11-11',
     zh: ['<b>清掉了代码注释里的"日记"。</b> 最近几个文件里我写了不少"我上次错在哪"的检讨，'

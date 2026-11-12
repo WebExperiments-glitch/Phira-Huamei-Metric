@@ -24,6 +24,7 @@ import { handleFileRoute } from './api-files.mjs';
 import { makeStatsHandler } from './api-stats.mjs';
 import { makeLookupRoutes } from './api-lookups.mjs';
 import { withCache, cacheStats } from './api-cache.mjs';
+import { tokenFromRequest } from './cookies.mjs';
 
 const HOUR = 3_600_000;
 const DAY = 86_400_000;
@@ -125,15 +126,10 @@ function bearer(req) {
   return /^sk-/i.test(v) ? v : '';
 }
 
-function accountToken(req) {
-  const custom = String(req.headers['x-hm-token'] || '').trim();
-  if (custom) return custom;
-  /* ⚠ 绝不回退到 Authorization：那里现在只认 sk- API Key。
-     早先回退过一次，结果网关注入的 token 被当成「账号 token」去验，
-     匿名看用量的人拿到 account_token_invalid —— 错得很有迷惑性。
-     账号 token 的契约就只有 x-hm-token 一个。 */
-  return '';
-}
+/* 登录 token 从哪来：x-hm-token 头优先，Cookie 兜底（见 lib/cookies.mjs）。
+   ⚠ 不回退 Authorization —— 那里只认 sk- API Key，早先回退过一次，
+   网关注入的 token 被当成账号 token 去验，匿名看用量的人拿到 account_token_invalid。 */
+const accountToken = tokenFromRequest;
 
 function safeJson(s) {
   try { return JSON.parse(s); } catch { return null; }
