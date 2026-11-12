@@ -92,24 +92,27 @@ create or replace function public.hm_vote_put(
   p_verdict text default 'rated', p_value numeric default null,
   p_played boolean default false, p_band integer default null
 ) returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
-declare s text; v text; n int;
+/* ⚠ 变量名不能叫 v：phm_secrets 有一列就叫 v，
+   `select v into s` 时 PostgreSQL 会报 "column reference v is ambiguous"。
+   2026-11-12 实际踩到 —— 投票一直 502，日志里才看到。 */
+declare s text; vd text; n int;
 begin
   select v into s from phm_secrets where k = 'writer';
   if s is null or p_secret is null or p_secret <> s then
     raise exception 'unauthorized writer' using errcode = '42501';
   end if;
 
-  v := coalesce(nullif(p_verdict, ''), 'rated');
-  if v not in ('rated','too_hard','too_easy') then
+  vd := coalesce(nullif(p_verdict, ''), 'rated');
+  if vd not in ('rated','too_hard','too_easy') then
     return jsonb_build_object('ok', false, 'error', 'bad_verdict');
   end if;
 
   insert into hm_votes (subject, chart_id, value, verdict, played, band)
   values (p_subject, p_chart_id,
-          case when v = 'rated' then p_value else null end, v, coalesce(p_played,false), p_band)
+          case when vd = 'rated' then p_value else null end, vd, coalesce(p_played,false), p_band)
   on conflict (subject, chart_id) do update
-    set value = case when v = 'rated' then excluded.value else null end,
-        verdict = v,
+    set value = case when vd = 'rated' then excluded.value else null end,
+        verdict = vd,
         played = hm_votes.played or excluded.played,
         band = coalesce(excluded.band, hm_votes.band),
         updated_at = now();

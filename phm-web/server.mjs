@@ -192,6 +192,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
 /* 完整白名单；静态站按 RETIRED_HTML 减掉（同一份代码两个站，见 lib/retired.mjs） */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
+  'test.html',   /* 只加 pages.mjs 的路由不加这里 = 404，见 CHANGELOG */
   '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
   'status.html', 'more.html', 'packs.html', 'render.html', 'agent.html', 'write.html',
@@ -417,7 +418,6 @@ const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAsset
 const WRITE_ENABLED = writeEnabled(process.env);
 const agentRoutes = makeAgentRoutes({ send, gate, gateAnalyze, readBody });
 const rksRoutes = makeRksRoutes(SEC_HEADERS);
-/* 档案路由：token 从 x-hm-token 读（托管网关会吃掉 Authorization，真踩过）。 */
 const profileRoutes = makeProfileRoutes({ send, gate, gateRead: gateStats, gateWriteId, whoami: hmWhoami,
   getProfile: hmGetProfile, putProfile: hmPutProfile, touchProfile: hmTouchProfile, deleteAccount: hmDeleteAccount, dbFetch });
 /* 详情页模板只在启动时读一次 —— 每请求读盘是纯浪费（模板不随请求变）。 */

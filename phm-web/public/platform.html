@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="app-version" content="V0.31.0.0">
+<meta name="app-version" content="V0.31.0.1">
 <title>API 开放平台 · P.H.M.</title>
 <meta name="description" content="P.H.M. API 开放平台：查看调用用量、管理 API Key、接入免费的谱面难度查询/分析接口。">
 <script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
@@ -15,9 +15,9 @@ d.setAttribute("data-theme",dark?"dark":"light");
 d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
 d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
 d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
-<link rel="stylesheet" href="/css/base.css?v=V0.31.0.0">
-<link rel="stylesheet" href="/css/ui-kit.css?v=V0.31.0.0">
-<link rel="stylesheet" href="/css/api.css?v=V0.31.0.0">
+<link rel="stylesheet" href="/css/base.css?v=V0.31.0.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.31.0.1">
+<link rel="stylesheet" href="/css/api.css?v=V0.31.0.1">
 <style>
 .platwrap{max-width:1100px;grid-template-columns:190px minmax(0,1fr);gap:28px}
 .plat-side{position:sticky;top:74px;align-self:start;font-size:13px}
@@ -186,10 +186,10 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
 <div id="toast" class="toast" hidden></div>
 
 <script type="module">
-import { renderNav } from '/js/ui.js?v=V0.31.0.0';
+import { renderNav } from '/js/ui.js?v=V0.31.0.1';
 
-import { createAuth } from '/js/auth.js?v=V0.31.0.0';
-import { installGuard } from '/js/guard.js?v=V0.31.0.0';
+import { createAuth } from '/js/auth.js?v=V0.31.0.1';
+import { installGuard } from '/js/guard.js?v=V0.31.0.1';
 
 /* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
    ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */

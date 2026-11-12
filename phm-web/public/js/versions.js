@@ -19,9 +19,20 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.0.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.0.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.0.1', date: '2026-11-12',
+    zh: ['<b>修 /test 打不开：静态白名单漏了它。</b> '
+      + '`lib/pages.mjs` 里登记了路由，但 `server.mjs` 的静态白名单才是真正的门 —— '
+      + '只加一处，线上就是 404。这是我们自己定的规矩（静态文件不走目录通配），'
+      + '所以每加一个页面都要在两处登记。'],
+    en: ['<b>Fixed /test returning 404: it was missing from the static allow-list.</b> '
+      + 'The route was registered in `lib/pages.mjs`, but the real gate is the allow-list in `server.mjs` — '
+      + 'adding only one place means a 404 online. That is a rule we set ourselves (no directory wildcards '
+      + 'for static files), so every new page has to be registered in both places.'],
+  },
   {
     v: 'V0.31.0.0', date: '2026-11-12',
     zh: ['<b>新增「难度标注」页（/test）—— 这是给模型找「人类判断」的第一步。</b> '

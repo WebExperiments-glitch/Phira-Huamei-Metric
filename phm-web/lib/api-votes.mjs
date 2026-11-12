@@ -19,6 +19,30 @@ export function makeVoteRoutes(deps) {
 
   const rpcJson = (r) => { try { return JSON.parse(r && r.body) || {}; } catch { return {}; } };
 
+  /* Phira 列表分页缓存：同一页 10 分钟内复用。
+     抽谱是「随机页」的，命中率不高，但只要命中就省一次跨境往返（~1s）。 */
+  const MAX_PAGE = 326;      /* /chart?page= 的实际上限（count 9758 / 30） */
+  const PAGE_TTL = 10 * 60_000;
+  const pageCache = new Map();
+
+  async function fetchPhiraPage(page) {
+    const hit = pageCache.get(page);
+    if (hit && Date.now() - hit.ts < PAGE_TTL) return hit.rows;
+    try {
+      const r = await fetch('https://api.phira.cn/chart?page=' + page, {
+        headers: { 'user-agent': 'phm-vote/1 (difficulty labelling)' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const rows = Array.isArray(j && j.results) ? j.results : [];
+      pageCache.set(page, { rows, ts: Date.now() });
+      /* 缓存别无限长：超过 400 页就丢弃最旧的 */
+      if (pageCache.size > 400) pageCache.delete(pageCache.keys().next().value);
+      return rows;
+    } catch (e) { return null; }
+  }
+
   const cidOf = (req) => {
     const raw = String((req.headers && req.headers['x-phm-cid']) || '').trim();
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
@@ -37,13 +61,48 @@ export function makeVoteRoutes(deps) {
 
       const lo = Number(qp.get('lo')) || 8;
       const hi = Number(qp.get('hi')) || 18;
-      const band = Number(qp.get('band')) || null;
-      const t0 = Date.now();
-      const r = await callApiRpc('hm_vote_pick', { p_subject: subject, p_lo: lo, p_hi: hi, p_band: band });
-      logUsage(who, '/votes/next', r && r.ok ? 200 : 502, null, t0);
-      if (!r || !r.ok) { apiErr(res, 502, 'server_error', 'pick_failed', 'could not pick a chart'); return true; }
-      const item = rpcJson(r);
-      json(res, 200, { ok: true, item: (item && item.chart_id) ? item : null });
+
+      /* 实时从 Phira 抽，不依赖本地谱面表 —— 线上 phm_charts 只有 16 行，
+         导入 1.4 万行要跨境跑几分钟且要一直同步，不如直接用上游。
+         做法：随机页 → 拉 30 条 → 难度过滤 → 排除已投 → 随机取一条。
+         ⚠ 列表端点只返回 tags 含 regular 的谱（9,758 张 / 326 页），
+           plain 与 troll 拿不到。这是上游硬限制，对「标难度」够用。 */
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const page = 1 + Math.floor(Math.random() * MAX_PAGE);
+        const rows = await fetchPhiraPage(page);
+        if (!rows || !rows.length) continue;
+
+        const cands = rows.filter((c) => c && c.reviewed !== false
+          && typeof c.difficulty === 'number' && c.difficulty >= lo && c.difficulty <= hi);
+        if (!cands.length) continue;
+
+        const ids = cands.map((c) => Number(c.id)).filter(Boolean).join(',');
+        let voted = new Set();
+        try {
+          const hasR = await callApiRpc('hm_vote_has', { p_subject: subject, p_ids: ids });
+          const arr = rpcJson(hasR);
+          voted = new Set((Array.isArray(arr) ? arr : []).map(Number));
+        } catch (e) { /* 查不到已投时按「全都没投」处理，宁可重复抽也不卡住 */ }
+
+        const free = cands.filter((c) => !voted.has(Number(c.id)));
+        if (!free.length) continue;
+
+        const pick = free[Math.floor(Math.random() * free.length)];
+        json(res, 200, {
+          ok: true,
+          item: {
+            chart_id: Number(pick.id),
+            name: pick.name || '',
+            level: pick.level || '',
+            difficulty: pick.difficulty,
+            charter: pick.charter || '',
+            ref_const: null,
+            votes: 0,
+          },
+        });
+        return true;
+      }
+      json(res, 200, { ok: true, item: null, reason: 'no_candidate' });
       return true;
     }
 

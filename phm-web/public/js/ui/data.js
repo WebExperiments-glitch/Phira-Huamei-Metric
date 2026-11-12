@@ -4,7 +4,7 @@
  *   拆到两个文件会形成 ESM 循环依赖，运行时拿到 undefined。
  */
 
-import { PHIRA_API } from '../phira.js?v=V0.31.0.0';
+import { PHIRA_API } from '../phira.js?v=V0.31.0.1';
 const _cache = new Map();          /* chart_id → { ref_const, ref_official, ... } */
 
 /* 服务端 /api/charts?ids= 一次最多吃 **60** 个（见 server.mjs 的 .slice(0,60)）。
