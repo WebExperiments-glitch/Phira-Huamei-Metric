@@ -19,9 +19,20 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.1.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.1.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.1.2', date: '2026-11-13',
+    zh: ['<b>修下载下来「没有后缀」的问题。</b> 原来只靠前端 `download` 属性给文件名，'
+      + '手机浏览器（尤其 iOS Safari）不认它，于是浏览器用 URL 最后一段当名字 —— '
+      + '而我们的 URL 是 `/api/v1/file?u=…`，落盘就成了无后缀的 `file`。',
+      '<b>现在由服务器下发 `Content-Disposition`。</b> 文件名带 RFC 5987 编码，中文也不会乱码。'],
+    en: ['<b>Fixed downloads arriving without an extension.</b> The filename relied on the frontend `download` '
+      + 'attribute, which mobile browsers — iOS Safari especially — ignore. The browser then used the last URL '
+      + 'segment, and since that is `/api/v1/file?u=…`, the file landed as an extensionless `file`.',
+      '<b>The server now sends `Content-Disposition`.</b> The name is RFC 5987 encoded so non-ASCII survives.'],
+  },
   {
     v: 'V0.31.1.1', date: '2026-11-13',
     zh: ['<b>下载的文件名改成 .zip 了。</b> 内容一个字没变 —— 它本来就是 zip，'

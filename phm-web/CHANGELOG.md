@@ -26,7 +26,8 @@
 
 | 版本 | 日期 | commit | 内容 |
 |---|---|---|---|
-| `V0.31.1.1` | 2026-11-13 | 本次 | 下载文件名 `.pez` → `.zip`（内容不变，就是同一个 zip 包）。`/api/v1/file` 返回 `application/octet-stream` 且**不带 `Content-Disposition`**，所以前端 `download` 属性完全决定文件名。底部说明补上「zip 里是 chart.json + 音频 + 插画 + info.yml，Phira 用导入谱面选中即可」。 |
+| `V0.31.1.2` | 2026-11-13 | 本次 | **修下载无后缀。** 手机浏览器忽略 `<a download>`，而 URL 是 `/api/v1/file?u=…` → 落盘叫 `file`（无后缀），Phira 不认。改由服务端下发 `Content-Disposition: attachment; filename*=UTF-8''…`（RFC 5987，中文不乱码）。`proxyFile` 加第 4 参数 `filename`（默认空 = 保持原行为，不影响其它调用方），`handleFileRoute` 从 `?n=` 取。实测头正确。 |
+| `V0.31.1.1` | 2026-11-13 | — | 下载文件名 `.pez` → `.zip`（内容不变，就是同一个 zip 包）。`/api/v1/file` 返回 `application/octet-stream` 且**不带 `Content-Disposition`**，所以前端 `download` 属性完全决定文件名。底部说明补上「zip 里是 chart.json + 音频 + 插画 + info.yml，Phira 用导入谱面选中即可」。 |
 | `V0.31.1.0` | 2026-11-13 | — | **① 直接下载 .pez。** `/votes/next` 返回 `file`（Phira 的 zip 直链），前端拼 `/api/v1/file?u=` 同源中转（上游有防盗链、跨域拿不到文件名）。实测 200 / 3.6MB / 5 个条目（json+mp3+jpg+info）。 **② 抽卡亮相动画。** `@keyframes` 三件套：`vtFlip`（perspective + rotateY 侧翻转正，带过冲）、`vtShine`（伪元素高光斜扫）、`vtRise`（名称/数字依次浮起），总时长 620~850ms；含 `prefers-reduced-motion` 分支。连抽两张时先 `remove` 再强制回流才重播。 下载按钮加了存在性判断 —— 有的谱没有 `file`，直接绑事件会抛错卡住整页。 |
 | `V0.31.0.2` | 2026-11-13 | — | **`/more` 页加「难度标注」卡片**（`more.g3` 数据与开发）。之前只在 `pages.mjs` 登记了路由、在 `server.mjs` 补了白名单，但没加导航入口 —— 页面能开、用户找不到。**教训：新页面要改三处：路由 + 白名单 + 导航**。 |
 | `V0.31.0.1` | 2026-11-12 | — | **修 `/test` 404。** `lib/pages.mjs` 的 `CLEAN` 只做路由映射，静态文件的真门是 `server.mjs` 的 `PUBLIC_FILES` 白名单 —— 只加前者，线上 404。已补 `test.html`。**教训：加页面要改两处**。附带：抽谱改为实时拉 Phira 列表（不再依赖只有 16 行的 `phm_charts`），`hm_vote_has` 参数从 bigint[] 改 text（PostgREST 数组字面量格式不匹配），`hm_vote_put` 的局部变量 `v` 与 `phm_secrets.v` 列重名（`column reference is ambiguous`）改用 `vd`。 |

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="robots" content="noindex,nofollow" />
 <title>难度标注 · P.H.M.</title>
-<meta name="app-version" content="V0.31.1.1">
+<meta name="app-version" content="V0.31.1.2">
 <link rel="stylesheet" href="/css/base.css" />
 <link rel="stylesheet" href="/css/ui-kit.css" />
 <style>
@@ -114,8 +114,8 @@
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.31.1.1';
-import { getCid, get as sget, set as sset } from '/js/settings.js?v=V0.31.1.1';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.31.1.2';
+import { getCid, get as sget, set as sset } from '/js/settings.js?v=V0.31.1.2';
 
 renderNav('');
 
@@ -179,7 +179,7 @@ function renderPick() {
 
   /* 直接下载 .pez（就是 zip，Phira 直接导入）。
      走 /api/v1/file 同源中转：上游直链有防盗链，且跨域拿不到 Content-Disposition。 */
-  const dlUrl = c.file ? ('/api/v1/file?u=' + encodeURIComponent(c.file)) : '';
+  const dlUrl = c.file ? ('/api/v1/file?u=' + encodeURIComponent(c.file) + '&n=' + encodeURIComponent(dlName)) : '';
   const dlName = (String(c.name || 'chart')
     .replace(/[\x00-\x1f]/g, '')
     .replace(/[<>:"/\\|?*]/g, '-')

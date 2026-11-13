@@ -42,7 +42,7 @@ export function isAllowedFileUrl(raw) {
 }
 
 /* 流式转发。返回 true 表示已处理。 */
-export async function proxyFile(res, rawUrl, { json, apiErr } = {}) {
+export async function proxyFile(res, rawUrl, { json, apiErr } = {}, filename = '') {
   const target = String(rawUrl || '');
   if (!isAllowedFileUrl(target)) {
     apiErr(res, 400, 'invalid_request_error', 'url_not_allowed',
@@ -77,9 +77,15 @@ export async function proxyFile(res, rawUrl, { json, apiErr } = {}) {
     return true;
   }
 
-  const type = upstream.headers.get('content-type') || 'application/octet-stream';
-  res.writeHead(200, {
-    'content-type': type,
+    const type = upstream.headers.get('content-type') || 'application/octet-stream';
+    /* 文件名由调用方给（?n=）。为什么要服务端下发：
+       手机浏览器（尤其 iOS Safari）对 <a download> 的支持不可靠，
+       而 URL 是 /api/v1/file?u=... —— 拿不到像样的名字，落盘就成了无后缀的 "file"。
+       用 RFC 5987 的 filename* 才能带中文。⚠ 必须滤掉 CR/LF，否则是响应头注入。 */
+    const safeName = String(filename || '').replace(/[\r\n]/g, '').trim();
+    res.writeHead(200, {
+      'content-type': type,
+      ...(safeName ? { 'content-disposition': "attachment; filename*=UTF-8''" + encodeURIComponent(safeName) } : {}),
     ...(len ? { 'content-length': String(len) } : {}),
     /* private + 1h：允许浏览器缓存，但**不允许任何共享缓存**存下来 ——
        否则我们的出口会被当成 CDN 的副本，版权与带宽都失控。 */
@@ -108,6 +114,8 @@ export async function proxyFile(res, rawUrl, { json, apiErr } = {}) {
 /* 路由处理入口：由 api-routes 在鉴权后调用，避免那个文件继续变长。 */
 export async function handleFileRoute(res, reqUrl, deps) {
   const q = String(reqUrl || '').split('?')[1] || '';
-  const u = new URLSearchParams(q).get('u') || '';
-  await proxyFile(res, u, deps);
+  const sp = new URLSearchParams(q);
+  const u = sp.get('u') || '';
+  /* ?n= 是下载时希望的文件名。不给就不设 Content-Disposition（保持原行为）。 */
+  await proxyFile(res, u, deps, sp.get('n') || '');
 }

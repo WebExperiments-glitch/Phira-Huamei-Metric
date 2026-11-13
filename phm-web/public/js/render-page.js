@@ -10,9 +10,9 @@
  *   （现在支持手动拖一个音频文件进来，用它的 currentTime 驱动，先够用。）
  * ============================================================ */
 
-import { extractGeometry, drawFrame } from '/js/chart-geom.js?v=V0.31.1.1';
-import { lintChart } from '/js/chart-lint.js?v=V0.31.1.1';
-import { renderNav, t, applyStatic, onLangChange } from '/js/ui.js?v=V0.31.1.1';
+import { extractGeometry, drawFrame } from '/js/chart-geom.js?v=V0.31.1.2';
+import { lintChart } from '/js/chart-lint.js?v=V0.31.1.2';
+import { renderNav, t, applyStatic, onLangChange } from '/js/ui.js?v=V0.31.1.2';
 
 const $ = (s) => document.querySelector(s);
 
