@@ -3,8 +3,8 @@
  * 都是「给数据 → 出 HTML 片段」，不含 IO。
  */
 
-import { esc, lvTag, pct, f2 } from './format.js?v=V0.31.1.0';
-import { t } from '../i18n.js?v=V0.31.1.0';
+import { esc, lvTag, pct, f2 } from './format.js?v=V0.31.1.1';
+import { t } from '../i18n.js?v=V0.31.1.1';
 export const TIER_COLOR = {
   EZ: 'var(--ok)', HD: 'var(--info)', IN: 'var(--brand)', AT: 'var(--err)', SP: 'var(--purple)',
 };

@@ -19,9 +19,16 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.1.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.1.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.1.1', date: '2026-11-13',
+    zh: ['<b>下载的文件名改成 .zip 了。</b> 内容一个字没变 —— 它本来就是 zip，'
+      + '里面是 chart.json + 音频 + 插画 + info.yml。.pez 只是 Phira 给这个包起的名字。'],
+    en: ['<b>The downloaded file is now named .zip.</b> Nothing inside changed — it was always a zip: '
+      + 'chart.json, the audio, the illustration and info.yml. .pez is just the name Phira gives that package.'],
+  },
   {
     v: 'V0.31.1.0', date: '2026-11-13',
     zh: ['<b>难度标注页现在能直接下载谱面了 —— 一个 .pez 就是 zip，导入 Phira 就能打。</b> '

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="robots" content="noindex,nofollow" />
 <title>难度标注 · P.H.M.</title>
-<meta name="app-version" content="V0.31.1.0">
+<meta name="app-version" content="V0.31.1.1">
 <link rel="stylesheet" href="/css/base.css" />
 <link rel="stylesheet" href="/css/ui-kit.css" />
 <style>
@@ -105,7 +105,8 @@
   </div>
 
   <p class="dim2" style="font-size:12px;margin:16px 0 30px;line-height:1.7">
-    抽到的是<b>你还没投过</b>的谱。先下载 zip 导入 Phira 打一遍，再回来给数字。<br>
+    抽到的是<b>你还没投过</b>的谱。点「下载谱面 .zip」拿到的就是谱面包（里面是 chart.json + 音频 + 插画 + info.yml），<br>
+    在 Phira 里「导入谱面」选中它即可。<br>
     <b>打不过也是有效答案</b> —— 10 个人说打不过，比 3 个人投 16.0 更能说明它难。
   </p>
 
@@ -113,8 +114,8 @@
 </div>
 
 <script type="module">
-import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.31.1.0';
-import { getCid, get as sget, set as sset } from '/js/settings.js?v=V0.31.1.0';
+import { renderNav, esc, APP_VER } from '/js/ui.js?v=V0.31.1.1';
+import { getCid, get as sget, set as sset } from '/js/settings.js?v=V0.31.1.1';
 
 renderNav('');
 
@@ -183,7 +184,7 @@ function renderPick() {
     .replace(/[\x00-\x1f]/g, '')
     .replace(/[<>:"/\\|?*]/g, '-')
     .replace(/[. ]+$/, '')
-    .trim() || 'chart').slice(0, 90) + '.pez';
+    .trim() || 'chart').slice(0, 90) + '.zip';
 
   area.innerHTML =
     '<h2 class="vt-name">' + esc(c.name || ('#' + c.chart_id)) + '</h2>'
@@ -194,7 +195,7 @@ function renderPick() {
     + '<span>已有 <b>' + (c.votes || 0) + '</b> 票</span>'
     + '</div>'
     + (dlUrl
-        ? '<a class="btn vt-dl" id="dl" href="' + dlUrl + '" download="' + esc(dlName) + '">下载谱面 .pez</a>'
+        ? '<a class="btn vt-dl" id="dl" href="' + dlUrl + '" download="' + esc(dlName) + '">下载谱面 .zip</a>'
         : '<span class="vt-dl dim2" style="font-size:12.5px">这张没有提供文件</span>')
     + '<a class="ghost vt-dl" href="/chart/' + c.chart_id + '" target="_blank" rel="noopener" style="margin-left:8px">详情</a>'
     + '<div class="vt-sec"><h3>整数部分</h3><div class="vt-nums" id="bigs">'
