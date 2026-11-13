@@ -6,6 +6,8 @@
  * ============================================================ */
 export default {
   zh: {
+    'more.vote.t': '难度标注',
+    'more.vote.d': '随机抽谱、打一遍、给个数字 —— 给模型补上「人的判断」。',
     'more.title': '更多',
     'more.back': '返回首页',
     'more.sub': '主路径之外的功能都收在这里，按用途分组。',
@@ -27,6 +29,8 @@ export default {
     'more.version.d': '每次改动的内容与时间。',
   },
   en: {
+    'more.vote.t': 'Difficulty labelling',
+    'more.vote.d': 'Draw a chart, play it, pick a number — supplying human judgement to the model.',
     'more.title': 'More',
     'more.back': 'Back to home',
     'more.sub': 'Everything outside the main path, grouped by what it does.',

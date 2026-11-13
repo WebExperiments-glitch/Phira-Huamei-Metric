@@ -19,9 +19,16 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.0.1';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.0.2';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.0.2', date: '2026-11-13',
+    zh: ['<b>「难度标注」现在能在「更多」页里找到了。</b> 之前只登记了路由，忘了加导航卡片 —— '
+      + '页面能用，但没人知道它在哪。放在「数据与开发」分组下。'],
+    en: ['<b>"Difficulty labelling" is now reachable from the More page.</b> The route existed but no card '
+      + 'pointed at it — usable, yet undiscoverable. It sits under "Data & developers".'],
+  },
   {
     v: 'V0.31.0.1', date: '2026-11-12',
     zh: ['<b>修 /test 打不开：静态白名单漏了它。</b> '
