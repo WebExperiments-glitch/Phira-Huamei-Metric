@@ -19,9 +19,22 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.0.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.1.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.1.0', date: '2026-11-13',
+    zh: ['<b>难度标注页现在能直接下载谱面了 —— 一个 .pez 就是 zip，导入 Phira 就能打。</b> '
+      + '之前只有一个「查看详情」，点进去还得再找一次下载。',
+      '<b>抽谱有了亮相动画。</b> 卡片从侧翻转正、一道高光斜扫过去、名字和数字依次浮起。'
+      + '整套压在 700 毫秒内 —— 一天抽 50 张，动画长了会变成负担而不是期待。'],
+    en: ['<b>The labelling page can now download the chart directly — a .pez is just a zip, import it into '
+      + 'Phira and play.</b> Before there was only a "view details" link, which meant hunting for the download '
+      + 'again on the next page.',
+      '<b>Drawing a chart now has a reveal animation.</b> The card flips in from the side, a highlight sweeps '
+      + 'across it, then the name and numbers rise in sequence. The whole thing is capped at 700 ms — at fifty '
+      + 'charts a day, a longer animation becomes a chore rather than anticipation.'],
+  },
   {
     v: 'V0.31.0.2', date: '2026-11-13',
     zh: ['<b>「难度标注」现在能在「更多」页里找到了。</b> 之前只登记了路由，忘了加导航卡片 —— '

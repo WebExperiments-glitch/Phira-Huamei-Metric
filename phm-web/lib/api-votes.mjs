@@ -98,6 +98,9 @@ export function makeVoteRoutes(deps) {
             charter: pick.charter || '',
             ref_const: null,
             votes: 0,
+            /* 谱面文件（.pez = zip）。前端拼成 /api/v1/file?u=... 同源中转下载，
+               不直连上游 —— 直连会被防盗链挡，且跨域拿不到文件名。 */
+            file: typeof pick.file === 'string' ? pick.file : '',
           },
         });
         return true;
