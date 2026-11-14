@@ -1,7 +1,7 @@
 inner.rs
 
 /target
-!assets/font.ttf
+# !assets/font.ttf   ← 2026-11-14 注释：9.2MB 字体不入仓库
 /cache
 /data
 /.cargo

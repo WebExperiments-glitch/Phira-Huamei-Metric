@@ -133,3 +133,11 @@ data/kaggle-ds/
 # 临时产物（含密钥备份、日志、构建中间物）
 tmp/
 vendor/tree.json
+
+# ── 大文件与构建产物（2026-11-14 审计后清理）──
+# 这些曾把仓库撑到 1.2GB（clone 一次要拖一整份谱面归档）
+data/charts-archive.tar.gz
+phira-huamei-ipa/ipa/*.ipa
+phira-huamei-ipa/ipa/*.zip
+vendor/PhiraiAd-main/assets/font.ttf
+vendor/phiraiad.tgz
