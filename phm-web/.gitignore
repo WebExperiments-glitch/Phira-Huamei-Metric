@@ -38,3 +38,7 @@ tools/_tmp*.sh
 build-app/
 admin-secret.txt
 admin2-hash.txt
+
+# ⚠ 数据库备份含 phm_secrets.json（writer / admin2 哈希）——
+#   2026-11-14 审计发现它被提交进公开仓库，是 P0 级泄露的直接来源。
+data/backup/

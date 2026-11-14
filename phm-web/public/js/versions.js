@@ -19,9 +19,25 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.1.3';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.2.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.2.0', date: '2026-11-14',
+    zh: ['<b>一次完整的安全加固。</b> 外部审计提了 19 项，逐条核实后修了 12 项 —— '
+      + '其中两条是致命的：一条能让人伪造身份读写任意账号，一条是主密钥被提交进了公开仓库。',
+      '<b>主密钥已经全部换新。</b> 数据库和站点同时换，旧的永久作废。'
+      + '备份目录也堵上了 —— 之前每次备份都把密钥写进仓库。',
+      '<b>顺手修了几个能用一次请求搞出问题的：</b>一个 POST 能让进程崩、'
+      + 'N 个并发能吃掉 N×60MB 内存、5 次错误登录能把全站登录锁死。'],
+    en: ['<b>A full security hardening pass.</b> An external audit raised 19 issues; after verifying each one, '
+      + '12 are fixed — two of them critical: one allowed forging an identity to read and write any account, '
+      + 'the other was the master key being committed to a public repository.',
+      '<b>All master keys are rotated.</b> Database and site changed together; the old ones are permanently dead. '
+      + 'The backup directory is sealed too — every backup used to write the key into the repo.',
+      '<b>Also fixed several one-request outages:</b> a single POST could crash the process, N concurrent requests '
+      + 'could eat N×60MB of memory, and five failed logins could lock out login for everyone.'],
+  },
   {
     v: 'V0.31.1.3', date: '2026-11-13',
     zh: ['<b>修「抽谱失败：Cannot access dlName before initialization」。</b> '

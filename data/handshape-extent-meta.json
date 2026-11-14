@@ -1,0 +1,17 @@
+{
+ "n": 7504,
+ "n_dims": 256,
+ "n_from_cache": 7492,
+ "n_recomputed": 12,
+ "zero_filled": [],
+ "metrics": [
+  "bbox_area",
+  "diag",
+  "span_x",
+  "span_y",
+  "aspect",
+  "path",
+  "disp",
+  "eff"
+ ]
+}

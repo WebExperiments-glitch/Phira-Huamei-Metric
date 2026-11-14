@@ -129,3 +129,6 @@ data/kaggle-ds/
 /tools/wm-bench.py
 /tools/cutout-xili.py
 /tools/build-xili-assets.py
+
+# 临时产物（含密钥备份、日志、构建中间物）
+tmp/

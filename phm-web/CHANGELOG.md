@@ -26,7 +26,8 @@
 
 | 版本 | 日期 | commit | 内容 |
 |---|---|---|---|
-| `V0.31.1.3` | 2026-11-13 | 本次 | **修 TDZ 报错导致抽谱全挂。** V0.31.1.2 里 `dlUrl` 引用了 `dlName`，而 `dlName` 声明在它之后 → `Cannot access 'dlName' before initialization`。把 `dlName` 提到 `dlUrl` 之前。**教训：`const` 有暂时性死区，声明顺序不能想当然。** |
+| `V0.31.2.0` | 2026-11-14 | 本次 | **安全加固（外部审计 19 项，修 12 项）。** P0-1 `whoFromReq` 加 `verified` 校验（堵住未验签 JWT 降级冒充）；P0-2 **轮换 writer + admin2**（DB 与本地文件同步换），`data/backup/` 进 .gitignore 并从索引移除（21 个含密钥文件）。P1：`send()` 返回 true（一 POST 崩进程）、`softFault` 接线、文件代理 MIME 白名单、`bucket()` 转义、共享对端去 per-IP 桶（5 次错误登录锁全站）、chartAssets 在途上限 6、汐里删硬编码兜底 + HMAC 域分离。P2：`Object.hasOwn(CLEAN)`、`/api/plays` maxBody 64KB、`NO_RATELIMIT` 生产保护。未做：P1-3/P1-9（需在线改 DB 函数）、P2-3/5/6（设计取舍或架构改动）、Git 历史清理（独立动作）。 |
+| `V0.31.1.3` | 2026-11-13 | — | **修 TDZ 报错导致抽谱全挂。** V0.31.1.2 里 `dlUrl` 引用了 `dlName`，而 `dlName` 声明在它之后 → `Cannot access 'dlName' before initialization`。把 `dlName` 提到 `dlUrl` 之前。**教训：`const` 有暂时性死区，声明顺序不能想当然。** |
 | `V0.31.1.2` | 2026-11-13 | — | **修下载无后缀。** 手机浏览器忽略 `<a download>`，而 URL 是 `/api/v1/file?u=…` → 落盘叫 `file`（无后缀），Phira 不认。改由服务端下发 `Content-Disposition: attachment; filename*=UTF-8''…`（RFC 5987，中文不乱码）。`proxyFile` 加第 4 参数 `filename`（默认空 = 保持原行为，不影响其它调用方），`handleFileRoute` 从 `?n=` 取。实测头正确。 |
 | `V0.31.1.1` | 2026-11-13 | — | 下载文件名 `.pez` → `.zip`（内容不变，就是同一个 zip 包）。`/api/v1/file` 返回 `application/octet-stream` 且**不带 `Content-Disposition`**，所以前端 `download` 属性完全决定文件名。底部说明补上「zip 里是 chart.json + 音频 + 插画 + info.yml，Phira 用导入谱面选中即可」。 |
 | `V0.31.1.0` | 2026-11-13 | — | **① 直接下载 .pez。** `/votes/next` 返回 `file`（Phira 的 zip 直链），前端拼 `/api/v1/file?u=` 同源中转（上游有防盗链、跨域拿不到文件名）。实测 200 / 3.6MB / 5 个条目（json+mp3+jpg+info）。 **② 抽卡亮相动画。** `@keyframes` 三件套：`vtFlip`（perspective + rotateY 侧翻转正，带过冲）、`vtShine`（伪元素高光斜扫）、`vtRise`（名称/数字依次浮起），总时长 620~850ms；含 `prefers-reduced-motion` 分支。连抽两张时先 `remove` 再强制回流才重播。 下载按钮加了存在性判断 —— 有的谱没有 `file`，直接绑事件会抛错卡住整页。 |

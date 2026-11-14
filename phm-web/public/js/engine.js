@@ -8,13 +8,13 @@
  * ⇒ 参照集不在本文件：官谱 1,037 张静态导入（ref-official.js），社区 9,509 张由
  *   调用方 fetch/fs 读好当参数传入 —— 引擎本身不认识 fetch，也不认识 fs。 */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.31.1.3';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.31.2.0';
 /* 技能分：把 39 个特征重组为四技能维度。
    ⚠ skills.js 是**纯函数、无副作用**，所以引擎可以安全 import 它 ——
       浏览器与 Node 服务端都走同一份，不存在两份实现漂移。
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
-import { skillScores } from './skills.js?v=V0.31.1.3';
-import { pickRidge, seqFeatures20, pool142, withScreenCoords, handshape256 } from './engine-v3.mjs?v=V0.31.1.3';
+import { skillScores } from './skills.js?v=V0.31.2.0';
+import { pickRidge, seqFeatures20, pool142, withScreenCoords, handshape256 } from './engine-v3.mjs?v=V0.31.2.0';
 /* 再导出给 tools/verify-engine-v3.mjs 用（它直接 import 线上这份实现，不复制副本） */
 export { seqFeatures20, pool142, handshape256 };
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。

@@ -1,0 +1,10437 @@
+{
+ "built_at": "2026-11-13",
+ "source": "data/player-irt.json（4300 万条成绩拟合）",
+ "note": "官方定数 vs 玩家表现反推的难度，差值越大越可疑。用于挑优先标注的谱。",
+ "calib": {
+  "intercept": 16.2367,
+  "slope": 0.9616
+ },
+ "n_all": 7962,
+ "high": [
+  {
+   "chart_id": 44531,
+   "declared": 11.4,
+   "est": 22.88,
+   "players": 65,
+   "diff": -11.48
+  },
+  {
+   "chart_id": 1689,
+   "declared": 10.0,
+   "est": 19.47,
+   "players": 60,
+   "diff": -9.47
+  },
+  {
+   "chart_id": 46120,
+   "declared": 10.0,
+   "est": 18.48,
+   "players": 368,
+   "diff": -8.48
+  },
+  {
+   "chart_id": 51497,
+   "declared": 10.0,
+   "est": 18.15,
+   "players": 55,
+   "diff": -8.15
+  },
+  {
+   "chart_id": 77967,
+   "declared": 10.0,
+   "est": 18.01,
+   "players": 101,
+   "diff": -8.01
+  },
+  {
+   "chart_id": 55206,
+   "declared": 10.0,
+   "est": 17.52,
+   "players": 425,
+   "diff": -7.52
+  },
+  {
+   "chart_id": 54717,
+   "declared": 10.0,
+   "est": 17.49,
+   "players": 176,
+   "diff": -7.49
+  },
+  {
+   "chart_id": 46304,
+   "declared": 10.0,
+   "est": 17.41,
+   "players": 2018,
+   "diff": -7.41
+  },
+  {
+   "chart_id": 44997,
+   "declared": 10.0,
+   "est": 17.39,
+   "players": 73,
+   "diff": -7.39
+  },
+  {
+   "chart_id": 54675,
+   "declared": 10.0,
+   "est": 17.35,
+   "players": 832,
+   "diff": -7.35
+  },
+  {
+   "chart_id": 54803,
+   "declared": 20.0,
+   "est": 12.65,
+   "players": 356,
+   "diff": 7.35
+  },
+  {
+   "chart_id": 68142,
+   "declared": 20.0,
+   "est": 12.71,
+   "players": 819,
+   "diff": 7.29
+  },
+  {
+   "chart_id": 38117,
+   "declared": 10.0,
+   "est": 17.26,
+   "players": 63,
+   "diff": -7.26
+  },
+  {
+   "chart_id": 53256,
+   "declared": 11.6,
+   "est": 18.81,
+   "players": 141,
+   "diff": -7.21
+  },
+  {
+   "chart_id": 67892,
+   "declared": 10.0,
+   "est": 17.09,
+   "players": 160,
+   "diff": -7.09
+  },
+  {
+   "chart_id": 74004,
+   "declared": 10.0,
+   "est": 17.09,
+   "players": 171,
+   "diff": -7.09
+  },
+  {
+   "chart_id": 37616,
+   "declared": 10.0,
+   "est": 16.95,
+   "players": 90,
+   "diff": -6.95
+  },
+  {
+   "chart_id": 39261,
+   "declared": 20.0,
+   "est": 13.08,
+   "players": 276,
+   "diff": 6.92
+  },
+  {
+   "chart_id": 56628,
+   "declared": 10.0,
+   "est": 16.92,
+   "players": 56,
+   "diff": -6.92
+  },
+  {
+   "chart_id": 3241,
+   "declared": 10.0,
+   "est": 16.9,
+   "players": 197,
+   "diff": -6.9
+  },
+  {
+   "chart_id": 53234,
+   "declared": 10.0,
+   "est": 16.88,
+   "players": 798,
+   "diff": -6.88
+  },
+  {
+   "chart_id": 20841,
+   "declared": 20.0,
+   "est": 13.19,
+   "players": 294,
+   "diff": 6.81
+  },
+  {
+   "chart_id": 67776,
+   "declared": 10.0,
+   "est": 16.8,
+   "players": 505,
+   "diff": -6.8
+  },
+  {
+   "chart_id": 38931,
+   "declared": 20.0,
+   "est": 13.24,
+   "players": 339,
+   "diff": 6.76
+  },
+  {
+   "chart_id": 40620,
+   "declared": 10.0,
+   "est": 16.76,
+   "players": 54,
+   "diff": -6.76
+  },
+  {
+   "chart_id": 9750,
+   "declared": 10.0,
+   "est": 16.72,
+   "players": 1479,
+   "diff": -6.72
+  },
+  {
+   "chart_id": 23643,
+   "declared": 10.0,
+   "est": 16.69,
+   "players": 96,
+   "diff": -6.69
+  },
+  {
+   "chart_id": 10674,
+   "declared": 10.0,
+   "est": 16.67,
+   "players": 793,
+   "diff": -6.67
+  },
+  {
+   "chart_id": 34522,
+   "declared": 10.0,
+   "est": 16.67,
+   "players": 120,
+   "diff": -6.67
+  },
+  {
+   "chart_id": 43473,
+   "declared": 10.0,
+   "est": 16.65,
+   "players": 53,
+   "diff": -6.65
+  },
+  {
+   "chart_id": 66193,
+   "declared": 10.0,
+   "est": 16.62,
+   "players": 189,
+   "diff": -6.62
+  },
+  {
+   "chart_id": 57577,
+   "declared": 20.0,
+   "est": 13.4,
+   "players": 253,
+   "diff": 6.6
+  },
+  {
+   "chart_id": 60369,
+   "declared": 10.0,
+   "est": 16.6,
+   "players": 276,
+   "diff": -6.6
+  },
+  {
+   "chart_id": 65432,
+   "declared": 10.0,
+   "est": 16.6,
+   "players": 258,
+   "diff": -6.6
+  },
+  {
+   "chart_id": 36629,
+   "declared": 20.0,
+   "est": 13.42,
+   "players": 673,
+   "diff": 6.58
+  },
+  {
+   "chart_id": 30115,
+   "declared": 20.0,
+   "est": 13.43,
+   "players": 408,
+   "diff": 6.57
+  },
+  {
+   "chart_id": 13775,
+   "declared": 10.0,
+   "est": 16.56,
+   "players": 757,
+   "diff": -6.56
+  },
+  {
+   "chart_id": 7181,
+   "declared": 10.0,
+   "est": 16.53,
+   "players": 53,
+   "diff": -6.53
+  },
+  {
+   "chart_id": 48743,
+   "declared": 10.0,
+   "est": 16.51,
+   "players": 114,
+   "diff": -6.51
+  },
+  {
+   "chart_id": 60564,
+   "declared": 10.0,
+   "est": 16.51,
+   "players": 59,
+   "diff": -6.51
+  },
+  {
+   "chart_id": 38461,
+   "declared": 20.0,
+   "est": 13.5,
+   "players": 302,
+   "diff": 6.5
+  },
+  {
+   "chart_id": 68686,
+   "declared": 10.0,
+   "est": 16.47,
+   "players": 156,
+   "diff": -6.47
+  },
+  {
+   "chart_id": 53503,
+   "declared": 10.0,
+   "est": 16.44,
+   "players": 83,
+   "diff": -6.44
+  },
+  {
+   "chart_id": 61744,
+   "declared": 10.0,
+   "est": 16.43,
+   "players": 122104,
+   "diff": -6.43
+  },
+  {
+   "chart_id": 12794,
+   "declared": 10.0,
+   "est": 16.42,
+   "players": 34274,
+   "diff": -6.42
+  },
+  {
+   "chart_id": 35959,
+   "declared": 20.0,
+   "est": 13.58,
+   "players": 286,
+   "diff": 6.42
+  },
+  {
+   "chart_id": 43348,
+   "declared": 20.0,
+   "est": 13.62,
+   "players": 159,
+   "diff": 6.38
+  },
+  {
+   "chart_id": 73336,
+   "declared": 10.0,
+   "est": 16.35,
+   "players": 190,
+   "diff": -6.35
+  },
+  {
+   "chart_id": 27076,
+   "declared": 20.0,
+   "est": 13.69,
+   "players": 290,
+   "diff": 6.31
+  },
+  {
+   "chart_id": 30716,
+   "declared": 20.0,
+   "est": 13.71,
+   "players": 249,
+   "diff": 6.29
+  },
+  {
+   "chart_id": 49328,
+   "declared": 10.0,
+   "est": 16.29,
+   "players": 61,
+   "diff": -6.29
+  },
+  {
+   "chart_id": 52757,
+   "declared": 10.0,
+   "est": 16.28,
+   "players": 261,
+   "diff": -6.28
+  },
+  {
+   "chart_id": 55181,
+   "declared": 10.0,
+   "est": 16.28,
+   "players": 1459,
+   "diff": -6.28
+  },
+  {
+   "chart_id": 45549,
+   "declared": 10.0,
+   "est": 16.27,
+   "players": 205,
+   "diff": -6.27
+  },
+  {
+   "chart_id": 52115,
+   "declared": 10.0,
+   "est": 16.27,
+   "players": 55,
+   "diff": -6.27
+  },
+  {
+   "chart_id": 52657,
+   "declared": 20.0,
+   "est": 13.78,
+   "players": 260,
+   "diff": 6.22
+  },
+  {
+   "chart_id": 26095,
+   "declared": 20.0,
+   "est": 13.79,
+   "players": 63,
+   "diff": 6.21
+  },
+  {
+   "chart_id": 26567,
+   "declared": 20.0,
+   "est": 13.82,
+   "players": 379,
+   "diff": 6.18
+  },
+  {
+   "chart_id": 34523,
+   "declared": 10.0,
+   "est": 16.16,
+   "players": 667,
+   "diff": -6.16
+  },
+  {
+   "chart_id": 13099,
+   "declared": 20.0,
+   "est": 13.85,
+   "players": 1056,
+   "diff": 6.15
+  },
+  {
+   "chart_id": 69763,
+   "declared": 10.0,
+   "est": 16.15,
+   "players": 77,
+   "diff": -6.15
+  },
+  {
+   "chart_id": 9505,
+   "declared": 10.0,
+   "est": 16.14,
+   "players": 51,
+   "diff": -6.14
+  },
+  {
+   "chart_id": 80752,
+   "declared": 10.0,
+   "est": 16.14,
+   "players": 100,
+   "diff": -6.14
+  },
+  {
+   "chart_id": 44833,
+   "declared": 10.0,
+   "est": 16.13,
+   "players": 655,
+   "diff": -6.13
+  },
+  {
+   "chart_id": 59556,
+   "declared": 10.0,
+   "est": 16.11,
+   "players": 900,
+   "diff": -6.11
+  },
+  {
+   "chart_id": 41627,
+   "declared": 10.0,
+   "est": 16.09,
+   "players": 130,
+   "diff": -6.09
+  },
+  {
+   "chart_id": 3639,
+   "declared": 10.0,
+   "est": 16.06,
+   "players": 1122,
+   "diff": -6.06
+  },
+  {
+   "chart_id": 40260,
+   "declared": 20.0,
+   "est": 13.95,
+   "players": 184,
+   "diff": 6.05
+  },
+  {
+   "chart_id": 43081,
+   "declared": 20.0,
+   "est": 13.95,
+   "players": 90,
+   "diff": 6.05
+  },
+  {
+   "chart_id": 44422,
+   "declared": 10.0,
+   "est": 16.04,
+   "players": 300,
+   "diff": -6.04
+  },
+  {
+   "chart_id": 46629,
+   "declared": 20.0,
+   "est": 13.96,
+   "players": 40207,
+   "diff": 6.04
+  },
+  {
+   "chart_id": 65906,
+   "declared": 10.0,
+   "est": 16.04,
+   "players": 56,
+   "diff": -6.04
+  },
+  {
+   "chart_id": 25106,
+   "declared": 10.0,
+   "est": 16.03,
+   "players": 125,
+   "diff": -6.03
+  },
+  {
+   "chart_id": 45830,
+   "declared": 20.0,
+   "est": 13.97,
+   "players": 72,
+   "diff": 6.03
+  },
+  {
+   "chart_id": 20096,
+   "declared": 20.0,
+   "est": 13.98,
+   "players": 78,
+   "diff": 6.02
+  },
+  {
+   "chart_id": 66339,
+   "declared": 10.0,
+   "est": 16.02,
+   "players": 156,
+   "diff": -6.02
+  },
+  {
+   "chart_id": 39364,
+   "declared": 10.0,
+   "est": 16.01,
+   "players": 622,
+   "diff": -6.01
+  },
+  {
+   "chart_id": 3266,
+   "declared": 10.0,
+   "est": 15.98,
+   "players": 1490,
+   "diff": -5.98
+  },
+  {
+   "chart_id": 44144,
+   "declared": 10.0,
+   "est": 15.98,
+   "players": 323,
+   "diff": -5.98
+  },
+  {
+   "chart_id": 27332,
+   "declared": 10.0,
+   "est": 15.95,
+   "players": 73,
+   "diff": -5.95
+  },
+  {
+   "chart_id": 46178,
+   "declared": 19.0,
+   "est": 13.05,
+   "players": 105,
+   "diff": 5.95
+  },
+  {
+   "chart_id": 64323,
+   "declared": 10.0,
+   "est": 15.95,
+   "players": 827,
+   "diff": -5.95
+  },
+  {
+   "chart_id": 69841,
+   "declared": 10.0,
+   "est": 15.94,
+   "players": 414,
+   "diff": -5.94
+  },
+  {
+   "chart_id": 12808,
+   "declared": 10.0,
+   "est": 15.92,
+   "players": 73,
+   "diff": -5.92
+  },
+  {
+   "chart_id": 45469,
+   "declared": 10.0,
+   "est": 15.92,
+   "players": 117,
+   "diff": -5.92
+  },
+  {
+   "chart_id": 33198,
+   "declared": 10.0,
+   "est": 15.91,
+   "players": 153,
+   "diff": -5.91
+  },
+  {
+   "chart_id": 48098,
+   "declared": 10.0,
+   "est": 15.91,
+   "players": 433,
+   "diff": -5.91
+  },
+  {
+   "chart_id": 388,
+   "declared": 11.0,
+   "est": 16.9,
+   "players": 58,
+   "diff": -5.9
+  },
+  {
+   "chart_id": 24250,
+   "declared": 10.0,
+   "est": 15.89,
+   "players": 67,
+   "diff": -5.89
+  },
+  {
+   "chart_id": 27808,
+   "declared": 20.0,
+   "est": 14.11,
+   "players": 206,
+   "diff": 5.89
+  },
+  {
+   "chart_id": 49089,
+   "declared": 10.0,
+   "est": 15.89,
+   "players": 313,
+   "diff": -5.89
+  },
+  {
+   "chart_id": 20383,
+   "declared": 20.0,
+   "est": 14.13,
+   "players": 148,
+   "diff": 5.87
+  },
+  {
+   "chart_id": 46855,
+   "declared": 10.0,
+   "est": 15.84,
+   "players": 78,
+   "diff": -5.84
+  },
+  {
+   "chart_id": 43078,
+   "declared": 20.0,
+   "est": 14.17,
+   "players": 76,
+   "diff": 5.83
+  },
+  {
+   "chart_id": 53370,
+   "declared": 20.0,
+   "est": 14.17,
+   "players": 70,
+   "diff": 5.83
+  },
+  {
+   "chart_id": 15921,
+   "declared": 20.0,
+   "est": 14.19,
+   "players": 50,
+   "diff": 5.81
+  },
+  {
+   "chart_id": 48099,
+   "declared": 10.0,
+   "est": 15.81,
+   "players": 288,
+   "diff": -5.81
+  },
+  {
+   "chart_id": 77963,
+   "declared": 10.0,
+   "est": 15.8,
+   "players": 207,
+   "diff": -5.8
+  },
+  {
+   "chart_id": 24358,
+   "declared": 20.0,
+   "est": 14.23,
+   "players": 36572,
+   "diff": 5.77
+  },
+  {
+   "chart_id": 42631,
+   "declared": 20.0,
+   "est": 14.23,
+   "players": 1270,
+   "diff": 5.77
+  },
+  {
+   "chart_id": 14551,
+   "declared": 20.0,
+   "est": 14.24,
+   "players": 86,
+   "diff": 5.76
+  },
+  {
+   "chart_id": 25915,
+   "declared": 10.0,
+   "est": 15.76,
+   "players": 61,
+   "diff": -5.76
+  },
+  {
+   "chart_id": 32646,
+   "declared": 10.0,
+   "est": 15.76,
+   "players": 71,
+   "diff": -5.76
+  },
+  {
+   "chart_id": 1783,
+   "declared": 10.0,
+   "est": 15.75,
+   "players": 55,
+   "diff": -5.75
+  },
+  {
+   "chart_id": 49326,
+   "declared": 20.0,
+   "est": 14.26,
+   "players": 109,
+   "diff": 5.74
+  },
+  {
+   "chart_id": 32292,
+   "declared": 10.0,
+   "est": 15.73,
+   "players": 239,
+   "diff": -5.73
+  },
+  {
+   "chart_id": 35700,
+   "declared": 10.0,
+   "est": 15.72,
+   "players": 782,
+   "diff": -5.72
+  },
+  {
+   "chart_id": 42999,
+   "declared": 10.0,
+   "est": 15.72,
+   "players": 56,
+   "diff": -5.72
+  },
+  {
+   "chart_id": 55218,
+   "declared": 10.0,
+   "est": 15.71,
+   "players": 651,
+   "diff": -5.71
+  },
+  {
+   "chart_id": 77846,
+   "declared": 10.0,
+   "est": 15.71,
+   "players": 190,
+   "diff": -5.71
+  },
+  {
+   "chart_id": 37180,
+   "declared": 10.0,
+   "est": 15.7,
+   "players": 220,
+   "diff": -5.7
+  },
+  {
+   "chart_id": 6797,
+   "declared": 10.0,
+   "est": 15.69,
+   "players": 113,
+   "diff": -5.69
+  },
+  {
+   "chart_id": 57207,
+   "declared": 10.0,
+   "est": 15.69,
+   "players": 50,
+   "diff": -5.69
+  },
+  {
+   "chart_id": 32575,
+   "declared": 20.0,
+   "est": 14.32,
+   "players": 142,
+   "diff": 5.68
+  },
+  {
+   "chart_id": 39464,
+   "declared": 19.0,
+   "est": 13.32,
+   "players": 191,
+   "diff": 5.68
+  },
+  {
+   "chart_id": 25499,
+   "declared": 10.0,
+   "est": 15.67,
+   "players": 74,
+   "diff": -5.67
+  },
+  {
+   "chart_id": 29605,
+   "declared": 10.0,
+   "est": 15.67,
+   "players": 74,
+   "diff": -5.67
+  },
+  {
+   "chart_id": 48858,
+   "declared": 10.0,
+   "est": 15.65,
+   "players": 71,
+   "diff": -5.65
+  },
+  {
+   "chart_id": 30033,
+   "declared": 10.0,
+   "est": 15.63,
+   "players": 1094,
+   "diff": -5.63
+  },
+  {
+   "chart_id": 61623,
+   "declared": 10.0,
+   "est": 15.63,
+   "players": 75,
+   "diff": -5.63
+  },
+  {
+   "chart_id": 8741,
+   "declared": 10.0,
+   "est": 15.62,
+   "players": 209,
+   "diff": -5.62
+  },
+  {
+   "chart_id": 22129,
+   "declared": 10.0,
+   "est": 15.62,
+   "players": 79,
+   "diff": -5.62
+  },
+  {
+   "chart_id": 39288,
+   "declared": 20.0,
+   "est": 14.39,
+   "players": 109,
+   "diff": 5.61
+  },
+  {
+   "chart_id": 14367,
+   "declared": 20.0,
+   "est": 14.4,
+   "players": 93,
+   "diff": 5.6
+  },
+  {
+   "chart_id": 69386,
+   "declared": 20.0,
+   "est": 14.41,
+   "players": 82,
+   "diff": 5.59
+  },
+  {
+   "chart_id": 56702,
+   "declared": 20.0,
+   "est": 14.42,
+   "players": 13938,
+   "diff": 5.58
+  },
+  {
+   "chart_id": 39266,
+   "declared": 10.0,
+   "est": 15.57,
+   "players": 56,
+   "diff": -5.57
+  },
+  {
+   "chart_id": 6324,
+   "declared": 10.0,
+   "est": 15.56,
+   "players": 987,
+   "diff": -5.56
+  },
+  {
+   "chart_id": 13256,
+   "declared": 19.6,
+   "est": 14.04,
+   "players": 219,
+   "diff": 5.56
+  },
+  {
+   "chart_id": 66349,
+   "declared": 10.0,
+   "est": 15.56,
+   "players": 248,
+   "diff": -5.56
+  },
+  {
+   "chart_id": 25705,
+   "declared": 20.0,
+   "est": 14.45,
+   "players": 108,
+   "diff": 5.55
+  },
+  {
+   "chart_id": 43094,
+   "declared": 10.0,
+   "est": 15.55,
+   "players": 52,
+   "diff": -5.55
+  },
+  {
+   "chart_id": 62915,
+   "declared": 10.0,
+   "est": 15.55,
+   "players": 740,
+   "diff": -5.55
+  },
+  {
+   "chart_id": 63270,
+   "declared": 20.0,
+   "est": 14.45,
+   "players": 1966,
+   "diff": 5.55
+  },
+  {
+   "chart_id": 44592,
+   "declared": 11.4,
+   "est": 16.94,
+   "players": 126,
+   "diff": -5.54
+  },
+  {
+   "chart_id": 49253,
+   "declared": 20.0,
+   "est": 14.47,
+   "players": 82,
+   "diff": 5.53
+  },
+  {
+   "chart_id": 52709,
+   "declared": 10.0,
+   "est": 15.53,
+   "players": 151,
+   "diff": -5.53
+  },
+  {
+   "chart_id": 28418,
+   "declared": 11.0,
+   "est": 16.52,
+   "players": 83,
+   "diff": -5.52
+  },
+  {
+   "chart_id": 49745,
+   "declared": 10.0,
+   "est": 15.52,
+   "players": 19169,
+   "diff": -5.52
+  },
+  {
+   "chart_id": 65830,
+   "declared": 10.0,
+   "est": 15.52,
+   "players": 124,
+   "diff": -5.52
+  },
+  {
+   "chart_id": 69690,
+   "declared": 10.0,
+   "est": 15.52,
+   "players": 53,
+   "diff": -5.52
+  },
+  {
+   "chart_id": 22564,
+   "declared": 10.0,
+   "est": 15.51,
+   "players": 82,
+   "diff": -5.51
+  },
+  {
+   "chart_id": 6730,
+   "declared": 10.0,
+   "est": 15.5,
+   "players": 28190,
+   "diff": -5.5
+  },
+  {
+   "chart_id": 9363,
+   "declared": 19.0,
+   "est": 13.5,
+   "players": 83,
+   "diff": 5.5
+  },
+  {
+   "chart_id": 27758,
+   "declared": 10.0,
+   "est": 15.5,
+   "players": 218,
+   "diff": -5.5
+  },
+  {
+   "chart_id": 32181,
+   "declared": 10.0,
+   "est": 15.5,
+   "players": 58,
+   "diff": -5.5
+  },
+  {
+   "chart_id": 13221,
+   "declared": 10.2,
+   "est": 15.69,
+   "players": 113,
+   "diff": -5.49
+  },
+  {
+   "chart_id": 26811,
+   "declared": 10.0,
+   "est": 15.49,
+   "players": 532,
+   "diff": -5.49
+  },
+  {
+   "chart_id": 38183,
+   "declared": 10.0,
+   "est": 15.48,
+   "players": 181,
+   "diff": -5.48
+  },
+  {
+   "chart_id": 44423,
+   "declared": 20.0,
+   "est": 14.52,
+   "players": 577,
+   "diff": 5.48
+  },
+  {
+   "chart_id": 14957,
+   "declared": 20.0,
+   "est": 14.53,
+   "players": 63,
+   "diff": 5.47
+  },
+  {
+   "chart_id": 52785,
+   "declared": 10.0,
+   "est": 15.47,
+   "players": 76,
+   "diff": -5.47
+  },
+  {
+   "chart_id": 44539,
+   "declared": 10.0,
+   "est": 15.46,
+   "players": 11185,
+   "diff": -5.46
+  },
+  {
+   "chart_id": 47791,
+   "declared": 10.0,
+   "est": 15.45,
+   "players": 65,
+   "diff": -5.45
+  },
+  {
+   "chart_id": 36656,
+   "declared": 10.0,
+   "est": 15.44,
+   "players": 452,
+   "diff": -5.44
+  },
+  {
+   "chart_id": 14462,
+   "declared": 20.0,
+   "est": 14.58,
+   "players": 283,
+   "diff": 5.42
+  },
+  {
+   "chart_id": 46438,
+   "declared": 20.0,
+   "est": 14.58,
+   "players": 62,
+   "diff": 5.42
+  },
+  {
+   "chart_id": 32778,
+   "declared": 20.0,
+   "est": 14.59,
+   "players": 211,
+   "diff": 5.41
+  },
+  {
+   "chart_id": 65021,
+   "declared": 10.0,
+   "est": 15.41,
+   "players": 71,
+   "diff": -5.41
+  },
+  {
+   "chart_id": 16029,
+   "declared": 10.0,
+   "est": 15.4,
+   "players": 147,
+   "diff": -5.4
+  },
+  {
+   "chart_id": 20389,
+   "declared": 10.0,
+   "est": 15.4,
+   "players": 55,
+   "diff": -5.4
+  },
+  {
+   "chart_id": 54858,
+   "declared": 10.0,
+   "est": 15.4,
+   "players": 53,
+   "diff": -5.4
+  },
+  {
+   "chart_id": 24244,
+   "declared": 11.0,
+   "est": 16.39,
+   "players": 225,
+   "diff": -5.39
+  },
+  {
+   "chart_id": 46326,
+   "declared": 10.0,
+   "est": 15.39,
+   "players": 116,
+   "diff": -5.39
+  },
+  {
+   "chart_id": 78332,
+   "declared": 10.0,
+   "est": 15.39,
+   "players": 107,
+   "diff": -5.39
+  },
+  {
+   "chart_id": 52357,
+   "declared": 10.0,
+   "est": 15.38,
+   "players": 60,
+   "diff": -5.38
+  },
+  {
+   "chart_id": 7112,
+   "declared": 20.0,
+   "est": 14.63,
+   "players": 80208,
+   "diff": 5.37
+  },
+  {
+   "chart_id": 16547,
+   "declared": 10.0,
+   "est": 15.37,
+   "players": 96,
+   "diff": -5.37
+  },
+  {
+   "chart_id": 80749,
+   "declared": 10.0,
+   "est": 15.37,
+   "players": 111,
+   "diff": -5.37
+  },
+  {
+   "chart_id": 21000,
+   "declared": 20.0,
+   "est": 14.64,
+   "players": 287,
+   "diff": 5.36
+  },
+  {
+   "chart_id": 45016,
+   "declared": 20.0,
+   "est": 14.64,
+   "players": 105,
+   "diff": 5.36
+  },
+  {
+   "chart_id": 51928,
+   "declared": 10.0,
+   "est": 15.36,
+   "players": 63,
+   "diff": -5.36
+  },
+  {
+   "chart_id": 56975,
+   "declared": 10.0,
+   "est": 15.35,
+   "players": 262,
+   "diff": -5.35
+  },
+  {
+   "chart_id": 1940,
+   "declared": 10.0,
+   "est": 15.34,
+   "players": 294,
+   "diff": -5.34
+  },
+  {
+   "chart_id": 35046,
+   "declared": 20.0,
+   "est": 14.66,
+   "players": 399,
+   "diff": 5.34
+  },
+  {
+   "chart_id": 12613,
+   "declared": 10.0,
+   "est": 15.33,
+   "players": 715,
+   "diff": -5.33
+  },
+  {
+   "chart_id": 25922,
+   "declared": 20.0,
+   "est": 14.68,
+   "players": 60,
+   "diff": 5.32
+  },
+  {
+   "chart_id": 27933,
+   "declared": 10.0,
+   "est": 15.32,
+   "players": 131,
+   "diff": -5.32
+  },
+  {
+   "chart_id": 64139,
+   "declared": 10.0,
+   "est": 15.32,
+   "players": 276,
+   "diff": -5.32
+  },
+  {
+   "chart_id": 2103,
+   "declared": 10.0,
+   "est": 15.31,
+   "players": 274,
+   "diff": -5.31
+  },
+  {
+   "chart_id": 20441,
+   "declared": 20.0,
+   "est": 14.69,
+   "players": 187,
+   "diff": 5.31
+  },
+  {
+   "chart_id": 51266,
+   "declared": 10.0,
+   "est": 15.31,
+   "players": 65,
+   "diff": -5.31
+  },
+  {
+   "chart_id": 12249,
+   "declared": 10.6,
+   "est": 15.9,
+   "players": 141,
+   "diff": -5.3
+  },
+  {
+   "chart_id": 58149,
+   "declared": 10.0,
+   "est": 15.29,
+   "players": 104,
+   "diff": -5.29
+  },
+  {
+   "chart_id": 62643,
+   "declared": 10.0,
+   "est": 15.29,
+   "players": 1133,
+   "diff": -5.29
+  },
+  {
+   "chart_id": 38535,
+   "declared": 10.0,
+   "est": 15.27,
+   "players": 63,
+   "diff": -5.27
+  },
+  {
+   "chart_id": 43164,
+   "declared": 20.0,
+   "est": 14.73,
+   "players": 66,
+   "diff": 5.27
+  },
+  {
+   "chart_id": 26759,
+   "declared": 10.0,
+   "est": 15.26,
+   "players": 172,
+   "diff": -5.26
+  },
+  {
+   "chart_id": 31445,
+   "declared": 20.0,
+   "est": 14.74,
+   "players": 63,
+   "diff": 5.26
+  },
+  {
+   "chart_id": 34651,
+   "declared": 10.0,
+   "est": 15.26,
+   "players": 72,
+   "diff": -5.26
+  },
+  {
+   "chart_id": 53086,
+   "declared": 11.0,
+   "est": 16.26,
+   "players": 83,
+   "diff": -5.26
+  },
+  {
+   "chart_id": 16466,
+   "declared": 20.0,
+   "est": 14.76,
+   "players": 59,
+   "diff": 5.24
+  },
+  {
+   "chart_id": 22018,
+   "declared": 20.0,
+   "est": 14.77,
+   "players": 21985,
+   "diff": 5.23
+  },
+  {
+   "chart_id": 23926,
+   "declared": 10.3,
+   "est": 15.53,
+   "players": 92,
+   "diff": -5.23
+  },
+  {
+   "chart_id": 48574,
+   "declared": 18.0,
+   "est": 12.77,
+   "players": 89,
+   "diff": 5.23
+  },
+  {
+   "chart_id": 58674,
+   "declared": 10.0,
+   "est": 15.23,
+   "players": 71,
+   "diff": -5.23
+  },
+  {
+   "chart_id": 9086,
+   "declared": 10.0,
+   "est": 15.22,
+   "players": 387,
+   "diff": -5.22
+  },
+  {
+   "chart_id": 13562,
+   "declared": 20.0,
+   "est": 14.79,
+   "players": 86,
+   "diff": 5.21
+  },
+  {
+   "chart_id": 32621,
+   "declared": 20.0,
+   "est": 14.79,
+   "players": 79,
+   "diff": 5.21
+  },
+  {
+   "chart_id": 45041,
+   "declared": 10.0,
+   "est": 15.21,
+   "players": 986,
+   "diff": -5.21
+  },
+  {
+   "chart_id": 79798,
+   "declared": 10.0,
+   "est": 15.21,
+   "players": 151358,
+   "diff": -5.21
+  },
+  {
+   "chart_id": 8410,
+   "declared": 10.0,
+   "est": 15.2,
+   "players": 134,
+   "diff": -5.2
+  },
+  {
+   "chart_id": 42580,
+   "declared": 10.0,
+   "est": 15.2,
+   "players": 878,
+   "diff": -5.2
+  },
+  {
+   "chart_id": 46999,
+   "declared": 20.0,
+   "est": 14.8,
+   "players": 285,
+   "diff": 5.2
+  },
+  {
+   "chart_id": 49378,
+   "declared": 20.0,
+   "est": 14.8,
+   "players": 199,
+   "diff": 5.2
+  },
+  {
+   "chart_id": 57867,
+   "declared": 10.0,
+   "est": 15.2,
+   "players": 718,
+   "diff": -5.2
+  },
+  {
+   "chart_id": 1560,
+   "declared": 10.0,
+   "est": 15.19,
+   "players": 1033,
+   "diff": -5.19
+  },
+  {
+   "chart_id": 17895,
+   "declared": 10.0,
+   "est": 15.19,
+   "players": 49808,
+   "diff": -5.19
+  },
+  {
+   "chart_id": 36162,
+   "declared": 20.0,
+   "est": 14.81,
+   "players": 104,
+   "diff": 5.19
+  },
+  {
+   "chart_id": 23437,
+   "declared": 20.0,
+   "est": 14.82,
+   "players": 109,
+   "diff": 5.18
+  },
+  {
+   "chart_id": 22441,
+   "declared": 10.0,
+   "est": 15.17,
+   "players": 111,
+   "diff": -5.17
+  },
+  {
+   "chart_id": 31580,
+   "declared": 10.0,
+   "est": 15.16,
+   "players": 145,
+   "diff": -5.16
+  },
+  {
+   "chart_id": 33399,
+   "declared": 20.0,
+   "est": 14.84,
+   "players": 216,
+   "diff": 5.16
+  },
+  {
+   "chart_id": 58796,
+   "declared": 10.0,
+   "est": 15.16,
+   "players": 22473,
+   "diff": -5.16
+  },
+  {
+   "chart_id": 30139,
+   "declared": 10.3,
+   "est": 15.45,
+   "players": 208,
+   "diff": -5.15
+  },
+  {
+   "chart_id": 17023,
+   "declared": 10.0,
+   "est": 15.13,
+   "players": 192,
+   "diff": -5.13
+  },
+  {
+   "chart_id": 46208,
+   "declared": 10.0,
+   "est": 15.13,
+   "players": 80,
+   "diff": -5.13
+  },
+  {
+   "chart_id": 20965,
+   "declared": 20.0,
+   "est": 14.88,
+   "players": 89,
+   "diff": 5.12
+  },
+  {
+   "chart_id": 46106,
+   "declared": 20.0,
+   "est": 14.88,
+   "players": 270,
+   "diff": 5.12
+  },
+  {
+   "chart_id": 25865,
+   "declared": 19.0,
+   "est": 13.89,
+   "players": 55,
+   "diff": 5.11
+  },
+  {
+   "chart_id": 52160,
+   "declared": 10.0,
+   "est": 15.11,
+   "players": 271,
+   "diff": -5.11
+  },
+  {
+   "chart_id": 47202,
+   "declared": 10.0,
+   "est": 15.1,
+   "players": 66,
+   "diff": -5.1
+  },
+  {
+   "chart_id": 44103,
+   "declared": 20.0,
+   "est": 14.91,
+   "players": 111,
+   "diff": 5.09
+  },
+  {
+   "chart_id": 52219,
+   "declared": 20.0,
+   "est": 14.91,
+   "players": 202,
+   "diff": 5.09
+  },
+  {
+   "chart_id": 60455,
+   "declared": 20.0,
+   "est": 14.91,
+   "players": 187,
+   "diff": 5.09
+  },
+  {
+   "chart_id": 28311,
+   "declared": 10.0,
+   "est": 15.06,
+   "players": 53,
+   "diff": -5.06
+  },
+  {
+   "chart_id": 38641,
+   "declared": 20.0,
+   "est": 14.94,
+   "players": 72,
+   "diff": 5.06
+  },
+  {
+   "chart_id": 58046,
+   "declared": 11.4,
+   "est": 16.46,
+   "players": 223,
+   "diff": -5.06
+  },
+  {
+   "chart_id": 18832,
+   "declared": 10.0,
+   "est": 15.05,
+   "players": 66,
+   "diff": -5.05
+  },
+  {
+   "chart_id": 12050,
+   "declared": 10.0,
+   "est": 15.04,
+   "players": 224,
+   "diff": -5.04
+  },
+  {
+   "chart_id": 16363,
+   "declared": 10.0,
+   "est": 15.04,
+   "players": 73,
+   "diff": -5.04
+  },
+  {
+   "chart_id": 35893,
+   "declared": 10.0,
+   "est": 15.04,
+   "players": 538,
+   "diff": -5.04
+  },
+  {
+   "chart_id": 46148,
+   "declared": 18.0,
+   "est": 12.96,
+   "players": 328,
+   "diff": 5.04
+  },
+  {
+   "chart_id": 51864,
+   "declared": 10.0,
+   "est": 15.03,
+   "players": 19086,
+   "diff": -5.03
+  },
+  {
+   "chart_id": 39484,
+   "declared": 11.0,
+   "est": 16.02,
+   "players": 457,
+   "diff": -5.02
+  },
+  {
+   "chart_id": 45015,
+   "declared": 10.0,
+   "est": 15.02,
+   "players": 1433,
+   "diff": -5.02
+  },
+  {
+   "chart_id": 69815,
+   "declared": 10.0,
+   "est": 15.02,
+   "players": 98,
+   "diff": -5.02
+  },
+  {
+   "chart_id": 67099,
+   "declared": 10.0,
+   "est": 15.0,
+   "players": 468,
+   "diff": -5.0
+  },
+  {
+   "chart_id": 45878,
+   "declared": 20.0,
+   "est": 15.01,
+   "players": 447,
+   "diff": 4.99
+  },
+  {
+   "chart_id": 69969,
+   "declared": 20.0,
+   "est": 15.01,
+   "players": 1981,
+   "diff": 4.99
+  },
+  {
+   "chart_id": 20434,
+   "declared": 20.0,
+   "est": 15.03,
+   "players": 84,
+   "diff": 4.97
+  },
+  {
+   "chart_id": 52343,
+   "declared": 11.0,
+   "est": 15.97,
+   "players": 125,
+   "diff": -4.97
+  },
+  {
+   "chart_id": 45941,
+   "declared": 20.0,
+   "est": 15.04,
+   "players": 141,
+   "diff": 4.96
+  },
+  {
+   "chart_id": 1218,
+   "declared": 10.0,
+   "est": 14.95,
+   "players": 47558,
+   "diff": -4.95
+  },
+  {
+   "chart_id": 18910,
+   "declared": 11.0,
+   "est": 15.95,
+   "players": 80,
+   "diff": -4.95
+  },
+  {
+   "chart_id": 80429,
+   "declared": 10.0,
+   "est": 14.95,
+   "players": 87,
+   "diff": -4.95
+  },
+  {
+   "chart_id": 26835,
+   "declared": 10.0,
+   "est": 14.94,
+   "players": 123,
+   "diff": -4.94
+  },
+  {
+   "chart_id": 14954,
+   "declared": 10.0,
+   "est": 14.93,
+   "players": 1080,
+   "diff": -4.93
+  },
+  {
+   "chart_id": 24100,
+   "declared": 20.0,
+   "est": 15.07,
+   "players": 92,
+   "diff": 4.93
+  },
+  {
+   "chart_id": 25398,
+   "declared": 10.0,
+   "est": 14.93,
+   "players": 70,
+   "diff": -4.93
+  },
+  {
+   "chart_id": 25916,
+   "declared": 10.0,
+   "est": 14.93,
+   "players": 141,
+   "diff": -4.93
+  },
+  {
+   "chart_id": 18651,
+   "declared": 20.0,
+   "est": 15.08,
+   "players": 111,
+   "diff": 4.92
+  },
+  {
+   "chart_id": 32675,
+   "declared": 20.0,
+   "est": 15.08,
+   "players": 78,
+   "diff": 4.92
+  },
+  {
+   "chart_id": 43672,
+   "declared": 10.0,
+   "est": 14.92,
+   "players": 85,
+   "diff": -4.92
+  },
+  {
+   "chart_id": 45416,
+   "declared": 10.0,
+   "est": 14.92,
+   "players": 204,
+   "diff": -4.92
+  },
+  {
+   "chart_id": 51955,
+   "declared": 10.0,
+   "est": 14.92,
+   "players": 83,
+   "diff": -4.92
+  },
+  {
+   "chart_id": 56656,
+   "declared": 10.0,
+   "est": 14.92,
+   "players": 131,
+   "diff": -4.92
+  },
+  {
+   "chart_id": 47028,
+   "declared": 10.0,
+   "est": 14.91,
+   "players": 11222,
+   "diff": -4.91
+  },
+  {
+   "chart_id": 80309,
+   "declared": 10.0,
+   "est": 14.91,
+   "players": 474,
+   "diff": -4.91
+  },
+  {
+   "chart_id": 4819,
+   "declared": 11.0,
+   "est": 15.9,
+   "players": 316,
+   "diff": -4.9
+  },
+  {
+   "chart_id": 39481,
+   "declared": 11.0,
+   "est": 15.9,
+   "players": 177,
+   "diff": -4.9
+  },
+  {
+   "chart_id": 51351,
+   "declared": 20.0,
+   "est": 15.1,
+   "players": 146,
+   "diff": 4.9
+  },
+  {
+   "chart_id": 24702,
+   "declared": 20.0,
+   "est": 15.11,
+   "players": 65,
+   "diff": 4.89
+  },
+  {
+   "chart_id": 30665,
+   "declared": 10.0,
+   "est": 14.89,
+   "players": 13067,
+   "diff": -4.89
+  },
+  {
+   "chart_id": 43484,
+   "declared": 10.0,
+   "est": 14.89,
+   "players": 81,
+   "diff": -4.89
+  },
+  {
+   "chart_id": 50460,
+   "declared": 10.0,
+   "est": 14.89,
+   "players": 942,
+   "diff": -4.89
+  },
+  {
+   "chart_id": 72244,
+   "declared": 10.0,
+   "est": 14.88,
+   "players": 732,
+   "diff": -4.88
+  },
+  {
+   "chart_id": 52592,
+   "declared": 20.0,
+   "est": 15.13,
+   "players": 439,
+   "diff": 4.87
+  },
+  {
+   "chart_id": 47544,
+   "declared": 18.5,
+   "est": 13.64,
+   "players": 1084,
+   "diff": 4.86
+  },
+  {
+   "chart_id": 12569,
+   "declared": 10.0,
+   "est": 14.85,
+   "players": 171,
+   "diff": -4.85
+  },
+  {
+   "chart_id": 62344,
+   "declared": 20.0,
+   "est": 15.15,
+   "players": 803,
+   "diff": 4.85
+  },
+  {
+   "chart_id": 30160,
+   "declared": 10.5,
+   "est": 15.34,
+   "players": 126,
+   "diff": -4.84
+  },
+  {
+   "chart_id": 42903,
+   "declared": 19.6,
+   "est": 14.76,
+   "players": 1181,
+   "diff": 4.84
+  },
+  {
+   "chart_id": 38444,
+   "declared": 20.0,
+   "est": 15.17,
+   "players": 68,
+   "diff": 4.83
+  },
+  {
+   "chart_id": 23790,
+   "declared": 10.0,
+   "est": 14.82,
+   "players": 102,
+   "diff": -4.82
+  },
+  {
+   "chart_id": 41941,
+   "declared": 20.0,
+   "est": 15.18,
+   "players": 85,
+   "diff": 4.82
+  },
+  {
+   "chart_id": 49447,
+   "declared": 20.0,
+   "est": 15.18,
+   "players": 102,
+   "diff": 4.82
+  },
+  {
+   "chart_id": 75758,
+   "declared": 10.0,
+   "est": 14.82,
+   "players": 373,
+   "diff": -4.82
+  },
+  {
+   "chart_id": 35220,
+   "declared": 20.0,
+   "est": 15.19,
+   "players": 72,
+   "diff": 4.81
+  },
+  {
+   "chart_id": 2009,
+   "declared": 10.0,
+   "est": 14.8,
+   "players": 16763,
+   "diff": -4.8
+  },
+  {
+   "chart_id": 61793,
+   "declared": 10.0,
+   "est": 14.8,
+   "players": 202,
+   "diff": -4.8
+  },
+  {
+   "chart_id": 17591,
+   "declared": 10.0,
+   "est": 14.79,
+   "players": 272,
+   "diff": -4.79
+  },
+  {
+   "chart_id": 40124,
+   "declared": 19.9,
+   "est": 15.11,
+   "players": 115,
+   "diff": 4.79
+  },
+  {
+   "chart_id": 40822,
+   "declared": 20.0,
+   "est": 15.21,
+   "players": 53,
+   "diff": 4.79
+  },
+  {
+   "chart_id": 18911,
+   "declared": 11.0,
+   "est": 15.78,
+   "players": 50,
+   "diff": -4.78
+  },
+  {
+   "chart_id": 70408,
+   "declared": 10.0,
+   "est": 14.78,
+   "players": 1293,
+   "diff": -4.78
+  },
+  {
+   "chart_id": 8684,
+   "declared": 10.0,
+   "est": 14.77,
+   "players": 573,
+   "diff": -4.77
+  },
+  {
+   "chart_id": 16056,
+   "declared": 10.0,
+   "est": 14.77,
+   "players": 66,
+   "diff": -4.77
+  },
+  {
+   "chart_id": 23430,
+   "declared": 10.0,
+   "est": 14.77,
+   "players": 1276,
+   "diff": -4.77
+  },
+  {
+   "chart_id": 74279,
+   "declared": 10.0,
+   "est": 14.74,
+   "players": 54007,
+   "diff": -4.74
+  },
+  {
+   "chart_id": 76364,
+   "declared": 10.0,
+   "est": 14.74,
+   "players": 1081,
+   "diff": -4.74
+  },
+  {
+   "chart_id": 33458,
+   "declared": 11.0,
+   "est": 15.73,
+   "players": 255,
+   "diff": -4.73
+  },
+  {
+   "chart_id": 42740,
+   "declared": 19.0,
+   "est": 14.27,
+   "players": 151,
+   "diff": 4.73
+  },
+  {
+   "chart_id": 17389,
+   "declared": 10.5,
+   "est": 15.22,
+   "players": 309,
+   "diff": -4.72
+  },
+  {
+   "chart_id": 63522,
+   "declared": 19.3,
+   "est": 14.58,
+   "players": 1164,
+   "diff": 4.72
+  },
+  {
+   "chart_id": 39848,
+   "declared": 10.0,
+   "est": 14.71,
+   "players": 63,
+   "diff": -4.71
+  },
+  {
+   "chart_id": 49162,
+   "declared": 10.0,
+   "est": 14.71,
+   "players": 78,
+   "diff": -4.71
+  },
+  {
+   "chart_id": 2554,
+   "declared": 10.0,
+   "est": 14.69,
+   "players": 81,
+   "diff": -4.69
+  },
+  {
+   "chart_id": 26885,
+   "declared": 10.0,
+   "est": 14.69,
+   "players": 256,
+   "diff": -4.69
+  },
+  {
+   "chart_id": 28911,
+   "declared": 10.0,
+   "est": 14.68,
+   "players": 119,
+   "diff": -4.68
+  },
+  {
+   "chart_id": 40477,
+   "declared": 10.0,
+   "est": 14.68,
+   "players": 254,
+   "diff": -4.68
+  },
+  {
+   "chart_id": 126,
+   "declared": 10.0,
+   "est": 14.67,
+   "players": 29256,
+   "diff": -4.67
+  },
+  {
+   "chart_id": 66548,
+   "declared": 10.0,
+   "est": 14.67,
+   "players": 312,
+   "diff": -4.67
+  },
+  {
+   "chart_id": 80439,
+   "declared": 10.0,
+   "est": 14.67,
+   "players": 785,
+   "diff": -4.67
+  },
+  {
+   "chart_id": 1620,
+   "declared": 11.0,
+   "est": 15.66,
+   "players": 157,
+   "diff": -4.66
+  },
+  {
+   "chart_id": 31868,
+   "declared": 10.0,
+   "est": 14.66,
+   "players": 66,
+   "diff": -4.66
+  },
+  {
+   "chart_id": 35151,
+   "declared": 20.0,
+   "est": 15.35,
+   "players": 58,
+   "diff": 4.65
+  },
+  {
+   "chart_id": 35923,
+   "declared": 10.0,
+   "est": 14.65,
+   "players": 425,
+   "diff": -4.65
+  },
+  {
+   "chart_id": 46213,
+   "declared": 10.0,
+   "est": 14.65,
+   "players": 89,
+   "diff": -4.65
+  },
+  {
+   "chart_id": 19833,
+   "declared": 20.0,
+   "est": 15.36,
+   "players": 141,
+   "diff": 4.64
+  },
+  {
+   "chart_id": 40379,
+   "declared": 10.0,
+   "est": 14.63,
+   "players": 51,
+   "diff": -4.63
+  },
+  {
+   "chart_id": 18912,
+   "declared": 11.0,
+   "est": 15.62,
+   "players": 116,
+   "diff": -4.62
+  },
+  {
+   "chart_id": 51687,
+   "declared": 10.9,
+   "est": 15.52,
+   "players": 92,
+   "diff": -4.62
+  },
+  {
+   "chart_id": 9257,
+   "declared": 11.0,
+   "est": 15.59,
+   "players": 82,
+   "diff": -4.59
+  },
+  {
+   "chart_id": 13160,
+   "declared": 17.7,
+   "est": 13.11,
+   "players": 41594,
+   "diff": 4.59
+  },
+  {
+   "chart_id": 18913,
+   "declared": 11.0,
+   "est": 15.59,
+   "players": 183,
+   "diff": -4.59
+  },
+  {
+   "chart_id": 58679,
+   "declared": 10.0,
+   "est": 14.59,
+   "players": 271,
+   "diff": -4.59
+  },
+  {
+   "chart_id": 69752,
+   "declared": 10.0,
+   "est": 14.59,
+   "players": 834,
+   "diff": -4.59
+  },
+  {
+   "chart_id": 17563,
+   "declared": 10.0,
+   "est": 14.58,
+   "players": 1046,
+   "diff": -4.58
+  },
+  {
+   "chart_id": 50433,
+   "declared": 10.0,
+   "est": 14.58,
+   "players": 375,
+   "diff": -4.58
+  },
+  {
+   "chart_id": 12869,
+   "declared": 10.0,
+   "est": 14.56,
+   "players": 434,
+   "diff": -4.56
+  },
+  {
+   "chart_id": 75493,
+   "declared": 10.5,
+   "est": 15.06,
+   "players": 10772,
+   "diff": -4.56
+  },
+  {
+   "chart_id": 49163,
+   "declared": 10.0,
+   "est": 14.55,
+   "players": 180,
+   "diff": -4.55
+  },
+  {
+   "chart_id": 70109,
+   "declared": 10.0,
+   "est": 14.55,
+   "players": 299,
+   "diff": -4.55
+  },
+  {
+   "chart_id": 52857,
+   "declared": 20.0,
+   "est": 15.46,
+   "players": 76,
+   "diff": 4.54
+  },
+  {
+   "chart_id": 58135,
+   "declared": 12.0,
+   "est": 16.54,
+   "players": 174,
+   "diff": -4.54
+  },
+  {
+   "chart_id": 31540,
+   "declared": 10.0,
+   "est": 14.53,
+   "players": 292,
+   "diff": -4.53
+  },
+  {
+   "chart_id": 51975,
+   "declared": 20.0,
+   "est": 15.47,
+   "players": 271,
+   "diff": 4.53
+  },
+  {
+   "chart_id": 53056,
+   "declared": 10.0,
+   "est": 14.53,
+   "players": 20564,
+   "diff": -4.53
+  },
+  {
+   "chart_id": 80349,
+   "declared": 19.6,
+   "est": 15.07,
+   "players": 28266,
+   "diff": 4.53
+  },
+  {
+   "chart_id": 9390,
+   "declared": 19.8,
+   "est": 15.28,
+   "players": 84,
+   "diff": 4.52
+  },
+  {
+   "chart_id": 44345,
+   "declared": 11.0,
+   "est": 15.52,
+   "players": 55,
+   "diff": -4.52
+  },
+  {
+   "chart_id": 28247,
+   "declared": 10.5,
+   "est": 15.0,
+   "players": 88,
+   "diff": -4.5
+  },
+  {
+   "chart_id": 54849,
+   "declared": 20.0,
+   "est": 15.5,
+   "players": 446,
+   "diff": 4.5
+  },
+  {
+   "chart_id": 16702,
+   "declared": 18.0,
+   "est": 13.51,
+   "players": 125,
+   "diff": 4.49
+  },
+  {
+   "chart_id": 26928,
+   "declared": 11.0,
+   "est": 15.49,
+   "players": 112,
+   "diff": -4.49
+  },
+  {
+   "chart_id": 57977,
+   "declared": 10.0,
+   "est": 14.48,
+   "players": 294,
+   "diff": -4.48
+  },
+  {
+   "chart_id": 38521,
+   "declared": 18.0,
+   "est": 13.53,
+   "players": 352,
+   "diff": 4.47
+  },
+  {
+   "chart_id": 52534,
+   "declared": 11.0,
+   "est": 15.46,
+   "players": 516,
+   "diff": -4.46
+  },
+  {
+   "chart_id": 49692,
+   "declared": 10.0,
+   "est": 14.45,
+   "players": 863,
+   "diff": -4.45
+  },
+  {
+   "chart_id": 53364,
+   "declared": 20.0,
+   "est": 15.55,
+   "players": 52,
+   "diff": 4.45
+  },
+  {
+   "chart_id": 4297,
+   "declared": 11.2,
+   "est": 15.64,
+   "players": 28857,
+   "diff": -4.44
+  },
+  {
+   "chart_id": 15821,
+   "declared": 19.0,
+   "est": 14.56,
+   "players": 101,
+   "diff": 4.44
+  },
+  {
+   "chart_id": 46299,
+   "declared": 19.5,
+   "est": 15.06,
+   "players": 82,
+   "diff": 4.44
+  },
+  {
+   "chart_id": 50658,
+   "declared": 20.0,
+   "est": 15.56,
+   "players": 82,
+   "diff": 4.44
+  },
+  {
+   "chart_id": 81305,
+   "declared": 10.0,
+   "est": 14.44,
+   "players": 886,
+   "diff": -4.44
+  },
+  {
+   "chart_id": 18914,
+   "declared": 11.0,
+   "est": 15.43,
+   "players": 150,
+   "diff": -4.43
+  },
+  {
+   "chart_id": 45114,
+   "declared": 10.0,
+   "est": 14.43,
+   "players": 155,
+   "diff": -4.43
+  },
+  {
+   "chart_id": 16260,
+   "declared": 20.0,
+   "est": 15.59,
+   "players": 134,
+   "diff": 4.41
+  },
+  {
+   "chart_id": 17388,
+   "declared": 10.3,
+   "est": 14.71,
+   "players": 220,
+   "diff": -4.41
+  },
+  {
+   "chart_id": 29899,
+   "declared": 10.0,
+   "est": 14.41,
+   "players": 331,
+   "diff": -4.41
+  },
+  {
+   "chart_id": 48620,
+   "declared": 10.0,
+   "est": 14.41,
+   "players": 472,
+   "diff": -4.41
+  },
+  {
+   "chart_id": 81150,
+   "declared": 20.0,
+   "est": 15.59,
+   "players": 227,
+   "diff": 4.41
+  },
+  {
+   "chart_id": 14504,
+   "declared": 10.0,
+   "est": 14.4,
+   "players": 360,
+   "diff": -4.4
+  },
+  {
+   "chart_id": 38047,
+   "declared": 10.0,
+   "est": 14.39,
+   "players": 228,
+   "diff": -4.39
+  },
+  {
+   "chart_id": 41292,
+   "declared": 17.0,
+   "est": 12.61,
+   "players": 1490,
+   "diff": 4.39
+  },
+  {
+   "chart_id": 32757,
+   "declared": 10.0,
+   "est": 14.38,
+   "players": 212,
+   "diff": -4.38
+  },
+  {
+   "chart_id": 37290,
+   "declared": 11.7,
+   "est": 16.06,
+   "players": 275,
+   "diff": -4.36
+  },
+  {
+   "chart_id": 50115,
+   "declared": 18.0,
+   "est": 13.64,
+   "players": 105,
+   "diff": 4.36
+  },
+  {
+   "chart_id": 81829,
+   "declared": 10.0,
+   "est": 14.35,
+   "players": 114,
+   "diff": -4.35
+  },
+  {
+   "chart_id": 12611,
+   "declared": 10.0,
+   "est": 14.34,
+   "players": 14598,
+   "diff": -4.34
+  },
+  {
+   "chart_id": 37515,
+   "declared": 10.0,
+   "est": 14.34,
+   "players": 270,
+   "diff": -4.34
+  },
+  {
+   "chart_id": 74858,
+   "declared": 20.0,
+   "est": 15.66,
+   "players": 62,
+   "diff": 4.34
+  },
+  {
+   "chart_id": 78794,
+   "declared": 18.0,
+   "est": 13.66,
+   "players": 107,
+   "diff": 4.34
+  },
+  {
+   "chart_id": 26609,
+   "declared": 11.0,
+   "est": 15.33,
+   "players": 106,
+   "diff": -4.33
+  },
+  {
+   "chart_id": 49187,
+   "declared": 20.0,
+   "est": 15.67,
+   "players": 177,
+   "diff": 4.33
+  },
+  {
+   "chart_id": 70872,
+   "declared": 10.0,
+   "est": 14.33,
+   "players": 690,
+   "diff": -4.33
+  },
+  {
+   "chart_id": 35764,
+   "declared": 10.4,
+   "est": 14.72,
+   "players": 96,
+   "diff": -4.32
+  },
+  {
+   "chart_id": 28487,
+   "declared": 19.0,
+   "est": 14.69,
+   "players": 85,
+   "diff": 4.31
+  },
+  {
+   "chart_id": 44210,
+   "declared": 10.0,
+   "est": 14.31,
+   "players": 104,
+   "diff": -4.31
+  },
+  {
+   "chart_id": 20179,
+   "declared": 19.0,
+   "est": 14.7,
+   "players": 95,
+   "diff": 4.3
+  },
+  {
+   "chart_id": 48594,
+   "declared": 20.0,
+   "est": 15.7,
+   "players": 82,
+   "diff": 4.3
+  },
+  {
+   "chart_id": 76701,
+   "declared": 20.0,
+   "est": 15.7,
+   "players": 89,
+   "diff": 4.3
+  },
+  {
+   "chart_id": 5665,
+   "declared": 10.0,
+   "est": 14.29,
+   "players": 346,
+   "diff": -4.29
+  },
+  {
+   "chart_id": 25300,
+   "declared": 10.0,
+   "est": 14.28,
+   "players": 81,
+   "diff": -4.28
+  },
+  {
+   "chart_id": 46988,
+   "declared": 20.0,
+   "est": 15.72,
+   "players": 56,
+   "diff": 4.28
+  },
+  {
+   "chart_id": 22968,
+   "declared": 20.0,
+   "est": 15.73,
+   "players": 26628,
+   "diff": 4.27
+  },
+  {
+   "chart_id": 29117,
+   "declared": 20.0,
+   "est": 15.73,
+   "players": 530,
+   "diff": 4.27
+  },
+  {
+   "chart_id": 22994,
+   "declared": 10.0,
+   "est": 14.26,
+   "players": 85,
+   "diff": -4.26
+  },
+  {
+   "chart_id": 49080,
+   "declared": 11.6,
+   "est": 15.86,
+   "players": 62,
+   "diff": -4.26
+  },
+  {
+   "chart_id": 68693,
+   "declared": 10.0,
+   "est": 14.25,
+   "players": 1646,
+   "diff": -4.25
+  },
+  {
+   "chart_id": 44250,
+   "declared": 18.0,
+   "est": 13.76,
+   "players": 158,
+   "diff": 4.24
+  },
+  {
+   "chart_id": 76989,
+   "declared": 10.0,
+   "est": 14.24,
+   "players": 70,
+   "diff": -4.24
+  },
+  {
+   "chart_id": 14047,
+   "declared": 19.0,
+   "est": 14.77,
+   "players": 158,
+   "diff": 4.23
+  },
+  {
+   "chart_id": 49965,
+   "declared": 11.2,
+   "est": 15.43,
+   "players": 52,
+   "diff": -4.23
+  },
+  {
+   "chart_id": 37329,
+   "declared": 10.0,
+   "est": 14.22,
+   "players": 1067,
+   "diff": -4.22
+  },
+  {
+   "chart_id": 38382,
+   "declared": 20.0,
+   "est": 15.78,
+   "players": 1262,
+   "diff": 4.22
+  },
+  {
+   "chart_id": 71794,
+   "declared": 12.4,
+   "est": 16.62,
+   "players": 155,
+   "diff": -4.22
+  },
+  {
+   "chart_id": 1477,
+   "declared": 20.0,
+   "est": 15.79,
+   "players": 58,
+   "diff": 4.21
+  },
+  {
+   "chart_id": 17956,
+   "declared": 10.0,
+   "est": 14.21,
+   "players": 375,
+   "diff": -4.21
+  },
+  {
+   "chart_id": 32451,
+   "declared": 10.0,
+   "est": 14.21,
+   "players": 67,
+   "diff": -4.21
+  },
+  {
+   "chart_id": 72364,
+   "declared": 10.0,
+   "est": 14.21,
+   "players": 1477,
+   "diff": -4.21
+  },
+  {
+   "chart_id": 47015,
+   "declared": 10.6,
+   "est": 14.8,
+   "players": 172,
+   "diff": -4.2
+  },
+  {
+   "chart_id": 51540,
+   "declared": 20.0,
+   "est": 15.8,
+   "players": 87,
+   "diff": 4.2
+  },
+  {
+   "chart_id": 54540,
+   "declared": 18.8,
+   "est": 14.6,
+   "players": 1331,
+   "diff": 4.2
+  },
+  {
+   "chart_id": 72901,
+   "declared": 20.0,
+   "est": 15.8,
+   "players": 436,
+   "diff": 4.2
+  },
+  {
+   "chart_id": 80130,
+   "declared": 11.3,
+   "est": 15.5,
+   "players": 93,
+   "diff": -4.2
+  },
+  {
+   "chart_id": 12788,
+   "declared": 10.6,
+   "est": 14.79,
+   "players": 136,
+   "diff": -4.19
+  },
+  {
+   "chart_id": 13178,
+   "declared": 10.0,
+   "est": 14.19,
+   "players": 101,
+   "diff": -4.19
+  },
+  {
+   "chart_id": 48482,
+   "declared": 10.0,
+   "est": 14.19,
+   "players": 28889,
+   "diff": -4.19
+  },
+  {
+   "chart_id": 36669,
+   "declared": 11.3,
+   "est": 15.48,
+   "players": 58,
+   "diff": -4.18
+  },
+  {
+   "chart_id": 44400,
+   "declared": 10.0,
+   "est": 14.17,
+   "players": 461,
+   "diff": -4.17
+  },
+  {
+   "chart_id": 5151,
+   "declared": 10.5,
+   "est": 14.66,
+   "players": 456,
+   "diff": -4.16
+  },
+  {
+   "chart_id": 31916,
+   "declared": 10.0,
+   "est": 14.16,
+   "players": 18659,
+   "diff": -4.16
+  },
+  {
+   "chart_id": 49526,
+   "declared": 20.0,
+   "est": 15.85,
+   "players": 71,
+   "diff": 4.15
+  },
+  {
+   "chart_id": 79358,
+   "declared": 11.2,
+   "est": 15.34,
+   "players": 70,
+   "diff": -4.14
+  },
+  {
+   "chart_id": 21184,
+   "declared": 19.0,
+   "est": 14.88,
+   "players": 111,
+   "diff": 4.12
+  },
+  {
+   "chart_id": 21755,
+   "declared": 17.0,
+   "est": 12.88,
+   "players": 883,
+   "diff": 4.12
+  },
+  {
+   "chart_id": 50203,
+   "declared": 10.0,
+   "est": 14.12,
+   "players": 53,
+   "diff": -4.12
+  },
+  {
+   "chart_id": 6317,
+   "declared": 12.0,
+   "est": 16.11,
+   "players": 58,
+   "diff": -4.11
+  },
+  {
+   "chart_id": 45371,
+   "declared": 10.0,
+   "est": 14.11,
+   "players": 51,
+   "diff": -4.11
+  },
+  {
+   "chart_id": 8898,
+   "declared": 18.0,
+   "est": 13.9,
+   "players": 285,
+   "diff": 4.1
+  },
+  {
+   "chart_id": 52028,
+   "declared": 20.0,
+   "est": 15.9,
+   "players": 164,
+   "diff": 4.1
+  },
+  {
+   "chart_id": 79931,
+   "declared": 10.0,
+   "est": 14.1,
+   "players": 248,
+   "diff": -4.1
+  },
+  {
+   "chart_id": 30883,
+   "declared": 19.0,
+   "est": 14.93,
+   "players": 143,
+   "diff": 4.07
+  },
+  {
+   "chart_id": 20796,
+   "declared": 10.5,
+   "est": 14.56,
+   "players": 248,
+   "diff": -4.06
+  },
+  {
+   "chart_id": 63807,
+   "declared": 12.0,
+   "est": 16.06,
+   "players": 162,
+   "diff": -4.06
+  },
+  {
+   "chart_id": 38642,
+   "declared": 10.0,
+   "est": 14.05,
+   "players": 423,
+   "diff": -4.05
+  },
+  {
+   "chart_id": 53149,
+   "declared": 17.0,
+   "est": 12.96,
+   "players": 805,
+   "diff": 4.04
+  },
+  {
+   "chart_id": 70049,
+   "declared": 20.0,
+   "est": 15.96,
+   "players": 658,
+   "diff": 4.04
+  },
+  {
+   "chart_id": 79125,
+   "declared": 10.3,
+   "est": 14.34,
+   "players": 97,
+   "diff": -4.04
+  },
+  {
+   "chart_id": 12568,
+   "declared": 10.0,
+   "est": 14.03,
+   "players": 80,
+   "diff": -4.03
+  },
+  {
+   "chart_id": 13751,
+   "declared": 18.4,
+   "est": 14.37,
+   "players": 212,
+   "diff": 4.03
+  },
+  {
+   "chart_id": 66162,
+   "declared": 10.0,
+   "est": 14.03,
+   "players": 2250,
+   "diff": -4.03
+  },
+  {
+   "chart_id": 26091,
+   "declared": 10.0,
+   "est": 14.02,
+   "players": 222,
+   "diff": -4.02
+  },
+  {
+   "chart_id": 35429,
+   "declared": 10.0,
+   "est": 14.02,
+   "players": 524,
+   "diff": -4.02
+  },
+  {
+   "chart_id": 53614,
+   "declared": 11.5,
+   "est": 15.52,
+   "players": 52,
+   "diff": -4.02
+  },
+  {
+   "chart_id": 28243,
+   "declared": 11.5,
+   "est": 15.5,
+   "players": 57,
+   "diff": -4.0
+  },
+  {
+   "chart_id": 41703,
+   "declared": 10.0,
+   "est": 14.0,
+   "players": 23937,
+   "diff": -4.0
+  },
+  {
+   "chart_id": 45505,
+   "declared": 10.0,
+   "est": 14.0,
+   "players": 73,
+   "diff": -4.0
+  },
+  {
+   "chart_id": 19534,
+   "declared": 20.0,
+   "est": 16.01,
+   "players": 65,
+   "diff": 3.99
+  },
+  {
+   "chart_id": 43296,
+   "declared": 10.0,
+   "est": 13.99,
+   "players": 26606,
+   "diff": -3.99
+  },
+  {
+   "chart_id": 69013,
+   "declared": 11.0,
+   "est": 14.99,
+   "players": 119,
+   "diff": -3.99
+  },
+  {
+   "chart_id": 79126,
+   "declared": 10.8,
+   "est": 14.79,
+   "players": 206,
+   "diff": -3.99
+  },
+  {
+   "chart_id": 54731,
+   "declared": 10.0,
+   "est": 13.98,
+   "players": 290,
+   "diff": -3.98
+  },
+  {
+   "chart_id": 66937,
+   "declared": 18.0,
+   "est": 14.02,
+   "players": 277,
+   "diff": 3.98
+  },
+  {
+   "chart_id": 25388,
+   "declared": 19.2,
+   "est": 15.23,
+   "players": 131,
+   "diff": 3.97
+  },
+  {
+   "chart_id": 50333,
+   "declared": 20.0,
+   "est": 16.03,
+   "players": 392,
+   "diff": 3.97
+  },
+  {
+   "chart_id": 58427,
+   "declared": 10.0,
+   "est": 13.97,
+   "players": 65,
+   "diff": -3.97
+  },
+  {
+   "chart_id": 81406,
+   "declared": 10.0,
+   "est": 13.96,
+   "players": 582,
+   "diff": -3.96
+  },
+  {
+   "chart_id": 49941,
+   "declared": 11.9,
+   "est": 15.85,
+   "players": 82,
+   "diff": -3.95
+  },
+  {
+   "chart_id": 69291,
+   "declared": 19.5,
+   "est": 15.55,
+   "players": 80,
+   "diff": 3.95
+  },
+  {
+   "chart_id": 1666,
+   "declared": 12.0,
+   "est": 15.93,
+   "players": 97,
+   "diff": -3.93
+  },
+  {
+   "chart_id": 10991,
+   "declared": 10.1,
+   "est": 14.03,
+   "players": 354,
+   "diff": -3.93
+  },
+  {
+   "chart_id": 29617,
+   "declared": 10.0,
+   "est": 13.93,
+   "players": 58,
+   "diff": -3.93
+  },
+  {
+   "chart_id": 26,
+   "declared": 12.0,
+   "est": 15.92,
+   "players": 64,
+   "diff": -3.92
+  },
+  {
+   "chart_id": 24292,
+   "declared": 19.1,
+   "est": 15.18,
+   "players": 557,
+   "diff": 3.92
+  },
+  {
+   "chart_id": 37203,
+   "declared": 10.0,
+   "est": 13.92,
+   "players": 53,
+   "diff": -3.92
+  },
+  {
+   "chart_id": 46674,
+   "declared": 19.6,
+   "est": 15.69,
+   "players": 70,
+   "diff": 3.91
+  },
+  {
+   "chart_id": 49730,
+   "declared": 11.2,
+   "est": 15.11,
+   "players": 81,
+   "diff": -3.91
+  },
+  {
+   "chart_id": 41404,
+   "declared": 10.0,
+   "est": 13.9,
+   "players": 170,
+   "diff": -3.9
+  },
+  {
+   "chart_id": 61869,
+   "declared": 10.0,
+   "est": 13.89,
+   "players": 336,
+   "diff": -3.89
+  },
+  {
+   "chart_id": 21174,
+   "declared": 19.0,
+   "est": 15.12,
+   "players": 78,
+   "diff": 3.88
+  },
+  {
+   "chart_id": 31787,
+   "declared": 10.2,
+   "est": 14.08,
+   "players": 68,
+   "diff": -3.88
+  },
+  {
+   "chart_id": 47420,
+   "declared": 17.2,
+   "est": 13.32,
+   "players": 112,
+   "diff": 3.88
+  },
+  {
+   "chart_id": 48380,
+   "declared": 20.0,
+   "est": 16.12,
+   "players": 304,
+   "diff": 3.88
+  },
+  {
+   "chart_id": 55073,
+   "declared": 10.0,
+   "est": 13.88,
+   "players": 17097,
+   "diff": -3.88
+  },
+  {
+   "chart_id": 30278,
+   "declared": 11.7,
+   "est": 15.57,
+   "players": 64,
+   "diff": -3.87
+  },
+  {
+   "chart_id": 52753,
+   "declared": 10.0,
+   "est": 13.87,
+   "players": 215,
+   "diff": -3.87
+  },
+  {
+   "chart_id": 61048,
+   "declared": 11.0,
+   "est": 14.87,
+   "players": 62479,
+   "diff": -3.87
+  },
+  {
+   "chart_id": 1281,
+   "declared": 11.1,
+   "est": 14.96,
+   "players": 29062,
+   "diff": -3.86
+  },
+  {
+   "chart_id": 31867,
+   "declared": 10.2,
+   "est": 14.05,
+   "players": 1477,
+   "diff": -3.85
+  },
+  {
+   "chart_id": 72310,
+   "declared": 20.0,
+   "est": 16.15,
+   "players": 168,
+   "diff": 3.85
+  },
+  {
+   "chart_id": 35343,
+   "declared": 18.0,
+   "est": 14.16,
+   "players": 164,
+   "diff": 3.84
+  },
+  {
+   "chart_id": 43205,
+   "declared": 10.0,
+   "est": 13.84,
+   "players": 469,
+   "diff": -3.84
+  },
+  {
+   "chart_id": 13233,
+   "declared": 11.5,
+   "est": 15.33,
+   "players": 226,
+   "diff": -3.83
+  },
+  {
+   "chart_id": 26404,
+   "declared": 11.0,
+   "est": 14.83,
+   "players": 22176,
+   "diff": -3.83
+  },
+  {
+   "chart_id": 54167,
+   "declared": 11.0,
+   "est": 14.83,
+   "players": 308,
+   "diff": -3.83
+  },
+  {
+   "chart_id": 14859,
+   "declared": 20.0,
+   "est": 16.18,
+   "players": 73,
+   "diff": 3.82
+  },
+  {
+   "chart_id": 21307,
+   "declared": 20.0,
+   "est": 16.19,
+   "players": 111,
+   "diff": 3.81
+  },
+  {
+   "chart_id": 45767,
+   "declared": 11.0,
+   "est": 14.81,
+   "players": 312,
+   "diff": -3.81
+  },
+  {
+   "chart_id": 26843,
+   "declared": 19.9,
+   "est": 16.1,
+   "players": 223,
+   "diff": 3.8
+  },
+  {
+   "chart_id": 37511,
+   "declared": 10.0,
+   "est": 13.8,
+   "players": 51,
+   "diff": -3.8
+  },
+  {
+   "chart_id": 66639,
+   "declared": 10.0,
+   "est": 13.8,
+   "players": 92,
+   "diff": -3.8
+  },
+  {
+   "chart_id": 7739,
+   "declared": 10.0,
+   "est": 13.79,
+   "players": 50,
+   "diff": -3.79
+  },
+  {
+   "chart_id": 21791,
+   "declared": 19.0,
+   "est": 15.21,
+   "players": 114,
+   "diff": 3.79
+  },
+  {
+   "chart_id": 42262,
+   "declared": 20.0,
+   "est": 16.21,
+   "players": 85,
+   "diff": 3.79
+  },
+  {
+   "chart_id": 54287,
+   "declared": 11.4,
+   "est": 15.19,
+   "players": 20136,
+   "diff": -3.79
+  },
+  {
+   "chart_id": 56315,
+   "declared": 18.0,
+   "est": 14.21,
+   "players": 61072,
+   "diff": 3.79
+  },
+  {
+   "chart_id": 38428,
+   "declared": 11.0,
+   "est": 14.76,
+   "players": 1343,
+   "diff": -3.76
+  },
+  {
+   "chart_id": 56973,
+   "declared": 10.0,
+   "est": 13.75,
+   "players": 23554,
+   "diff": -3.75
+  },
+  {
+   "chart_id": 63542,
+   "declared": 12.0,
+   "est": 15.74,
+   "players": 111,
+   "diff": -3.74
+  },
+  {
+   "chart_id": 54376,
+   "declared": 12.0,
+   "est": 15.72,
+   "players": 316,
+   "diff": -3.72
+  },
+  {
+   "chart_id": 78043,
+   "declared": 11.0,
+   "est": 14.72,
+   "players": 1618,
+   "diff": -3.72
+  },
+  {
+   "chart_id": 27418,
+   "declared": 11.7,
+   "est": 15.41,
+   "players": 101,
+   "diff": -3.71
+  },
+  {
+   "chart_id": 60000,
+   "declared": 20.0,
+   "est": 16.29,
+   "players": 438,
+   "diff": 3.71
+  },
+  {
+   "chart_id": 4650,
+   "declared": 12.5,
+   "est": 16.2,
+   "players": 55,
+   "diff": -3.7
+  },
+  {
+   "chart_id": 20040,
+   "declared": 12.0,
+   "est": 15.7,
+   "players": 61,
+   "diff": -3.7
+  },
+  {
+   "chart_id": 6795,
+   "declared": 11.0,
+   "est": 14.69,
+   "players": 445,
+   "diff": -3.69
+  },
+  {
+   "chart_id": 15927,
+   "declared": 10.0,
+   "est": 13.68,
+   "players": 1026,
+   "diff": -3.68
+  },
+  {
+   "chart_id": 16418,
+   "declared": 10.0,
+   "est": 13.68,
+   "players": 16007,
+   "diff": -3.68
+  },
+  {
+   "chart_id": 10650,
+   "declared": 11.9,
+   "est": 15.57,
+   "players": 62,
+   "diff": -3.67
+  },
+  {
+   "chart_id": 26350,
+   "declared": 20.0,
+   "est": 16.33,
+   "players": 131,
+   "diff": 3.67
+  },
+  {
+   "chart_id": 77893,
+   "declared": 11.0,
+   "est": 14.66,
+   "players": 578,
+   "diff": -3.66
+  },
+  {
+   "chart_id": 4299,
+   "declared": 11.0,
+   "est": 14.65,
+   "players": 307,
+   "diff": -3.65
+  },
+  {
+   "chart_id": 24205,
+   "declared": 11.0,
+   "est": 14.65,
+   "players": 151,
+   "diff": -3.65
+  },
+  {
+   "chart_id": 3272,
+   "declared": 12.3,
+   "est": 15.94,
+   "players": 93,
+   "diff": -3.64
+  },
+  {
+   "chart_id": 22410,
+   "declared": 10.0,
+   "est": 13.64,
+   "players": 12941,
+   "diff": -3.64
+  },
+  {
+   "chart_id": 24976,
+   "declared": 10.0,
+   "est": 13.64,
+   "players": 936,
+   "diff": -3.64
+  },
+  {
+   "chart_id": 50028,
+   "declared": 12.0,
+   "est": 15.63,
+   "players": 66,
+   "diff": -3.63
+  },
+  {
+   "chart_id": 74388,
+   "declared": 11.5,
+   "est": 15.13,
+   "players": 157,
+   "diff": -3.63
+  },
+  {
+   "chart_id": 29809,
+   "declared": 12.0,
+   "est": 15.62,
+   "players": 92,
+   "diff": -3.62
+  },
+  {
+   "chart_id": 69603,
+   "declared": 20.0,
+   "est": 16.38,
+   "players": 20802,
+   "diff": 3.62
+  },
+  {
+   "chart_id": 49940,
+   "declared": 11.9,
+   "est": 15.5,
+   "players": 81,
+   "diff": -3.6
+  },
+  {
+   "chart_id": 20550,
+   "declared": 20.0,
+   "est": 16.41,
+   "players": 162,
+   "diff": 3.59
+  },
+  {
+   "chart_id": 38498,
+   "declared": 20.0,
+   "est": 16.42,
+   "players": 53,
+   "diff": 3.58
+  },
+  {
+   "chart_id": 31924,
+   "declared": 11.0,
+   "est": 14.57,
+   "players": 311,
+   "diff": -3.57
+  },
+  {
+   "chart_id": 43006,
+   "declared": 18.0,
+   "est": 14.43,
+   "players": 76,
+   "diff": 3.57
+  },
+  {
+   "chart_id": 13004,
+   "declared": 10.0,
+   "est": 13.56,
+   "players": 64707,
+   "diff": -3.56
+  },
+  {
+   "chart_id": 44688,
+   "declared": 10.0,
+   "est": 13.55,
+   "players": 113,
+   "diff": -3.55
+  },
+  {
+   "chart_id": 28246,
+   "declared": 11.9,
+   "est": 15.44,
+   "players": 88,
+   "diff": -3.54
+  },
+  {
+   "chart_id": 53559,
+   "declared": 11.0,
+   "est": 14.54,
+   "players": 123,
+   "diff": -3.54
+  },
+  {
+   "chart_id": 34792,
+   "declared": 10.0,
+   "est": 13.52,
+   "players": 84,
+   "diff": -3.52
+  },
+  {
+   "chart_id": 43787,
+   "declared": 12.9,
+   "est": 16.42,
+   "players": 1900,
+   "diff": -3.52
+  },
+  {
+   "chart_id": 54566,
+   "declared": 10.0,
+   "est": 13.52,
+   "players": 65,
+   "diff": -3.52
+  },
+  {
+   "chart_id": 27440,
+   "declared": 11.0,
+   "est": 14.51,
+   "players": 158,
+   "diff": -3.51
+  },
+  {
+   "chart_id": 26929,
+   "declared": 12.0,
+   "est": 15.5,
+   "players": 66,
+   "diff": -3.5
+  },
+  {
+   "chart_id": 23099,
+   "declared": 10.0,
+   "est": 13.49,
+   "players": 491,
+   "diff": -3.49
+  },
+  {
+   "chart_id": 36306,
+   "declared": 12.0,
+   "est": 15.48,
+   "players": 90,
+   "diff": -3.48
+  },
+  {
+   "chart_id": 45443,
+   "declared": 13.0,
+   "est": 16.48,
+   "players": 270,
+   "diff": -3.48
+  },
+  {
+   "chart_id": 54242,
+   "declared": 13.0,
+   "est": 16.47,
+   "players": 54,
+   "diff": -3.47
+  },
+  {
+   "chart_id": 51116,
+   "declared": 11.9,
+   "est": 15.35,
+   "players": 91,
+   "diff": -3.45
+  },
+  {
+   "chart_id": 14693,
+   "declared": 18.0,
+   "est": 14.56,
+   "players": 342,
+   "diff": 3.44
+  },
+  {
+   "chart_id": 27026,
+   "declared": 10.0,
+   "est": 13.42,
+   "players": 85,
+   "diff": -3.42
+  },
+  {
+   "chart_id": 41194,
+   "declared": 18.0,
+   "est": 14.59,
+   "players": 123,
+   "diff": 3.41
+  },
+  {
+   "chart_id": 56760,
+   "declared": 11.0,
+   "est": 14.41,
+   "players": 141,
+   "diff": -3.41
+  },
+  {
+   "chart_id": 754,
+   "declared": 11.0,
+   "est": 14.4,
+   "players": 20724,
+   "diff": -3.4
+  },
+  {
+   "chart_id": 39405,
+   "declared": 10.0,
+   "est": 13.4,
+   "players": 57,
+   "diff": -3.4
+  },
+  {
+   "chart_id": 46755,
+   "declared": 10.0,
+   "est": 13.39,
+   "players": 92,
+   "diff": -3.39
+  },
+  {
+   "chart_id": 31746,
+   "declared": 20.0,
+   "est": 16.62,
+   "players": 75,
+   "diff": 3.38
+  },
+  {
+   "chart_id": 46195,
+   "declared": 10.0,
+   "est": 13.38,
+   "players": 623,
+   "diff": -3.38
+  },
+  {
+   "chart_id": 19457,
+   "declared": 12.4,
+   "est": 15.77,
+   "players": 216,
+   "diff": -3.37
+  },
+  {
+   "chart_id": 19632,
+   "declared": 11.0,
+   "est": 14.37,
+   "players": 555,
+   "diff": -3.37
+  },
+  {
+   "chart_id": 66872,
+   "declared": 10.0,
+   "est": 13.37,
+   "players": 2609,
+   "diff": -3.37
+  },
+  {
+   "chart_id": 41603,
+   "declared": 10.0,
+   "est": 13.36,
+   "players": 79,
+   "diff": -3.36
+  },
+  {
+   "chart_id": 43247,
+   "declared": 11.9,
+   "est": 15.26,
+   "players": 76,
+   "diff": -3.36
+  },
+  {
+   "chart_id": 35968,
+   "declared": 20.0,
+   "est": 16.65,
+   "players": 606,
+   "diff": 3.35
+  },
+  {
+   "chart_id": 37362,
+   "declared": 20.0,
+   "est": 16.65,
+   "players": 52,
+   "diff": 3.35
+  },
+  {
+   "chart_id": 61241,
+   "declared": 10.0,
+   "est": 13.33,
+   "players": 398,
+   "diff": -3.33
+  },
+  {
+   "chart_id": 43235,
+   "declared": 11.6,
+   "est": 14.92,
+   "players": 1813,
+   "diff": -3.32
+  },
+  {
+   "chart_id": 58825,
+   "declared": 18.4,
+   "est": 15.08,
+   "players": 87,
+   "diff": 3.32
+  },
+  {
+   "chart_id": 43097,
+   "declared": 12.0,
+   "est": 15.31,
+   "players": 208,
+   "diff": -3.31
+  },
+  {
+   "chart_id": 68145,
+   "declared": 10.0,
+   "est": 13.31,
+   "players": 825,
+   "diff": -3.31
+  },
+  {
+   "chart_id": 38820,
+   "declared": 10.3,
+   "est": 13.6,
+   "players": 66,
+   "diff": -3.3
+  },
+  {
+   "chart_id": 36760,
+   "declared": 10.0,
+   "est": 13.28,
+   "players": 68,
+   "diff": -3.28
+  },
+  {
+   "chart_id": 67127,
+   "declared": 10.2,
+   "est": 13.48,
+   "players": 2395,
+   "diff": -3.28
+  },
+  {
+   "chart_id": 2543,
+   "declared": 10.0,
+   "est": 13.27,
+   "players": 373,
+   "diff": -3.27
+  },
+  {
+   "chart_id": 48600,
+   "declared": 12.0,
+   "est": 15.27,
+   "players": 178,
+   "diff": -3.27
+  },
+  {
+   "chart_id": 76959,
+   "declared": 20.0,
+   "est": 16.73,
+   "players": 88,
+   "diff": 3.27
+  },
+  {
+   "chart_id": 9662,
+   "declared": 11.7,
+   "est": 14.96,
+   "players": 59,
+   "diff": -3.26
+  },
+  {
+   "chart_id": 46699,
+   "declared": 12.0,
+   "est": 15.26,
+   "players": 103,
+   "diff": -3.26
+  },
+  {
+   "chart_id": 8225,
+   "declared": 11.1,
+   "est": 14.35,
+   "players": 243,
+   "diff": -3.25
+  },
+  {
+   "chart_id": 20984,
+   "declared": 12.9,
+   "est": 16.14,
+   "players": 74,
+   "diff": -3.24
+  },
+  {
+   "chart_id": 64405,
+   "declared": 12.0,
+   "est": 15.24,
+   "players": 71,
+   "diff": -3.24
+  },
+  {
+   "chart_id": 11043,
+   "declared": 10.5,
+   "est": 13.73,
+   "players": 82,
+   "diff": -3.23
+  },
+  {
+   "chart_id": 21618,
+   "declared": 10.9,
+   "est": 14.13,
+   "players": 242,
+   "diff": -3.23
+  },
+  {
+   "chart_id": 22995,
+   "declared": 12.0,
+   "est": 15.21,
+   "players": 1195,
+   "diff": -3.21
+  },
+  {
+   "chart_id": 40189,
+   "declared": 10.0,
+   "est": 13.21,
+   "players": 62,
+   "diff": -3.21
+  },
+  {
+   "chart_id": 8237,
+   "declared": 11.0,
+   "est": 14.19,
+   "players": 25044,
+   "diff": -3.19
+  },
+  {
+   "chart_id": 14286,
+   "declared": 11.0,
+   "est": 14.19,
+   "players": 179,
+   "diff": -3.19
+  },
+  {
+   "chart_id": 37348,
+   "declared": 10.0,
+   "est": 13.19,
+   "players": 755,
+   "diff": -3.19
+  },
+  {
+   "chart_id": 43137,
+   "declared": 11.0,
+   "est": 14.19,
+   "players": 92,
+   "diff": -3.19
+  },
+  {
+   "chart_id": 45366,
+   "declared": 11.0,
+   "est": 14.19,
+   "players": 2460,
+   "diff": -3.19
+  },
+  {
+   "chart_id": 42236,
+   "declared": 18.7,
+   "est": 15.52,
+   "players": 295,
+   "diff": 3.18
+  },
+  {
+   "chart_id": 64545,
+   "declared": 11.0,
+   "est": 14.18,
+   "players": 20731,
+   "diff": -3.18
+  },
+  {
+   "chart_id": 14366,
+   "declared": 12.4,
+   "est": 15.57,
+   "players": 564,
+   "diff": -3.17
+  },
+  {
+   "chart_id": 12300,
+   "declared": 11.0,
+   "est": 14.16,
+   "players": 424,
+   "diff": -3.16
+  },
+  {
+   "chart_id": 46856,
+   "declared": 19.0,
+   "est": 15.85,
+   "players": 322,
+   "diff": 3.15
+  },
+  {
+   "chart_id": 5135,
+   "declared": 11.7,
+   "est": 14.84,
+   "players": 506,
+   "diff": -3.14
+  },
+  {
+   "chart_id": 6517,
+   "declared": 11.4,
+   "est": 14.53,
+   "players": 59,
+   "diff": -3.13
+  },
+  {
+   "chart_id": 29726,
+   "declared": 11.9,
+   "est": 15.03,
+   "players": 56,
+   "diff": -3.13
+  },
+  {
+   "chart_id": 44268,
+   "declared": 12.0,
+   "est": 15.13,
+   "players": 1690,
+   "diff": -3.13
+  },
+  {
+   "chart_id": 37435,
+   "declared": 12.0,
+   "est": 15.11,
+   "players": 130,
+   "diff": -3.11
+  },
+  {
+   "chart_id": 41581,
+   "declared": 12.0,
+   "est": 15.1,
+   "players": 187,
+   "diff": -3.1
+  },
+  {
+   "chart_id": 43706,
+   "declared": 10.0,
+   "est": 13.1,
+   "players": 12772,
+   "diff": -3.1
+  },
+  {
+   "chart_id": 22609,
+   "declared": 11.1,
+   "est": 14.19,
+   "players": 16574,
+   "diff": -3.09
+  },
+  {
+   "chart_id": 28244,
+   "declared": 12.3,
+   "est": 15.39,
+   "players": 110,
+   "diff": -3.09
+  },
+  {
+   "chart_id": 46036,
+   "declared": 10.0,
+   "est": 13.09,
+   "players": 108349,
+   "diff": -3.09
+  },
+  {
+   "chart_id": 81740,
+   "declared": 20.0,
+   "est": 16.91,
+   "players": 1133,
+   "diff": 3.09
+  },
+  {
+   "chart_id": 61795,
+   "declared": 19.3,
+   "est": 16.22,
+   "players": 126,
+   "diff": 3.08
+  },
+  {
+   "chart_id": 17240,
+   "declared": 11.0,
+   "est": 14.07,
+   "players": 510,
+   "diff": -3.07
+  },
+  {
+   "chart_id": 53906,
+   "declared": 12.0,
+   "est": 15.06,
+   "players": 1166,
+   "diff": -3.06
+  },
+  {
+   "chart_id": 64773,
+   "declared": 11.0,
+   "est": 14.06,
+   "players": 580,
+   "diff": -3.06
+  },
+  {
+   "chart_id": 671,
+   "declared": 12.0,
+   "est": 15.05,
+   "players": 69,
+   "diff": -3.05
+  },
+  {
+   "chart_id": 38060,
+   "declared": 17.0,
+   "est": 13.95,
+   "players": 1324,
+   "diff": 3.05
+  },
+  {
+   "chart_id": 48186,
+   "declared": 17.2,
+   "est": 14.15,
+   "players": 79,
+   "diff": 3.05
+  },
+  {
+   "chart_id": 34306,
+   "declared": 12.0,
+   "est": 15.04,
+   "players": 256,
+   "diff": -3.04
+  },
+  {
+   "chart_id": 38797,
+   "declared": 12.0,
+   "est": 15.04,
+   "players": 98,
+   "diff": -3.04
+  },
+  {
+   "chart_id": 31615,
+   "declared": 10.0,
+   "est": 13.03,
+   "players": 14828,
+   "diff": -3.03
+  },
+  {
+   "chart_id": 54285,
+   "declared": 13.0,
+   "est": 16.02,
+   "players": 1019,
+   "diff": -3.02
+  },
+  {
+   "chart_id": 13236,
+   "declared": 11.2,
+   "est": 14.21,
+   "players": 198,
+   "diff": -3.01
+  },
+  {
+   "chart_id": 26059,
+   "declared": 19.0,
+   "est": 16.0,
+   "players": 75,
+   "diff": 3.0
+  },
+  {
+   "chart_id": 26147,
+   "declared": 10.0,
+   "est": 13.0,
+   "players": 974,
+   "diff": -3.0
+  },
+  {
+   "chart_id": 20323,
+   "declared": 11.5,
+   "est": 14.49,
+   "players": 136,
+   "diff": -2.99
+  },
+  {
+   "chart_id": 26679,
+   "declared": 12.0,
+   "est": 14.99,
+   "players": 132,
+   "diff": -2.99
+  },
+  {
+   "chart_id": 46017,
+   "declared": 13.8,
+   "est": 16.78,
+   "players": 1402,
+   "diff": -2.98
+  },
+  {
+   "chart_id": 69701,
+   "declared": 10.0,
+   "est": 12.98,
+   "players": 179,
+   "diff": -2.98
+  },
+  {
+   "chart_id": 10479,
+   "declared": 13.1,
+   "est": 16.07,
+   "players": 65,
+   "diff": -2.97
+  },
+  {
+   "chart_id": 1496,
+   "declared": 20.0,
+   "est": 17.04,
+   "players": 105,
+   "diff": 2.96
+  },
+  {
+   "chart_id": 18338,
+   "declared": 20.0,
+   "est": 17.04,
+   "players": 206,
+   "diff": 2.96
+  },
+  {
+   "chart_id": 26390,
+   "declared": 12.2,
+   "est": 15.16,
+   "players": 15957,
+   "diff": -2.96
+  },
+  {
+   "chart_id": 24681,
+   "declared": 11.6,
+   "est": 14.55,
+   "players": 999,
+   "diff": -2.95
+  },
+  {
+   "chart_id": 42843,
+   "declared": 12.2,
+   "est": 15.15,
+   "players": 1788,
+   "diff": -2.95
+  },
+  {
+   "chart_id": 42019,
+   "declared": 12.0,
+   "est": 14.94,
+   "players": 1684,
+   "diff": -2.94
+  },
+  {
+   "chart_id": 48400,
+   "declared": 11.5,
+   "est": 14.44,
+   "players": 708,
+   "diff": -2.94
+  },
+  {
+   "chart_id": 11278,
+   "declared": 14.4,
+   "est": 17.33,
+   "players": 189,
+   "diff": -2.93
+  },
+  {
+   "chart_id": 38552,
+   "declared": 13.3,
+   "est": 16.23,
+   "players": 314,
+   "diff": -2.93
+  },
+  {
+   "chart_id": 31348,
+   "declared": 10.0,
+   "est": 12.91,
+   "players": 11636,
+   "diff": -2.91
+  },
+  {
+   "chart_id": 2342,
+   "declared": 20.0,
+   "est": 17.1,
+   "players": 75,
+   "diff": 2.9
+  },
+  {
+   "chart_id": 27501,
+   "declared": 11.4,
+   "est": 14.3,
+   "players": 756,
+   "diff": -2.9
+  },
+  {
+   "chart_id": 51443,
+   "declared": 10.0,
+   "est": 12.9,
+   "players": 150,
+   "diff": -2.9
+  },
+  {
+   "chart_id": 59731,
+   "declared": 13.9,
+   "est": 16.8,
+   "players": 1227,
+   "diff": -2.9
+  },
+  {
+   "chart_id": 47465,
+   "declared": 10.1,
+   "est": 12.99,
+   "players": 693,
+   "diff": -2.89
+  },
+  {
+   "chart_id": 31098,
+   "declared": 11.0,
+   "est": 13.88,
+   "players": 907,
+   "diff": -2.88
+  },
+  {
+   "chart_id": 39825,
+   "declared": 13.1,
+   "est": 15.98,
+   "players": 88,
+   "diff": -2.88
+  },
+  {
+   "chart_id": 45615,
+   "declared": 12.0,
+   "est": 14.88,
+   "players": 131,
+   "diff": -2.88
+  },
+  {
+   "chart_id": 51889,
+   "declared": 12.0,
+   "est": 14.87,
+   "players": 28174,
+   "diff": -2.87
+  },
+  {
+   "chart_id": 28579,
+   "declared": 15.8,
+   "est": 12.94,
+   "players": 634,
+   "diff": 2.86
+  },
+  {
+   "chart_id": 70212,
+   "declared": 18.0,
+   "est": 15.14,
+   "players": 145,
+   "diff": 2.86
+  },
+  {
+   "chart_id": 35447,
+   "declared": 12.9,
+   "est": 15.75,
+   "players": 114,
+   "diff": -2.85
+  },
+  {
+   "chart_id": 59967,
+   "declared": 19.7,
+   "est": 16.85,
+   "players": 236,
+   "diff": 2.85
+  },
+  {
+   "chart_id": 62868,
+   "declared": 13.0,
+   "est": 15.84,
+   "players": 56,
+   "diff": -2.84
+  },
+  {
+   "chart_id": 7543,
+   "declared": 12.0,
+   "est": 14.83,
+   "players": 21388,
+   "diff": -2.83
+  },
+  {
+   "chart_id": 69254,
+   "declared": 18.8,
+   "est": 15.97,
+   "players": 76,
+   "diff": 2.83
+  },
+  {
+   "chart_id": 11352,
+   "declared": 12.6,
+   "est": 15.42,
+   "players": 145,
+   "diff": -2.82
+  },
+  {
+   "chart_id": 19331,
+   "declared": 17.0,
+   "est": 14.18,
+   "players": 502,
+   "diff": 2.82
+  },
+  {
+   "chart_id": 54756,
+   "declared": 13.0,
+   "est": 15.82,
+   "players": 206,
+   "diff": -2.82
+  },
+  {
+   "chart_id": 74114,
+   "declared": 12.0,
+   "est": 14.82,
+   "players": 1439,
+   "diff": -2.82
+  },
+  {
+   "chart_id": 29411,
+   "declared": 11.1,
+   "est": 13.91,
+   "players": 529,
+   "diff": -2.81
+  },
+  {
+   "chart_id": 32956,
+   "declared": 10.5,
+   "est": 13.31,
+   "players": 69,
+   "diff": -2.81
+  },
+  {
+   "chart_id": 43391,
+   "declared": 17.8,
+   "est": 14.99,
+   "players": 125,
+   "diff": 2.81
+  },
+  {
+   "chart_id": 51363,
+   "declared": 12.0,
+   "est": 14.81,
+   "players": 164,
+   "diff": -2.81
+  },
+  {
+   "chart_id": 60101,
+   "declared": 20.0,
+   "est": 17.19,
+   "players": 66,
+   "diff": 2.81
+  },
+  {
+   "chart_id": 3279,
+   "declared": 11.0,
+   "est": 13.8,
+   "players": 1639,
+   "diff": -2.8
+  },
+  {
+   "chart_id": 50514,
+   "declared": 12.2,
+   "est": 15.0,
+   "players": 91,
+   "diff": -2.8
+  },
+  {
+   "chart_id": 50867,
+   "declared": 10.0,
+   "est": 12.8,
+   "players": 32096,
+   "diff": -2.8
+  },
+  {
+   "chart_id": 78281,
+   "declared": 10.0,
+   "est": 12.79,
+   "players": 439,
+   "diff": -2.79
+  },
+  {
+   "chart_id": 6679,
+   "declared": 12.0,
+   "est": 14.78,
+   "players": 28019,
+   "diff": -2.78
+  },
+  {
+   "chart_id": 27281,
+   "declared": 11.4,
+   "est": 14.18,
+   "players": 88,
+   "diff": -2.78
+  },
+  {
+   "chart_id": 55091,
+   "declared": 18.0,
+   "est": 15.22,
+   "players": 182,
+   "diff": 2.78
+  },
+  {
+   "chart_id": 17087,
+   "declared": 12.0,
+   "est": 14.77,
+   "players": 101,
+   "diff": -2.77
+  },
+  {
+   "chart_id": 40617,
+   "declared": 20.0,
+   "est": 17.25,
+   "players": 78,
+   "diff": 2.75
+  },
+  {
+   "chart_id": 52816,
+   "declared": 10.9,
+   "est": 13.64,
+   "players": 12356,
+   "diff": -2.74
+  },
+  {
+   "chart_id": 55503,
+   "declared": 11.0,
+   "est": 13.74,
+   "players": 367,
+   "diff": -2.74
+  },
+  {
+   "chart_id": 31807,
+   "declared": 13.9,
+   "est": 16.62,
+   "players": 493,
+   "diff": -2.72
+  },
+  {
+   "chart_id": 31882,
+   "declared": 18.4,
+   "est": 15.68,
+   "players": 181,
+   "diff": 2.72
+  },
+  {
+   "chart_id": 36301,
+   "declared": 20.0,
+   "est": 17.28,
+   "players": 157,
+   "diff": 2.72
+  },
+  {
+   "chart_id": 26085,
+   "declared": 12.8,
+   "est": 15.5,
+   "players": 84,
+   "diff": -2.7
+  },
+  {
+   "chart_id": 39746,
+   "declared": 11.4,
+   "est": 14.1,
+   "players": 913,
+   "diff": -2.7
+  },
+  {
+   "chart_id": 49255,
+   "declared": 11.0,
+   "est": 13.7,
+   "players": 49349,
+   "diff": -2.7
+  },
+  {
+   "chart_id": 73653,
+   "declared": 19.7,
+   "est": 17.0,
+   "players": 140,
+   "diff": 2.7
+  },
+  {
+   "chart_id": 9473,
+   "declared": 13.2,
+   "est": 15.89,
+   "players": 19001,
+   "diff": -2.69
+  },
+  {
+   "chart_id": 5001,
+   "declared": 12.0,
+   "est": 14.68,
+   "players": 30921,
+   "diff": -2.68
+  },
+  {
+   "chart_id": 39056,
+   "declared": 16.9,
+   "est": 14.23,
+   "players": 12315,
+   "diff": 2.67
+  },
+  {
+   "chart_id": 47626,
+   "declared": 18.7,
+   "est": 16.03,
+   "players": 260,
+   "diff": 2.67
+  },
+  {
+   "chart_id": 36026,
+   "declared": 20.0,
+   "est": 17.34,
+   "players": 141,
+   "diff": 2.66
+  },
+  {
+   "chart_id": 36616,
+   "declared": 11.5,
+   "est": 14.16,
+   "players": 365,
+   "diff": -2.66
+  },
+  {
+   "chart_id": 18402,
+   "declared": 10.0,
+   "est": 12.65,
+   "players": 220,
+   "diff": -2.65
+  },
+  {
+   "chart_id": 63416,
+   "declared": 12.0,
+   "est": 14.65,
+   "players": 22631,
+   "diff": -2.65
+  },
+  {
+   "chart_id": 55234,
+   "declared": 11.1,
+   "est": 13.74,
+   "players": 171,
+   "diff": -2.64
+  },
+  {
+   "chart_id": 24773,
+   "declared": 15.3,
+   "est": 12.67,
+   "players": 112,
+   "diff": 2.63
+  },
+  {
+   "chart_id": 49398,
+   "declared": 13.0,
+   "est": 15.63,
+   "players": 1726,
+   "diff": -2.63
+  },
+  {
+   "chart_id": 51341,
+   "declared": 17.2,
+   "est": 14.57,
+   "players": 97,
+   "diff": 2.63
+  },
+  {
+   "chart_id": 56297,
+   "declared": 17.3,
+   "est": 14.67,
+   "players": 151,
+   "diff": 2.63
+  },
+  {
+   "chart_id": 12015,
+   "declared": 12.0,
+   "est": 14.62,
+   "players": 125,
+   "diff": -2.62
+  },
+  {
+   "chart_id": 81173,
+   "declared": 18.0,
+   "est": 15.38,
+   "players": 1243,
+   "diff": 2.62
+  },
+  {
+   "chart_id": 35131,
+   "declared": 16.1,
+   "est": 13.49,
+   "players": 619,
+   "diff": 2.61
+  },
+  {
+   "chart_id": 49311,
+   "declared": 12.0,
+   "est": 14.61,
+   "players": 896,
+   "diff": -2.61
+  },
+  {
+   "chart_id": 69963,
+   "declared": 12.0,
+   "est": 14.61,
+   "players": 2153,
+   "diff": -2.61
+  },
+  {
+   "chart_id": 9066,
+   "declared": 11.0,
+   "est": 13.6,
+   "players": 19874,
+   "diff": -2.6
+  },
+  {
+   "chart_id": 9736,
+   "declared": 12.0,
+   "est": 14.6,
+   "players": 855,
+   "diff": -2.6
+  },
+  {
+   "chart_id": 15459,
+   "declared": 12.2,
+   "est": 14.8,
+   "players": 73377,
+   "diff": -2.6
+  },
+  {
+   "chart_id": 15492,
+   "declared": 16.0,
+   "est": 18.6,
+   "players": 14029,
+   "diff": -2.6
+  },
+  {
+   "chart_id": 24161,
+   "declared": 14.0,
+   "est": 16.59,
+   "players": 58,
+   "diff": -2.59
+  },
+  {
+   "chart_id": 80281,
+   "declared": 10.0,
+   "est": 12.59,
+   "players": 34678,
+   "diff": -2.59
+  },
+  {
+   "chart_id": 488,
+   "declared": 13.0,
+   "est": 15.58,
+   "players": 23444,
+   "diff": -2.58
+  },
+  {
+   "chart_id": 41561,
+   "declared": 12.5,
+   "est": 15.08,
+   "players": 489,
+   "diff": -2.58
+  },
+  {
+   "chart_id": 37123,
+   "declared": 18.0,
+   "est": 15.43,
+   "players": 280,
+   "diff": 2.57
+  },
+  {
+   "chart_id": 76993,
+   "declared": 19.0,
+   "est": 16.44,
+   "players": 627,
+   "diff": 2.56
+  },
+  {
+   "chart_id": 25753,
+   "declared": 19.9,
+   "est": 17.35,
+   "players": 202,
+   "diff": 2.55
+  },
+  {
+   "chart_id": 37341,
+   "declared": 15.8,
+   "est": 13.25,
+   "players": 78,
+   "diff": 2.55
+  },
+  {
+   "chart_id": 44247,
+   "declared": 10.0,
+   "est": 12.55,
+   "players": 97,
+   "diff": -2.55
+  },
+  {
+   "chart_id": 50741,
+   "declared": 15.0,
+   "est": 17.55,
+   "players": 115,
+   "diff": -2.55
+  },
+  {
+   "chart_id": 11848,
+   "declared": 11.5,
+   "est": 14.04,
+   "players": 261,
+   "diff": -2.54
+  },
+  {
+   "chart_id": 20015,
+   "declared": 20.0,
+   "est": 17.46,
+   "players": 62,
+   "diff": 2.54
+  },
+  {
+   "chart_id": 41060,
+   "declared": 20.0,
+   "est": 17.46,
+   "players": 54,
+   "diff": 2.54
+  },
+  {
+   "chart_id": 62161,
+   "declared": 19.0,
+   "est": 16.46,
+   "players": 1724,
+   "diff": 2.54
+  },
+  {
+   "chart_id": 20400,
+   "declared": 16.5,
+   "est": 13.97,
+   "players": 881,
+   "diff": 2.53
+  },
+  {
+   "chart_id": 48907,
+   "declared": 12.9,
+   "est": 15.42,
+   "players": 292,
+   "diff": -2.52
+  },
+  {
+   "chart_id": 56326,
+   "declared": 11.7,
+   "est": 14.22,
+   "players": 1204,
+   "diff": -2.52
+  },
+  {
+   "chart_id": 11646,
+   "declared": 11.0,
+   "est": 13.51,
+   "players": 756,
+   "diff": -2.51
+  },
+  {
+   "chart_id": 71230,
+   "declared": 19.0,
+   "est": 16.49,
+   "players": 247,
+   "diff": 2.51
+  }
+ ],
+ "mid": [
+  {
+   "chart_id": 29782,
+   "declared": 13.0,
+   "est": 15.5,
+   "players": 21017,
+   "diff": -2.5
+  },
+  {
+   "chart_id": 59809,
+   "declared": 15.0,
+   "est": 12.5,
+   "players": 83967,
+   "diff": 2.5
+  },
+  {
+   "chart_id": 69898,
+   "declared": 16.7,
+   "est": 14.2,
+   "players": 371,
+   "diff": 2.5
+  },
+  {
+   "chart_id": 75244,
+   "declared": 19.2,
+   "est": 16.7,
+   "players": 389,
+   "diff": 2.5
+  },
+  {
+   "chart_id": 77356,
+   "declared": 11.9,
+   "est": 14.39,
+   "players": 458,
+   "diff": -2.49
+  },
+  {
+   "chart_id": 32576,
+   "declared": 16.1,
+   "est": 13.62,
+   "players": 312,
+   "diff": 2.48
+  },
+  {
+   "chart_id": 47576,
+   "declared": 12.5,
+   "est": 14.98,
+   "players": 150,
+   "diff": -2.48
+  },
+  {
+   "chart_id": 66954,
+   "declared": 12.0,
+   "est": 14.48,
+   "players": 64,
+   "diff": -2.48
+  },
+  {
+   "chart_id": 11223,
+   "declared": 14.0,
+   "est": 16.47,
+   "players": 18219,
+   "diff": -2.47
+  },
+  {
+   "chart_id": 23577,
+   "declared": 11.0,
+   "est": 13.47,
+   "players": 148,
+   "diff": -2.47
+  },
+  {
+   "chart_id": 40555,
+   "declared": 12.0,
+   "est": 14.47,
+   "players": 182,
+   "diff": -2.47
+  },
+  {
+   "chart_id": 49578,
+   "declared": 19.9,
+   "est": 17.43,
+   "players": 86,
+   "diff": 2.47
+  },
+  {
+   "chart_id": 23403,
+   "declared": 18.0,
+   "est": 15.54,
+   "players": 205,
+   "diff": 2.46
+  },
+  {
+   "chart_id": 23545,
+   "declared": 12.0,
+   "est": 14.46,
+   "players": 139,
+   "diff": -2.46
+  },
+  {
+   "chart_id": 36353,
+   "declared": 13.0,
+   "est": 15.46,
+   "players": 55771,
+   "diff": -2.46
+  },
+  {
+   "chart_id": 47286,
+   "declared": 12.6,
+   "est": 15.06,
+   "players": 15898,
+   "diff": -2.46
+  },
+  {
+   "chart_id": 25672,
+   "declared": 11.8,
+   "est": 14.25,
+   "players": 475,
+   "diff": -2.45
+  },
+  {
+   "chart_id": 58561,
+   "declared": 20.0,
+   "est": 17.56,
+   "players": 167,
+   "diff": 2.44
+  },
+  {
+   "chart_id": 61619,
+   "declared": 11.0,
+   "est": 13.44,
+   "players": 1397,
+   "diff": -2.44
+  },
+  {
+   "chart_id": 63894,
+   "declared": 18.0,
+   "est": 15.56,
+   "players": 150,
+   "diff": 2.44
+  },
+  {
+   "chart_id": 2770,
+   "declared": 12.0,
+   "est": 14.43,
+   "players": 25812,
+   "diff": -2.43
+  },
+  {
+   "chart_id": 16600,
+   "declared": 17.0,
+   "est": 14.57,
+   "players": 110,
+   "diff": 2.43
+  },
+  {
+   "chart_id": 25313,
+   "declared": 12.0,
+   "est": 14.43,
+   "players": 1348,
+   "diff": -2.43
+  },
+  {
+   "chart_id": 28994,
+   "declared": 11.9,
+   "est": 14.33,
+   "players": 33506,
+   "diff": -2.43
+  },
+  {
+   "chart_id": 37110,
+   "declared": 12.0,
+   "est": 14.43,
+   "players": 1260,
+   "diff": -2.43
+  },
+  {
+   "chart_id": 19062,
+   "declared": 12.3,
+   "est": 14.72,
+   "players": 14194,
+   "diff": -2.42
+  },
+  {
+   "chart_id": 26228,
+   "declared": 19.0,
+   "est": 16.58,
+   "players": 392,
+   "diff": 2.42
+  },
+  {
+   "chart_id": 54907,
+   "declared": 13.2,
+   "est": 15.62,
+   "players": 468,
+   "diff": -2.42
+  },
+  {
+   "chart_id": 21718,
+   "declared": 17.5,
+   "est": 15.09,
+   "players": 138,
+   "diff": 2.41
+  },
+  {
+   "chart_id": 25700,
+   "declared": 16.8,
+   "est": 19.21,
+   "players": 623,
+   "diff": -2.41
+  },
+  {
+   "chart_id": 72828,
+   "declared": 16.5,
+   "est": 14.09,
+   "players": 181,
+   "diff": 2.41
+  },
+  {
+   "chart_id": 60641,
+   "declared": 14.2,
+   "est": 16.6,
+   "players": 489,
+   "diff": -2.4
+  },
+  {
+   "chart_id": 13085,
+   "declared": 13.0,
+   "est": 15.39,
+   "players": 103942,
+   "diff": -2.39
+  },
+  {
+   "chart_id": 44584,
+   "declared": 18.6,
+   "est": 16.21,
+   "players": 217,
+   "diff": 2.39
+  },
+  {
+   "chart_id": 54598,
+   "declared": 12.0,
+   "est": 14.39,
+   "players": 484,
+   "diff": -2.39
+  },
+  {
+   "chart_id": 21416,
+   "declared": 11.3,
+   "est": 13.68,
+   "players": 1693,
+   "diff": -2.38
+  },
+  {
+   "chart_id": 61964,
+   "declared": 10.0,
+   "est": 12.38,
+   "players": 777,
+   "diff": -2.38
+  },
+  {
+   "chart_id": 31123,
+   "declared": 15.0,
+   "est": 12.63,
+   "players": 284,
+   "diff": 2.37
+  },
+  {
+   "chart_id": 27406,
+   "declared": 12.2,
+   "est": 14.56,
+   "players": 348,
+   "diff": -2.36
+  },
+  {
+   "chart_id": 31117,
+   "declared": 13.2,
+   "est": 15.55,
+   "players": 1247,
+   "diff": -2.35
+  },
+  {
+   "chart_id": 43988,
+   "declared": 18.5,
+   "est": 16.15,
+   "players": 1199,
+   "diff": 2.35
+  },
+  {
+   "chart_id": 13219,
+   "declared": 16.5,
+   "est": 14.16,
+   "players": 157,
+   "diff": 2.34
+  },
+  {
+   "chart_id": 44577,
+   "declared": 13.0,
+   "est": 15.34,
+   "players": 1223,
+   "diff": -2.34
+  },
+  {
+   "chart_id": 46759,
+   "declared": 18.3,
+   "est": 15.96,
+   "players": 84,
+   "diff": 2.34
+  },
+  {
+   "chart_id": 66386,
+   "declared": 16.0,
+   "est": 13.66,
+   "players": 1073,
+   "diff": 2.34
+  },
+  {
+   "chart_id": 11387,
+   "declared": 12.0,
+   "est": 14.33,
+   "players": 70073,
+   "diff": -2.33
+  },
+  {
+   "chart_id": 2653,
+   "declared": 12.5,
+   "est": 14.82,
+   "players": 131,
+   "diff": -2.32
+  },
+  {
+   "chart_id": 16967,
+   "declared": 19.8,
+   "est": 17.48,
+   "players": 104,
+   "diff": 2.32
+  },
+  {
+   "chart_id": 42590,
+   "declared": 11.5,
+   "est": 13.82,
+   "players": 75,
+   "diff": -2.32
+  },
+  {
+   "chart_id": 50077,
+   "declared": 12.0,
+   "est": 14.32,
+   "players": 232,
+   "diff": -2.32
+  },
+  {
+   "chart_id": 1966,
+   "declared": 13.5,
+   "est": 15.81,
+   "players": 19088,
+   "diff": -2.31
+  },
+  {
+   "chart_id": 20577,
+   "declared": 12.8,
+   "est": 15.11,
+   "players": 17456,
+   "diff": -2.31
+  },
+  {
+   "chart_id": 54514,
+   "declared": 13.0,
+   "est": 15.31,
+   "players": 305,
+   "diff": -2.31
+  },
+  {
+   "chart_id": 69318,
+   "declared": 14.0,
+   "est": 16.31,
+   "players": 13539,
+   "diff": -2.31
+  },
+  {
+   "chart_id": 35688,
+   "declared": 12.9,
+   "est": 15.2,
+   "players": 958,
+   "diff": -2.3
+  },
+  {
+   "chart_id": 42058,
+   "declared": 18.5,
+   "est": 16.2,
+   "players": 224,
+   "diff": 2.3
+  },
+  {
+   "chart_id": 59607,
+   "declared": 11.9,
+   "est": 14.2,
+   "players": 386,
+   "diff": -2.3
+  },
+  {
+   "chart_id": 1325,
+   "declared": 12.0,
+   "est": 14.29,
+   "players": 14585,
+   "diff": -2.29
+  },
+  {
+   "chart_id": 6526,
+   "declared": 13.6,
+   "est": 15.89,
+   "players": 830,
+   "diff": -2.29
+  },
+  {
+   "chart_id": 70020,
+   "declared": 19.1,
+   "est": 16.81,
+   "players": 186,
+   "diff": 2.29
+  },
+  {
+   "chart_id": 77421,
+   "declared": 18.7,
+   "est": 16.41,
+   "players": 152,
+   "diff": 2.29
+  },
+  {
+   "chart_id": 45045,
+   "declared": 13.0,
+   "est": 15.28,
+   "players": 247,
+   "diff": -2.28
+  },
+  {
+   "chart_id": 48182,
+   "declared": 12.2,
+   "est": 14.48,
+   "players": 1040,
+   "diff": -2.28
+  },
+  {
+   "chart_id": 51304,
+   "declared": 14.0,
+   "est": 16.28,
+   "players": 1321,
+   "diff": -2.28
+  },
+  {
+   "chart_id": 52361,
+   "declared": 17.7,
+   "est": 15.42,
+   "players": 64,
+   "diff": 2.28
+  },
+  {
+   "chart_id": 25204,
+   "declared": 12.2,
+   "est": 14.47,
+   "players": 78,
+   "diff": -2.27
+  },
+  {
+   "chart_id": 26149,
+   "declared": 18.0,
+   "est": 15.73,
+   "players": 168,
+   "diff": 2.27
+  },
+  {
+   "chart_id": 36844,
+   "declared": 18.0,
+   "est": 15.73,
+   "players": 773,
+   "diff": 2.27
+  },
+  {
+   "chart_id": 37606,
+   "declared": 13.7,
+   "est": 15.97,
+   "players": 872,
+   "diff": -2.27
+  },
+  {
+   "chart_id": 46023,
+   "declared": 13.9,
+   "est": 16.17,
+   "players": 15218,
+   "diff": -2.27
+  },
+  {
+   "chart_id": 47143,
+   "declared": 17.5,
+   "est": 15.23,
+   "players": 98,
+   "diff": 2.27
+  },
+  {
+   "chart_id": 79694,
+   "declared": 19.0,
+   "est": 16.73,
+   "players": 272,
+   "diff": 2.27
+  },
+  {
+   "chart_id": 57417,
+   "declared": 18.5,
+   "est": 16.24,
+   "players": 158,
+   "diff": 2.26
+  },
+  {
+   "chart_id": 46219,
+   "declared": 13.0,
+   "est": 15.25,
+   "players": 10863,
+   "diff": -2.25
+  },
+  {
+   "chart_id": 52848,
+   "declared": 19.1,
+   "est": 16.85,
+   "players": 69,
+   "diff": 2.25
+  },
+  {
+   "chart_id": 53641,
+   "declared": 15.9,
+   "est": 18.15,
+   "players": 57,
+   "diff": -2.25
+  },
+  {
+   "chart_id": 19228,
+   "declared": 18.5,
+   "est": 16.26,
+   "players": 97,
+   "diff": 2.24
+  },
+  {
+   "chart_id": 53762,
+   "declared": 13.1,
+   "est": 15.34,
+   "players": 1068,
+   "diff": -2.24
+  },
+  {
+   "chart_id": 38643,
+   "declared": 17.0,
+   "est": 14.77,
+   "players": 585,
+   "diff": 2.23
+  },
+  {
+   "chart_id": 47115,
+   "declared": 13.1,
+   "est": 15.33,
+   "players": 1217,
+   "diff": -2.23
+  },
+  {
+   "chart_id": 60201,
+   "declared": 12.7,
+   "est": 14.93,
+   "players": 299,
+   "diff": -2.23
+  },
+  {
+   "chart_id": 74054,
+   "declared": 17.8,
+   "est": 15.57,
+   "players": 1214,
+   "diff": 2.23
+  },
+  {
+   "chart_id": 3557,
+   "declared": 12.2,
+   "est": 14.42,
+   "players": 972,
+   "diff": -2.22
+  },
+  {
+   "chart_id": 20829,
+   "declared": 15.0,
+   "est": 17.22,
+   "players": 539,
+   "diff": -2.22
+  },
+  {
+   "chart_id": 40852,
+   "declared": 16.5,
+   "est": 14.28,
+   "players": 78,
+   "diff": 2.22
+  },
+  {
+   "chart_id": 41409,
+   "declared": 16.3,
+   "est": 14.08,
+   "players": 56,
+   "diff": 2.22
+  },
+  {
+   "chart_id": 80449,
+   "declared": 19.3,
+   "est": 17.08,
+   "players": 242,
+   "diff": 2.22
+  },
+  {
+   "chart_id": 24902,
+   "declared": 11.5,
+   "est": 13.71,
+   "players": 252,
+   "diff": -2.21
+  },
+  {
+   "chart_id": 49073,
+   "declared": 11.5,
+   "est": 13.71,
+   "players": 50498,
+   "diff": -2.21
+  },
+  {
+   "chart_id": 53629,
+   "declared": 14.2,
+   "est": 16.41,
+   "players": 922,
+   "diff": -2.21
+  },
+  {
+   "chart_id": 7811,
+   "declared": 16.0,
+   "est": 13.8,
+   "players": 67,
+   "diff": 2.2
+  },
+  {
+   "chart_id": 40888,
+   "declared": 17.0,
+   "est": 14.8,
+   "players": 80,
+   "diff": 2.2
+  },
+  {
+   "chart_id": 50457,
+   "declared": 12.4,
+   "est": 14.6,
+   "players": 255,
+   "diff": -2.2
+  },
+  {
+   "chart_id": 15304,
+   "declared": 13.0,
+   "est": 15.19,
+   "players": 23717,
+   "diff": -2.19
+  },
+  {
+   "chart_id": 52384,
+   "declared": 17.4,
+   "est": 15.21,
+   "players": 211,
+   "diff": 2.19
+  },
+  {
+   "chart_id": 8270,
+   "declared": 11.0,
+   "est": 13.18,
+   "players": 131,
+   "diff": -2.18
+  },
+  {
+   "chart_id": 34279,
+   "declared": 18.0,
+   "est": 15.82,
+   "players": 62,
+   "diff": 2.18
+  },
+  {
+   "chart_id": 63577,
+   "declared": 12.1,
+   "est": 14.28,
+   "players": 13516,
+   "diff": -2.18
+  },
+  {
+   "chart_id": 68240,
+   "declared": 18.3,
+   "est": 16.12,
+   "players": 595,
+   "diff": 2.18
+  },
+  {
+   "chart_id": 173,
+   "declared": 13.3,
+   "est": 15.47,
+   "players": 25077,
+   "diff": -2.17
+  },
+  {
+   "chart_id": 4764,
+   "declared": 12.9,
+   "est": 15.07,
+   "players": 123,
+   "diff": -2.17
+  },
+  {
+   "chart_id": 11138,
+   "declared": 12.3,
+   "est": 14.47,
+   "players": 23108,
+   "diff": -2.17
+  },
+  {
+   "chart_id": 36860,
+   "declared": 12.0,
+   "est": 14.17,
+   "players": 73,
+   "diff": -2.17
+  },
+  {
+   "chart_id": 45307,
+   "declared": 13.5,
+   "est": 15.67,
+   "players": 990,
+   "diff": -2.17
+  },
+  {
+   "chart_id": 3949,
+   "declared": 13.5,
+   "est": 15.66,
+   "players": 811,
+   "diff": -2.16
+  },
+  {
+   "chart_id": 10165,
+   "declared": 18.0,
+   "est": 15.84,
+   "players": 101,
+   "diff": 2.16
+  },
+  {
+   "chart_id": 53249,
+   "declared": 17.9,
+   "est": 15.75,
+   "players": 55,
+   "diff": 2.15
+  },
+  {
+   "chart_id": 13510,
+   "declared": 16.8,
+   "est": 14.66,
+   "players": 742,
+   "diff": 2.14
+  },
+  {
+   "chart_id": 18881,
+   "declared": 11.6,
+   "est": 13.74,
+   "players": 112,
+   "diff": -2.14
+  },
+  {
+   "chart_id": 27868,
+   "declared": 13.0,
+   "est": 15.14,
+   "players": 130,
+   "diff": -2.14
+  },
+  {
+   "chart_id": 28438,
+   "declared": 12.2,
+   "est": 14.34,
+   "players": 20093,
+   "diff": -2.14
+  },
+  {
+   "chart_id": 34373,
+   "declared": 13.0,
+   "est": 15.14,
+   "players": 819,
+   "diff": -2.14
+  },
+  {
+   "chart_id": 46231,
+   "declared": 13.1,
+   "est": 15.24,
+   "players": 137078,
+   "diff": -2.14
+  },
+  {
+   "chart_id": 63825,
+   "declared": 18.3,
+   "est": 16.16,
+   "players": 115,
+   "diff": 2.14
+  },
+  {
+   "chart_id": 75482,
+   "declared": 18.2,
+   "est": 16.06,
+   "players": 375,
+   "diff": 2.14
+  },
+  {
+   "chart_id": 22416,
+   "declared": 13.1,
+   "est": 15.23,
+   "players": 302,
+   "diff": -2.13
+  },
+  {
+   "chart_id": 47326,
+   "declared": 18.3,
+   "est": 16.17,
+   "players": 162,
+   "diff": 2.13
+  },
+  {
+   "chart_id": 49619,
+   "declared": 12.0,
+   "est": 14.13,
+   "players": 1033,
+   "diff": -2.13
+  },
+  {
+   "chart_id": 61331,
+   "declared": 18.0,
+   "est": 15.87,
+   "players": 81,
+   "diff": 2.13
+  },
+  {
+   "chart_id": 73217,
+   "declared": 11.6,
+   "est": 13.73,
+   "players": 1232,
+   "diff": -2.13
+  },
+  {
+   "chart_id": 1067,
+   "declared": 13.0,
+   "est": 15.12,
+   "players": 96117,
+   "diff": -2.12
+  },
+  {
+   "chart_id": 2117,
+   "declared": 12.6,
+   "est": 14.72,
+   "players": 10842,
+   "diff": -2.12
+  },
+  {
+   "chart_id": 7137,
+   "declared": 11.9,
+   "est": 14.02,
+   "players": 123,
+   "diff": -2.12
+  },
+  {
+   "chart_id": 15435,
+   "declared": 13.0,
+   "est": 15.12,
+   "players": 53,
+   "diff": -2.12
+  },
+  {
+   "chart_id": 44862,
+   "declared": 17.1,
+   "est": 14.98,
+   "players": 602,
+   "diff": 2.12
+  },
+  {
+   "chart_id": 57386,
+   "declared": 15.0,
+   "est": 12.88,
+   "players": 94,
+   "diff": 2.12
+  },
+  {
+   "chart_id": 79729,
+   "declared": 19.7,
+   "est": 17.58,
+   "players": 1382,
+   "diff": 2.12
+  },
+  {
+   "chart_id": 82028,
+   "declared": 11.0,
+   "est": 13.12,
+   "players": 127,
+   "diff": -2.12
+  },
+  {
+   "chart_id": 3205,
+   "declared": 12.0,
+   "est": 14.11,
+   "players": 799,
+   "diff": -2.11
+  },
+  {
+   "chart_id": 8931,
+   "declared": 13.2,
+   "est": 15.31,
+   "players": 359,
+   "diff": -2.11
+  },
+  {
+   "chart_id": 20650,
+   "declared": 13.0,
+   "est": 15.11,
+   "players": 1389,
+   "diff": -2.11
+  },
+  {
+   "chart_id": 46327,
+   "declared": 17.5,
+   "est": 15.39,
+   "players": 237,
+   "diff": 2.11
+  },
+  {
+   "chart_id": 47555,
+   "declared": 17.5,
+   "est": 15.39,
+   "players": 472,
+   "diff": 2.11
+  },
+  {
+   "chart_id": 51850,
+   "declared": 16.0,
+   "est": 13.89,
+   "players": 148,
+   "diff": 2.11
+  },
+  {
+   "chart_id": 54135,
+   "declared": 12.1,
+   "est": 14.21,
+   "players": 308,
+   "diff": -2.11
+  },
+  {
+   "chart_id": 57147,
+   "declared": 12.4,
+   "est": 14.51,
+   "players": 739,
+   "diff": -2.11
+  },
+  {
+   "chart_id": 79946,
+   "declared": 16.0,
+   "est": 13.89,
+   "players": 597,
+   "diff": 2.11
+  },
+  {
+   "chart_id": 8145,
+   "declared": 12.0,
+   "est": 14.1,
+   "players": 1060,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 8825,
+   "declared": 13.0,
+   "est": 15.1,
+   "players": 59737,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 17358,
+   "declared": 11.9,
+   "est": 14.0,
+   "players": 196,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 26385,
+   "declared": 12.0,
+   "est": 14.1,
+   "players": 30063,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 38741,
+   "declared": 18.1,
+   "est": 16.0,
+   "players": 231,
+   "diff": 2.1
+  },
+  {
+   "chart_id": 43054,
+   "declared": 11.2,
+   "est": 13.3,
+   "players": 68,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 45076,
+   "declared": 11.0,
+   "est": 13.1,
+   "players": 482,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 45756,
+   "declared": 14.0,
+   "est": 16.1,
+   "players": 442,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 46228,
+   "declared": 18.0,
+   "est": 15.9,
+   "players": 1269,
+   "diff": 2.1
+  },
+  {
+   "chart_id": 71491,
+   "declared": 13.0,
+   "est": 15.1,
+   "players": 199,
+   "diff": -2.1
+  },
+  {
+   "chart_id": 80464,
+   "declared": 19.4,
+   "est": 17.3,
+   "players": 148,
+   "diff": 2.1
+  },
+  {
+   "chart_id": 24159,
+   "declared": 18.1,
+   "est": 16.01,
+   "players": 61,
+   "diff": 2.09
+  },
+  {
+   "chart_id": 41503,
+   "declared": 16.8,
+   "est": 14.71,
+   "players": 77,
+   "diff": 2.09
+  },
+  {
+   "chart_id": 47448,
+   "declared": 19.1,
+   "est": 17.01,
+   "players": 74,
+   "diff": 2.09
+  },
+  {
+   "chart_id": 60492,
+   "declared": 14.0,
+   "est": 16.09,
+   "players": 54,
+   "diff": -2.09
+  },
+  {
+   "chart_id": 78032,
+   "declared": 18.0,
+   "est": 15.91,
+   "players": 189,
+   "diff": 2.09
+  },
+  {
+   "chart_id": 36744,
+   "declared": 12.0,
+   "est": 14.08,
+   "players": 186,
+   "diff": -2.08
+  },
+  {
+   "chart_id": 46098,
+   "declared": 15.4,
+   "est": 13.32,
+   "players": 12067,
+   "diff": 2.08
+  },
+  {
+   "chart_id": 46843,
+   "declared": 12.4,
+   "est": 14.48,
+   "players": 418,
+   "diff": -2.08
+  },
+  {
+   "chart_id": 16237,
+   "declared": 13.0,
+   "est": 15.07,
+   "players": 67,
+   "diff": -2.07
+  },
+  {
+   "chart_id": 35880,
+   "declared": 12.8,
+   "est": 14.87,
+   "players": 122,
+   "diff": -2.07
+  },
+  {
+   "chart_id": 43440,
+   "declared": 12.4,
+   "est": 14.47,
+   "players": 19872,
+   "diff": -2.07
+  },
+  {
+   "chart_id": 24350,
+   "declared": 13.0,
+   "est": 15.06,
+   "players": 426,
+   "diff": -2.06
+  },
+  {
+   "chart_id": 27916,
+   "declared": 14.0,
+   "est": 16.06,
+   "players": 108,
+   "diff": -2.06
+  },
+  {
+   "chart_id": 50338,
+   "declared": 12.0,
+   "est": 14.06,
+   "players": 12884,
+   "diff": -2.06
+  },
+  {
+   "chart_id": 54009,
+   "declared": 16.6,
+   "est": 14.54,
+   "players": 157,
+   "diff": 2.06
+  },
+  {
+   "chart_id": 55124,
+   "declared": 17.5,
+   "est": 15.44,
+   "players": 381,
+   "diff": 2.06
+  },
+  {
+   "chart_id": 73508,
+   "declared": 12.9,
+   "est": 14.96,
+   "players": 2755,
+   "diff": -2.06
+  },
+  {
+   "chart_id": 21429,
+   "declared": 13.9,
+   "est": 15.95,
+   "players": 61,
+   "diff": -2.05
+  },
+  {
+   "chart_id": 39326,
+   "declared": 15.0,
+   "est": 12.95,
+   "players": 131,
+   "diff": 2.05
+  },
+  {
+   "chart_id": 51168,
+   "declared": 10.6,
+   "est": 12.65,
+   "players": 74726,
+   "diff": -2.05
+  },
+  {
+   "chart_id": 55182,
+   "declared": 15.6,
+   "est": 13.55,
+   "players": 192,
+   "diff": 2.05
+  },
+  {
+   "chart_id": 13306,
+   "declared": 12.7,
+   "est": 14.74,
+   "players": 22260,
+   "diff": -2.04
+  },
+  {
+   "chart_id": 28426,
+   "declared": 12.3,
+   "est": 14.34,
+   "players": 72,
+   "diff": -2.04
+  },
+  {
+   "chart_id": 52087,
+   "declared": 17.9,
+   "est": 15.86,
+   "players": 410,
+   "diff": 2.04
+  },
+  {
+   "chart_id": 56611,
+   "declared": 12.1,
+   "est": 14.14,
+   "players": 779,
+   "diff": -2.04
+  },
+  {
+   "chart_id": 20752,
+   "declared": 12.5,
+   "est": 14.53,
+   "players": 13023,
+   "diff": -2.03
+  },
+  {
+   "chart_id": 69495,
+   "declared": 18.4,
+   "est": 16.37,
+   "players": 151,
+   "diff": 2.03
+  },
+  {
+   "chart_id": 72681,
+   "declared": 19.0,
+   "est": 16.97,
+   "players": 366,
+   "diff": 2.03
+  },
+  {
+   "chart_id": 74615,
+   "declared": 18.0,
+   "est": 15.97,
+   "players": 30826,
+   "diff": 2.03
+  },
+  {
+   "chart_id": 1207,
+   "declared": 13.6,
+   "est": 15.62,
+   "players": 292,
+   "diff": -2.02
+  },
+  {
+   "chart_id": 31119,
+   "declared": 13.7,
+   "est": 15.72,
+   "players": 127,
+   "diff": -2.02
+  },
+  {
+   "chart_id": 44072,
+   "declared": 17.4,
+   "est": 15.38,
+   "players": 50,
+   "diff": 2.02
+  },
+  {
+   "chart_id": 45563,
+   "declared": 16.2,
+   "est": 14.18,
+   "players": 266,
+   "diff": 2.02
+  },
+  {
+   "chart_id": 47180,
+   "declared": 15.6,
+   "est": 13.58,
+   "players": 107,
+   "diff": 2.02
+  },
+  {
+   "chart_id": 49135,
+   "declared": 18.3,
+   "est": 16.28,
+   "players": 99,
+   "diff": 2.02
+  },
+  {
+   "chart_id": 72445,
+   "declared": 17.7,
+   "est": 15.68,
+   "players": 78,
+   "diff": 2.02
+  },
+  {
+   "chart_id": 9568,
+   "declared": 12.0,
+   "est": 14.01,
+   "players": 691,
+   "diff": -2.01
+  },
+  {
+   "chart_id": 17113,
+   "declared": 12.9,
+   "est": 14.91,
+   "players": 666,
+   "diff": -2.01
+  },
+  {
+   "chart_id": 20217,
+   "declared": 18.5,
+   "est": 16.49,
+   "players": 101,
+   "diff": 2.01
+  },
+  {
+   "chart_id": 60876,
+   "declared": 12.5,
+   "est": 14.51,
+   "players": 125,
+   "diff": -2.01
+  },
+  {
+   "chart_id": 68882,
+   "declared": 17.1,
+   "est": 15.09,
+   "players": 399,
+   "diff": 2.01
+  },
+  {
+   "chart_id": 76476,
+   "declared": 18.0,
+   "est": 15.99,
+   "players": 172,
+   "diff": 2.01
+  },
+  {
+   "chart_id": 2671,
+   "declared": 12.5,
+   "est": 14.5,
+   "players": 263,
+   "diff": -2.0
+  },
+  {
+   "chart_id": 8598,
+   "declared": 16.1,
+   "est": 14.1,
+   "players": 203,
+   "diff": 2.0
+  },
+  {
+   "chart_id": 14406,
+   "declared": 13.9,
+   "est": 15.9,
+   "players": 105,
+   "diff": -2.0
+  },
+  {
+   "chart_id": 30341,
+   "declared": 16.6,
+   "est": 14.6,
+   "players": 117,
+   "diff": 2.0
+  },
+  {
+   "chart_id": 31810,
+   "declared": 13.0,
+   "est": 15.0,
+   "players": 190,
+   "diff": -2.0
+  },
+  {
+   "chart_id": 46167,
+   "declared": 13.6,
+   "est": 15.6,
+   "players": 139,
+   "diff": -2.0
+  },
+  {
+   "chart_id": 51216,
+   "declared": 17.2,
+   "est": 15.2,
+   "players": 61,
+   "diff": 2.0
+  },
+  {
+   "chart_id": 53857,
+   "declared": 16.1,
+   "est": 14.1,
+   "players": 70,
+   "diff": 2.0
+  },
+  {
+   "chart_id": 63296,
+   "declared": 10.0,
+   "est": 12.0,
+   "players": 1228,
+   "diff": -2.0
+  },
+  {
+   "chart_id": 73971,
+   "declared": 18.0,
+   "est": 16.0,
+   "players": 232,
+   "diff": 2.0
+  },
+  {
+   "chart_id": 1522,
+   "declared": 12.5,
+   "est": 14.49,
+   "players": 185,
+   "diff": -1.99
+  },
+  {
+   "chart_id": 23881,
+   "declared": 11.9,
+   "est": 13.89,
+   "players": 80751,
+   "diff": -1.99
+  },
+  {
+   "chart_id": 27062,
+   "declared": 13.0,
+   "est": 14.99,
+   "players": 15612,
+   "diff": -1.99
+  },
+  {
+   "chart_id": 31498,
+   "declared": 13.2,
+   "est": 15.19,
+   "players": 1009,
+   "diff": -1.99
+  },
+  {
+   "chart_id": 39178,
+   "declared": 17.6,
+   "est": 15.61,
+   "players": 708,
+   "diff": 1.99
+  },
+  {
+   "chart_id": 39296,
+   "declared": 12.5,
+   "est": 14.49,
+   "players": 320,
+   "diff": -1.99
+  },
+  {
+   "chart_id": 41270,
+   "declared": 17.9,
+   "est": 15.91,
+   "players": 105,
+   "diff": 1.99
+  },
+  {
+   "chart_id": 41834,
+   "declared": 14.0,
+   "est": 15.99,
+   "players": 786,
+   "diff": -1.99
+  },
+  {
+   "chart_id": 49118,
+   "declared": 16.5,
+   "est": 14.51,
+   "players": 76,
+   "diff": 1.99
+  },
+  {
+   "chart_id": 52943,
+   "declared": 18.3,
+   "est": 16.31,
+   "players": 204,
+   "diff": 1.99
+  },
+  {
+   "chart_id": 53994,
+   "declared": 19.0,
+   "est": 17.01,
+   "players": 75,
+   "diff": 1.99
+  },
+  {
+   "chart_id": 5171,
+   "declared": 17.3,
+   "est": 15.32,
+   "players": 21954,
+   "diff": 1.98
+  },
+  {
+   "chart_id": 10297,
+   "declared": 12.0,
+   "est": 13.98,
+   "players": 11945,
+   "diff": -1.98
+  },
+  {
+   "chart_id": 14935,
+   "declared": 13.0,
+   "est": 14.98,
+   "players": 63,
+   "diff": -1.98
+  },
+  {
+   "chart_id": 29897,
+   "declared": 13.2,
+   "est": 15.18,
+   "players": 50,
+   "diff": -1.98
+  },
+  {
+   "chart_id": 46196,
+   "declared": 16.9,
+   "est": 14.92,
+   "players": 50,
+   "diff": 1.98
+  },
+  {
+   "chart_id": 63876,
+   "declared": 18.0,
+   "est": 16.02,
+   "players": 264,
+   "diff": 1.98
+  },
+  {
+   "chart_id": 72227,
+   "declared": 18.0,
+   "est": 16.02,
+   "players": 668,
+   "diff": 1.98
+  },
+  {
+   "chart_id": 72551,
+   "declared": 18.3,
+   "est": 16.32,
+   "players": 110,
+   "diff": 1.98
+  },
+  {
+   "chart_id": 41392,
+   "declared": 13.0,
+   "est": 14.97,
+   "players": 15533,
+   "diff": -1.97
+  },
+  {
+   "chart_id": 49570,
+   "declared": 18.5,
+   "est": 16.53,
+   "players": 102,
+   "diff": 1.97
+  },
+  {
+   "chart_id": 50790,
+   "declared": 17.1,
+   "est": 15.13,
+   "players": 755,
+   "diff": 1.97
+  },
+  {
+   "chart_id": 80571,
+   "declared": 13.0,
+   "est": 14.97,
+   "players": 1424,
+   "diff": -1.97
+  },
+  {
+   "chart_id": 23661,
+   "declared": 12.6,
+   "est": 14.56,
+   "players": 449,
+   "diff": -1.96
+  },
+  {
+   "chart_id": 34485,
+   "declared": 15.6,
+   "est": 13.64,
+   "players": 608,
+   "diff": 1.96
+  },
+  {
+   "chart_id": 44265,
+   "declared": 18.6,
+   "est": 16.64,
+   "players": 157,
+   "diff": 1.96
+  },
+  {
+   "chart_id": 49863,
+   "declared": 17.4,
+   "est": 15.44,
+   "players": 963,
+   "diff": 1.96
+  },
+  {
+   "chart_id": 51445,
+   "declared": 17.8,
+   "est": 15.84,
+   "players": 145,
+   "diff": 1.96
+  },
+  {
+   "chart_id": 55243,
+   "declared": 16.9,
+   "est": 14.94,
+   "players": 197,
+   "diff": 1.96
+  },
+  {
+   "chart_id": 56637,
+   "declared": 19.0,
+   "est": 17.04,
+   "players": 84,
+   "diff": 1.96
+  },
+  {
+   "chart_id": 62506,
+   "declared": 18.0,
+   "est": 16.04,
+   "players": 249,
+   "diff": 1.96
+  },
+  {
+   "chart_id": 1027,
+   "declared": 14.0,
+   "est": 15.95,
+   "players": 15505,
+   "diff": -1.95
+  },
+  {
+   "chart_id": 13282,
+   "declared": 14.0,
+   "est": 15.95,
+   "players": 109,
+   "diff": -1.95
+  },
+  {
+   "chart_id": 30474,
+   "declared": 18.1,
+   "est": 16.15,
+   "players": 339,
+   "diff": 1.95
+  },
+  {
+   "chart_id": 48501,
+   "declared": 17.3,
+   "est": 15.35,
+   "players": 92,
+   "diff": 1.95
+  },
+  {
+   "chart_id": 49537,
+   "declared": 17.0,
+   "est": 15.05,
+   "players": 95,
+   "diff": 1.95
+  },
+  {
+   "chart_id": 63681,
+   "declared": 13.7,
+   "est": 15.65,
+   "players": 166,
+   "diff": -1.95
+  },
+  {
+   "chart_id": 11586,
+   "declared": 14.0,
+   "est": 15.94,
+   "players": 486,
+   "diff": -1.94
+  },
+  {
+   "chart_id": 41541,
+   "declared": 15.7,
+   "est": 13.76,
+   "players": 115,
+   "diff": 1.94
+  },
+  {
+   "chart_id": 42490,
+   "declared": 12.0,
+   "est": 13.94,
+   "players": 75,
+   "diff": -1.94
+  },
+  {
+   "chart_id": 45903,
+   "declared": 15.1,
+   "est": 13.16,
+   "players": 221,
+   "diff": 1.94
+  },
+  {
+   "chart_id": 50590,
+   "declared": 18.2,
+   "est": 16.26,
+   "players": 357,
+   "diff": 1.94
+  },
+  {
+   "chart_id": 55909,
+   "declared": 18.2,
+   "est": 16.26,
+   "players": 115,
+   "diff": 1.94
+  },
+  {
+   "chart_id": 59137,
+   "declared": 18.2,
+   "est": 16.26,
+   "players": 302,
+   "diff": 1.94
+  },
+  {
+   "chart_id": 66643,
+   "declared": 18.7,
+   "est": 16.76,
+   "players": 97,
+   "diff": 1.94
+  },
+  {
+   "chart_id": 22047,
+   "declared": 13.1,
+   "est": 15.03,
+   "players": 81,
+   "diff": -1.93
+  },
+  {
+   "chart_id": 32904,
+   "declared": 13.0,
+   "est": 14.93,
+   "players": 263,
+   "diff": -1.93
+  },
+  {
+   "chart_id": 49376,
+   "declared": 17.4,
+   "est": 15.47,
+   "players": 57,
+   "diff": 1.93
+  },
+  {
+   "chart_id": 62706,
+   "declared": 18.6,
+   "est": 16.67,
+   "players": 55,
+   "diff": 1.93
+  },
+  {
+   "chart_id": 76669,
+   "declared": 16.6,
+   "est": 14.67,
+   "players": 708,
+   "diff": 1.93
+  },
+  {
+   "chart_id": 79606,
+   "declared": 12.3,
+   "est": 14.23,
+   "players": 15440,
+   "diff": -1.93
+  },
+  {
+   "chart_id": 1800,
+   "declared": 18.0,
+   "est": 16.08,
+   "players": 387,
+   "diff": 1.92
+  },
+  {
+   "chart_id": 51669,
+   "declared": 17.3,
+   "est": 15.38,
+   "players": 1601,
+   "diff": 1.92
+  },
+  {
+   "chart_id": 51910,
+   "declared": 17.1,
+   "est": 15.18,
+   "players": 120,
+   "diff": 1.92
+  },
+  {
+   "chart_id": 56717,
+   "declared": 18.2,
+   "est": 16.28,
+   "players": 61,
+   "diff": 1.92
+  },
+  {
+   "chart_id": 8385,
+   "declared": 13.0,
+   "est": 14.91,
+   "players": 34960,
+   "diff": -1.91
+  },
+  {
+   "chart_id": 11876,
+   "declared": 15.6,
+   "est": 13.69,
+   "players": 254,
+   "diff": 1.91
+  },
+  {
+   "chart_id": 21124,
+   "declared": 18.0,
+   "est": 16.09,
+   "players": 263,
+   "diff": 1.91
+  },
+  {
+   "chart_id": 26685,
+   "declared": 12.8,
+   "est": 14.71,
+   "players": 268,
+   "diff": -1.91
+  },
+  {
+   "chart_id": 36149,
+   "declared": 15.2,
+   "est": 13.29,
+   "players": 339,
+   "diff": 1.91
+  },
+  {
+   "chart_id": 44418,
+   "declared": 17.7,
+   "est": 15.79,
+   "players": 56,
+   "diff": 1.91
+  },
+  {
+   "chart_id": 45388,
+   "declared": 13.3,
+   "est": 15.21,
+   "players": 15836,
+   "diff": -1.91
+  },
+  {
+   "chart_id": 52897,
+   "declared": 17.8,
+   "est": 15.89,
+   "players": 63,
+   "diff": 1.91
+  },
+  {
+   "chart_id": 8323,
+   "declared": 11.5,
+   "est": 13.4,
+   "players": 1351,
+   "diff": -1.9
+  },
+  {
+   "chart_id": 10841,
+   "declared": 12.0,
+   "est": 13.9,
+   "players": 14889,
+   "diff": -1.9
+  },
+  {
+   "chart_id": 18175,
+   "declared": 13.0,
+   "est": 14.9,
+   "players": 17693,
+   "diff": -1.9
+  },
+  {
+   "chart_id": 24763,
+   "declared": 12.0,
+   "est": 13.9,
+   "players": 17071,
+   "diff": -1.9
+  },
+  {
+   "chart_id": 26581,
+   "declared": 14.0,
+   "est": 15.9,
+   "players": 101,
+   "diff": -1.9
+  },
+  {
+   "chart_id": 34503,
+   "declared": 13.2,
+   "est": 15.1,
+   "players": 122,
+   "diff": -1.9
+  },
+  {
+   "chart_id": 39369,
+   "declared": 15.3,
+   "est": 13.4,
+   "players": 327,
+   "diff": 1.9
+  },
+  {
+   "chart_id": 43850,
+   "declared": 16.4,
+   "est": 14.5,
+   "players": 180,
+   "diff": 1.9
+  },
+  {
+   "chart_id": 48679,
+   "declared": 13.0,
+   "est": 14.9,
+   "players": 51,
+   "diff": -1.9
+  },
+  {
+   "chart_id": 50012,
+   "declared": 15.8,
+   "est": 13.9,
+   "players": 204,
+   "diff": 1.9
+  },
+  {
+   "chart_id": 53725,
+   "declared": 17.3,
+   "est": 15.4,
+   "players": 84,
+   "diff": 1.9
+  },
+  {
+   "chart_id": 72228,
+   "declared": 19.1,
+   "est": 17.2,
+   "players": 244,
+   "diff": 1.9
+  },
+  {
+   "chart_id": 78027,
+   "declared": 16.3,
+   "est": 14.4,
+   "players": 928,
+   "diff": 1.9
+  },
+  {
+   "chart_id": 15183,
+   "declared": 18.0,
+   "est": 16.11,
+   "players": 371,
+   "diff": 1.89
+  },
+  {
+   "chart_id": 18814,
+   "declared": 12.0,
+   "est": 13.89,
+   "players": 14481,
+   "diff": -1.89
+  },
+  {
+   "chart_id": 23735,
+   "declared": 18.1,
+   "est": 16.21,
+   "players": 241,
+   "diff": 1.89
+  },
+  {
+   "chart_id": 29071,
+   "declared": 16.0,
+   "est": 14.11,
+   "players": 11518,
+   "diff": 1.89
+  },
+  {
+   "chart_id": 34492,
+   "declared": 12.7,
+   "est": 14.59,
+   "players": 227,
+   "diff": -1.89
+  },
+  {
+   "chart_id": 44028,
+   "declared": 12.4,
+   "est": 14.29,
+   "players": 55,
+   "diff": -1.89
+  },
+  {
+   "chart_id": 48742,
+   "declared": 14.4,
+   "est": 16.29,
+   "players": 785,
+   "diff": -1.89
+  },
+  {
+   "chart_id": 56930,
+   "declared": 18.2,
+   "est": 16.31,
+   "players": 85,
+   "diff": 1.89
+  },
+  {
+   "chart_id": 14317,
+   "declared": 14.2,
+   "est": 16.08,
+   "players": 114,
+   "diff": -1.88
+  },
+  {
+   "chart_id": 18012,
+   "declared": 13.9,
+   "est": 15.78,
+   "players": 65,
+   "diff": -1.88
+  },
+  {
+   "chart_id": 21465,
+   "declared": 16.2,
+   "est": 14.32,
+   "players": 185,
+   "diff": 1.88
+  },
+  {
+   "chart_id": 34552,
+   "declared": 17.0,
+   "est": 15.12,
+   "players": 63,
+   "diff": 1.88
+  },
+  {
+   "chart_id": 37104,
+   "declared": 16.7,
+   "est": 14.82,
+   "players": 1217,
+   "diff": 1.88
+  },
+  {
+   "chart_id": 45520,
+   "declared": 17.6,
+   "est": 15.72,
+   "players": 503,
+   "diff": 1.88
+  },
+  {
+   "chart_id": 47889,
+   "declared": 12.0,
+   "est": 13.88,
+   "players": 10915,
+   "diff": -1.88
+  },
+  {
+   "chart_id": 52558,
+   "declared": 18.1,
+   "est": 16.22,
+   "players": 61,
+   "diff": 1.88
+  },
+  {
+   "chart_id": 54923,
+   "declared": 13.6,
+   "est": 15.48,
+   "players": 153,
+   "diff": -1.88
+  },
+  {
+   "chart_id": 60424,
+   "declared": 16.8,
+   "est": 14.92,
+   "players": 11185,
+   "diff": 1.88
+  },
+  {
+   "chart_id": 13828,
+   "declared": 15.4,
+   "est": 13.53,
+   "players": 24026,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 14776,
+   "declared": 15.0,
+   "est": 13.13,
+   "players": 312,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 15062,
+   "declared": 15.9,
+   "est": 14.03,
+   "players": 14915,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 18087,
+   "declared": 13.0,
+   "est": 14.87,
+   "players": 20049,
+   "diff": -1.87
+  },
+  {
+   "chart_id": 23382,
+   "declared": 16.5,
+   "est": 14.63,
+   "players": 63,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 27991,
+   "declared": 16.3,
+   "est": 14.43,
+   "players": 70,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 28005,
+   "declared": 12.8,
+   "est": 14.67,
+   "players": 60,
+   "diff": -1.87
+  },
+  {
+   "chart_id": 29684,
+   "declared": 13.0,
+   "est": 14.87,
+   "players": 60,
+   "diff": -1.87
+  },
+  {
+   "chart_id": 51402,
+   "declared": 12.8,
+   "est": 14.67,
+   "players": 122,
+   "diff": -1.87
+  },
+  {
+   "chart_id": 52543,
+   "declared": 19.0,
+   "est": 17.13,
+   "players": 153,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 62072,
+   "declared": 18.1,
+   "est": 16.23,
+   "players": 55,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 62718,
+   "declared": 16.7,
+   "est": 14.83,
+   "players": 368,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 63756,
+   "declared": 17.9,
+   "est": 16.03,
+   "players": 64,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 72600,
+   "declared": 18.6,
+   "est": 16.73,
+   "players": 66,
+   "diff": 1.87
+  },
+  {
+   "chart_id": 7794,
+   "declared": 14.1,
+   "est": 15.96,
+   "players": 126,
+   "diff": -1.86
+  },
+  {
+   "chart_id": 14436,
+   "declared": 13.4,
+   "est": 15.26,
+   "players": 168,
+   "diff": -1.86
+  },
+  {
+   "chart_id": 42891,
+   "declared": 17.5,
+   "est": 15.64,
+   "players": 554,
+   "diff": 1.86
+  },
+  {
+   "chart_id": 43142,
+   "declared": 19.0,
+   "est": 17.14,
+   "players": 317,
+   "diff": 1.86
+  },
+  {
+   "chart_id": 50300,
+   "declared": 12.0,
+   "est": 13.86,
+   "players": 24609,
+   "diff": -1.86
+  },
+  {
+   "chart_id": 79315,
+   "declared": 18.8,
+   "est": 16.94,
+   "players": 84,
+   "diff": 1.86
+  },
+  {
+   "chart_id": 3690,
+   "declared": 12.0,
+   "est": 13.85,
+   "players": 11135,
+   "diff": -1.85
+  },
+  {
+   "chart_id": 8718,
+   "declared": 13.1,
+   "est": 14.95,
+   "players": 455,
+   "diff": -1.85
+  },
+  {
+   "chart_id": 25563,
+   "declared": 14.7,
+   "est": 12.85,
+   "players": 134,
+   "diff": 1.85
+  },
+  {
+   "chart_id": 27282,
+   "declared": 15.5,
+   "est": 13.65,
+   "players": 1150,
+   "diff": 1.85
+  },
+  {
+   "chart_id": 37052,
+   "declared": 18.6,
+   "est": 16.75,
+   "players": 187,
+   "diff": 1.85
+  },
+  {
+   "chart_id": 39453,
+   "declared": 16.0,
+   "est": 14.15,
+   "players": 851,
+   "diff": 1.85
+  },
+  {
+   "chart_id": 57988,
+   "declared": 16.4,
+   "est": 14.55,
+   "players": 65,
+   "diff": 1.85
+  },
+  {
+   "chart_id": 61269,
+   "declared": 16.8,
+   "est": 14.95,
+   "players": 12429,
+   "diff": 1.85
+  },
+  {
+   "chart_id": 64414,
+   "declared": 13.8,
+   "est": 15.65,
+   "players": 388,
+   "diff": -1.85
+  },
+  {
+   "chart_id": 1125,
+   "declared": 13.0,
+   "est": 14.84,
+   "players": 123,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 4987,
+   "declared": 12.5,
+   "est": 14.34,
+   "players": 177,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 7687,
+   "declared": 13.0,
+   "est": 14.84,
+   "players": 930,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 8165,
+   "declared": 12.6,
+   "est": 14.44,
+   "players": 12487,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 14181,
+   "declared": 13.0,
+   "est": 14.84,
+   "players": 116,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 23523,
+   "declared": 17.5,
+   "est": 15.66,
+   "players": 710,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 26621,
+   "declared": 12.8,
+   "est": 14.64,
+   "players": 105,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 30053,
+   "declared": 15.6,
+   "est": 13.76,
+   "players": 250,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 31496,
+   "declared": 13.2,
+   "est": 15.04,
+   "players": 737,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 39229,
+   "declared": 16.1,
+   "est": 14.26,
+   "players": 123,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 40161,
+   "declared": 17.0,
+   "est": 15.16,
+   "players": 61,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 44934,
+   "declared": 17.0,
+   "est": 15.16,
+   "players": 222,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 46535,
+   "declared": 13.3,
+   "est": 15.14,
+   "players": 19115,
+   "diff": -1.84
+  },
+  {
+   "chart_id": 48438,
+   "declared": 16.8,
+   "est": 14.96,
+   "players": 89,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 50036,
+   "declared": 16.8,
+   "est": 14.96,
+   "players": 111,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 53030,
+   "declared": 18.0,
+   "est": 16.16,
+   "players": 126,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 53302,
+   "declared": 16.4,
+   "est": 14.56,
+   "players": 77,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 65405,
+   "declared": 14.0,
+   "est": 12.16,
+   "players": 1214,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 76067,
+   "declared": 17.7,
+   "est": 15.86,
+   "players": 205,
+   "diff": 1.84
+  },
+  {
+   "chart_id": 8565,
+   "declared": 12.0,
+   "est": 13.83,
+   "players": 31340,
+   "diff": -1.83
+  },
+  {
+   "chart_id": 34128,
+   "declared": 18.7,
+   "est": 16.87,
+   "players": 553,
+   "diff": 1.83
+  },
+  {
+   "chart_id": 38101,
+   "declared": 15.1,
+   "est": 13.27,
+   "players": 109,
+   "diff": 1.83
+  },
+  {
+   "chart_id": 43487,
+   "declared": 12.7,
+   "est": 14.53,
+   "players": 66,
+   "diff": -1.83
+  },
+  {
+   "chart_id": 58109,
+   "declared": 16.0,
+   "est": 14.17,
+   "players": 101,
+   "diff": 1.83
+  },
+  {
+   "chart_id": 69634,
+   "declared": 13.2,
+   "est": 15.03,
+   "players": 256,
+   "diff": -1.83
+  },
+  {
+   "chart_id": 69901,
+   "declared": 18.0,
+   "est": 16.17,
+   "players": 573,
+   "diff": 1.83
+  },
+  {
+   "chart_id": 75521,
+   "declared": 18.5,
+   "est": 16.67,
+   "players": 79,
+   "diff": 1.83
+  },
+  {
+   "chart_id": 5481,
+   "declared": 12.3,
+   "est": 14.12,
+   "players": 1262,
+   "diff": -1.82
+  },
+  {
+   "chart_id": 16521,
+   "declared": 14.8,
+   "est": 12.98,
+   "players": 252,
+   "diff": 1.82
+  },
+  {
+   "chart_id": 22329,
+   "declared": 12.0,
+   "est": 13.82,
+   "players": 83,
+   "diff": -1.82
+  },
+  {
+   "chart_id": 45619,
+   "declared": 13.0,
+   "est": 14.82,
+   "players": 32876,
+   "diff": -1.82
+  },
+  {
+   "chart_id": 51959,
+   "declared": 12.0,
+   "est": 13.82,
+   "players": 1194,
+   "diff": -1.82
+  },
+  {
+   "chart_id": 80201,
+   "declared": 13.2,
+   "est": 15.02,
+   "players": 64562,
+   "diff": -1.82
+  },
+  {
+   "chart_id": 1669,
+   "declared": 13.0,
+   "est": 14.81,
+   "players": 427,
+   "diff": -1.81
+  },
+  {
+   "chart_id": 15131,
+   "declared": 17.5,
+   "est": 15.69,
+   "players": 108,
+   "diff": 1.81
+  },
+  {
+   "chart_id": 40706,
+   "declared": 15.9,
+   "est": 14.09,
+   "players": 173,
+   "diff": 1.81
+  },
+  {
+   "chart_id": 43890,
+   "declared": 11.1,
+   "est": 12.91,
+   "players": 565,
+   "diff": -1.81
+  },
+  {
+   "chart_id": 44421,
+   "declared": 13.0,
+   "est": 14.81,
+   "players": 1656,
+   "diff": -1.81
+  },
+  {
+   "chart_id": 46065,
+   "declared": 11.7,
+   "est": 13.51,
+   "players": 816,
+   "diff": -1.81
+  },
+  {
+   "chart_id": 48352,
+   "declared": 15.0,
+   "est": 13.19,
+   "players": 410,
+   "diff": 1.81
+  },
+  {
+   "chart_id": 50489,
+   "declared": 13.4,
+   "est": 15.21,
+   "players": 500,
+   "diff": -1.81
+  },
+  {
+   "chart_id": 65917,
+   "declared": 18.3,
+   "est": 16.49,
+   "players": 125,
+   "diff": 1.81
+  },
+  {
+   "chart_id": 70220,
+   "declared": 18.3,
+   "est": 16.49,
+   "players": 84,
+   "diff": 1.81
+  },
+  {
+   "chart_id": 80511,
+   "declared": 18.7,
+   "est": 16.89,
+   "players": 54,
+   "diff": 1.81
+  },
+  {
+   "chart_id": 21845,
+   "declared": 17.7,
+   "est": 15.9,
+   "players": 726,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 23252,
+   "declared": 15.8,
+   "est": 14.0,
+   "players": 194,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 23780,
+   "declared": 11.3,
+   "est": 13.1,
+   "players": 197,
+   "diff": -1.8
+  },
+  {
+   "chart_id": 31096,
+   "declared": 18.4,
+   "est": 16.6,
+   "players": 145,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 33744,
+   "declared": 14.0,
+   "est": 15.8,
+   "players": 1154,
+   "diff": -1.8
+  },
+  {
+   "chart_id": 46403,
+   "declared": 18.1,
+   "est": 16.3,
+   "players": 601,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 50491,
+   "declared": 17.1,
+   "est": 15.3,
+   "players": 127,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 52062,
+   "declared": 14.0,
+   "est": 15.8,
+   "players": 61,
+   "diff": -1.8
+  },
+  {
+   "chart_id": 52482,
+   "declared": 18.0,
+   "est": 16.2,
+   "players": 68,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 52928,
+   "declared": 17.8,
+   "est": 16.0,
+   "players": 173,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 53239,
+   "declared": 17.3,
+   "est": 15.5,
+   "players": 15126,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 60491,
+   "declared": 18.0,
+   "est": 16.2,
+   "players": 480,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 62581,
+   "declared": 18.1,
+   "est": 16.3,
+   "players": 389,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 73900,
+   "declared": 18.1,
+   "est": 16.3,
+   "players": 799,
+   "diff": 1.8
+  },
+  {
+   "chart_id": 23746,
+   "declared": 16.3,
+   "est": 14.51,
+   "players": 130,
+   "diff": 1.79
+  },
+  {
+   "chart_id": 33325,
+   "declared": 13.6,
+   "est": 15.39,
+   "players": 1609,
+   "diff": -1.79
+  },
+  {
+   "chart_id": 37577,
+   "declared": 16.1,
+   "est": 14.31,
+   "players": 59,
+   "diff": 1.79
+  },
+  {
+   "chart_id": 38410,
+   "declared": 12.6,
+   "est": 14.39,
+   "players": 1178,
+   "diff": -1.79
+  },
+  {
+   "chart_id": 39149,
+   "declared": 14.0,
+   "est": 15.79,
+   "players": 90,
+   "diff": -1.79
+  },
+  {
+   "chart_id": 42707,
+   "declared": 11.2,
+   "est": 12.99,
+   "players": 114,
+   "diff": -1.79
+  },
+  {
+   "chart_id": 53473,
+   "declared": 13.0,
+   "est": 14.79,
+   "players": 10882,
+   "diff": -1.79
+  },
+  {
+   "chart_id": 68753,
+   "declared": 18.0,
+   "est": 16.21,
+   "players": 74,
+   "diff": 1.79
+  },
+  {
+   "chart_id": 80984,
+   "declared": 19.0,
+   "est": 17.21,
+   "players": 123,
+   "diff": 1.79
+  },
+  {
+   "chart_id": 4861,
+   "declared": 13.0,
+   "est": 14.78,
+   "players": 58037,
+   "diff": -1.78
+  },
+  {
+   "chart_id": 11011,
+   "declared": 15.9,
+   "est": 14.12,
+   "players": 659,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 12734,
+   "declared": 16.9,
+   "est": 15.12,
+   "players": 1152,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 16705,
+   "declared": 16.3,
+   "est": 14.52,
+   "players": 380,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 17569,
+   "declared": 12.7,
+   "est": 14.48,
+   "players": 47174,
+   "diff": -1.78
+  },
+  {
+   "chart_id": 23470,
+   "declared": 15.8,
+   "est": 14.02,
+   "players": 257,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 24758,
+   "declared": 13.5,
+   "est": 15.28,
+   "players": 17470,
+   "diff": -1.78
+  },
+  {
+   "chart_id": 32424,
+   "declared": 13.3,
+   "est": 15.08,
+   "players": 71,
+   "diff": -1.78
+  },
+  {
+   "chart_id": 39417,
+   "declared": 16.3,
+   "est": 14.52,
+   "players": 1128,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 42994,
+   "declared": 14.0,
+   "est": 15.78,
+   "players": 18657,
+   "diff": -1.78
+  },
+  {
+   "chart_id": 43948,
+   "declared": 16.2,
+   "est": 14.42,
+   "players": 248,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 49513,
+   "declared": 17.3,
+   "est": 15.52,
+   "players": 198,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 49546,
+   "declared": 17.3,
+   "est": 15.52,
+   "players": 116,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 53070,
+   "declared": 17.2,
+   "est": 15.42,
+   "players": 345,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 60091,
+   "declared": 17.5,
+   "est": 15.72,
+   "players": 107,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 62748,
+   "declared": 18.1,
+   "est": 16.32,
+   "players": 137,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 69652,
+   "declared": 13.5,
+   "est": 15.28,
+   "players": 32722,
+   "diff": -1.78
+  },
+  {
+   "chart_id": 70295,
+   "declared": 12.0,
+   "est": 13.78,
+   "players": 73658,
+   "diff": -1.78
+  },
+  {
+   "chart_id": 78624,
+   "declared": 18.0,
+   "est": 16.22,
+   "players": 367,
+   "diff": 1.78
+  },
+  {
+   "chart_id": 2735,
+   "declared": 12.7,
+   "est": 14.47,
+   "players": 12534,
+   "diff": -1.77
+  },
+  {
+   "chart_id": 18247,
+   "declared": 12.0,
+   "est": 13.77,
+   "players": 516,
+   "diff": -1.77
+  },
+  {
+   "chart_id": 31028,
+   "declared": 19.1,
+   "est": 17.33,
+   "players": 83,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 32702,
+   "declared": 15.7,
+   "est": 13.93,
+   "players": 13762,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 33642,
+   "declared": 14.4,
+   "est": 12.63,
+   "players": 1883,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 43151,
+   "declared": 16.2,
+   "est": 14.43,
+   "players": 573,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 43373,
+   "declared": 16.4,
+   "est": 14.63,
+   "players": 69,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 47042,
+   "declared": 11.2,
+   "est": 12.97,
+   "players": 15463,
+   "diff": -1.77
+  },
+  {
+   "chart_id": 47058,
+   "declared": 11.2,
+   "est": 12.97,
+   "players": 302,
+   "diff": -1.77
+  },
+  {
+   "chart_id": 48520,
+   "declared": 16.5,
+   "est": 14.73,
+   "players": 1243,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 54337,
+   "declared": 12.0,
+   "est": 13.77,
+   "players": 350,
+   "diff": -1.77
+  },
+  {
+   "chart_id": 57084,
+   "declared": 12.0,
+   "est": 13.77,
+   "players": 2451,
+   "diff": -1.77
+  },
+  {
+   "chart_id": 57623,
+   "declared": 16.9,
+   "est": 15.13,
+   "players": 260,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 59087,
+   "declared": 13.0,
+   "est": 14.77,
+   "players": 115,
+   "diff": -1.77
+  },
+  {
+   "chart_id": 73521,
+   "declared": 17.9,
+   "est": 16.13,
+   "players": 261,
+   "diff": 1.77
+  },
+  {
+   "chart_id": 5518,
+   "declared": 12.0,
+   "est": 13.76,
+   "players": 18716,
+   "diff": -1.76
+  },
+  {
+   "chart_id": 6216,
+   "declared": 13.8,
+   "est": 15.56,
+   "players": 104,
+   "diff": -1.76
+  },
+  {
+   "chart_id": 6307,
+   "declared": 12.0,
+   "est": 13.76,
+   "players": 18857,
+   "diff": -1.76
+  },
+  {
+   "chart_id": 12251,
+   "declared": 11.9,
+   "est": 13.66,
+   "players": 262,
+   "diff": -1.76
+  },
+  {
+   "chart_id": 13205,
+   "declared": 15.7,
+   "est": 13.94,
+   "players": 733,
+   "diff": 1.76
+  },
+  {
+   "chart_id": 17863,
+   "declared": 15.7,
+   "est": 13.94,
+   "players": 115,
+   "diff": 1.76
+  },
+  {
+   "chart_id": 25675,
+   "declared": 11.0,
+   "est": 12.76,
+   "players": 548,
+   "diff": -1.76
+  },
+  {
+   "chart_id": 45360,
+   "declared": 17.3,
+   "est": 15.54,
+   "players": 227,
+   "diff": 1.76
+  },
+  {
+   "chart_id": 51397,
+   "declared": 18.4,
+   "est": 16.64,
+   "players": 143,
+   "diff": 1.76
+  },
+  {
+   "chart_id": 53252,
+   "declared": 17.6,
+   "est": 15.84,
+   "players": 165,
+   "diff": 1.76
+  },
+  {
+   "chart_id": 62774,
+   "declared": 19.0,
+   "est": 17.24,
+   "players": 98,
+   "diff": 1.76
+  },
+  {
+   "chart_id": 67088,
+   "declared": 13.0,
+   "est": 14.76,
+   "players": 256,
+   "diff": -1.76
+  },
+  {
+   "chart_id": 74249,
+   "declared": 12.8,
+   "est": 14.56,
+   "players": 1020,
+   "diff": -1.76
+  },
+  {
+   "chart_id": 1757,
+   "declared": 15.2,
+   "est": 13.45,
+   "players": 369,
+   "diff": 1.75
+  },
+  {
+   "chart_id": 11015,
+   "declared": 13.0,
+   "est": 14.75,
+   "players": 409,
+   "diff": -1.75
+  },
+  {
+   "chart_id": 18117,
+   "declared": 15.6,
+   "est": 13.85,
+   "players": 175,
+   "diff": 1.75
+  },
+  {
+   "chart_id": 19414,
+   "declared": 13.1,
+   "est": 14.85,
+   "players": 129,
+   "diff": -1.75
+  },
+  {
+   "chart_id": 19725,
+   "declared": 13.8,
+   "est": 15.55,
+   "players": 964,
+   "diff": -1.75
+  },
+  {
+   "chart_id": 51175,
+   "declared": 17.8,
+   "est": 16.05,
+   "players": 368,
+   "diff": 1.75
+  },
+  {
+   "chart_id": 66634,
+   "declared": 19.0,
+   "est": 17.25,
+   "players": 576,
+   "diff": 1.75
+  },
+  {
+   "chart_id": 3997,
+   "declared": 13.0,
+   "est": 14.74,
+   "players": 1241,
+   "diff": -1.74
+  },
+  {
+   "chart_id": 5280,
+   "declared": 12.9,
+   "est": 14.64,
+   "players": 15372,
+   "diff": -1.74
+  },
+  {
+   "chart_id": 7319,
+   "declared": 15.9,
+   "est": 14.16,
+   "players": 243,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 9036,
+   "declared": 15.1,
+   "est": 13.36,
+   "players": 159,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 15988,
+   "declared": 15.6,
+   "est": 13.86,
+   "players": 360,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 24139,
+   "declared": 15.5,
+   "est": 13.76,
+   "players": 280,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 24199,
+   "declared": 13.2,
+   "est": 14.94,
+   "players": 129,
+   "diff": -1.74
+  },
+  {
+   "chart_id": 26014,
+   "declared": 12.0,
+   "est": 13.74,
+   "players": 61,
+   "diff": -1.74
+  },
+  {
+   "chart_id": 26221,
+   "declared": 15.5,
+   "est": 13.76,
+   "players": 739,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 32087,
+   "declared": 12.5,
+   "est": 14.24,
+   "players": 682,
+   "diff": -1.74
+  },
+  {
+   "chart_id": 41265,
+   "declared": 16.2,
+   "est": 14.46,
+   "players": 610,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 41335,
+   "declared": 14.0,
+   "est": 15.74,
+   "players": 176,
+   "diff": -1.74
+  },
+  {
+   "chart_id": 47489,
+   "declared": 15.8,
+   "est": 14.06,
+   "players": 172,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 49448,
+   "declared": 16.0,
+   "est": 14.26,
+   "players": 1056,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 49515,
+   "declared": 16.3,
+   "est": 14.56,
+   "players": 105,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 50731,
+   "declared": 17.1,
+   "est": 15.36,
+   "players": 134,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 55098,
+   "declared": 15.4,
+   "est": 13.66,
+   "players": 142,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 58478,
+   "declared": 15.3,
+   "est": 13.56,
+   "players": 256,
+   "diff": 1.74
+  },
+  {
+   "chart_id": 3931,
+   "declared": 13.7,
+   "est": 15.43,
+   "players": 59,
+   "diff": -1.73
+  },
+  {
+   "chart_id": 6829,
+   "declared": 12.2,
+   "est": 13.93,
+   "players": 111,
+   "diff": -1.73
+  },
+  {
+   "chart_id": 15451,
+   "declared": 16.7,
+   "est": 14.97,
+   "players": 42377,
+   "diff": 1.73
+  },
+  {
+   "chart_id": 16725,
+   "declared": 11.0,
+   "est": 12.73,
+   "players": 575,
+   "diff": -1.73
+  },
+  {
+   "chart_id": 19642,
+   "declared": 13.0,
+   "est": 14.73,
+   "players": 320,
+   "diff": -1.73
+  },
+  {
+   "chart_id": 33072,
+   "declared": 12.5,
+   "est": 14.23,
+   "players": 78,
+   "diff": -1.73
+  },
+  {
+   "chart_id": 38012,
+   "declared": 12.6,
+   "est": 14.33,
+   "players": 52,
+   "diff": -1.73
+  },
+  {
+   "chart_id": 42178,
+   "declared": 17.0,
+   "est": 15.27,
+   "players": 182,
+   "diff": 1.73
+  },
+  {
+   "chart_id": 43273,
+   "declared": 17.3,
+   "est": 15.57,
+   "players": 1446,
+   "diff": 1.73
+  },
+  {
+   "chart_id": 51764,
+   "declared": 12.0,
+   "est": 13.73,
+   "players": 63,
+   "diff": -1.73
+  },
+  {
+   "chart_id": 76696,
+   "declared": 17.1,
+   "est": 15.37,
+   "players": 440,
+   "diff": 1.73
+  },
+  {
+   "chart_id": 14622,
+   "declared": 14.9,
+   "est": 13.18,
+   "players": 1027,
+   "diff": 1.72
+  },
+  {
+   "chart_id": 18833,
+   "declared": 13.0,
+   "est": 14.72,
+   "players": 83,
+   "diff": -1.72
+  },
+  {
+   "chart_id": 26937,
+   "declared": 16.1,
+   "est": 14.38,
+   "players": 99,
+   "diff": 1.72
+  },
+  {
+   "chart_id": 52573,
+   "declared": 17.1,
+   "est": 15.38,
+   "players": 167,
+   "diff": 1.72
+  },
+  {
+   "chart_id": 54536,
+   "declared": 17.2,
+   "est": 15.48,
+   "players": 124,
+   "diff": 1.72
+  },
+  {
+   "chart_id": 62779,
+   "declared": 18.0,
+   "est": 16.28,
+   "players": 190,
+   "diff": 1.72
+  },
+  {
+   "chart_id": 74328,
+   "declared": 16.0,
+   "est": 14.28,
+   "players": 293,
+   "diff": 1.72
+  },
+  {
+   "chart_id": 19933,
+   "declared": 13.5,
+   "est": 15.21,
+   "players": 22057,
+   "diff": -1.71
+  },
+  {
+   "chart_id": 21045,
+   "declared": 11.3,
+   "est": 13.01,
+   "players": 22923,
+   "diff": -1.71
+  },
+  {
+   "chart_id": 26636,
+   "declared": 18.0,
+   "est": 16.29,
+   "players": 72,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 28801,
+   "declared": 15.3,
+   "est": 13.59,
+   "players": 116,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 37792,
+   "declared": 17.0,
+   "est": 15.29,
+   "players": 95,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 39355,
+   "declared": 15.8,
+   "est": 14.09,
+   "players": 63,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 50152,
+   "declared": 16.3,
+   "est": 14.59,
+   "players": 111,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 53553,
+   "declared": 11.0,
+   "est": 12.71,
+   "players": 347,
+   "diff": -1.71
+  },
+  {
+   "chart_id": 64705,
+   "declared": 18.0,
+   "est": 16.29,
+   "players": 495,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 72145,
+   "declared": 18.3,
+   "est": 16.59,
+   "players": 51,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 76851,
+   "declared": 19.0,
+   "est": 17.29,
+   "players": 235,
+   "diff": 1.71
+  },
+  {
+   "chart_id": 7563,
+   "declared": 17.0,
+   "est": 15.3,
+   "players": 181,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 8773,
+   "declared": 14.0,
+   "est": 15.7,
+   "players": 167,
+   "diff": -1.7
+  },
+  {
+   "chart_id": 9047,
+   "declared": 15.3,
+   "est": 13.6,
+   "players": 370,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 16272,
+   "declared": 16.3,
+   "est": 14.6,
+   "players": 15190,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 25142,
+   "declared": 14.0,
+   "est": 15.7,
+   "players": 897,
+   "diff": -1.7
+  },
+  {
+   "chart_id": 28312,
+   "declared": 12.0,
+   "est": 13.7,
+   "players": 190,
+   "diff": -1.7
+  },
+  {
+   "chart_id": 29074,
+   "declared": 13.0,
+   "est": 14.7,
+   "players": 11196,
+   "diff": -1.7
+  },
+  {
+   "chart_id": 31687,
+   "declared": 12.0,
+   "est": 13.7,
+   "players": 21787,
+   "diff": -1.7
+  },
+  {
+   "chart_id": 35485,
+   "declared": 17.2,
+   "est": 15.5,
+   "players": 95,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 36612,
+   "declared": 18.7,
+   "est": 17.0,
+   "players": 177,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 39018,
+   "declared": 18.4,
+   "est": 16.7,
+   "players": 52,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 48655,
+   "declared": 15.9,
+   "est": 14.2,
+   "players": 1217,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 70100,
+   "declared": 13.0,
+   "est": 14.7,
+   "players": 2876,
+   "diff": -1.7
+  },
+  {
+   "chart_id": 70132,
+   "declared": 16.4,
+   "est": 14.7,
+   "players": 598,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 72750,
+   "declared": 17.6,
+   "est": 15.9,
+   "players": 290,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 73174,
+   "declared": 14.0,
+   "est": 15.7,
+   "players": 937,
+   "diff": -1.7
+  },
+  {
+   "chart_id": 76596,
+   "declared": 17.8,
+   "est": 16.1,
+   "players": 144,
+   "diff": 1.7
+  },
+  {
+   "chart_id": 14916,
+   "declared": 15.8,
+   "est": 14.11,
+   "players": 210,
+   "diff": 1.69
+  },
+  {
+   "chart_id": 55724,
+   "declared": 11.0,
+   "est": 12.69,
+   "players": 713,
+   "diff": -1.69
+  },
+  {
+   "chart_id": 60509,
+   "declared": 13.0,
+   "est": 14.69,
+   "players": 51,
+   "diff": -1.69
+  },
+  {
+   "chart_id": 62728,
+   "declared": 17.4,
+   "est": 15.71,
+   "players": 264,
+   "diff": 1.69
+  },
+  {
+   "chart_id": 66629,
+   "declared": 11.0,
+   "est": 12.69,
+   "players": 1386,
+   "diff": -1.69
+  },
+  {
+   "chart_id": 74407,
+   "declared": 17.5,
+   "est": 15.81,
+   "players": 152,
+   "diff": 1.69
+  },
+  {
+   "chart_id": 74828,
+   "declared": 17.3,
+   "est": 15.61,
+   "players": 54,
+   "diff": 1.69
+  },
+  {
+   "chart_id": 76072,
+   "declared": 12.9,
+   "est": 14.59,
+   "players": 81,
+   "diff": -1.69
+  },
+  {
+   "chart_id": 2935,
+   "declared": 13.0,
+   "est": 14.68,
+   "players": 827,
+   "diff": -1.68
+  },
+  {
+   "chart_id": 11627,
+   "declared": 15.3,
+   "est": 13.62,
+   "players": 24048,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 12479,
+   "declared": 13.8,
+   "est": 15.48,
+   "players": 19275,
+   "diff": -1.68
+  },
+  {
+   "chart_id": 12572,
+   "declared": 11.6,
+   "est": 13.28,
+   "players": 102027,
+   "diff": -1.68
+  },
+  {
+   "chart_id": 12973,
+   "declared": 15.4,
+   "est": 13.72,
+   "players": 109,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 18963,
+   "declared": 13.5,
+   "est": 15.18,
+   "players": 22527,
+   "diff": -1.68
+  },
+  {
+   "chart_id": 23303,
+   "declared": 15.1,
+   "est": 13.42,
+   "players": 443,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 36495,
+   "declared": 15.7,
+   "est": 14.02,
+   "players": 114,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 38811,
+   "declared": 17.0,
+   "est": 15.32,
+   "players": 357,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 43192,
+   "declared": 12.0,
+   "est": 13.68,
+   "players": 2045,
+   "diff": -1.68
+  },
+  {
+   "chart_id": 44196,
+   "declared": 17.1,
+   "est": 15.42,
+   "players": 61,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 44705,
+   "declared": 18.2,
+   "est": 16.52,
+   "players": 760,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 56430,
+   "declared": 12.3,
+   "est": 13.98,
+   "players": 742,
+   "diff": -1.68
+  },
+  {
+   "chart_id": 79478,
+   "declared": 17.6,
+   "est": 15.92,
+   "players": 364,
+   "diff": 1.68
+  },
+  {
+   "chart_id": 1822,
+   "declared": 14.0,
+   "est": 15.67,
+   "players": 134,
+   "diff": -1.67
+  },
+  {
+   "chart_id": 3376,
+   "declared": 14.0,
+   "est": 15.67,
+   "players": 963,
+   "diff": -1.67
+  },
+  {
+   "chart_id": 4574,
+   "declared": 13.7,
+   "est": 15.37,
+   "players": 21684,
+   "diff": -1.67
+  },
+  {
+   "chart_id": 4758,
+   "declared": 15.3,
+   "est": 13.63,
+   "players": 220,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 10260,
+   "declared": 15.3,
+   "est": 13.63,
+   "players": 173,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 14690,
+   "declared": 14.0,
+   "est": 15.67,
+   "players": 865,
+   "diff": -1.67
+  },
+  {
+   "chart_id": 17079,
+   "declared": 12.0,
+   "est": 13.67,
+   "players": 510,
+   "diff": -1.67
+  },
+  {
+   "chart_id": 25765,
+   "declared": 16.7,
+   "est": 15.03,
+   "players": 402,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 25906,
+   "declared": 17.8,
+   "est": 16.13,
+   "players": 688,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 27015,
+   "declared": 12.5,
+   "est": 14.17,
+   "players": 1000,
+   "diff": -1.67
+  },
+  {
+   "chart_id": 38570,
+   "declared": 17.6,
+   "est": 15.93,
+   "players": 499,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 38707,
+   "declared": 15.2,
+   "est": 13.53,
+   "players": 157,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 44579,
+   "declared": 18.0,
+   "est": 16.33,
+   "players": 231,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 52542,
+   "declared": 19.0,
+   "est": 17.33,
+   "players": 72,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 67817,
+   "declared": 17.7,
+   "est": 16.03,
+   "players": 238,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 70124,
+   "declared": 18.7,
+   "est": 17.03,
+   "players": 210,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 71955,
+   "declared": 17.9,
+   "est": 16.23,
+   "players": 111,
+   "diff": 1.67
+  },
+  {
+   "chart_id": 74781,
+   "declared": 12.8,
+   "est": 14.47,
+   "players": 782,
+   "diff": -1.67
+  },
+  {
+   "chart_id": 3281,
+   "declared": 13.0,
+   "est": 14.66,
+   "players": 262,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 6602,
+   "declared": 13.0,
+   "est": 14.66,
+   "players": 65042,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 8706,
+   "declared": 13.0,
+   "est": 14.66,
+   "players": 156096,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 10137,
+   "declared": 12.7,
+   "est": 14.36,
+   "players": 20693,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 13496,
+   "declared": 14.1,
+   "est": 12.44,
+   "players": 47502,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 16572,
+   "declared": 14.5,
+   "est": 12.84,
+   "players": 1185,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 22065,
+   "declared": 12.5,
+   "est": 14.16,
+   "players": 155,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 26569,
+   "declared": 12.5,
+   "est": 14.16,
+   "players": 318,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 29293,
+   "declared": 15.6,
+   "est": 13.94,
+   "players": 252,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 30396,
+   "declared": 14.3,
+   "est": 12.64,
+   "players": 678,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 30514,
+   "declared": 17.9,
+   "est": 16.24,
+   "players": 337,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 31273,
+   "declared": 12.9,
+   "est": 14.56,
+   "players": 1370,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 33456,
+   "declared": 13.0,
+   "est": 14.66,
+   "players": 315,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 34989,
+   "declared": 17.3,
+   "est": 15.64,
+   "players": 115,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 40561,
+   "declared": 12.0,
+   "est": 13.66,
+   "players": 20149,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 47316,
+   "declared": 18.7,
+   "est": 17.04,
+   "players": 135,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 50580,
+   "declared": 18.2,
+   "est": 16.54,
+   "players": 166,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 61896,
+   "declared": 14.0,
+   "est": 15.66,
+   "players": 16837,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 71803,
+   "declared": 17.9,
+   "est": 16.24,
+   "players": 480,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 75168,
+   "declared": 17.2,
+   "est": 15.54,
+   "players": 380,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 77902,
+   "declared": 14.4,
+   "est": 16.06,
+   "players": 21801,
+   "diff": -1.66
+  },
+  {
+   "chart_id": 81394,
+   "declared": 18.0,
+   "est": 16.34,
+   "players": 195,
+   "diff": 1.66
+  },
+  {
+   "chart_id": 39,
+   "declared": 12.1,
+   "est": 13.75,
+   "players": 239,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 16640,
+   "declared": 11.8,
+   "est": 13.45,
+   "players": 1460,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 27465,
+   "declared": 14.4,
+   "est": 16.05,
+   "players": 52,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 37436,
+   "declared": 17.9,
+   "est": 16.25,
+   "players": 91,
+   "diff": 1.65
+  },
+  {
+   "chart_id": 37959,
+   "declared": 13.5,
+   "est": 15.15,
+   "players": 12994,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 40526,
+   "declared": 16.1,
+   "est": 14.45,
+   "players": 420,
+   "diff": 1.65
+  },
+  {
+   "chart_id": 42282,
+   "declared": 18.2,
+   "est": 16.55,
+   "players": 96,
+   "diff": 1.65
+  },
+  {
+   "chart_id": 43345,
+   "declared": 12.6,
+   "est": 14.25,
+   "players": 312,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 43979,
+   "declared": 17.1,
+   "est": 15.45,
+   "players": 68,
+   "diff": 1.65
+  },
+  {
+   "chart_id": 51385,
+   "declared": 14.2,
+   "est": 15.85,
+   "players": 74,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 57734,
+   "declared": 14.0,
+   "est": 15.65,
+   "players": 525,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 61635,
+   "declared": 13.0,
+   "est": 14.65,
+   "players": 23866,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 61775,
+   "declared": 14.0,
+   "est": 15.65,
+   "players": 108,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 71727,
+   "declared": 13.0,
+   "est": 14.65,
+   "players": 1041,
+   "diff": -1.65
+  },
+  {
+   "chart_id": 8860,
+   "declared": 13.4,
+   "est": 15.04,
+   "players": 358,
+   "diff": -1.64
+  },
+  {
+   "chart_id": 32321,
+   "declared": 13.2,
+   "est": 14.84,
+   "players": 74,
+   "diff": -1.64
+  },
+  {
+   "chart_id": 41418,
+   "declared": 16.8,
+   "est": 15.16,
+   "players": 1450,
+   "diff": 1.64
+  },
+  {
+   "chart_id": 41751,
+   "declared": 14.2,
+   "est": 15.84,
+   "players": 107,
+   "diff": -1.64
+  },
+  {
+   "chart_id": 43424,
+   "declared": 16.4,
+   "est": 14.76,
+   "players": 547,
+   "diff": 1.64
+  },
+  {
+   "chart_id": 45431,
+   "declared": 18.0,
+   "est": 16.36,
+   "players": 124,
+   "diff": 1.64
+  },
+  {
+   "chart_id": 49905,
+   "declared": 16.9,
+   "est": 15.26,
+   "players": 97,
+   "diff": 1.64
+  },
+  {
+   "chart_id": 58957,
+   "declared": 12.0,
+   "est": 13.64,
+   "players": 650,
+   "diff": -1.64
+  },
+  {
+   "chart_id": 59955,
+   "declared": 13.7,
+   "est": 15.34,
+   "players": 110,
+   "diff": -1.64
+  },
+  {
+   "chart_id": 65450,
+   "declared": 15.0,
+   "est": 16.64,
+   "players": 13001,
+   "diff": -1.64
+  },
+  {
+   "chart_id": 78643,
+   "declared": 13.8,
+   "est": 15.44,
+   "players": 57,
+   "diff": -1.64
+  },
+  {
+   "chart_id": 65,
+   "declared": 12.9,
+   "est": 14.53,
+   "players": 12198,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 3924,
+   "declared": 13.0,
+   "est": 14.63,
+   "players": 890,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 7480,
+   "declared": 13.0,
+   "est": 14.63,
+   "players": 948,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 11628,
+   "declared": 15.9,
+   "est": 14.27,
+   "players": 1030,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 19108,
+   "declared": 16.8,
+   "est": 15.17,
+   "players": 596,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 19201,
+   "declared": 14.0,
+   "est": 15.63,
+   "players": 206,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 19940,
+   "declared": 13.0,
+   "est": 14.63,
+   "players": 104,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 24881,
+   "declared": 18.0,
+   "est": 16.37,
+   "players": 1043,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 33648,
+   "declared": 13.0,
+   "est": 14.63,
+   "players": 164,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 38965,
+   "declared": 13.0,
+   "est": 14.63,
+   "players": 761,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 43184,
+   "declared": 18.2,
+   "est": 16.57,
+   "players": 55,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 45564,
+   "declared": 16.6,
+   "est": 14.97,
+   "players": 143,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 49361,
+   "declared": 17.8,
+   "est": 16.17,
+   "players": 104,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 61041,
+   "declared": 17.3,
+   "est": 15.67,
+   "players": 149,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 64228,
+   "declared": 16.5,
+   "est": 14.87,
+   "players": 10812,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 65161,
+   "declared": 13.0,
+   "est": 14.63,
+   "players": 876,
+   "diff": -1.63
+  },
+  {
+   "chart_id": 74362,
+   "declared": 16.3,
+   "est": 14.67,
+   "players": 66,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 79631,
+   "declared": 17.4,
+   "est": 15.77,
+   "players": 434,
+   "diff": 1.63
+  },
+  {
+   "chart_id": 5822,
+   "declared": 14.0,
+   "est": 15.62,
+   "players": 57604,
+   "diff": -1.62
+  },
+  {
+   "chart_id": 23483,
+   "declared": 15.7,
+   "est": 14.08,
+   "players": 132,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 23812,
+   "declared": 13.0,
+   "est": 14.62,
+   "players": 111,
+   "diff": -1.62
+  },
+  {
+   "chart_id": 24542,
+   "declared": 14.6,
+   "est": 16.22,
+   "players": 229,
+   "diff": -1.62
+  },
+  {
+   "chart_id": 31367,
+   "declared": 16.0,
+   "est": 14.38,
+   "players": 113,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 31430,
+   "declared": 14.0,
+   "est": 15.62,
+   "players": 78,
+   "diff": -1.62
+  },
+  {
+   "chart_id": 36253,
+   "declared": 18.6,
+   "est": 16.98,
+   "players": 134,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 37553,
+   "declared": 17.2,
+   "est": 15.58,
+   "players": 110,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 45394,
+   "declared": 16.8,
+   "est": 15.18,
+   "players": 431,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 46250,
+   "declared": 16.3,
+   "est": 14.68,
+   "players": 107,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 46771,
+   "declared": 16.0,
+   "est": 14.38,
+   "players": 97,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 47663,
+   "declared": 15.1,
+   "est": 13.48,
+   "players": 696,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 48813,
+   "declared": 17.4,
+   "est": 15.78,
+   "players": 127,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 52086,
+   "declared": 17.6,
+   "est": 15.98,
+   "players": 71,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 63466,
+   "declared": 18.0,
+   "est": 16.38,
+   "players": 95,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 63910,
+   "declared": 13.0,
+   "est": 14.62,
+   "players": 37676,
+   "diff": -1.62
+  },
+  {
+   "chart_id": 72744,
+   "declared": 18.0,
+   "est": 16.38,
+   "players": 345,
+   "diff": 1.62
+  },
+  {
+   "chart_id": 4528,
+   "declared": 13.0,
+   "est": 14.61,
+   "players": 30162,
+   "diff": -1.61
+  },
+  {
+   "chart_id": 5209,
+   "declared": 15.2,
+   "est": 16.81,
+   "players": 12916,
+   "diff": -1.61
+  },
+  {
+   "chart_id": 8693,
+   "declared": 12.8,
+   "est": 14.41,
+   "players": 90,
+   "diff": -1.61
+  },
+  {
+   "chart_id": 11071,
+   "declared": 13.0,
+   "est": 14.61,
+   "players": 18190,
+   "diff": -1.61
+  },
+  {
+   "chart_id": 31694,
+   "declared": 13.0,
+   "est": 14.61,
+   "players": 879,
+   "diff": -1.61
+  },
+  {
+   "chart_id": 35532,
+   "declared": 16.1,
+   "est": 14.49,
+   "players": 226,
+   "diff": 1.61
+  },
+  {
+   "chart_id": 42846,
+   "declared": 16.9,
+   "est": 15.29,
+   "players": 625,
+   "diff": 1.61
+  },
+  {
+   "chart_id": 43761,
+   "declared": 17.0,
+   "est": 15.39,
+   "players": 82,
+   "diff": 1.61
+  },
+  {
+   "chart_id": 50702,
+   "declared": 17.0,
+   "est": 15.39,
+   "players": 109,
+   "diff": 1.61
+  },
+  {
+   "chart_id": 58831,
+   "declared": 18.0,
+   "est": 16.39,
+   "players": 231,
+   "diff": 1.61
+  },
+  {
+   "chart_id": 73223,
+   "declared": 17.7,
+   "est": 16.09,
+   "players": 148,
+   "diff": 1.61
+  },
+  {
+   "chart_id": 77405,
+   "declared": 17.0,
+   "est": 15.39,
+   "players": 370,
+   "diff": 1.61
+  },
+  {
+   "chart_id": 162,
+   "declared": 16.2,
+   "est": 14.6,
+   "players": 224,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 11483,
+   "declared": 13.0,
+   "est": 14.6,
+   "players": 48093,
+   "diff": -1.6
+  },
+  {
+   "chart_id": 17734,
+   "declared": 11.4,
+   "est": 13.0,
+   "players": 125,
+   "diff": -1.6
+  },
+  {
+   "chart_id": 19892,
+   "declared": 18.0,
+   "est": 16.4,
+   "players": 82,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 26052,
+   "declared": 16.0,
+   "est": 14.4,
+   "players": 83,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 50350,
+   "declared": 18.0,
+   "est": 16.4,
+   "players": 66,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 52452,
+   "declared": 16.3,
+   "est": 14.7,
+   "players": 71,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 55172,
+   "declared": 17.0,
+   "est": 15.4,
+   "players": 117,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 57259,
+   "declared": 16.5,
+   "est": 14.9,
+   "players": 293,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 57930,
+   "declared": 15.0,
+   "est": 13.4,
+   "players": 119875,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 59292,
+   "declared": 17.2,
+   "est": 15.6,
+   "players": 805,
+   "diff": 1.6
+  },
+  {
+   "chart_id": 351,
+   "declared": 15.3,
+   "est": 13.71,
+   "players": 274,
+   "diff": 1.59
+  },
+  {
+   "chart_id": 2195,
+   "declared": 12.0,
+   "est": 13.59,
+   "players": 11151,
+   "diff": -1.59
+  },
+  {
+   "chart_id": 10518,
+   "declared": 12.5,
+   "est": 14.09,
+   "players": 44303,
+   "diff": -1.59
+  },
+  {
+   "chart_id": 11543,
+   "declared": 16.7,
+   "est": 15.11,
+   "players": 461,
+   "diff": 1.59
+  },
+  {
+   "chart_id": 24729,
+   "declared": 18.1,
+   "est": 16.51,
+   "players": 230,
+   "diff": 1.59
+  },
+  {
+   "chart_id": 26572,
+   "declared": 14.0,
+   "est": 15.59,
+   "players": 20728,
+   "diff": -1.59
+  },
+  {
+   "chart_id": 32741,
+   "declared": 14.7,
+   "est": 16.29,
+   "players": 742,
+   "diff": -1.59
+  },
+  {
+   "chart_id": 33530,
+   "declared": 18.2,
+   "est": 16.61,
+   "players": 135,
+   "diff": 1.59
+  },
+  {
+   "chart_id": 34166,
+   "declared": 16.2,
+   "est": 14.61,
+   "players": 80,
+   "diff": 1.59
+  },
+  {
+   "chart_id": 35140,
+   "declared": 13.2,
+   "est": 14.79,
+   "players": 302,
+   "diff": -1.59
+  },
+  {
+   "chart_id": 35187,
+   "declared": 16.2,
+   "est": 14.61,
+   "players": 109,
+   "diff": 1.59
+  },
+  {
+   "chart_id": 40113,
+   "declared": 16.1,
+   "est": 14.51,
+   "players": 349,
+   "diff": 1.59
+  },
+  {
+   "chart_id": 3906,
+   "declared": 13.4,
+   "est": 14.98,
+   "players": 12828,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 8354,
+   "declared": 15.7,
+   "est": 14.12,
+   "players": 1124,
+   "diff": 1.58
+  },
+  {
+   "chart_id": 28858,
+   "declared": 14.7,
+   "est": 16.28,
+   "players": 19777,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 44628,
+   "declared": 11.7,
+   "est": 13.28,
+   "players": 12412,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 47149,
+   "declared": 13.0,
+   "est": 14.58,
+   "players": 344,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 47837,
+   "declared": 16.6,
+   "est": 15.02,
+   "players": 80,
+   "diff": 1.58
+  },
+  {
+   "chart_id": 50349,
+   "declared": 10.8,
+   "est": 12.38,
+   "players": 166,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 50571,
+   "declared": 17.7,
+   "est": 16.12,
+   "players": 53,
+   "diff": 1.58
+  },
+  {
+   "chart_id": 50625,
+   "declared": 15.4,
+   "est": 13.82,
+   "players": 175,
+   "diff": 1.58
+  },
+  {
+   "chart_id": 65950,
+   "declared": 13.8,
+   "est": 15.38,
+   "players": 49790,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 66881,
+   "declared": 13.0,
+   "est": 14.58,
+   "players": 571,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 67783,
+   "declared": 16.2,
+   "est": 14.62,
+   "players": 480,
+   "diff": 1.58
+  },
+  {
+   "chart_id": 69413,
+   "declared": 17.3,
+   "est": 15.72,
+   "players": 314,
+   "diff": 1.58
+  },
+  {
+   "chart_id": 70898,
+   "declared": 12.4,
+   "est": 13.98,
+   "players": 23593,
+   "diff": -1.58
+  },
+  {
+   "chart_id": 71500,
+   "declared": 18.0,
+   "est": 16.42,
+   "players": 347,
+   "diff": 1.58
+  },
+  {
+   "chart_id": 3318,
+   "declared": 16.6,
+   "est": 15.03,
+   "players": 296,
+   "diff": 1.57
+  },
+  {
+   "chart_id": 5754,
+   "declared": 13.7,
+   "est": 15.27,
+   "players": 78,
+   "diff": -1.57
+  },
+  {
+   "chart_id": 7913,
+   "declared": 13.0,
+   "est": 14.57,
+   "players": 75115,
+   "diff": -1.57
+  },
+  {
+   "chart_id": 16253,
+   "declared": 12.0,
+   "est": 13.57,
+   "players": 33960,
+   "diff": -1.57
+  },
+  {
+   "chart_id": 31233,
+   "declared": 13.2,
+   "est": 14.77,
+   "players": 175,
+   "diff": -1.57
+  },
+  {
+   "chart_id": 42922,
+   "declared": 11.0,
+   "est": 12.57,
+   "players": 394,
+   "diff": -1.57
+  },
+  {
+   "chart_id": 46348,
+   "declared": 18.2,
+   "est": 16.63,
+   "players": 64,
+   "diff": 1.57
+  },
+  {
+   "chart_id": 46377,
+   "declared": 13.7,
+   "est": 15.27,
+   "players": 320,
+   "diff": -1.57
+  },
+  {
+   "chart_id": 50389,
+   "declared": 12.5,
+   "est": 14.07,
+   "players": 133,
+   "diff": -1.57
+  },
+  {
+   "chart_id": 58529,
+   "declared": 17.6,
+   "est": 16.03,
+   "players": 61,
+   "diff": 1.57
+  },
+  {
+   "chart_id": 73352,
+   "declared": 16.2,
+   "est": 14.63,
+   "players": 206,
+   "diff": 1.57
+  },
+  {
+   "chart_id": 2701,
+   "declared": 13.5,
+   "est": 15.06,
+   "players": 560,
+   "diff": -1.56
+  },
+  {
+   "chart_id": 16304,
+   "declared": 17.0,
+   "est": 15.44,
+   "players": 330,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 16589,
+   "declared": 15.6,
+   "est": 14.04,
+   "players": 206,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 21004,
+   "declared": 13.0,
+   "est": 14.56,
+   "players": 952,
+   "diff": -1.56
+  },
+  {
+   "chart_id": 21744,
+   "declared": 15.0,
+   "est": 13.44,
+   "players": 409,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 31536,
+   "declared": 12.1,
+   "est": 13.66,
+   "players": 935,
+   "diff": -1.56
+  },
+  {
+   "chart_id": 34413,
+   "declared": 14.0,
+   "est": 15.56,
+   "players": 321,
+   "diff": -1.56
+  },
+  {
+   "chart_id": 39821,
+   "declared": 14.0,
+   "est": 15.56,
+   "players": 1408,
+   "diff": -1.56
+  },
+  {
+   "chart_id": 45346,
+   "declared": 17.1,
+   "est": 15.54,
+   "players": 105,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 51382,
+   "declared": 17.0,
+   "est": 15.44,
+   "players": 256,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 53789,
+   "declared": 17.8,
+   "est": 16.24,
+   "players": 343,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 53954,
+   "declared": 17.3,
+   "est": 15.74,
+   "players": 194,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 57951,
+   "declared": 17.9,
+   "est": 16.34,
+   "players": 74,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 61157,
+   "declared": 13.9,
+   "est": 15.46,
+   "players": 60,
+   "diff": -1.56
+  },
+  {
+   "chart_id": 61592,
+   "declared": 14.5,
+   "est": 12.94,
+   "players": 85429,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 80561,
+   "declared": 18.5,
+   "est": 16.94,
+   "players": 186,
+   "diff": 1.56
+  },
+  {
+   "chart_id": 1084,
+   "declared": 17.3,
+   "est": 15.75,
+   "players": 848,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 3119,
+   "declared": 13.0,
+   "est": 14.55,
+   "players": 37145,
+   "diff": -1.55
+  },
+  {
+   "chart_id": 7043,
+   "declared": 11.5,
+   "est": 13.05,
+   "players": 1071,
+   "diff": -1.55
+  },
+  {
+   "chart_id": 14808,
+   "declared": 15.0,
+   "est": 16.55,
+   "players": 78,
+   "diff": -1.55
+  },
+  {
+   "chart_id": 18650,
+   "declared": 17.2,
+   "est": 15.65,
+   "players": 921,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 26691,
+   "declared": 13.0,
+   "est": 14.55,
+   "players": 1665,
+   "diff": -1.55
+  },
+  {
+   "chart_id": 27056,
+   "declared": 13.7,
+   "est": 15.25,
+   "players": 64,
+   "diff": -1.55
+  },
+  {
+   "chart_id": 34135,
+   "declared": 19.3,
+   "est": 17.75,
+   "players": 70,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 34208,
+   "declared": 17.8,
+   "est": 16.25,
+   "players": 167,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 43098,
+   "declared": 15.6,
+   "est": 14.05,
+   "players": 126,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 48171,
+   "declared": 15.7,
+   "est": 14.15,
+   "players": 74,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 51918,
+   "declared": 13.0,
+   "est": 14.55,
+   "players": 411,
+   "diff": -1.55
+  },
+  {
+   "chart_id": 60868,
+   "declared": 16.9,
+   "est": 15.35,
+   "players": 93,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 66352,
+   "declared": 16.8,
+   "est": 15.25,
+   "players": 1946,
+   "diff": 1.55
+  },
+  {
+   "chart_id": 73948,
+   "declared": 13.2,
+   "est": 14.75,
+   "players": 588,
+   "diff": -1.55
+  },
+  {
+   "chart_id": 2986,
+   "declared": 15.2,
+   "est": 13.66,
+   "players": 514,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 6982,
+   "declared": 16.2,
+   "est": 14.66,
+   "players": 1237,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 14572,
+   "declared": 13.5,
+   "est": 15.04,
+   "players": 1177,
+   "diff": -1.54
+  },
+  {
+   "chart_id": 23375,
+   "declared": 16.7,
+   "est": 15.16,
+   "players": 282,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 27336,
+   "declared": 18.1,
+   "est": 16.56,
+   "players": 70,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 33179,
+   "declared": 10.6,
+   "est": 12.14,
+   "players": 17233,
+   "diff": -1.54
+  },
+  {
+   "chart_id": 42095,
+   "declared": 17.2,
+   "est": 15.66,
+   "players": 406,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 48401,
+   "declared": 17.9,
+   "est": 16.36,
+   "players": 267,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 51563,
+   "declared": 15.2,
+   "est": 13.66,
+   "players": 105701,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 52224,
+   "declared": 16.9,
+   "est": 15.36,
+   "players": 113,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 52982,
+   "declared": 17.3,
+   "est": 15.76,
+   "players": 74,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 54413,
+   "declared": 18.5,
+   "est": 16.96,
+   "players": 64,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 61258,
+   "declared": 19.2,
+   "est": 17.66,
+   "players": 96,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 73751,
+   "declared": 16.8,
+   "est": 15.26,
+   "players": 178,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 76012,
+   "declared": 16.4,
+   "est": 14.86,
+   "players": 702,
+   "diff": 1.54
+  },
+  {
+   "chart_id": 654,
+   "declared": 13.5,
+   "est": 15.03,
+   "players": 339,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 7950,
+   "declared": 13.0,
+   "est": 14.53,
+   "players": 11995,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 9220,
+   "declared": 14.0,
+   "est": 15.53,
+   "players": 17516,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 13396,
+   "declared": 13.9,
+   "est": 15.43,
+   "players": 335,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 15373,
+   "declared": 14.0,
+   "est": 15.53,
+   "players": 61,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 22458,
+   "declared": 13.0,
+   "est": 14.53,
+   "players": 882,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 25193,
+   "declared": 16.5,
+   "est": 14.97,
+   "players": 487,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 25356,
+   "declared": 15.5,
+   "est": 13.97,
+   "players": 259,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 28924,
+   "declared": 15.8,
+   "est": 14.27,
+   "players": 452,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 30431,
+   "declared": 16.4,
+   "est": 14.87,
+   "players": 422,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 35592,
+   "declared": 11.9,
+   "est": 13.43,
+   "players": 100,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 39642,
+   "declared": 17.3,
+   "est": 15.77,
+   "players": 164,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 40208,
+   "declared": 16.1,
+   "est": 14.57,
+   "players": 82,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 48658,
+   "declared": 18.6,
+   "est": 17.07,
+   "players": 73,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 49241,
+   "declared": 16.7,
+   "est": 15.17,
+   "players": 330,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 50283,
+   "declared": 16.6,
+   "est": 15.07,
+   "players": 1175,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 51279,
+   "declared": 16.8,
+   "est": 15.27,
+   "players": 73,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 54279,
+   "declared": 17.3,
+   "est": 15.77,
+   "players": 50,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 58187,
+   "declared": 16.3,
+   "est": 14.77,
+   "players": 74,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 65298,
+   "declared": 13.5,
+   "est": 15.03,
+   "players": 52280,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 71707,
+   "declared": 17.4,
+   "est": 15.87,
+   "players": 106,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 73397,
+   "declared": 17.9,
+   "est": 16.37,
+   "players": 276,
+   "diff": 1.53
+  },
+  {
+   "chart_id": 75768,
+   "declared": 14.0,
+   "est": 15.53,
+   "players": 89,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 76445,
+   "declared": 12.8,
+   "est": 14.33,
+   "players": 243,
+   "diff": -1.53
+  },
+  {
+   "chart_id": 128,
+   "declared": 17.5,
+   "est": 15.98,
+   "players": 373,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 7918,
+   "declared": 13.8,
+   "est": 15.32,
+   "players": 26749,
+   "diff": -1.52
+  },
+  {
+   "chart_id": 16765,
+   "declared": 15.8,
+   "est": 14.28,
+   "players": 907,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 17554,
+   "declared": 13.0,
+   "est": 14.52,
+   "players": 20177,
+   "diff": -1.52
+  },
+  {
+   "chart_id": 19711,
+   "declared": 17.3,
+   "est": 15.78,
+   "players": 539,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 20194,
+   "declared": 14.0,
+   "est": 15.52,
+   "players": 785,
+   "diff": -1.52
+  },
+  {
+   "chart_id": 21481,
+   "declared": 12.5,
+   "est": 14.02,
+   "players": 531,
+   "diff": -1.52
+  },
+  {
+   "chart_id": 24148,
+   "declared": 16.4,
+   "est": 14.88,
+   "players": 104,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 25075,
+   "declared": 18.4,
+   "est": 16.88,
+   "players": 453,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 29910,
+   "declared": 13.7,
+   "est": 15.22,
+   "players": 163,
+   "diff": -1.52
+  },
+  {
+   "chart_id": 38584,
+   "declared": 16.4,
+   "est": 14.88,
+   "players": 53,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 47054,
+   "declared": 16.2,
+   "est": 14.68,
+   "players": 191,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 70956,
+   "declared": 14.0,
+   "est": 15.52,
+   "players": 2285,
+   "diff": -1.52
+  },
+  {
+   "chart_id": 72106,
+   "declared": 17.6,
+   "est": 16.08,
+   "players": 166,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 72988,
+   "declared": 18.5,
+   "est": 16.98,
+   "players": 593,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 75489,
+   "declared": 17.6,
+   "est": 16.08,
+   "players": 197,
+   "diff": 1.52
+  },
+  {
+   "chart_id": 2518,
+   "declared": 13.0,
+   "est": 14.51,
+   "players": 229,
+   "diff": -1.51
+  },
+  {
+   "chart_id": 7601,
+   "declared": 15.7,
+   "est": 14.19,
+   "players": 335,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 10580,
+   "declared": 13.1,
+   "est": 14.61,
+   "players": 205,
+   "diff": -1.51
+  },
+  {
+   "chart_id": 13867,
+   "declared": 16.2,
+   "est": 14.69,
+   "players": 582,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 14550,
+   "declared": 14.1,
+   "est": 15.61,
+   "players": 226,
+   "diff": -1.51
+  },
+  {
+   "chart_id": 17689,
+   "declared": 17.0,
+   "est": 15.49,
+   "players": 54,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 20038,
+   "declared": 12.5,
+   "est": 14.01,
+   "players": 112,
+   "diff": -1.51
+  },
+  {
+   "chart_id": 23013,
+   "declared": 15.4,
+   "est": 13.89,
+   "players": 165,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 32729,
+   "declared": 16.5,
+   "est": 14.99,
+   "players": 182,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 34868,
+   "declared": 17.3,
+   "est": 15.79,
+   "players": 607,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 35244,
+   "declared": 12.7,
+   "est": 14.21,
+   "players": 630,
+   "diff": -1.51
+  },
+  {
+   "chart_id": 44893,
+   "declared": 16.5,
+   "est": 14.99,
+   "players": 67,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 46293,
+   "declared": 17.2,
+   "est": 15.69,
+   "players": 196,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 49686,
+   "declared": 13.5,
+   "est": 15.01,
+   "players": 53,
+   "diff": -1.51
+  },
+  {
+   "chart_id": 50099,
+   "declared": 16.4,
+   "est": 14.89,
+   "players": 197,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 53368,
+   "declared": 16.7,
+   "est": 15.19,
+   "players": 71,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 53744,
+   "declared": 13.0,
+   "est": 14.51,
+   "players": 90,
+   "diff": -1.51
+  },
+  {
+   "chart_id": 65401,
+   "declared": 16.5,
+   "est": 14.99,
+   "players": 81,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 66771,
+   "declared": 16.8,
+   "est": 15.29,
+   "players": 167,
+   "diff": 1.51
+  },
+  {
+   "chart_id": 72993,
+   "declared": 18.5,
+   "est": 16.99,
+   "players": 267,
+   "diff": 1.51
+  }
+ ]
+}
