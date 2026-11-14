@@ -132,3 +132,4 @@ data/kaggle-ds/
 
 # 临时产物（含密钥备份、日志、构建中间物）
 tmp/
+vendor/tree.json
