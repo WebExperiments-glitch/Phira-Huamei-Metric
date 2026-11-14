@@ -121,8 +121,21 @@ def parse_pec(raw):
 
 
 def load_events(path, max_events=100000, keep_fake=False):
-    """统一入口：按内容自动判格式。返回按时间排序的事件列表。"""
-    raw = open(path, encoding="utf-8", errors="replace").read()
+    """统一入口：按内容自动判格式。返回按时间排序的事件列表。
+
+    2026-11-14：支持 .json.gz。
+      data/charts 下 11,709 个谱面 json 共 36.6 GB，但它们是纯文本的
+      判定线/音符结构，gzip 能压到 1.4% —— 压完只剩约 0.5 GB。
+      D 盘吃紧，把原文件换成 .gz，这里透明读。
+      ⚠ 用 'rt' 模式：gzip 默认出 bytes，而 parse_rpe/parse_pec 要 str。
+    """
+    p = str(path)
+    if p.endswith(".gz"):
+        import gzip
+        with gzip.open(p, "rt", encoding="utf-8", errors="replace") as f:
+            raw = f.read()
+    else:
+        raw = open(p, encoding="utf-8", errors="replace").read()
     head = raw.lstrip()[:1]
     if head == "{":
         ev = parse_rpe(raw, keep_fake)
@@ -342,3 +355,37 @@ def load_notes_ex(path, max_events=200000, extra=False):
         out = [e[:8] + (_clip(e[8], -4.0, 4.0), _clip(anchor[i], -8.0, 8.0), e[10], e[11])
                for i, e in enumerate(out)]
     return out
+
+
+# ── 2026-11-14：谱面文件路径解析 ────────────────────────────────
+# D 盘吃紧，data/charts 下 11,709 个 chart.json 共 36.6 GB。
+# 它们是纯文本结构（判定线 + 音符），gzip 能压到 1.4% → 约 0.5 GB。
+# 压缩后原文件名变成 chart.json.gz，所有「拼路径」的地方都要能认出来。
+#
+# 用法：把原来的
+#     os.path.join(root, str(cid), "chart.json")
+# 换成
+#     chart_path(root, cid)
+# 找不到就返回原路径（让调用方报它熟悉的「文件不存在」，不要静默变成 None）。
+
+def chart_path(root, cid):
+    """返回 {root}/{cid}/chart.json 或 chart.json.gz，哪个存在给哪个。"""
+    import os
+    base = os.path.join(str(root), str(cid))
+    plain = os.path.join(base, "chart.json")
+    if os.path.exists(plain):
+        return plain
+    gz = plain + ".gz"
+    if os.path.exists(gz):
+        return gz
+    return plain          # 都不在 → 返回原名，让上层按原逻辑报错
+
+
+def read_text(path):
+    """读谱面文本，自动处理 .gz。给不用 load_events 的地方用。"""
+    if str(path).endswith(".gz"):
+        import gzip
+        with gzip.open(path, "rt", encoding="utf-8", errors="replace") as f:
+            return f.read()
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return f.read()
