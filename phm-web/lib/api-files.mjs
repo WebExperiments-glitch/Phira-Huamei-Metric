@@ -77,7 +77,14 @@ export async function proxyFile(res, rawUrl, { json, apiErr } = {}, filename = '
     return true;
   }
 
-    const type = upstream.headers.get('content-type') || 'application/octet-stream';
+    /* ⚠ 不能把上游的 content-type 原样反射回去。
+       白名单主机若返回 text/html 或 text/javascript，浏览器会按**同源内容**渲染 ——
+       那就等于我们主动提供了一个同源 XSS 页面（nosniff 只挡 MIME 嗅探，不挡显式
+       text/html）。只放行图片与二进制，其余一律降级为 octet-stream。
+       2026-11-14 安全审计 P1-1 指出，此处已核实。 */
+    const rawType = String(upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    const SAFE_TYPES = new Set(['image/webp', 'image/png', 'image/jpeg', 'image/gif', 'application/octet-stream']);
+    const type = SAFE_TYPES.has(rawType) ? rawType : 'application/octet-stream';
     /* 文件名由调用方给（?n=）。为什么要服务端下发：
        手机浏览器（尤其 iOS Safari）对 <a download> 的支持不可靠，
        而 URL 是 /api/v1/file?u=... —— 拿不到像样的名字，落盘就成了无后缀的 "file"。

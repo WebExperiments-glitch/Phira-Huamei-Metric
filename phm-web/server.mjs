@@ -1,19 +1,13 @@
 /* P.H.M. Standard —— 前端 + 轻量 Node 服务
- *
- * 依赖：**默认零依赖**（只用 Node 内置模块）。唯一例外是数据库驱动 `pg` ——
- * 只有配了 PHM_NEON_URL（新站）才需要，静态站（腾讯那块指路牌）完全用不到。
- * 见 lib/db-pg.mjs 与 lib/retired.mjs 的 STATIC_ONLY。
- *
- * 职责边界（刻意做小）：托管静态前端、提供受限的 /api/* 网关（校验 → 限流 → 落库）。
- *
- * ⚠ 权限真相（实测过，别再想当然）：网关与浏览器持同一把 key、同为 anon，
- *   所以"网关是唯一写入口"只是**规范**不是防线。真正的封堵靠
- *   phm_put_chart()（SECURITY DEFINER + 写入凭据）：表已对 anon 撤销写权限，
- *   库侧只剩"带凭据的 RPC"这一条路。凭据只在本进程内，不进前端产物。
+ * 依赖：默认零依赖；唯一例外是数据库驱动 `pg`（配了 PHM_NEON_URL 才需要）。
+ * 职责：托管静态前端 + 受限的 /api/* 网关（校验 → 限流 → 落库）。
+ * ⚠ 权限真相：网关与浏览器持同一把 key、同为 anon，「网关是唯一写入口」只是规范
+ *   不是防线。真正封堵靠 SECURITY DEFINER + 写入凭据的 RPC，凭据不进前端产物。
  */
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { reviewContribution, grosslyMismatched, recompute, chartInfo } from './lib/review.mjs';
@@ -73,21 +67,13 @@ function storeLoad() {
 }
 function storeSave(o) { try { fs.writeFileSync(STORE, JSON.stringify(o)); } catch {} }
 
-/* ══════════════════════════════════════════════════════════════
- * huamei 数据飞轮的两条 API
- * ══════════════════════════════════════════════════════════════
- * 契约：docs/规范/数据飞轮契约.md（**改契约先改文档**）
- *
- *   /api/phira/*     取谱代理 —— 客户端只认我们，不持 Phira 凭据
- *   /api/hm/play     成绩接收 —— 逐音符判定
- *
- * 设计要点：
- *   · Phira 侧只放行**只读**方法，且**剥掉**入站的 Authorization。
- *     绝不把用户的 huamei token 转给第三方。
- *   · 成绩写入只走 `hm_put_play()`（SECURITY DEFINER + 写入凭据），
- *     与 phm_charts / phm_scores 同一条防线：不给 anon 任何直连写权限。
- *   · 身份来自用户自己的 huamei token（调云端 `user/me` 换 sub），
- *     服务端**不存储**用户凭据。 */
+/* ═══ huamei 数据飞轮的两条 API ═══
+ * 契约：docs/规范/数据飞轮契约.md（改契约先改文档）
+ *   /api/phira/*   取谱代理 —— 客户端只认我们，不持 Phira 凭据
+ *   /api/hm/play   成绩接收 —— 逐音符判定
+ * 要点：Phira 侧只放行只读方法并剥掉入站 Authorization（绝不把用户 token 转给第三方）；
+ *   成绩只走 hm_put_play()（SECURITY DEFINER + 凭据），不给 anon 直连写权限；
+ *   身份来自用户自己的 token（云端 user/me 换 sub），服务端不存储用户凭据。 */
 const PHIRA_API = 'https://api.phira.cn';
 const SITE_ORIGIN = 'https://phm.app.workbuddy.host';
 const CLOUD_AUTH = SITE_ORIGIN + '/.cloud/auth/v1';
@@ -258,7 +244,7 @@ const SEC_HEADERS = {
      症状是**一请求 /api/analyze 就抛 ReferenceError、整个进程退出**，
      全站的谱面分析直接死掉。而冒烟测试不覆盖这条路径，所以 176/0 放过了它。
      教训：删常量前先 grep 全文件；以及**冒烟必须打一遍所有 API 路由**。 */
-const ANALYZE_INFLIGHT = 3, CONTRIBUTE_INFLIGHT = 2;
+const ANALYZE_INFLIGHT = 3, CONTRIBUTE_INFLIGHT = 2, CHARTASSET_INFLIGHT = 6;
 
 const gate = makeGate(SEC_HEADERS);
 
@@ -287,6 +273,10 @@ function send(res, code, body, type) {
     'cache-control': 'no-store',
   }, SEC_HEADERS));
   res.end(body);
+  /* ⚠ 必须返回 true：调用方写成 `if (await h(...)) return;`。原来 undefined 会让
+     phira-proxy 的 `return send(res,403,…)` 被判「没处理」，继续走 404 → 二次
+     writeHead 崩溃。安全审计 P1-7。 */
+  return true;
 }
 function sendFile(res, fp, longCache, req) {
   try {
@@ -412,8 +402,12 @@ const apiRoutes = makeApiRoutes({
 });
 
 /* 状态页 / 曲绘代理路由：工厂都要 SEC_HEADERS，必须装配在它之后。 */
-const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS),
-  xiliRoutes = makeXiliRoutes({ secret: WRITE_SECRET, secHeaders: SEC_HEADERS });   /* 看板娘：签名+分块，见 lib/xili.mjs */
+const statusRoutes = makeStatusRoutes(SEC_HEADERS), chartAssets = makeChartAssetRoutes(SEC_HEADERS);
+/* ⚠ 域分离：不能拿 WRITE_SECRET 直接当 xili 签名密钥 —— 一把钥匙开两把锁。派生独立的
+   一把：HMAC(WRITE_SECRET, 'xili-v1')。旧签名立刻失效，但 TTL 只有 5 分钟，无感。P1-10。 */
+const XILI_SECRET = WRITE_SECRET
+  ? crypto.createHmac('sha256', WRITE_SECRET).update('xili-v1').digest('hex') : '';
+const xiliRoutes = makeXiliRoutes({ secret: XILI_SECRET, secHeaders: SEC_HEADERS });
 /* 写谱链路的总开关：PHM_WRITE=off 时页面回说明页、接口 503。默认开。 */
 const WRITE_ENABLED = writeEnabled(process.env);
 const agentRoutes = makeAgentRoutes({ send, gate, gateAnalyze, readBody });
@@ -447,7 +441,20 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* 状态页数据（/status 页面用）。装配在 SEC_HEADERS 之后。 */
   if (p === '/api/status') return statusRoutes(req, res, url);
   if (p.startsWith('/api/xili/') && xiliRoutes(req, res, url)) return;
-  if (p.startsWith('/api/phira-illust/') || p.startsWith('/api/phira-file/')) return chartAssets(req, res, url);
+  /* ⚠ 曲绘/谱面包代理必须限在途并发。
+     谱面包单个 60MB，原来这条路**一个 gate 都没有**：N 个并发请求 = N×60MB 常驻内存，
+     低速率就能把进程顶爆（不需要洪峰）。用和分析任务同一套 tryEnter 槽位。
+     安全审计 P1-6 指出，此处已核实。 */
+  if (p.startsWith('/api/phira-illust/') || p.startsWith('/api/phira-file/')) {
+    if (!tryEnter('chartasset', CHARTASSET_INFLIGHT)) {
+      return send(res, 503, JSON.stringify({ error: '服务器正在处理其他资源，请稍后重试' })), true;
+    }
+    try {
+      return await chartAssets(req, res, url);
+    } finally {
+      rlLeave('chartasset');
+    }
+  }
   /* 按近期成绩估 RKS —— 官方 B19 自 2026-03 起停更，这一条给它兜底 */
   if (p === '/api/rks' && await rksRoutes(req, res, url)) return;
 
@@ -768,23 +775,12 @@ const server = http.createServer(guardRequest(async (req, res) => {
     return send(res, 200, JSON.stringify(map));
   }
 
-  /* ★ 按 chart_id 直接算定数 —— 「搜索即出数」
-   *
-   * 【为什么只有服务端能做】
-   * 浏览器拿不到谱面文件：Phira 的文件 CDN 没开 CORS，前端 fetch 必失败
-   * （这是早期版本「点算必失败」的根因）。服务端不受这个限制，
-   * 而它已经持有与浏览器同一份引擎 —— 于是「搜到 → 下载 → 拖回来」
-   * 这三步可以合成一步。
-   *
-   * 安全性：本接口**不接收任何客户端算出来的数值**，只用 chart_id，
-   * 由服务端自己下载、自己算、自己入库 —— 与复核链路同一套可信来源。
-   *
-   * ⚠ 这个接口是全站**代价最高**的路径：未命中缓存时要下载最多 60MB 的谱面包
-   *   并跑完整引擎（zipParse 是同步计算，会阻塞事件循环）。因此它有**三重**约束：
-   *   ① 每 IP 每分钟 10 次（比写入接口更严）
-   *   ② 全局在途分析最多 3 个 —— 超出直接 503，让调用方稍后重试
-   *   ③ 复用全局每分钟配额，防止有人换 IP 刷
-   *   没有这三条时，枚举未缓存 chart_id 就能放大带宽/内存/CPU 到打死本进程。 */
+    /* ★ 按 chart_id 直接算定数 ——「搜索即出数」
+     * 浏览器拿不到谱面文件（CDN 无 CORS，早期「点算必失败」的根因），服务端不受限且已持有同一份引擎。
+     * 安全性：不接收任何客户端算出的数值，只用 chart_id，服务端自己下载/算/入库。
+     * ⚠ 全站代价最高：最多下 60MB + 跑完整引擎（zipParse 同步，阻塞事件循环）。三重约束：
+     *   ① 每 IP 10/分  ② 全局在途 ≤3（超出 503）  ③ 复用全局配额防换 IP 刷。
+     *   没有这三条时，枚举未缓存 chart_id 就能把带宽/内存/CPU 放大到打死进程。 */
   if (p === '/api/analyze') {
     if (req.method !== 'POST') return send(res, 405, JSON.stringify({ error: 'POST only' }));
 
@@ -850,7 +846,11 @@ const server = http.createServer(guardRequest(async (req, res) => {
   /* ── 干净 URL ──
      映射表在 lib/pages.mjs（与详情页 / sitemap 放一起）；
      **显式白名单，不是通配** —— 加页面必须同时进 PUBLIC_FILES。 */
-  const cleanHit = CLEAN[p];
+  /* ⚠ 必须用 Object.hasOwn。
+       CLEAN 是普通对象字面量，`CLEAN['__proto__']` 会命中原型链、返回非字符串，
+       后面拼路径就抛错 → 500。hasOwn 只认自有属性。
+       2026-11-14 安全审计 P2-1 指出，此处已核实。 */
+    const cleanHit = Object.hasOwn(CLEAN, p) ? CLEAN[p] : undefined;
 
   /* ── 写谱链路的开关（见 lib/write-scope.mjs 顶部）──
      关掉时这两个页面回一张**不依赖任何脚本**的说明页，接口一律 503。
@@ -883,7 +883,7 @@ const server = http.createServer(guardRequest(async (req, res) => {
     return sendFile(res, fp, longCache, req);
   }
   return send404(res);
-}), softFault);
+}, softFault));
 
 /* 请求级超时：出站 fetch 有 15s 上限，入站此前没有 —— 慢连接可以挂住进程 */
 server.requestTimeout = 30000;

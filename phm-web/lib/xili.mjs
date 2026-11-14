@@ -71,7 +71,14 @@ function sameOrigin(req) {
 }
 
 export function makeXiliRoutes({ secret, secHeaders }) {
-  const key = secret || 'xili-dev-secret';
+  /* ⚠ 没有 secret 就不要用兜底值。
+     原来写成 `secret || 'xili-dev-secret'` —— 这个字符串就写在源码里，
+     任何读过仓库的人都能用它伪造 manifest 签名，把 36 块立绘拉走。
+     没配置时宁可整条路由不工作（返回 503），也不要「看起来能用但签名是公开的」。
+     2026-11-14 安全审计 P1-10 指出，此处已核实。
+     ⚠ 这与 lib/hm.mjs 的写入凭据不同：那个缺了会直接抛出，这里只能靠调用方判断。 */
+  const key = String(secret || '');
+  const disabled = !key;
 
   const send = (res, code, body, headers) => {
     res.writeHead(code, Object.assign({ 'content-type': 'application/json; charset=utf-8' }, headers, secHeaders || {}));
@@ -81,6 +88,9 @@ export function makeXiliRoutes({ secret, secHeaders }) {
   return function xiliRoutes(req, res, url) {
     const m = url.pathname.match(/^\/api\/xili\/(manifest|tile)\/([a-z]+)(?:\/(\d+-\d+))?$/);
     if (!m) return false;
+
+    /* 没配签名密钥 → 整条路由不工作。见上面 key 的注释。 */
+    if (disabled) return send(res, 503, JSON.stringify({ error: 'xili disabled' })), true;
 
     const [, kind, name, idx] = m;
 

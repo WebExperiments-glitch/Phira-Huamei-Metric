@@ -19,9 +19,18 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.1.2';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.1.3';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.1.3', date: '2026-11-13',
+    zh: ['<b>修「抽谱失败：Cannot access dlName before initialization」。</b> '
+      + '上一个版本里 `dlUrl` 用了 `dlName`，但 `dlName` 写在它后面 —— '
+      + 'JS 的暂时性死区（TDZ）直接抛错，整页抽不出谱。纯低级错误，我的。'],
+    en: ['<b>Fixed "Cannot access dlName before initialization".</b> In the previous build `dlUrl` referenced '
+      + '`dlName` while `dlName` was declared after it — a temporal dead zone error that broke the whole draw. '
+      + 'A plain ordering mistake on my part.'],
+  },
   {
     v: 'V0.31.1.2', date: '2026-11-13',
     zh: ['<b>修下载下来「没有后缀」的问题。</b> 原来只靠前端 `download` 属性给文件名，'

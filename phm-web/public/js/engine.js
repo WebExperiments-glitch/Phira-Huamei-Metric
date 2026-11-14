@@ -1,33 +1,20 @@
 /* ============================================================
- * engine.js —— P.H.M. 谱面解析与难度特征引擎（ESM）
- * ============================================================
- * 【全站唯一的引擎真源】浏览器与 Node 服务端共用这同一份代码。
- *
- * 为什么必须同构 —— 这是「共享定数缓存可被投毒」的解药：
- *   客户端提交的特征不可信：可伪造同名谱面把假值写进共享缓存污染所有人。
- *   服务端拿到 chart_id 后可以**自己下载谱面**（服务端不受 CORS 限制，
- *   浏览器受这个限制），用这份同样的引擎复算并比对 —— 一致才采纳，
- *   而且采纳的是**服务端算出来的值**，不是客户端报上来的值。
- *   只有一份实现，也就不存在「两份引擎算法漂移」的老问题。
- *
- * ⚠ 维护约束：本文件必须保持**纯计算**。
- *   不碰 DOM、不碰 localStorage、不发网络请求、不读文件系统。
- *   输入 ArrayBuffer → 输出特征对象。任何引入浏览器/Node 专有 API 的
- *   改动都会让另一端跑不起来。加功能前先问：Node 里能跑吗？
- *
- *   ⇒ 所以参照集**不在本文件里**，而是从 ref-official.js 导入 / 由调用方传入：
- *      · 官谱参照（1,037 张）体积小 → 静态导入，见下
- *      · 社区参照（9,509 张，680 KB）→ 调用方用 fetch/fs 读好后当参数传进来
- *     引擎本身不认识 fetch，也不认识 fs。
- * ============================================================ */
+/* engine.js —— P.H.M. 谱面解析与难度特征引擎（ESM）
+ * 全站唯一真源：浏览器与 Node 共用这一份。客户端提交的特征不可信（可伪造同名谱面
+ * 把假值写进共享缓存污染所有人），服务端拿 chart_id 自己下载、用同一份引擎复算比对，
+ * 采纳服务端算出来的值。只有一份实现，也就没有「两份引擎漂移」的老问题。
+ * ⚠ 必须保持纯计算：不碰 DOM / localStorage / 网络 / 文件系统。输入 ArrayBuffer，
+ *   输出特征对象。任何引入浏览器或 Node 专有 API 的改动都会让另一端跑不起来。
+ * ⇒ 参照集不在本文件：官谱 1,037 张静态导入（ref-official.js），社区 9,509 张由
+ *   调用方 fetch/fs 读好当参数传入 —— 引擎本身不认识 fetch，也不认识 fs。 */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.31.1.2';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.31.1.3';
 /* 技能分：把 39 个特征重组为四技能维度。
    ⚠ skills.js 是**纯函数、无副作用**，所以引擎可以安全 import 它 ——
       浏览器与 Node 服务端都走同一份，不存在两份实现漂移。
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
-import { skillScores } from './skills.js?v=V0.31.1.2';
-import { pickRidge, seqFeatures20, pool142, withScreenCoords, handshape256 } from './engine-v3.mjs?v=V0.31.1.2';
+import { skillScores } from './skills.js?v=V0.31.1.3';
+import { pickRidge, seqFeatures20, pool142, withScreenCoords, handshape256 } from './engine-v3.mjs?v=V0.31.1.3';
 /* 再导出给 tools/verify-engine-v3.mjs 用（它直接 import 线上这份实现，不复制副本） */
 export { seqFeatures20, pool142, handshape256 };
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
@@ -93,13 +80,35 @@ export function zipParse(buf){
       const start=lp+30+nl+el;
       const raw=u8.subarray(start,start+en.csize);
       if(en.method===0) return raw;
-      if(en.method===8){
-        if(typeof DecompressionStream==="undefined")
-          throw new Error("浏览器不支持 DecompressionStream，请换新版 Chrome/Edge");
-        const ds=new DecompressionStream("deflate-raw");
-        const stream=new Blob([raw]).stream().pipeThrough(ds);
-        return new Uint8Array(await new Response(stream).arrayBuffer());
-      }
+        if(en.method===8){
+          if(typeof DecompressionStream==="undefined")
+            throw new Error("浏览器不支持 DecompressionStream，请换新版 Chrome/Edge");
+          const ds=new DecompressionStream("deflate-raw");
+          const stream=new Blob([raw]).stream().pipeThrough(ds);
+          /* ⚠ 必须边读边数真实输出，不能直接 arrayBuffer()。
+             中央目录里的 usize 是**攻击者声明的**：写 1KB、实际解压 10GB，
+             上面那道 `total += usize` 就形同虚设，浏览器标签页当场 OOM。
+             这里按 4MB 上限硬顶（谱面 JSON 最大也就几 MB），超了立刻 cancel。
+             2026-11-14 安全审计 P1-4 指出，此处已核实。 */
+          const MAX_UNCOMP = 4 * 1024 * 1024;
+          const reader = stream.getReader();
+          const parts = [];
+          let got = 0;
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            got += value.length;
+            if (got > MAX_UNCOMP) {
+              try { await reader.cancel(); } catch (_) {}
+              throw new Error("解压后过大（>" + (MAX_UNCOMP / 1048576) + "MB），疑似压缩炸弹：" + en.name);
+            }
+            parts.push(value);
+          }
+          const out = new Uint8Array(got);
+          let off = 0;
+          for (const chunk of parts) { out.set(chunk, off); off += chunk.length; }
+          return out;
+        }
       throw new Error("不支持的压缩方法 "+en.method+": "+en.name);
     }
   }))};
@@ -171,38 +180,28 @@ function makeBpmList(ranges){
   }};
 }
 /* ============================================================
+/* ============================================================
  * PEC（PhiEditer Chart）—— 行式文本谱面格式
  * ============================================================
- * 【为什么必须有】
- *   Phira 上大量谱面是 PEC，而且**存在「文件名是 .json、内容其实是 PEC」的包**
- *   （Re:PhiEdit 的「导出为旧 PEC 格式」就会这样）。
- *   只按后缀名选文件会直接判成「包里没有 .json 谱面文件」或「JSON 解析失败」——
- *   实测金标集 631 张里有 **131 张（20.8%）** 因此算不出来。
+ * ⚠ 必须支持：Phira 上大量谱面是 PEC，且存在「文件名 .json、内容其实是 PEC」的包
+ *   （Re:PhiEdit 导出旧格式就这样）。只按后缀选文件会让金标集 631 张里 131 张（20.8%）算不出来。
  *
- * 【格式】对照 Phigros Wiki / Phigros 自制谱 Wiki：
- *   第 1 行  整数 = offset + 175（毫秒）。**实测不是判定线数**
- *            （样本里 30 / 175 / 0 都出现过，而最大判定线索引分别是 29 / 30 / 29）。
- *            它是全局时间平移，不影响任何相对特征 → 直接忽略。
- *   bp <拍> <bpm>                       速度
- *   cp <线> <拍> <x> <y>                位置（x 0..2048，y 0..1400）
- *   cm <线> <起拍> <终拍> <x> <y> <缓动>  移动
- *   cd <线> <拍> <度数> / cr <线> <起> <终> <度> <缓动>      旋转
- *   ca <线> <拍> <不透明度> / cf <线> <起> <终> <不透明度>    透明度
- *   cv <线> <拍> <速度>                  变速（运动步长 0.05 拍）
- *   n1 <线> <拍> <x> <朝向> <假>             Tap
- *   n2 <线> <起拍> <终拍> <x> <朝向> <假>     Hold
- *   n3 … Flick    n4 … Drag
- *   音符行后面可能各跟一行 `# <速度>` 与 `& <宽度>`，属于该音符的属性。
+ * 第 1 行  整数 = offset + 175（毫秒），实测**不是**判定线数；全局时间平移，忽略。
+ *   bp <拍> <bpm>                      速度
+ *   cp <线> <拍> <x> <y>               位置（x 0..2048，y 0..1400）
+ *   cm <线> <起拍> <终拍> <x> <y> <缓动> 移动
+ *   cd <线> <拍> <度数> / cr <线> <起> <终> <度> <缓动>     旋转
+ *   ca <线> <拍> <不透明度> / cf <线> <起> <终> <不透明度>   透明度
+ *   cv <线> <拍> <速度>                 变速（运动步长 0.05 拍）
+ *   n1 <线> <拍> <x> <朝向> <假>          Tap   n2 … Hold
+ *   n3 … Flick    n4 … Drag    音符后可能跟 `# <速度>` 与 `& <宽度>`。
  *
- * 【两处量纲换算（都实测过，不是猜的）】
- *   ① x：RPE 的坐标系是 **±675**（实测 5 张谱最大 |positionX| 为 585/450/500/495/526，
- *      且取值都是 1350/20=67.5 的整数倍）；PEC 是 **±1024**。
- *      → `x_rpe = x_pec × 675/1024`。这一步不能省：交叉手判据是 `|Δx| > 3.0`，
- *        量纲错了这个特征就全废（而它进 PS 的「结构」项）。
- *   ② cv 速度：wiki 实测「RPE 的 10 ≈ PEC 的 17.111」→ `÷ 1.7111`。
- *      ⚠ 线速峰值（speed_peak）**已经不参与 k-NN 距离** —— 官谱侧它是档位标记
- *      而不是测量值（1,037 张里只有 90 个不同取值，IN 的中位是 999），
- *      拿它做距离会把所有 IN 谱挤成一团。换算保留只是为了特征展示与 PS。
+ * 【两处量纲换算，都实测过】
+ *   ① x：RPE 是 ±675、PEC 是 ±1024 → `x_rpe = x_pec × 675/1024`。不能省：
+ *      交叉手判据是 |Δx| > 3.0，量纲错了这个特征全废（它进 PS 的结构项）。
+ *   ② cv 速度：「RPE 的 10 ≈ PEC 的 17.111」→ ÷ 1.7111。
+ *      ⚠ 线速峰值已不参与 k-NN 距离：官谱侧它是档位标记不是测量值
+ *      （1,037 张里只有 90 个取值，IN 中位是 999），拿它算距离会把 IN 挤成一团。
  * ============================================================ */
 const PEC_X2RPE = 675 / 1024;
 const PEC_CV2RPE = 1 / 1.7111;

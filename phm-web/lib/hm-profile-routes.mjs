@@ -46,7 +46,13 @@ export function makeProfileRoutes(deps) {
     if (!token) return { err: 'token_required' };
     const who = await whoami(token);
     if (!who || !who.sub) return { err: 'token_invalid', detail: who && who.err };
-    return { sub: String(who.sub), email: who.email || null };
+    /* ⚠ 必须要求 verified。
+       云端 whoami 四个变体全失败时，lib/hm.mjs 会降级到 subFromJwt() —— 那个函数
+       **只解析 payload、不验签**，返回 { verified: false }。原来这里只看 sub，
+       于是任何人构造一个 aud 对、没过期、签名随便的 JWT 就能冒充任意用户读写资料。
+       2026-11-14 安全审计 P0-1 指出，此处已核实。 */
+    if (!who.verified) return { err: 'token_unverified', detail: who.variant };
+    return { sub: String(who.sub), email: who.email || null, verified: true };
   }
 
   return async function profileRoutes(req, res, p, url) {
@@ -59,7 +65,9 @@ export function makeProfileRoutes(deps) {
       const ip = req.socket.remoteAddress || 'unknown';
       if (gateRead && !(await gate(res, gateRead({ ip }), 'rate limit'))) return true;
       const r = await deps.dbFetch('/rpc/phm_plays',
-        { method: 'POST', body: JSON.stringify({ name_in: name }) }, 15000, 8192);
+        /* ⚠ 8192 太小：一个玩家几十条成绩就超了，JSON 被截断 → 502。
+       改成 64KB，足够 500 条成绩。安全审计 P2-2。 */
+        { method: 'POST', body: JSON.stringify({ name_in: name }) }, 15000, 65536);
       if (!r.ok) return send(res, 502, JSON.stringify({ error: 'upstream' })), true;
       return send(res, 200, r.body || '{}'), true;
     }

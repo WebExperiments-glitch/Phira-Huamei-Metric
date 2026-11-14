@@ -390,7 +390,10 @@ export const RL_WINDOW = 60_000;
  * ⚠ 它绕过的**只有配额**，不绕过路径白名单、不绕过方法限制。
  * ⚠ 生产若误设 PHM_TEST_NO_RATELIMIT=1，限流就静默失效了 ——
  *   所以部署检查里必须确保它**不在**环境变量里。 */
-const NO_RL = process.env.PHM_TEST_NO_RATELIMIT === '1';
+/* ⚠ 生产环境一律不认这个逃生口。原来只看变量，误配一次限流就静默全关。
+   安全审计 P2-4。 */
+const NO_RL = process.env.PHM_TEST_NO_RATELIMIT === '1'
+  && process.env.NODE_ENV !== 'production';
 
 /** 各路径的过闸句柄 —— 消息文案跟着配额走，改 RL 不用翻遍全文件找 429。
  *  `opts` 会透传给 limit()，测试用 `{db:false}` 只测内存路径。 */
@@ -426,10 +429,16 @@ export const gateAnalyze = (who, opts) =>
 export function gateAuth(who, email, opts) {
   const ip = asWho(who).ip;
   const e = String(email || '').trim().toLowerCase();
-  const keys = [
-    { k: `a:ip:${ip}`, max: RL.loginIp },
-    { k: 'a:g', max: RL.loginGlobal },
-  ];
+  /* ⚠ 共享对端（网关后面所有人都是 127.0.0.1）时不能留 per-IP 桶：
+     否则 5 个错误登录就锁死全站登录 —— 把「防爆破」做成了「全站拒绝服务」。
+     共享时只留一个**宽松**全局桶兜底，真正防线是 per-邮箱(3/分)：换邮箱撒网也各打 3 次。
+     2026-11-14 安全审计 P1-5 指出，此处已核实。 */
+  const keys = isSharedPeer(ip)
+    ? [{ k: 'a:g', max: RL.loginGlobal * 3 }]
+    : [
+      { k: `a:ip:${ip}`, max: RL.loginIp },
+      { k: 'a:g', max: RL.loginGlobal },
+    ];
   if (e) keys.push({ k: `a:e:${e}`, max: RL.loginEmail });
   return limit(keys, null, RL_WINDOW, Object.assign({ failClosed: true }, opts));
 }
@@ -439,10 +448,13 @@ export function gateAuth(who, email, opts) {
 export function gateCode(who, email, opts) {
   const ip = asWho(who).ip;
   const e = String(email || '').trim().toLowerCase();
-  const keys = [
-    { k: `c:ip:${ip}`, max: RL.codeIp },
-    { k: 'c:g', max: RL.codeGlobal },
-  ];
+  /* 同 gateAuth：共享对端不留 per-IP，靠 per-邮箱(1/分) 挡邮件轰炸。 */
+  const keys = isSharedPeer(ip)
+    ? [{ k: 'c:g', max: RL.codeGlobal * 3 }]
+    : [
+      { k: `c:ip:${ip}`, max: RL.codeIp },
+      { k: 'c:g', max: RL.codeGlobal },
+    ];
   if (e) keys.push({ k: `c:e:${e}`, max: RL.codeEmail });
   return limit(keys, null, RL_WINDOW, Object.assign({ failClosed: true }, opts));
 }
