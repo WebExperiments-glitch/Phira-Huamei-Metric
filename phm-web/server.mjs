@@ -468,16 +468,10 @@ const server = http.createServer(guardRequest(async (req, res) => {
      任何人去批量采集上游（审计实测：`/api/phira/user/1` 能透传到
      `api.phira.cn`，而**上游零限流**，25 连发全 200）。
      现在只放行客户端**真正会用到**的那几个前缀，其余 404。
-     ⚠ 加前缀前先确认客户端真在调（2026-11-15 加 /record/list15/ 时确认过 song.rs:732）。 */
-  const PHIRA_PROXY_PATHS = [
-    '/chart',            // 谱面元数据 + 文件直链
-    '/chart/',           // 同上（带 id）
-    '/record/best/',     // 自己的最佳成绩
-    '/record/recent',    // 最近成绩
-    '/record/list15/',   // 谱面排行榜（详情页 / 结算页要用）
-    '/terms/',           // 服务条款 / 隐私政策（客户端要读）
-    '/music',            // 谱面音频
-  ];
+     ⚠ 白名单在 **lib/phira-proxy.mjs:21**，不在这里。
+       2026-11-15 加 /record/list15/ 时我改错了地方 —— 这个文件里原本还有一份
+       同名的死常量（phiraProxy 根本没接收它），改完部署上去仍然 404。
+       那份死常量已删，以后只改 lib 里那个。 */
   if (await phiraProxy(req, res, url, p, ip, gate, gateProxy, send, SEC_HEADERS)) return;
 
   /* ── huamei：成绩接收 ──

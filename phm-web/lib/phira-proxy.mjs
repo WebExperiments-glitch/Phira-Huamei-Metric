@@ -23,6 +23,7 @@ const PHIRA_PROXY_PATHS = [
   '/chart/',           // 同上（带 id）
   '/record/best/',     // 自己的最佳成绩
   '/record/recent',    // 最近成绩
+  '/record/list15/',   // 谱面排行榜（详情页 / 结算页要用，客户端 song.rs:732）
   '/terms/',           // 服务条款 / 隐私政策（客户端要读）
   '/music',            // 谱面音频
 ];

@@ -174,6 +174,52 @@ export function phiraScore(perfect, good, maxCombo, total) {
 /** 校验并规范化一局成绩。返回 `{row, warn}`；硬伤返回 `{error, code?}`。
  *
  * ⚠ 这里**重算** acc 与 score 与客户端报的对照，不看也不信客户端报的数字。 */
+/** 收敛客户端上报的 device 字段。
+ *
+ *  为什么不能直接存 body.device：
+ *  · 那是**不可信输入** —— 谁都能往里塞任意 JSON，包括几 MB 的垃圾
+ *  · jsonb 列没类型约束，塞进去就一直在库里
+ *
+ *  所以只保留白名单字段、只接受预期类型、超长截断。
+ *  ⚠ 全部可空：权限被拒 / 非 iOS / 旧客户端都会是 null，这是正常状态。
+ */
+export function sanitizeDevice(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out = {};
+
+  const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+  const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : null);
+
+  const os = str(raw.os_version, 60);
+  if (os) out.os_version = os;
+  const model = str(raw.model, 40);
+  if (model) out.model = model;
+
+  /* 屏幕：[宽, 高, 像素比]。宽高限制在合理范围，防止塞 1e9 这种值。 */
+  if (Array.isArray(raw.screen) && raw.screen.length === 3) {
+    const v = raw.screen.map(num);
+    if (v.every(x => x !== null) && v[0] > 0 && v[0] < 10000 && v[1] > 0 && v[1] < 10000 && v[2] > 0 && v[2] < 10) {
+      out.screen = v;
+    }
+  }
+
+  /* 经纬度：限范围，并降到**城市级精度**（小数点后 2 位 ≈ 1km）。
+     客户端已降精度，这里再兜一道 —— 不能让完整坐标进库。 */
+  const lat = num(raw.lat), lon = num(raw.lon);
+  if (lat !== null && lon !== null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+    out.lat = Math.round(lat * 100) / 100;
+    out.lon = Math.round(lon * 100) / 100;
+  }
+
+  /* 陀螺仪摘要：[均值, 标准差, 峰值]，rad/s。合理范围 ±50（手抖不会超过 30）。 */
+  if (Array.isArray(raw.gyro) && raw.gyro.length === 3) {
+    const v = raw.gyro.map(num);
+    if (v.every(x => x !== null && Math.abs(x) < 100)) out.gyro = v;
+  }
+
+  return Object.keys(out).length ? out : null;
+}
+
 export function validatePlay(body) {
   if (!body || typeof body !== 'object') return { error: 'bad_body' };
   const chartId = parseInt(body.chart_id, 10);
@@ -250,8 +296,17 @@ export function validatePlay(body) {
     keyboard: body.keyboard === true,
     client_ver: String(body.client_ver || '').slice(0, 40),
     judge_ver: parseInt(body.judge_ver, 10) || 1,
-    played_at: parseInt(body.played_at, 10) || null,
+    /* ⚠ 客户端传的是**毫秒**（chrono::Utc::now().timestamp_millis()），
+       而列是 timestamptz —— PG 收到裸数字会当**秒**，1.76e12 秒 ≈ 58600 年。
+       实测第一局就落成了 +058842-04-15。这里转成 ISO 再交给 PG。 */
+    played_at: (() => {
+      const ms = Number(body.played_at);
+      if (!Number.isFinite(ms) || ms <= 0) return null;
+      const d = new Date(ms);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    })(),
     judge_blob: blob,
+    device: sanitizeDevice(body.device),
   };
   /* `warn` 一路带到响应体 —— 调用方必须把它透出去，否则诊断信息就死在这里。 */
   return { row, warn };
