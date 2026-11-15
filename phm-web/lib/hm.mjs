@@ -295,6 +295,12 @@ export function validatePlay(body) {
     mods: parseInt(body.mods, 10) || 0,
     keyboard: body.keyboard === true,
     client_ver: String(body.client_ver || '').slice(0, 40),
+    /* 本局最大同时触点数。0 = 键盘模式（**不是**没采到）；
+       旧客户端没这个字段 → null。两者语义不同，不能合并。 */
+    max_touch_points: (() => {
+      const v = Number(body.max_touch_points);
+      return Number.isFinite(v) && v >= 0 && v <= 255 ? Math.round(v) : null;
+    })(),
     judge_ver: parseInt(body.judge_ver, 10) || 1,
     /* ⚠ 客户端传的是**毫秒**（chrono::Utc::now().timestamp_millis()），
        而列是 timestamptz —— PG 收到裸数字会当**秒**，1.76e12 秒 ≈ 58600 年。
@@ -307,6 +313,15 @@ export function validatePlay(body) {
     })(),
     judge_blob: blob,
     device: sanitizeDevice(body.device),
+    /* 8×8 落点热度图，base64(64 字节) = 88 字符。
+       ⚠ 严格按长度校验：短了是坏数据，长了一定是有人在塞垃圾。
+         不做「宽松截断」—— 那会让错误形状的数据静默入库。 */
+    touch_heat: (() => {
+      const v = body.touch_heat;
+      if (typeof v !== 'string') return null;
+      const t = v.trim();
+      return t.length === 88 ? t : null;
+    })(),
   };
   /* `warn` 一路带到响应体 —— 调用方必须把它透出去，否则诊断信息就死在这里。 */
   return { row, warn };

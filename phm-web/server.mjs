@@ -16,6 +16,7 @@ import { reviewContribution, grosslyMismatched, recompute, chartInfo } from './l
 import { dbFetch, dbPutChart, dbPutScores, dbPageCharts, dbSummary, SORTABLE, DB, WRITE_SECRET } from './lib/cloud.mjs';
 /* huamei 数据飞轮的身份与成绩校验 —— 单独一个模块，见 lib/hm.mjs 顶部。 */
 import { appIdFromKey, makeWhoami, phiraFallback, validatePlay } from './lib/hm.mjs';
+import * as hmQueue from './lib/hm-queue.mjs';
 /* 自建账号：注册 / 登录 / 自签 token。见 lib/hm-accounts.mjs 顶部。 */
 import {
   register as hmRegister, login as hmLogin, verifyOwnToken, claimsOwnIssuer,
@@ -99,6 +100,10 @@ const hmWhoami = makeWhoami({
   verifyOwnToken,
   claimsOwnIssuer,
 });
+
+
+/* 队列的写库细节在 lib/hm-queue.mjs 的 initWriter 里 —— 那边没有行数上限。 */
+hmQueue.initWriter(dbFetch, WRITE_SECRET);
 
 
 /* ── 云数据库访问 → 见 lib/cloud.mjs ──
@@ -587,22 +592,21 @@ const server = http.createServer(guardRequest(async (req, res) => {
         body.chart_id, body.chart_notes, body.counts, body.max_combo, warn.join(' | '));
     }
 
-    const r = await dbFetch('/rpc/hm_put_play', {
-      method: 'POST',
-      body: JSON.stringify({ p_secret: WRITE_SECRET, p_row: Object.assign(v.row, { owner_id: ownerId }) }),
-    }, 20000, 4096);
-    if (!r.ok) {
-      return send(res, 500, JSON.stringify({
-        ok: false, error: 'store_failed',
-        detail: String(r.body || r.error || '').slice(0, 160),
-      }));
+    /* 入队，**不等写库**：Neon 空闲 5 分钟缩到零，玩家打完才上传一次，
+       正好每次都撞冷启动 → 30s 超时 → stgw 504（2026-11-15 真机复现）。
+       现在校验完就 202，后台 worker 慢慢写、失败重试。
+       代价（重启丢队列）与幂等保护见 lib/hm-queue.mjs 顶部。 */
+    const queued = hmQueue.enqueue(Object.assign(v.row, { owner_id: ownerId }));
+    if (!queued) {
+      /* 队列满 = DB 长时间写不进去。503 让客户端稍后重试，
+         比「假装收了然后悄悄丢」诚实。 */
+      return send(res, 503, JSON.stringify({ ok: false, error: 'queue_full' }));
     }
-    let playId = null;
-    try { playId = JSON.parse(r.body).play_id; } catch { /* 拿不到 id 不算失败 */ }
+    const playId = null;  // 异步写，此刻还没有真实 id
     /* 回报身份是怎么定的：`verified` 为真表示走的是云端 `user/me` 正路，
        假表示走了本地解 JWT 的降级路径（见 lib/hm.mjs 的 subFromJwt 信任边界说明）。
        `warn` 只在有差异时出现 —— 客户端把它记进日志。 */
-    return send(res, 200, JSON.stringify({
+    return send(res, 202, JSON.stringify({
       ok: true, play_id: playId, verified: who.verified === true,
       ...(warn.length ? { warn } : {}),
     }));
