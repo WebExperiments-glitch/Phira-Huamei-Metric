@@ -70,6 +70,22 @@ async function pool(url) {
     connectionTimeoutMillis: 30_000,
     ssl: { rejectUnauthorized: true },
   });
+  /* ── 保活：别让 Neon 把 compute 缩到零 ──
+     Neon 免费档空闲 5 分钟就 suspend，下一个请求要等 10~13 秒唤醒。
+     玩家打完一局才上传一次，中间几分钟不打 —— 正好每次都撞上冷启动，
+     叠上 30s 连接超时就是网关 504（实测 2026-11-15 真机复现）。
+
+     每 110 秒 ping 一次（比 5 分钟窗口留足余量），代价是 compute 不 suspend，
+     换来上传请求不再冷启动。免费档的额度够这个频率 —— 一次 select 1 几乎零成本。
+
+     ⚠ unref() 必须有：否则这个定时器会吊住事件循环，进程退不掉。 */
+  const KEEPALIVE_MS = 110_000;
+  setInterval(() => {
+    POOL.query('select 1').catch((e) => {
+      console.error('[db-pg] 保活失败（下一次请求会重试）：', e.message);
+    });
+  }, KEEPALIVE_MS).unref();
+
   /* 池里的连接被上游掐断时不许把进程带走 —— 记一条，下一句自己重连 */
   POOL.on('error', (e) => console.error('[db-pg] 空闲连接出错（已忽略）：', e.message));
   POOL_URL = url;
