@@ -313,6 +313,15 @@ export function validatePlay(body) {
     })(),
     judge_blob: blob,
     device: sanitizeDevice(body.device),
+    /* 8×8 落点热度图，base64(64 字节) = 88 字符。
+       ⚠ 严格按长度校验：短了是坏数据，长了一定是有人在塞垃圾。
+         不做「宽松截断」—— 那会让错误形状的数据静默入库。 */
+    touch_heat: (() => {
+      const v = body.touch_heat;
+      if (typeof v !== 'string') return null;
+      const t = v.trim();
+      return t.length === 88 ? t : null;
+    })(),
   };
   /* `warn` 一路带到响应体 —— 调用方必须把它透出去，否则诊断信息就死在这里。 */
   return { row, warn };
