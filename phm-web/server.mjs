@@ -525,8 +525,8 @@ const server = http.createServer(guardRequest(async (req, res) => {
     const authToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
     const token = hdrToken || authToken;
     const tokenSrc = hdrToken ? 'x-hm-token' : (authToken ? 'authorization' : 'none');
-    /* 没带 huamei token 不立刻 401：可能带的是 x-phira-token，也可能是纯匿名。 */
-    const anonymous = !token && !String(req.headers['x-phira-token'] || '').trim();
+    /* 匿名只看自定义头：边缘会注入 Authorization，拿它判定会永远走不到匿名分支。 */
+    const anonymous = !hdrToken && !String(req.headers['x-phira-token'] || '').trim();
     const who = token ? await hmWhoami(token) : { sub: null, err: 'no_hm_token' };
 
     /* huamei 账号验不过时退到 Phira 账号 —— 抽到 lib 里，server.mjs 有 900 行硬上限 */
