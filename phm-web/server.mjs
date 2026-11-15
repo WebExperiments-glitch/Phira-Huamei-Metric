@@ -525,18 +525,15 @@ const server = http.createServer(guardRequest(async (req, res) => {
     const authToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
     const token = hdrToken || authToken;
     const tokenSrc = hdrToken ? 'x-hm-token' : (authToken ? 'authorization' : 'none');
-    /* 没带 huamei token 时**不立刻 401**：如果客户端带了 `x-phira-token`，
-       下面会用 Phira 账号验明身份（见紧随其后的那段）。这一条是「上传量为 0」
-       的第二个卡点 —— 只放行 gate 不够，认证入口本身也得允许 Phira 路径。 */
-    if (!token && !String(req.headers['x-phira-token'] || '').trim()) {
-      return send(res, 401, JSON.stringify({ ok: false, error: 'token_required' }));
-    }
+    /* 没带 huamei token 不立刻 401：可能带的是 x-phira-token，也可能是纯匿名。 */
+    const anonymous = !token && !String(req.headers['x-phira-token'] || '').trim();
     const who = token ? await hmWhoami(token) : { sub: null, err: 'no_hm_token' };
 
     /* huamei 账号验不过时退到 Phira 账号 —— 抽到 lib 里，server.mjs 有 900 行硬上限 */
     await phiraFallback(req, who, token);
 
-    if (!who.sub) {
+    /* 匿名没有 sub —— 这是预期状态，不是身份无效。 */
+    if (!anonymous && !who.sub) {
       return send(res, 401, JSON.stringify({
         ok: false,
         error: 'token_invalid',
@@ -557,7 +554,7 @@ const server = http.createServer(guardRequest(async (req, res) => {
          于是任何人自己造一个 JWT（sub 填别人的 id）就能往那个账号名下写成绩。
          Key 管理那条路已经要求 `verified === true` 了，成绩写入没有要求，这不一致。
        → 写库一律要求验签通过。降级身份只允许读，不许写。 */
-    if (who.verified !== true) {
+    if (!anonymous && who.verified !== true) {
       return send(res, 401, JSON.stringify({
         ok: false,
         error: 'token_unverified',
@@ -571,9 +568,11 @@ const server = http.createServer(guardRequest(async (req, res) => {
        而我们自己签发的 sub 伪造不了。
        第一道（IP/全局）挡未鉴权的洪水；这一道挡「一个账号刷爆」，
        而且**只按 sub 计**，不重复占用全局桶。 */
-    if (!(await gate(res, gateWriteId(String(who.sub)),
-      'rate limit: 每分钟最多 ' + RL.writeId + ' 次上报'))) return;
-    const ownerId = who.sub;
+    if (!anonymous) {
+      if (!(await gate(res, gateWriteId(String(who.sub)),
+        'rate limit: 每分钟最多 ' + RL.writeId + ' 次上报'))) return;
+    }
+    const ownerId = anonymous ? null : who.sub;
 
     let body;
     try { body = await readBody(req, 1024 * 1024); }
