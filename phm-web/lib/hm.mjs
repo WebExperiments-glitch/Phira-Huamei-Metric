@@ -250,7 +250,15 @@ export function validatePlay(body) {
     keyboard: body.keyboard === true,
     client_ver: String(body.client_ver || '').slice(0, 40),
     judge_ver: parseInt(body.judge_ver, 10) || 1,
-    played_at: parseInt(body.played_at, 10) || null,
+    /* ⚠ 客户端传的是**毫秒**（chrono::Utc::now().timestamp_millis()），
+       而列是 timestamptz —— PG 收到裸数字会当**秒**，1.76e12 秒 ≈ 58600 年。
+       实测第一局就落成了 +058842-04-15。这里转成 ISO 再交给 PG。 */
+    played_at: (() => {
+      const ms = Number(body.played_at);
+      if (!Number.isFinite(ms) || ms <= 0) return null;
+      const d = new Date(ms);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    })(),
     judge_blob: blob,
   };
   /* `warn` 一路带到响应体 —— 调用方必须把它透出去，否则诊断信息就死在这里。 */
