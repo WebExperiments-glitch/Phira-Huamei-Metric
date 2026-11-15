@@ -211,6 +211,17 @@ export function sanitizeDevice(raw) {
     out.lon = Math.round(lon * 100) / 100;
   }
 
+  /* 实际渲染尺寸：[宽, 高] 像素。和 screen 不同 —— screen 是设备屏幕，
+     view 是这一局真正画了多少像素。iPhone Duo 有内外两块屏，光看 screen
+     分不出姿态；配合 model + view 才能知道是内屏还是外屏。
+     上限 10000 与 screen 同口径。 */
+  if (Array.isArray(raw.view) && raw.view.length === 2) {
+    const v = raw.view.map(num);
+    if (v.every(x => x !== null) && v[0] > 0 && v[0] < 10000 && v[1] > 0 && v[1] < 10000) {
+      out.view = v;
+    }
+  }
+
   /* 陀螺仪摘要：[均值, 标准差, 峰值]，rad/s。合理范围 ±50（手抖不会超过 30）。 */
   if (Array.isArray(raw.gyro) && raw.gyro.length === 3) {
     const v = raw.gyro.map(num);
