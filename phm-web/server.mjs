@@ -468,12 +468,13 @@ const server = http.createServer(guardRequest(async (req, res) => {
      任何人去批量采集上游（审计实测：`/api/phira/user/1` 能透传到
      `api.phira.cn`，而**上游零限流**，25 连发全 200）。
      现在只放行客户端**真正会用到**的那几个前缀，其余 404。
-     ⚠ 加新前缀前先确认客户端确实在调 —— 白名单放宽永远比事后收紧容易。 */
+     ⚠ 加前缀前先确认客户端真在调（2026-11-15 加 /record/list15/ 时确认过 song.rs:732）。 */
   const PHIRA_PROXY_PATHS = [
     '/chart',            // 谱面元数据 + 文件直链
     '/chart/',           // 同上（带 id）
     '/record/best/',     // 自己的最佳成绩
     '/record/recent',    // 最近成绩
+    '/record/list15/',   // 谱面排行榜（详情页 / 结算页要用）
     '/terms/',           // 服务条款 / 隐私政策（客户端要读）
     '/music',            // 谱面音频
   ];
