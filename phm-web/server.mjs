@@ -525,19 +525,7 @@ const server = http.createServer(guardRequest(async (req, res) => {
     const authToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
     const token = hdrToken || authToken;
     const tokenSrc = hdrToken ? 'x-hm-token' : (authToken ? 'authorization' : 'none');
-    /* 没带 huamei token 时**不立刻 401**：如果客户端带了 `x-phira-token`，
-       下面会用 Phira 账号验明身份（见紧随其后的那段）。这一条是「上传量为 0」
-       的第二个卡点 —— 只放行 gate 不够，认证入口本身也得允许 Phira 路径。 */
-    /* 【huamei 改动 2026-11-15】没登录也收。
-       玩家反馈「打了一局显示不计成绩」—— 根因不在结算界面，是这里：
-       没 token 直接 401，客户端拿不到回执就不会留下这一局的判定数据。
-       而判定数据是我们最稀缺的东西（收一张少一张），凭据反而是次要的。
-
-       匿名的代价与兜底：
-         · 第一道 gateWrite({ip}) 仍在，匿名走 IP 桶（见下方 gateWriteId 的分支）
-         · 写库时 owner_id = null，匿名样本与账号样本可区分，分析时可分层
-         · 不验签 —— 因为根本没有身份可验。风险是有人伪造对局刷数据，
-           但 validatePlay 仍在做一致性校验（notes/counts/max_combo 对不上会告警）。 */
+    /* 没带 huamei token 不立刻 401：可能带的是 x-phira-token，也可能是纯匿名。 */
     const anonymous = !token && !String(req.headers['x-phira-token'] || '').trim();
     const who = token ? await hmWhoami(token) : { sub: null, err: 'no_hm_token' };
 
@@ -566,8 +554,6 @@ const server = http.createServer(guardRequest(async (req, res) => {
          于是任何人自己造一个 JWT（sub 填别人的 id）就能往那个账号名下写成绩。
          Key 管理那条路已经要求 `verified === true` 了，成绩写入没有要求，这不一致。
        → 写库一律要求验签通过。降级身份只允许读，不许写。 */
-    /* 匿名样本跳过验签 —— 它没有身份可验。已登录的仍然必须验签通过：
-       降级解析（subFromJwt，不验签）不能写库，这条防线不能松。 */
     if (!anonymous && who.verified !== true) {
       return send(res, 401, JSON.stringify({
         ok: false,
@@ -582,8 +568,6 @@ const server = http.createServer(guardRequest(async (req, res) => {
        而我们自己签发的 sub 伪造不了。
        第一道（IP/全局）挡未鉴权的洪水；这一道挡「一个账号刷爆」，
        而且**只按 sub 计**，不重复占用全局桶。 */
-    /* 已登录按 sub 限流；匿名的第一道 gateWrite({ip}) 已经挡过洪峰了，
-       再按 sub 限流会退化成「所有匿名共享一个桶」，反而误伤。 */
     if (!anonymous) {
       if (!(await gate(res, gateWriteId(String(who.sub)),
         'rate limit: 每分钟最多 ' + RL.writeId + ' 次上报'))) return;
