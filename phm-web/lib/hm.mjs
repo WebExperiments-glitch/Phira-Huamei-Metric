@@ -295,6 +295,12 @@ export function validatePlay(body) {
     mods: parseInt(body.mods, 10) || 0,
     keyboard: body.keyboard === true,
     client_ver: String(body.client_ver || '').slice(0, 40),
+    /* 本局最大同时触点数。0 = 键盘模式（**不是**没采到）；
+       旧客户端没这个字段 → null。两者语义不同，不能合并。 */
+    max_touch_points: (() => {
+      const v = Number(body.max_touch_points);
+      return Number.isFinite(v) && v >= 0 && v <= 255 ? Math.round(v) : null;
+    })(),
     judge_ver: parseInt(body.judge_ver, 10) || 1,
     /* ⚠ 客户端传的是**毫秒**（chrono::Utc::now().timestamp_millis()），
        而列是 timestamptz —— PG 收到裸数字会当**秒**，1.76e12 秒 ≈ 58600 年。
