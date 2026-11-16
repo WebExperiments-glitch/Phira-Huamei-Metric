@@ -141,3 +141,6 @@ phira-huamei-ipa/ipa/*.ipa
 phira-huamei-ipa/ipa/*.zip
 vendor/PhiraiAd-main/assets/font.ttf
 vendor/phiraiad.tgz
+
+# 迁移备份（2026-11-16 清理 tmp/ 时产生，不属于项目）
+.trash-*/
