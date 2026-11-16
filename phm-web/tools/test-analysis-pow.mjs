@@ -9,7 +9,7 @@
  * 【为什么用 ?query 重新 import】
  *   CFG 在模块加载时读环境变量。要验证「位数可调 + 有夹取」，
  *   必须拿到多个互不影响的新实例；ESM 的模块缓存用 query 后缀绕开。
- *   默认档（20 bits）单独一次 import 验，求解则用低位数实例 —— 
+ *   默认档（20 bits）单独一次 import 验，求解则用低位数实例 ——
  *   否则每跑一次测试都要烧 100 万次 sha256，CI 会变慢且偶发超时。
  */
 import assert from 'node:assert/strict';
