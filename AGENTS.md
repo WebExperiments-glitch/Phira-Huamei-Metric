@@ -1,6 +1,11 @@
 # AGENTS.md · P.H.M.
 
 > 给 AI 代理的**导航图**，不是说明书。本文档 ≤120 行，细节一律外链。
+> **最后验证：2026-11-16** · 复核周期：半年
+>
+> ⚠ 本文**刻意不写具体数字**（闸门项数、文件数、行数）。写过，全过期了：
+>   2026-11-16 清理时发现「37 项闸门」实际 41 项、「43,900 行」实际 51,352 行。
+>   需要数字就现跑命令，不要从文档里抄。
 > 判断标准：删掉某一行，代理会不会犯一个原本不会犯的错？不会就删。
 
 ## 这是什么项目
@@ -13,7 +18,7 @@
 ## 一条命令
 
 ```bash
-cd phm-web && npm run check          # 37 项闸门，与 CI 同款
+cd phm-web && npm run check          # 与 CI 同款；项数以实际输出为准
 ```
 
 改完还要跑冒烟（`check` 不覆盖真实浏览器）：
@@ -61,15 +66,16 @@ MSYS_NO_PATHCONV=1 node tools/smoke-page.mjs http://127.0.0.1:5251
 
 ## 找代码：先查索引，别 grep 全库
 
-`258 个文件 / 43,900 行`。grep 一个词会命中几十处注释，然后逐个打开 —— 上下文就这么烧光的。
+代码量到了「grep 一个词会命中几十处注释，然后逐个打开」的程度 —— 上下文就这么烧光的。
+（具体数字不写：写死就会过期，2026-11-16 清理时发现这里的旧数字偏了近一倍。）
 
 **改任何功能前，先用 MCP `codebase-search` 定位文件**：
 
 | 索引名 | 覆盖 | 规模 |
 |---|---|---|
-| `phm-backend` | `phm-web/lib/` | 36 文件 / 327 chunk |
-| `phm-frontend` | `phm-web/public/js/` | 66 文件 / 618 chunk |
-| `phm-tools` | `phm-web/tools/` | 90 文件 / 920 chunk |
+| `phm-backend` | `phm-web/lib/` | 后端模块 |
+| `phm-frontend` | `phm-web/public/js/` | 前端脚本 |
+| `phm-tools` | `phm-web/tools/` | 校验与生成脚本 |
 
 工具：`search_codebases`（查）→ `get_chunk_content`（读命中块）→ `get_file_content`（读全文）。
 改完代码跑 `update_codebase_scan` 刷新对应库。
