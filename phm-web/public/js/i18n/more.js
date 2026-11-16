@@ -27,6 +27,8 @@ export default {
     'more.status.d': '自检数据与外部可用性监控入口。',
     'more.version.t': '版本记录',
     'more.version.d': '每次改动的内容与时间。',
+    'more.gameprivacy.t': '游戏隐私设置',
+    'more.gameprivacy.d': 'Phira 话梅构建采集什么数据、怎么关闭上报。',
   },
   en: {
     'more.vote.t': 'Difficulty labelling',
@@ -50,5 +52,7 @@ export default {
     'more.status.d': 'Self-check data and the external availability monitor.',
     'more.version.t': 'Changelog',
     'more.version.d': 'What changed, and when.',
+    'more.gameprivacy.t': 'Game privacy',
+    'more.gameprivacy.d': 'What the Phira Huamei build collects, and how to turn uploads off.',
   },
 };

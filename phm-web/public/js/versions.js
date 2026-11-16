@@ -19,9 +19,33 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.2.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.3.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.3.0', date: '2026-11-16',
+    zh: ['<b>新增四页「游戏隐私」文档</b>，入口在「更多 → 系统」。'
+      + '它们说清 Phira 话梅构建<strong>客户端</strong>采集什么：逐音符判定、触控落点、'
+      + '设备型号，以及<strong>位置（约 1 公里）和陀螺仪摘要</strong>这两项敏感信息 —— '
+      + '并明确告诉你<strong>怎么关</strong>（设置 → 账号 → 上报游玩数据）。',
+      '<b>为什么单独开一套，而不是并进原来的隐私政策。</b> 原来那份写的是网页端'
+      + '（拖谱面进浏览器），与客户端的采集面完全不同 —— 让玩家去读一份与他无关的披露，'
+      + '比不写更糟。四页：政策 / 儿童协议 / 收集清单 / 第三方共享清单。',
+      '<b>清单里写了「不收集」什么，也写了我们做得不好的地方。</b> 不取设备唯一标识、'
+      + '不读剪贴板、无广告 SDK —— 这些都对着代码核过；同时也写明了上报开关默认开启、'
+      + '对局数据没有删除机制、数据存在新加坡这三处已知缺口。'],
+    en: ['<b>Four new "game privacy" pages</b>, linked from More → System. They describe what the '
+      + 'Phira Huamei-build <strong>client</strong> collects: per-note judgements, touch positions, device model, '
+      + 'and the two sensitive items — <strong>location (about 1 km) and gyroscope summaries</strong> — '
+      + 'plus exactly <strong>how to turn it off</strong> (Settings → Account → Upload gameplay data).',
+      '<b>Why a separate set instead of folding it into the existing privacy policy.</b> That one describes the '
+      + 'web app (drag a chart into the browser), whose collection surface is entirely different. Sending players '
+      + 'to a disclosure that is not about them is worse than not writing one. Four pages: policy / children / '
+      + 'what we collect / third-party sharing.',
+      '<b>The lists state what we do not collect, and where we fall short.</b> No device identifiers, no clipboard '
+      + 'reads, no ad SDK — all verified against the code — alongside three known gaps: the upload switch defaults '
+      + 'to on, match data has no deletion mechanism, and data is stored in Singapore.'],
+  },
   {
     v: 'V0.31.2.0', date: '2026-11-14',
     zh: ['<b>一次完整的安全加固。</b> 外部审计提了 19 项，逐条核实后修了 12 项 —— '

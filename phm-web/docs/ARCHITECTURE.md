@@ -61,6 +61,10 @@
 | `/login` | `login.html` | **登录门面**：独立页，不挂全局导航（登录页挂导航等于分心）。双栏：左栏是 `public/js/particles.js` 的琥珀粒子群（Live2D 到位前的"角色位"占位，鼠标扫过会把粒子弹开），右栏是表单。**渐进式两步**：首屏只收邮箱，点「下一步」才出密码，注册 / 找回密码是同页的备选模式。登录逻辑复用 `public/js/auth.js` 的 `createAuth()`，页面只做编排 | 登录成功后跳 `?redirect=` 指定的页面（默认 `/app`），**但必须过 `public/js/redirect.js` 的站内相对路径白名单**（开放重定向 / XSS）；错误提示复用 `app.auth.err.*`，不另起一套键 |
 | `/status` | `status.html` | **运行状态**：20 个目标自检（页面/数据 60s，打 DB 的接口 5 分钟——见 `RL.apiAnonHour`），报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
+| `/privacy-game` | `privacy-game.html` | **客户端（游戏）隐私政策**：Phira 话梅构建采集什么、怎么关闭上报。⚠ 与 `/privacy` 不是一回事——那是**网页端**政策（拖谱面进浏览器），这里描述的是**客户端**采集面（逐音符判定、位置、陀螺仪）。四页共用 `css/docs.css`，导航互链 |
+| `/privacy-game/children` | `privacy-game-children.html` | **儿童隐私协议**：14 周岁以下用户的专项规则。诚实写明无年龄门、开关默认开启、无独立儿童数据删除通道 |
+| `/privacy-game/collect` | `privacy-game-collect.html` | **个人信息收集清单**：16 项逐条列「内容/目的/可否关闭/是否敏感」，附「明确不收集」对照表 |
+| `/privacy-game/third-party` | `privacy-game-third-party.html` | **第三方共享清单**：6 个真实存在的域名，逐项列共享内容与目的；含数据出境（新加坡）的诚实披露 |
 | `/test` | `test.html` | 人类难度标注（投票）：随机抽一张你没投过的谱 → 下载 zip 打一遍 → 给两个数（整数+小数）。**「打不过」也是有效答案** —— 不收这个信号的话，难谱永远没票、样本偏向简单谱。`noindex`，不进站点表导航 |
 | `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |
 

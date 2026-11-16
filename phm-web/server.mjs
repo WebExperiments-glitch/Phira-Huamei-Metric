@@ -183,6 +183,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
 /* 完整白名单；静态站按 RETIRED_HTML 减掉（同一份代码两个站，见 lib/retired.mjs） */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
+  'privacy-game.html', 'privacy-game-children.html', 'privacy-game-collect.html', 'privacy-game-third-party.html', /* 客户端隐私四页，与 /privacy 网页端政策独立 */
   'test.html',   /* 只加 pages.mjs 的路由不加这里 = 404，见 CHANGELOG */
   '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
