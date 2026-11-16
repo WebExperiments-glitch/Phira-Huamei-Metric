@@ -19,9 +19,33 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.3.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.4.0';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.4.0', date: '2026-11-16',
+    zh: ['<b>游戏里可以直接查一张谱的定数了。</b> 新增一条「算一道题换一次分析」的通道：'
+      + '客户端不需要内置任何密钥，但每次请求都要先算对一道小题目（约 1~3 秒），'
+      + '服务器验过才给算。<strong>不限次数</strong>——按天卡人没必要。',
+      '<b>没算过的谱，现在也能算了。</b> 以前只有库里有的谱才显示得出定数，'
+      + '现在是「没算过就当场排队算」，算完写进共享缓存，别人再查就是秒回。'
+      + '同一张谱被多人同时点，只算一次。',
+      '<b>顺带修了一个会让大谱面「查不到」的老问题。</b> 引擎对单个文件的解压上限'
+      + '写死在 4MB，而有些合法谱面的谱面文件有 6.5MB——超限后错误被吞掉，'
+      + '对外提示成「包里没有可解析的谱面」，看起来像谱面本身有问题。'],
+    en: ['<b>Charts can now be looked up from inside the game.</b> A new "solve a puzzle, get one '
+      + 'analysis" channel: the client needs no embedded key, but each request must solve a small '
+      + 'proof-of-work first (about 1–3 seconds), and the server verifies it before computing. '
+      + '<strong>No daily limit</strong> — capping people per day served no purpose.',
+      '<b>Charts that were never analysed can be analysed now.</b> Previously only charts already in '
+      + 'the database returned a rating; now an unknown chart is queued and computed on the spot, then '
+      + 'written to the shared cache so the next lookup is instant. Concurrent requests for the same '
+      + 'chart trigger exactly one computation.',
+      '<b>Also fixed an old bug that made large charts unlookupable.</b> The engine capped a single '
+      + 'decompressed entry at 4 MB, but some legitimate charts have a 6.5 MB chart file — the error '
+      + 'was swallowed and surfaced as "no parseable chart in the package", which looked like the '
+      + 'chart itself was broken.'],
+  },
   {
     v: 'V0.31.3.0', date: '2026-11-16',
     zh: ['<b>新增四页「游戏隐私」文档</b>，入口在「更多 → 系统」。'
