@@ -608,6 +608,7 @@ const server = http.createServer(guardRequest(async (req, res) => {
        `warn` 只在有差异时出现 —— 客户端把它记进日志。 */
     return send(res, 202, JSON.stringify({
       ok: true, play_id: playId, verified: who.verified === true,
+      ...hmQueue.chartPlaysField(v.row.chart_digest),   // 本谱累计局数（含本局），只读内存、不查库
       ...(warn.length ? { warn } : {}),
     }));
   }

@@ -46,6 +46,50 @@ let running = false;
 /** @type {null | ((row: object) => Promise<any>) } */
 let writer = null;
 
+/* ── chart_plays：按 digest 归并的本谱累计局数 ───────────────
+   客户端结算页要显示「本谱累计第 N 局」，靠 /api/hm/play 的响应带回去。
+
+   ⚠ 绝不能在响应路径同步查库 —— 那会把刚用队列修好的 504 带回来
+     （Neon 空闲缩零 → 唤醒 10~13s → 30s 超时 → stgw 504）。
+   所以走内存：
+     · 启动时从 hm_plays 预热一次**基线**（只写 baseline，不碰 delta）
+     · enqueue 成功即 delta +1（本局算进去，不管 worker 什么时候写）
+     · 重试耗尽被丢弃时 delta -1（回滚，避免虚高）
+     · 进程重启后重新预热；队列里丢的局由客户端重传补回（幂等去重兜底）
+
+   为什么分 baseline / delta 两层：预热是异步的，若第一个请求在预热完成前
+   入队，直接写同一个 Map 会被随后完成的预热覆盖 —— 分成两层就不会。 */
+const baseline = new Map();   // digest -> 已落库局数（启动快照）
+const delta = new Map();      // digest -> 本进程入队净增
+let chartFetch = null;
+
+async function prewarmChartPlays() {
+  if (!chartFetch) return;
+  try {
+    const r = await chartFetch('/hm_plays?select=chart_digest&limit=100000', undefined, 30000, 8 * 1024 * 1024);
+    if (!r.ok) {
+      console.warn('[hm-queue] chart_plays 预热失败（显示从本局起算）：' + r.status);
+      return;
+    }
+    for (const row of JSON.parse(r.body)) {
+      const d = row.chart_digest;
+      if (d) baseline.set(d, (baseline.get(d) || 0) + 1);
+    }
+  } catch (e) {
+    console.warn('[hm-queue] chart_plays 预热异常：' + e.message);
+  }
+}
+
+/**
+ * 生成响应里要展开的字段：无 digest 时返回空对象（客户端 serde(default) 自动不显示），
+ * 有则返回 `{ chart_plays: N }`，N 含本局。
+ * 返回对象而非数字，是为了 server.mjs 只加一行展开就能用（它有 900 行硬上限）。
+ */
+export function chartPlaysField(digest) {
+  if (!digest) return {};
+  return { chart_plays: (baseline.get(digest) || 0) + (delta.get(digest) || 0) };
+}
+
 /**
  * 由 server.mjs 在启动时调用，把「怎么连数据库」这件事交进来。
  *
@@ -57,6 +101,8 @@ let writer = null;
  * @param {string} writeSecret
  */
 export function initWriter(dbFetch, writeSecret) {
+  chartFetch = dbFetch;
+  prewarmChartPlays();
   writer = async (row) => {
     const r = await dbFetch('/rpc/hm_put_play_dedup', {
       method: 'POST',
@@ -78,6 +124,9 @@ export function enqueue(row) {
   }
   const id = randomUUID();
   stats.received++;
+  /* 入队即计数：本局进响应，不必等 worker 落库。按 digest 归并，无 digest 不计。 */
+  const d = row.chart_digest;
+  if (d) delta.set(d, (delta.get(d) || 0) + 1);
   queue.push({ id, row, tries: 0, nextAt: 0, enqueuedAt: Date.now() });
   kick();
   return id;
@@ -129,6 +178,9 @@ async function drainQueue() {
         stats.lastError = msg.slice(0, 200);
         if (head.tries >= MAX_TRIES) {
           stats.dropped++;
+          /* 丢弃的局不能留在累计里 —— 回滚 delta，否则显示虚高且永远不对。 */
+          const d = head.row.chart_digest;
+          if (d) delta.set(d, Math.max(0, (delta.get(d) || 0) - 1));
           /* 只记一行，不抛 —— 队列里还有别的数据等着写。 */
           console.error('[hm-queue] 重试 %d 次仍失败，丢弃 play_id=%s: %s', MAX_TRIES, head.id, msg);
         } else {

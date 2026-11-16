@@ -301,6 +301,28 @@ export function validatePlay(body) {
     score: parseInt(body.score, 10) || score,
     accuracy: acc,
     max_combo: maxCombo,
+    /* ── timing：反作弊 + AI 数据质量（2026-11-16 补）──
+       客户端 huamei.43 起上报这五个整数。服务端必须在这里收敛后进 row，
+       否则数据库函数看不到它们 —— 之前就是漏了这一层，实测一整局白打。
+       ⚠ 全部限定非负整数 + 上界：这是外部输入，绝不信任客户端。
+         18 位毫秒 (1e18) 远超 JS 安全整数但不影响 —— Number.isInteger 只在
+         <= 2^53 时为真，超出的直接丢（合理：没人打一局 28 万年）。 */
+    timing: (() => {
+      const t = body.timing;
+      if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+      const uint = (v, max) => {
+        const n = Number(v);
+        return Number.isInteger(n) && n >= 0 && n <= max ? n : null;
+      };
+      const MAX_MS = 24 * 3600 * 1000; // 一局不可能超过 24h
+      return {
+        wall_ms: uint(t.wall_ms, MAX_MS),
+        chart_ms: uint(t.chart_ms, MAX_MS),
+        ratio_x100: uint(t.ratio_x100, 65535),
+        pause_count: uint(t.pause_count, 65535),
+        dt_outliers: uint(t.dt_outliers, 65535),
+      };
+    })(),
     perfect: counts[0], good: counts[1], bad: counts[2], miss: counts[3],
     speed: Number(body.speed) || 1,
     mods: parseInt(body.mods, 10) || 0,
