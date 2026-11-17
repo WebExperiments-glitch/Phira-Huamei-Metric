@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- 与各页同源的版本号（bump-version.py 一并改）。smoke 有一条断言盯着它。 -->
+<meta name="app-version" content="V0.31.4.0">
+<title>游戏隐私政策 · P.H.M. Standard</title>
+<meta name="description" content="Phira 话梅构建（huamei）客户端的隐私政策：采集什么、如何使用、如何存储、你拥有哪些权利。">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.31.4.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.31.4.0">
+<link rel="stylesheet" href="/css/docs.css?v=V0.31.4.0">
+</head>
+<body>
+<div class="doc">
+
+  <div class="topbar">
+    <a class="back" href="/more" data-i18n="gp.back">← 返回更多</a>
+    <nav>
+      <a href="/privacy-game" class="on" data-i18n="gp.nav.privacy">游戏隐私政策</a>
+      <a href="/privacy-game/children" data-i18n="gp.nav.children">儿童隐私</a>
+      <a href="/privacy-game/collect" data-i18n="gp.nav.collect">收集清单</a>
+      <a href="/privacy-game/third-party" data-i18n="gp.nav.third">第三方共享</a>
+    </nav>
+  </div>
+
+  <h1 data-i18n-html="gp.h1"><b>Phira</b> 话梅构建 · 隐私政策</h1>
+  <div class="meta"><span data-i18n="gp.meta">版本 v1.0 · 生效日期 2026-11-16 · 适用客户端 Phira（话梅构建，0.8.2-huamei 系列）</span><br><span data-i18n="gp.auth">本政策以简体中文版本为准；英文译本仅供参考。</span></div>
+
+  <div class="lead">
+    <p data-i18n-html="gp.lead"><b>一句话概括：</b>本客户端会在每局结束时把<b>对局结算数据</b>上传到
+    <code>phm.app.workbuddy.host</code>，用于研究谱面难度。其中包含<b>位置（城市级，约 1 公里精度）</b>
+    与<b>陀螺仪摘要</b>，属于敏感个人信息。这两项都可以在
+    <b>设置 → 账号 → 上报游玩数据</b>一键关闭，关闭后不再上传任何对局数据。</p>
+  </div>
+
+  <h2 data-i18n="gp.h2.1">1. 谁是处理者</h2>
+  <table>
+    <tr><td data-i18n="gp.t.1.a">运营者</td><td data-i18n="gp.t.1.b">huamei</td></tr>
+    <tr><td data-i18n="gp.t.1.c">联系方式</td><td><a href="mailto:kanqiao86413@163.com">kanqiao86413@163.com</a></td></tr>
+    <tr><td data-i18n="gp.t.1.d">数据处理地点</td><td data-i18n="gp.t.1.e">新加坡（ap-southeast-1）的云数据库</td></tr>
+    <tr><td data-i18n="gp.t.1.f">政策适用范围</td><td data-i18n-html="gp.t.1.g">本客户端（话梅构建）。<b>不适用于</b> Phira 官方客户端</td></tr>
+  </table>
+  <p data-i18n-html="gp.p.1.a">本客户端是 Phira 的第三方构建，来自开源项目 TeamFlos/phira。
+  我们与 Phira 官方（TeamFlos）<b>没有隶属关系</b>，官方不接收、不处理本客户端上传的数据。</p>
+
+  <h2 data-i18n="gp.h2.2">2. 我们收集什么</h2>
+  <h3 data-i18n="gp.h3.2.1">2.1 对局结算数据（每次打完一局上传一次）</h3>
+  <table>
+    <tr><th data-i18n="gp.th.item">数据项</th><th data-i18n="gp.th.what">具体内容</th></tr>
+    <tr><td data-i18n="gp.t.2.a1">成绩</td><td data-i18n="gp.t.2.b1">分数、准确率、最大连击、Perfect/Good/Bad/Miss 四项计数</td></tr>
+    <tr><td data-i18n="gp.t.2.a2">谱面标识</td><td data-i18n="gp.t.2.b2">谱面 ID、难度标签、物量、谱面内容摘要（SHA-256）</td></tr>
+    <tr><td data-i18n="gp.t.2.a3">逐音符判定</td><td data-i18n="gp.t.2.b3">每个音符的判定结果与击打偏移（早/晚多少毫秒）</td></tr>
+    <tr><td data-i18n="gp.t.2.a4">手感特征</td><td data-i18n="gp.t.2.b4">本局最大同时手指数</td></tr>
+    <tr><td data-i18n="gp.t.2.a5">触控落点</td><td data-i18n="gp.t.2.b5">8×8 网格的点击热度分布（64 个计数，归一化）</td></tr>
+    <tr><td data-i18n="gp.t.2.a6">计时完整性</td><td data-i18n="gp.t.2.b6">实际游玩耗时、谱面时长、二者比值、暂停次数、卡顿帧数</td></tr>
+    <tr><td data-i18n="gp.t.2.a7">设备信息</td><td data-i18n="gp.t.2.b7">系统版本、机型标识（如 iPhone15,2）、屏幕尺寸与像素比、实际渲染尺寸</td></tr>
+    <tr><td data-i18n="gp.t.2.a8">位置</td><td data-i18n-html="gp.t.2.b8">经纬度，<b>四舍五入到 2 位小数（约 1 公里）</b></td></tr>
+    <tr><td data-i18n="gp.t.2.a9">陀螺仪摘要</td><td data-i18n="gp.t.2.b9">一局内角速度的均值、标准差、峰值三个数（不传原始采样）</td></tr>
+    <tr><td data-i18n="gp.t.2.a10">游戏设置</td><td data-i18n="gp.t.2.b10">谱速、Mod、是否键盘模式</td></tr>
+    <tr><td data-i18n="gp.t.2.a11">版本信息</td><td data-i18n="gp.t.2.b11">客户端版本、判定数据格式版本、结算时刻</td></tr>
+  </table>
+
+  <p data-i18n-html="gp.p.2.a"><b>位置的处理方式</b>：定位精度请求为 1000 米，拿到坐标后<b>在写入内存前</b>
+  就四舍五入到 2 位小数，原始精确坐标不会离开采集函数、不会落盘、不会上传。
+  拒绝系统定位授权后，该字段为空，其余数据照常上报。</p>
+  <p data-i18n-html="gp.p.2.b"><b>陀螺仪的处理方式</b>：只上传三个统计量。一局 3 分钟 60Hz 的原始采样约 1 万个点，
+  我们不传、也不在本地保留。</p>
+
+  <h3 data-i18n="gp.h3.2.2">2.2 明确不收集</h3>
+  <p data-i18n="gp.p.2.c">以下项目代码里没有任何采集路径，可对照源码核实：</p>
+  <ul>
+    <li data-i18n-html="gp.li.2.1"><b>设备唯一标识</b>：不取 IDFA、IDFV、UDID、MAC、序列号</li>
+    <li data-i18n="gp.li.2.2">通讯录、相册、麦克风、摄像头</li>
+    <li data-i18n-html="gp.li.2.3"><b>剪贴板</b>：不读取（仅在用户点「复制」时写入用户名或错误信息，从不读回内容上传）</li>
+    <li data-i18n="gp.li.2.4">精确位置（原始 GPS 坐标）</li>
+    <li data-i18n="gp.li.2.5">你的 Phira 账号密码（只读公开接口，不接收密码）</li>
+    <li data-i18n="gp.li.2.6">游戏内聊天内容、好友列表</li>
+    <li data-i18n="gp.li.2.7">广告标识符，也无任何广告 SDK</li>
+  </ul>
+
+  <h3 data-i18n="gp.h3.2.3">2.3 账号（可选）</h3>
+  <p data-i18n="gp.p.2.d">如果你在客户端里登录话梅账号（自建邮箱体系），我们会存邮箱、
+  密码哈希（scrypt 加盐哈希，不存明文）与一个随机内部标识。如果你只登录 Phira 账号，
+  我们不存你的密码；仅在每次上报时把会话令牌转发给 Phira 官方 /me 接口验证身份，
+  从返回值里取 Phira UID 与用户名。令牌本身不落库。</p>
+  <p data-i18n-html="gp.p.2.e"><b>未登录也会上报</b>，此时以匿名方式记录（无法关联到你个人）。</p>
+
+  <h3 data-i18n="gp.h3.2.4">2.4 本地诊断日志</h3>
+  <p data-i18n-html="gp.p.2.f">为排查故障，客户端会在应用沙盒内写入 <code>motion.log</code>（陀螺仪采集诊断）
+  与 <code>panic.log</code>（崩溃记录），单个文件上限 256 KB 并轮转。
+  <b>这两个文件只存在你的设备上，不会自动上传。</b>你可以在「文件」App 的
+  <code>我的 iPad → phira-hm</code> 目录下自行查看或删除。</p>
+
+  <h2 data-i18n="gp.h2.3">3. 用来做什么</h2>
+  <table>
+    <tr><th data-i18n="gp.th.use">用途</th><th data-i18n="gp.th.why">具体说明</th></tr>
+    <tr><td data-i18n="gp.t.3.a1">谱面难度研究</td><td data-i18n="gp.t.3.b1">用大量玩家的真实表现反推谱面难度，替代主观标称定数</td></tr>
+    <tr><td data-i18n="gp.t.3.a2">数据质量分析</td><td data-i18n="gp.t.3.b2">判断哪些数据可信（如卡顿帧过多的一局会降权）</td></tr>
+    <tr><td data-i18n="gp.t.3.a3">故障排查</td><td data-i18n="gp.t.3.b3">定位采集失败（如某机型拿不到陀螺仪）</td></tr>
+  </table>
+  <p data-i18n="gp.p.3.a">我们不做的事：不做用户画像、不做广告推荐、不向你推送营销内容；
+  不把你的数据卖给任何第三方；不用你的数据做与谱面难度无关的分析。</p>
+
+  <h2 data-i18n="gp.h2.4">4. 第三方共享</h2>
+  <p data-i18n-html="gp.p.4.a">完整清单见 <a href="/privacy-game/third-party">第三方共享个人信息清单</a>。摘要：</p>
+  <table>
+    <tr><th data-i18n="gp.th.third">第三方</th><th data-i18n="gp.th.share">共享什么</th><th data-i18n="gp.th.purpose">目的</th></tr>
+    <tr><td data-i18n="gp.t.4.a1">Phira 官方 API</td><td data-i18n="gp.t.4.b1">仅在你登录 Phira 时转发会话令牌</td><td data-i18n="gp.t.4.c1">验证身份、下载谱面</td></tr>
+    <tr><td data-i18n="gp.t.4.a2">云托管与数据库</td><td data-i18n="gp.t.4.b2">全部上报数据（存储）</td><td data-i18n="gp.t.4.c2">数据存储</td></tr>
+    <tr><td data-i18n="gp.t.4.a3">谱面 CDN</td><td data-i18n="gp.t.4.b3">无个人数据</td><td data-i18n="gp.t.4.c3">下载谱面文件</td></tr>
+  </table>
+
+  <h2 data-i18n="gp.h2.5">5. 保存多久</h2>
+  <table>
+    <tr><td data-i18n="gp.t.5.a1">对局数据</td><td data-i18n="gp.t.5.b1">长期保存用于难度研究（当前没有自动删除机制）</td></tr>
+    <tr><td data-i18n="gp.t.5.a2">账号信息</td><td data-i18n="gp.t.5.b2">至你注销账号为止</td></tr>
+    <tr><td data-i18n="gp.t.5.a3">本地日志</td><td data-i18n="gp.t.5.b3">仅在你的设备上，256 KB 轮转覆盖，我们无法访问</td></tr>
+  </table>
+
+  <h2 data-i18n="gp.h2.6">6. 你的权利</h2>
+  <h3 data-i18n="gp.h3.6.1">6.1 关闭数据上报（最直接的方式）</h3>
+  <p data-i18n-html="gp.p.6.a"><b>设置 → 账号 → 上报游玩数据</b>（代码里叫 <code>telemetry_enabled</code>）。
+  关闭后结算页不再发起上传，<b>不显示「上传中」</b>——这是刻意设计，让你能看出开关确实生效了。
+  开关放在账号页最上方、四份文档之前，就是为了让它更容易被找到。</p>
+  <p data-i18n-html="gp.p.6.b"><b>该开关默认为开启。</b>我们正在评估改为首次启动时询问（见第 9 节）。</p>
+
+  <h3 data-i18n="gp.h3.6.2">6.2 注销账号</h3>
+  <p data-i18n-html="gp.p.6.c">客户端内可注销话梅账号，会删除账号、档案与未使用的验证码。
+  <b>注销不会删除</b>已经上报的对局数据——这些数据在上报时就是匿名或仅带随机内部标识的，
+  已无法回溯到你的邮箱。如果你要求删除对局数据，请通过第 1 节联系方式提出，
+  我们会按你的谱面 ID 与时间范围尽力定位（若当时为匿名上报则技术上无法定位）。</p>
+
+  <h3 data-i18n="gp.h3.6.3">6.3 其他权利</h3>
+  <p data-i18n="gp.p.6.d">依据《个人信息保护法》，你有权查阅、复制、更正、补充、删除你的个人信息，
+  并可撤回同意。请通过第 1 节联系方式提出，我们会在 15 个工作日内答复。</p>
+
+  <h2 data-i18n="gp.h2.7">7. 位置与陀螺仪的特殊说明</h2>
+  <p data-i18n="gp.p.7.a">这两项在《个人信息保护法》下属敏感个人信息，单独说明。</p>
+  <h3 data-i18n="gp.h3.7.1">位置</h3>
+  <ul>
+    <li data-i18n="gp.li.7.1">目的：分析不同地区玩家的设备与网络状况</li>
+    <li data-i18n="gp.li.7.2">精度：约 1 公里（四舍五入到 2 位小数）</li>
+    <li data-i18n-html="gp.li.7.3">必要性：<b>非必要</b>，拒绝后游戏功能完全正常</li>
+    <li data-i18n="gp.li.7.4">授权方式：iOS 系统弹窗（仅使用期间）</li>
+    <li data-i18n="gp.li.7.5">撤回：iOS「设置 → 隐私与安全性 → 定位服务 → Phira」</li>
+  </ul>
+  <h3 data-i18n="gp.h3.7.2">陀螺仪</h3>
+  <ul>
+    <li data-i18n="gp.li.7.6">目的：分析手抖程度与判定偏差的关系</li>
+    <li data-i18n="gp.li.7.7">内容：仅三个统计量，不含原始采样</li>
+    <li data-i18n-html="gp.li.7.8">必要性：<b>非必要</b>，拒绝后游戏功能完全正常</li>
+    <li data-i18n="gp.li.7.9">撤回：随 6.1 节总开关一并关闭</li>
+  </ul>
+
+  <h2 data-i18n="gp.h2.8">8. 未成年人</h2>
+  <p data-i18n-html="gp.p.8.a">本客户端不面向 14 周岁以下儿童单独提供服务。若你是未成年人，
+  请在监护人陪同下阅读本政策并使用。专项说明见 <a href="/privacy-game/children">儿童隐私协议</a>。</p>
+
+  <h2 data-i18n="gp.h2.9">9. 已知的待改进项（诚实披露）</h2>
+  <p data-i18n="gp.p.9.a">以下问题我们已知、尚未解决，写在政策里而不是藏起来：</p>
+  <ul>
+    <li data-i18n-html="gp.li.9.1"><b>上报开关默认开启</b>——位置属敏感个人信息，理想做法是首次启动时单独询问。当前为默认开启 + 可随时关闭，正在评估改造。</li>
+    <li data-i18n-html="gp.li.9.2"><b>对局数据无删除机制</b>——见第 5 节。</li>
+    <li data-i18n-html="gp.li.9.3"><b>无年龄门</b>——未做年龄验证，依赖监护人主动管理。</li>
+  </ul>
+
+  <h2 data-i18n="gp.h2.10">10. 政策变更</h2>
+  <p data-i18n="gp.p.10.a">政策更新时，我们会在本页面同步更新版本号与生效日期。
+  涉及收集范围扩大的变更，会在客户端内显著提示。</p>
+
+  <p class="foot-note" data-i18n-html="gp.foot">本文档与客户端采集代码逐条对应。改动采集代码必须同步更新本页，否则构成虚假披露。</p>
+
+</div>
+<script type="module">
+import { applyStatic, onLangChange, t } from '/js/ui.js?v=V0.31.4.0';
+import { installGuard } from '/js/guard.js?v=V0.31.4.0';
+
+/* 全局兜底：让失败看得见（详见 js/guard.js 顶部）
+   ⚠ 必须放在**所有 import 之后** —— import 是语句，插到语句中间浏览器直接报错。 */
+try { installGuard(t); } catch (e) {}
+
+/* 法务页正文全是静态文案，没有 JS 渲染的数据 —— 语言一变只需重跑静态替换。 */
+applyStatic();
+onLangChange(() => applyStatic());
+</script>
+</body>
+</html>

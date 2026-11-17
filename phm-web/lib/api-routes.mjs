@@ -17,7 +17,9 @@ import {
   behavior, reference, engines, engine, versions, discrepancy,
   statusData, incidents, health, analysisProbe, EXTRA_SCOPES,
 } from './api-extras.mjs';
-import { evaluateGuard, isAdmin, guardCapabilities } from './api-guard.mjs';
+import { evaluateGuard, isAdmin, guardCapabilities, issueAnalysisChallenge } from './api-guard.mjs';
+import { createAnalysisQueue } from './analysis-queue.mjs';
+import { makeAnalysisRoutes } from './api-analysis-routes.mjs';
 import { loadEnter, loadLeave, costOf, shouldShed, loadStats } from './api-load.mjs';
 import { makeAdminRoutes } from './api-admin.mjs';
 import { handleFileRoute } from './api-files.mjs';
@@ -187,6 +189,14 @@ export function makeApiRoutes(deps) {
         也不该被匿名限流影响（运维通道要能在压力期用）。 */
   const handleStats = makeStatsHandler({
     requireScope, gateApi, dbFetch, logUsage, apiErr, json, withCache,
+  });
+
+  /* 分析队列：匿名算对 PoW 后入队，202 立刻返回（见 lib/analysis-queue.mjs 顶部） */
+  const analysisQueue = createAnalysisQueue({ recompute, dbPutChart, limit });
+  const { handleAnalyses, handlePow } = makeAnalysisRoutes({
+    readBody, dbFetch, dbPutChart, recompute, requireScope, gateApi,
+    apiErr, json, logUsage, formatRow, formatReport, tryEnter, leave,
+    analysisQueue, issueAnalysisChallenge,
   });
 
   /* 查询历史（留存地基）—— 单独成模块（api-routes 已到 900 行上限） */
@@ -443,52 +453,6 @@ export function makeApiRoutes(deps) {
       rks: user.rks == null ? null : user.rks,
       stats,
     });
-  }
-
-  async function handleAnalyses(req, res, who, ip) {
-    const body = await readBody(req, 16 * 1024);
-    const id = Number(body && body.chart_id);
-    if (!Number.isInteger(id) || id < 1) {
-      return apiErr(res, 400, 'invalid_request_error', 'invalid_chart_id', 'chart_id must be a positive integer');
-    }
-    if (!requireScope(res, who, 'analyses:write')) return;
-    if (!(await gateApi(res, who, ip, {
-      analysis: true, endpoint: '/analyses', bodyText: JSON.stringify(body || {}),
-    }))) return;
-    const t0 = Date.now();
-    const ex = await dbFetch('/phm_charts?chart_id=eq.' + id + '&select=*');
-    if (ex.ok && ex.body && ex.body !== '[]') {
-      const row = JSON.parse(ex.body)[0];
-      logUsage(who, '/analyses', 200, id, t0);
-      return json(res, 200, formatRow(row));
-    }
-    /* ⚠ 这里**不**按「必须持 Key」来拦 —— 匿名可查是产品设计（100 次/小时）。
-       真正要防的是「限流失效时仍然放行算力」，那一条在 gateApi 里修（失败关闭）。
-       2026-10-24 审计提到「匿名能触发重算」，结论对，但对策不该是砍掉匿名。 */
-    if (!tryEnter('api-analyze', 2)) {
-      return apiErr(res, 503, 'server_error', 'analysis_busy', 'analysis is busy; retry shortly', { 'retry-after': '3' });
-    }
-    let trusted;
-    try {
-      trusted = await recompute(id);
-    } catch (e) {
-      /* ⚠ 不要把异常原文回给调用方（2026-10-24 审计）：里面可能带上游主机名、
-         文件路径、甚至凭据片段。细节只写服务端日志，对外给稳定错误码。 */
-      console.warn('[phm] recompute failed chart=' + id + ': ' + String(e && (e.stack || e.message) || e));
-      return apiErr(res, 502, 'server_error', 'analysis_failed',
-        'analysis failed; the chart may be unavailable upstream');
-    } finally {
-      leave('api-analyze');
-    }
-    let cacheWrite = { ok: true };
-    try {
-      const wr = await dbPutChart(trusted);
-      if (!wr.ok) cacheWrite = { ok: false, detail: String(wr.fail && wr.fail[0] || '').slice(0, 120) };
-    } catch (e) {
-      cacheWrite = { ok: false, detail: String(e.message || e).slice(0, 120) };
-    }
-    logUsage(who, '/analyses', 200, id, t0);
-    return json(res, 200, Object.assign(formatReport(trusted), { cacheWrite }));
   }
 
   async function handleUsage(req, res, who) {
@@ -833,6 +797,9 @@ export function makeApiRoutes(deps) {
     }
     if (req.method === 'POST' && p === '/analyses') {
       return handleAnalyses(req, res, who, ip);
+    }
+    if (req.method === 'GET' && p === '/pow') {
+      return handlePow(req, res, who, ip);
     }
     if (req.method === 'GET' && p === '/usage') {
       return handleUsage(req, res, who);

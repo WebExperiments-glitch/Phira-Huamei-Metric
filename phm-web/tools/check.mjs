@@ -65,6 +65,7 @@ const STEPS = [
   ['兜底层单测（9 条）', 'node', ['tools/test-resilience.mjs']],
   ['成绩校验单测', 'node', ['tools/test-hm-validate.mjs']],
   ['结算页累计局数单测（5 条；守 chart_plays 语义与零查库）', 'node', ['tools/test-hm-chart-plays.mjs']],
+  ['匿名 PoW 换分析单测（7 组；守一次性/去重/背压/配额）', 'node', ['tools/test-analysis-pow.mjs']],
   ['双语完整性', 'node', ['tools/lint-i18n.mjs']],
   ['屎山考核', 'node', ['tools/lint-slop.mjs']],
   ['配色对比度', 'node', ['tools/check-contrast.mjs']],

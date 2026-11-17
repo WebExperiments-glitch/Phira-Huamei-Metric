@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.31.4.0">
+<title>个人信息收集清单 · P.H.M. Standard</title>
+<meta name="description" content="Phira 话梅构建客户端收集哪些个人信息、用来做什么、哪些可以关闭、哪些明确不收集。">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.31.4.0">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.31.4.0">
+<link rel="stylesheet" href="/css/docs.css?v=V0.31.4.0">
+</head>
+<body>
+<div class="doc">
+
+  <div class="topbar">
+    <a class="back" href="/more" data-i18n="gp.back">← 返回更多</a>
+    <nav>
+      <a href="/privacy-game" data-i18n="gp.nav.privacy">游戏隐私政策</a>
+      <a href="/privacy-game/children" data-i18n="gp.nav.children">儿童隐私</a>
+      <a href="/privacy-game/collect" class="on" data-i18n="gp.nav.collect">收集清单</a>
+      <a href="/privacy-game/third-party" data-i18n="gp.nav.third">第三方共享</a>
+    </nav>
+  </div>
+
+  <h1 data-i18n="gk.h1">个人信息收集清单</h1>
+  <div class="meta"><span data-i18n="gk.meta">版本 v1.0 · 生效日期 2026-11-16 · 本清单与客户端采集代码逐条对应</span><br><span data-i18n="gp.auth">本政策以简体中文版本为准；英文译本仅供参考。</span></div>
+
+  <h2 data-i18n="gk.h2.0">汇总表</h2>
+  <table>
+    <tr>
+      <th data-i18n="gk.th.no">#</th><th data-i18n="gk.th.item">数据项</th>
+      <th data-i18n="gk.th.what">具体内容</th><th data-i18n="gk.th.why">目的</th>
+      <th data-i18n="gk.th.opt">可关闭</th><th data-i18n="gk.th.sens">敏感</th>
+    </tr>
+    <tr><td>1</td><td data-i18n="gk.t.1.a">成绩数据</td><td data-i18n="gk.t.1.b">分数、准确率、最大连击、P/G/B/M 四项计数</td><td data-i18n="gk.t.1.c">难度研究</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>2</td><td data-i18n="gk.t.2.a">谱面标识</td><td data-i18n="gk.t.2.b">谱面 ID、难度标签、物量、SHA-256 摘要</td><td data-i18n="gk.t.2.c">关联同一谱面</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>3</td><td data-i18n="gk.t.3.a">逐音符判定</td><td data-i18n="gk.t.3.b">每个音符的判定结果与早晚偏移（毫秒）</td><td data-i18n="gk.t.3.c">定位难点、判定偏差</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>4</td><td data-i18n="gk.t.4.a">手感特征</td><td data-i18n="gk.t.4.b">本局最大同时手指数（0=键盘，1=单指，2~4=多指）</td><td data-i18n="gk.t.4.c">区分指法结构</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>5</td><td data-i18n="gk.t.5.a">触控落点</td><td data-i18n="gk.t.5.b">8×8 网格点击热度（64 个归一化计数）</td><td data-i18n="gk.t.5.c">分析手型与落点分布</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>6</td><td data-i18n="gk.t.6.a">计时完整性</td><td data-i18n="gk.t.6.b">实际耗时、谱面时长、比值、暂停次数、卡顿帧数</td><td data-i18n="gk.t.6.c">数据可信度评估</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>7</td><td data-i18n="gk.t.7.a">设备信息</td><td data-i18n="gk.t.7.b">系统版本、机型标识、屏幕尺寸、渲染尺寸</td><td data-i18n="gk.t.7.c">机型与判定偏差分析</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>8</td><td data-i18n="gk.t.8.a">位置</td><td data-i18n-html="gk.t.8.b">经纬度，<b>四舍五入到约 1 公里</b></td><td data-i18n="gk.t.8.c">地区维度分析</td><td data-i18n="gk.t.8.d">是（开关 + 系统授权）</td><td data-i18n="gk.t.yes2">是</td></tr>
+    <tr><td>9</td><td data-i18n="gk.t.9.a">陀螺仪摘要</td><td data-i18n="gk.t.9.b">角速度均值、标准差、峰值（三个数）</td><td data-i18n="gk.t.9.c">手抖程度与判定关系</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.yes2">是</td></tr>
+    <tr><td>10</td><td data-i18n="gk.t.10.a">游戏设置</td><td data-i18n="gk.t.10.b">谱速、Mod、是否键盘模式</td><td data-i18n="gk.t.10.c">控制变量（不同设置不可比）</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>11</td><td data-i18n="gk.t.11.a">版本信息</td><td data-i18n="gk.t.11.b">客户端版本、判定格式版本、结算时刻</td><td data-i18n="gk.t.11.c">数据溯源</td><td data-i18n="gk.t.yes">是（总开关）</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>12</td><td data-i18n="gk.t.12.a">邮箱</td><td data-i18n="gk.t.12.b">仅在你注册话梅账号时</td><td data-i18n="gk.t.12.c">登录、找回</td><td data-i18n="gk.t.12.d">注册时主动提供</td><td data-i18n="gk.t.yes2">是</td></tr>
+    <tr><td>13</td><td data-i18n="gk.t.13.a">密码哈希</td><td data-i18n-html="gk.t.13.b">scrypt 加盐哈希（<b>不存明文</b>）</td><td data-i18n="gk.t.13.c">登录验证</td><td data-i18n="gk.t.12.d">注册时主动提供</td><td data-i18n="gk.t.yes2">是</td></tr>
+    <tr><td>14</td><td data-i18n="gk.t.14.a">Phira UID / 用户名</td><td data-i18n="gk.t.14.b">从 Phira 官方 /me 接口读取</td><td data-i18n="gk.t.14.c">区分玩家（未来多人采样）</td><td data-i18n="gk.t.14.d">不登录即匿名</td><td data-i18n="gk.t.yes2">是</td></tr>
+    <tr><td>15</td><td data-i18n="gk.t.15.a">随机内部标识</td><td data-i18n="gk.t.15.b">服务端生成的账号标识</td><td data-i18n="gk.t.15.c">关联账号与档案</td><td data-i18n="gk.t.15.d">不注册即无</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td>16</td><td data-i18n="gk.t.16.a">本地诊断日志</td><td data-i18n="gk.t.16.b">motion.log / panic.log（设备内，不上传）</td><td data-i18n="gk.t.16.c">故障排查</td><td data-i18n="gk.t.16.d">可自行删除</td><td data-i18n="gk.t.no">否</td></tr>
+  </table>
+
+  <h2 data-i18n="gk.h2.1">分项说明</h2>
+  <h3 data-i18n="gk.h3.1">1–6、10–11：每次对局自动上报</h3>
+  <p data-i18n="gk.p.1.a">这几项构成一局完整的成绩记录，随结算一次性上传。其中第 3 项（逐音符判定）
+  是难度研究的核心资产——它告诉你「哪些音符被打空」，而不只是「整曲平均多少分」。
+  存储位置：云数据库 hm_plays 表。</p>
+
+  <h3 data-i18n="gk.h3.2">7：设备信息</h3>
+  <table>
+    <tr><th data-i18n="gk.th.field">字段</th><th data-i18n="gk.th.sample">示例</th><th data-i18n="gk.th.desc">说明</th></tr>
+    <tr><td><code>os_version</code></td><td><code>17.0</code></td><td data-i18n="gk.t.7d.a">系统版本</td></tr>
+    <tr><td><code>model</code></td><td><code>iPhone15,2</code></td><td data-i18n="gk.t.7d.b">硬件标识（sysctl hw.machine，非营销名）</td></tr>
+    <tr><td><code>screen</code></td><td><code>[390, 844, 3]</code></td><td data-i18n="gk.t.7d.c">逻辑宽、逻辑高、像素比</td></tr>
+    <tr><td><code>view</code></td><td><code>[390, 844]</code></td><td data-i18n="gk.t.7d.d">实际渲染区像素（折叠屏/分屏时需要）</td></tr>
+  </table>
+  <p data-i18n-html="gk.p.2.a"><b>不含任何设备唯一标识</b>（无 IDFA / IDFV / UDID / MAC / 序列号）。</p>
+
+  <h3 data-i18n="gk.h3.3">8：位置（敏感）</h3>
+  <ul>
+    <li data-i18n-html="gk.li.3.1">请求精度：<b>1000 米</b></li>
+    <li data-i18n-html="gk.li.3.2">存储精度：<b>2 位小数 ≈ 1.1 公里</b></li>
+    <li data-i18n-html="gk.li.3.3">取整时机：<b>写入内存之前</b>，原始坐标不离开采集函数</li>
+    <li data-i18n="gk.li.3.4">采集频率：结算时读一次（不是全程追踪）</li>
+    <li data-i18n="gk.li.3.5">拒绝授权：字段为空，其余数据照常上报</li>
+    <li data-i18n="gk.li.3.6">撤回：iOS 设置 → 隐私与安全性 → 定位服务 → Phira</li>
+  </ul>
+
+  <h3 data-i18n="gk.h3.4">9：陀螺仪摘要（敏感）</h3>
+  <p data-i18n-html="gk.p.3.a">只传 <code>[均值, 标准差, 峰值]</code> 三个数，单位 rad/s。
+  <b>不传原始采样</b>——一局 3 分钟 60Hz 约 1 万个点，我们不传也不在本地保留。
+  采集不足 10 帧时不上报（局太短，没有统计意义）。</p>
+
+  <h3 data-i18n="gk.h3.5">12–15：账号（可选）</h3>
+  <p data-i18n-html="gk.p.4.a">只有你主动注册话梅账号才会产生。不注册则以匿名方式上报，功能不受影响。
+  注销账号会删除：账号、档案、未使用验证码。<b>不删除</b>已上报的对局数据（上报时已匿名，无法回溯）。</p>
+
+  <h3 data-i18n="gk.h3.6">16：本地日志</h3>
+  <table>
+    <tr><th data-i18n="gk.th.file">文件</th><th data-i18n="gk.th.loc">位置</th><th data-i18n="gk.th.size">大小上限</th><th data-i18n="gk.th.up">上传</th></tr>
+    <tr><td><code>motion.log</code></td><td data-i18n="gk.t.16e.a">应用沙盒 Documents/</td><td data-i18n="gk.t.16e.b">256 KB，轮转</td><td data-i18n="gk.t.no">否</td></tr>
+    <tr><td><code>panic.log</code></td><td data-i18n="gk.t.16e.a">应用沙盒 Documents/</td><td data-i18n="gk.t.16e.b">256 KB，轮转</td><td data-i18n="gk.t.no">否</td></tr>
+  </table>
+  <p data-i18n="gk.p.5.a">可在「文件」App → 我的 iPad → phira-hm 查看或删除。</p>
+
+  <h2 data-i18n="gk.h2.2">明确不收集</h2>
+  <table>
+    <tr><th data-i18n="gk.th.noitem">项目</th><th data-i18n="gk.th.status">状态</th></tr>
+    <tr><td data-i18n="gk.n.1">设备唯一标识（IDFA/IDFV/UDID/MAC/序列号）</td><td data-i18n="gk.n.1.s">代码中无采集路径</td></tr>
+    <tr><td data-i18n="gk.n.2">通讯录 / 相册 / 麦克风 / 摄像头</td><td data-i18n="gk.n.2.s">不申请权限</td></tr>
+    <tr><td data-i18n="gk.n.3">剪贴板</td><td data-i18n="gk.n.3.s">不读取（仅用户点「复制」时写入，从不读回上传）</td></tr>
+    <tr><td data-i18n="gk.n.4">精确 GPS 坐标</td><td data-i18n="gk.n.4.s">仅保留约 1 公里精度</td></tr>
+    <tr><td data-i18n="gk.n.5">Phira 账号密码</td><td data-i18n="gk.n.5.s">只读公开接口，不接收密码</td></tr>
+    <tr><td data-i18n="gk.n.6">游戏内聊天 / 好友列表</td><td data-i18n="gk.n.6.s">不采集</td></tr>
+    <tr><td data-i18n="gk.n.7">广告标识符</td><td data-i18n="gk.n.7.s">无广告 SDK</td></tr>
+    <tr><td data-i18n="gk.n.8">崩溃自动上报</td><td data-i18n="gk.n.8.s">无此类 SDK，日志仅存本地</td></tr>
+  </table>
+
+  <h2 data-i18n="gk.h2.3">收集方式</h2>
+  <table>
+    <tr><th data-i18n="gk.th.when">时机</th><th data-i18n="gk.th.trigger">触发</th></tr>
+    <tr><td data-i18n="gk.w.1">启动时</td><td data-i18n="gk.w.1.t">采集设备信息一次；请求定位授权；启动陀螺仪采样</td></tr>
+    <tr><td data-i18n="gk.w.2">对局中</td><td data-i18n="gk.w.2.t">陀螺仪连续采样（仅在内存中累计统计量）；触控落点累加进 8×8 网格</td></tr>
+    <tr><td data-i18n="gk.w.3">结算时</td><td data-i18n="gk.w.3.t">组装全部字段，一次 HTTPS POST 上传</td></tr>
+    <tr><td data-i18n="gk.w.4">注册时</td><td data-i18n="gk.w.4.t">仅在主动注册时提交邮箱与密码</td></tr>
+  </table>
+  <p data-i18n-html="gk.p.6.a"><b>不存在</b>后台定时上报、不存在「静默补传历史数据」的行为。</p>
+
+</div>
+<script type="module">
+import { applyStatic, onLangChange, t } from '/js/ui.js?v=V0.31.4.0';
+import { installGuard } from '/js/guard.js?v=V0.31.4.0';
+try { installGuard(t); } catch (e) {}
+applyStatic();
+onLangChange(() => applyStatic());
+</script>
+</body>
+</html>

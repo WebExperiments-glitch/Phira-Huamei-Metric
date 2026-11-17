@@ -38,6 +38,13 @@ export const CLEAN = {
   '/app': 'app.html', '/user': 'user.html', '/charter': 'charter.html',
   '/data': 'data.html', '/settings': 'settings.html',
   '/privacy': 'privacy.html', '/terms': 'terms.html',
+  /* 客户端（游戏）隐私合规四页。与上面的 /privacy 不是一回事：
+     /privacy 是**网页端**政策（拖谱面进浏览器那套），
+     这里是 Phira 话梅构建**客户端**采集的数据。混用会写错披露。 */
+  '/privacy-game': 'privacy-game.html',
+  '/privacy-game/children': 'privacy-game-children.html',
+  '/privacy-game/collect': 'privacy-game-collect.html',
+  '/privacy-game/third-party': 'privacy-game-third-party.html',
   /* /test：人类难度标注（投票）。noindex —— 不希望被搜到，也不进站点表 */
   '/test': 'test.html',
   '/version': 'version.html', '/download': 'download.html',

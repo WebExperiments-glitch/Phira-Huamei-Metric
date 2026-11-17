@@ -29,8 +29,46 @@ let g = await run(req());
 T('匿名只读放行', g.ok === true && g.tier === 'anon', JSON.stringify(g));
 if (g.release) g.release();
 
+/* 2026-11-16 起语义变了：匿名不再一刀切 403，而是**要求算一道 PoW**。
+   理由：游戏客户端不能内嵌 API Key（会被提取），但玩家确实需要按需触发一次分析。
+   护栏从「拒绝」改成「一次性挑战 + 日配额」，见 docs/API-POW-ANALYSIS.md。
+   ⚠ 断言必须跟着改：继续断言 403 会变成「测一个已被有意移除的行为」。 */
 g = await run(req(), { kind: 'anon' }, { analysis: true, bodyText: '{"chart_id":22681}' });
-T('★ 匿名禁止触发重算（403）', g.ok === false && g.status === 403 && g.code === 'authentication_required', JSON.stringify(g));
+T('★ 匿名触发重算需 PoW（428 + 挑战）',
+  g.ok === false && g.status === 428 && g.code === 'precondition_required'
+  && g.body && g.body.challenge && g.body.challenge.bits >= 12,
+  JSON.stringify(g));
+
+/* 算对题目后必须放行（这是本次改动的核心：PoW 真的能换到一次分析） */
+const ch = g.body.challenge;
+const leadBits = (hex) => {
+  let n = 0;
+  for (const c of hex) {
+    const v = parseInt(c, 16);
+    if (v === 0) { n += 4; continue; }
+    n += v < 2 ? 3 : v < 4 ? 2 : v < 8 ? 1 : 0;
+    break;
+  }
+  return n;
+};
+let powNonce = null;
+for (let i = 0; i < 4_000_000 && ch.bits > 16; i++) break;   /* 高位不在这里解，避免测试变慢 */
+if (ch.bits <= 16) {
+  for (let i = 0; i < 4_000_000; i++) {
+    const n = i.toString(16);
+    if (leadBits(sha256(ch.seed + ':' + n)) >= ch.bits) { powNonce = n; break; }
+  }
+}
+if (powNonce) {
+  g = await run(req({ headers: { 'x-phm-pow': powNonce } }), { kind: 'anon' }, { analysis: true });
+  T('★ 算对 PoW 后匿名可触发（放行一次）', g.ok === true, JSON.stringify(g));
+  if (g.release) g.release();
+  /* 同一答案再用一次必须失效 —— 一次性是这条路的护栏核心 */
+  g = await run(req({ headers: { 'x-phm-pow': powNonce } }), { kind: 'anon' }, { analysis: true });
+  T('★ 同一答案不能复用（再次 428）', g.ok === false && g.status === 428, JSON.stringify(g));
+} else {
+  T('（跳过：默认 20 bits 在单测里不求解，另见 tools/test-analysis-pow.mjs）', true);
+}
 
 g = await run(req(), { kind: 'key', id: 7 }, { analysis: true });
 T('API Key 可触发重算', g.ok === true, JSON.stringify(g));

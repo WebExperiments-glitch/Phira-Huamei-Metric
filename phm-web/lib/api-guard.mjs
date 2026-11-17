@@ -56,7 +56,17 @@ const CFG = {
   entropy: process.env.PHM_ENTROPY !== '0',
   decoy: process.env.PHM_DECOY !== '0',
   difficulty: Math.min(4, Math.max(1, Number(process.env.PHM_POW_BITS) || 2)),
+  /* ⚠ 分析用途单独一档，**不要**和上面那个 4 bits 合并。
+     4 bits 是「拦脚本的微秒级摩擦」，而一次分析要 20~40 秒 CPU：
+     拿 4 bits 去抵等于白送。20 bits ≈ 100 万次 sha256，手机 Rust 约 1~3 秒。
+     —— 这是 2026-11-16 引入的「PoW 换一次分析」，见 docs/API-POW-ANALYSIS.md。 */
+  analysisBits: Math.min(24, Math.max(12, Number(process.env.PHM_POW_ANALYZE_BITS) || 20)),
 };
+
+/* 分析用途的挑战池：与 `challenges` 分开。
+   原因：摩擦层每条 subject 只有一个槽，两边共用会互相顶掉 ——
+   表现为「刚算完分析题，下一次普通读又要求重算」。 */
+const analysisChallenges = new Map();   // subject -> { seed, exp }
 
 /* 进程内状态（有上限，定期清理，防内存涨） */
 const used = new Map();        // nonce|jti -> exp
@@ -194,6 +204,69 @@ function powValid(seed, nonce) {
   return sha256(seed + ':' + nonce).startsWith('0'.repeat(CFG.difficulty));
 }
 
+/**
+ * **按 bit 数**校验前导零 —— 与上面 `powValid` 不是同一套口径，别合并。
+ *
+ * ⚠ 这是实现这条链路时踩到的真实坑：`powValid` 用的是
+ *   `startsWith('0'.repeat(n))`，n 是**十六进制字符个数**，不是 bit。
+ *   写 `bits: 20` 拿去套那个函数，等于要求 80 个前导 0 bit
+ *   （平均 2^80 次哈希），永远解不出来。
+ *   摩擦层设成 2~4 是「2~4 个十六进制零」= 8~16 bit，所以它一直没暴露。
+ *
+ * 分析档要的是**真 bit 数**：20 bit ≈ 100 万次 sha256，手机 Rust 约 1~3 秒。
+ * 这里按半字节累减，允许 12/14 这种非 4 的倍数。
+ */
+function powValidBits(seed, nonce, bits) {
+  if (!seed || !nonce || !/^[0-9a-f]{1,16}$/i.test(nonce)) return false;
+  const h = sha256(seed + ':' + nonce);
+  let rem = bits;
+  for (let i = 0; i < h.length; i++) {
+    const v = parseInt(h[i], 16);
+    const lead = v === 0 ? 4 : (v < 2 ? 3 : v < 4 ? 2 : v < 8 ? 1 : 0);
+    if (lead >= rem) return true;
+    if (lead < 4) return false;
+    rem -= 4;
+  }
+  return rem <= 0;
+}
+
+/**
+ * 主动签发一道「分析用途」的挑战。
+ *
+ * 为什么需要它：摩擦层的挑战只在**判定可疑时**被动下发（428），
+ * 客户端无法主动说「我要做一次分析，给我道题」。没有主动入口，
+ * PoW 就只能拦人、不能换东西。
+ *
+ * 语义：一道题换一次分析，题是一次性的（核销即删），TTL 3 分钟。
+ * 答案格式与摩擦层完全一致（`x-phm-pow` 头 + 十六进制 nonce），
+ * 客户端只需要换难度位数，不用实现第二套算法。
+ */
+function mintAnalysisChallenge(subject, now) {
+  /* ⚠ 有效期内**复用同一道题**，不要每次调用都换 seed。
+     这不是优化，是正确性：客户端可能先试一次（失败被 428），
+     再拿同一道题重试；如果失败路径把题换掉，它刚算好的答案就永久作废，
+     表现为「怎么算都过不了」——2026-11-16 端到端实测抓到的就是这个。 */
+  const cur = analysisChallenges.get(subject);
+  if (cur && cur.exp > now) return cur;
+  const fresh = { seed: crypto.randomBytes(12).toString('hex'), exp: now + 180_000 };
+  analysisChallenges.set(subject, fresh);
+  sweep(analysisChallenges, now);
+  return fresh;
+}
+
+/** 对外：签发（或复用）一道分析题。返回线上格式。 */
+export function issueAnalysisChallenge(req, who, ip) {
+  const now = Date.now();
+  const subject = subjectOf(req, who, ip, verifyProof(req, who));
+  const c = mintAnalysisChallenge(subject, now);
+  return {
+    seed: c.seed,
+    bits: CFG.analysisBits,
+    expires_at: new Date(c.exp).toISOString(),
+    purpose: 'analyze',
+  };
+}
+
 function behaviorOdd(subject, now) {
   const arr = behavior.get(subject) || [];
   arr.push(now);
@@ -258,17 +331,40 @@ export async function evaluateGuard(req, who, ip, opts = {}) {
   const tier = admin ? 'admin' : (who.kind === 'key' ? (proof ? 'signed' : 'key') : (proof ? 'signed' : 'anon'));
   const subject = subjectOf(req, who, ip, proof);
 
-  /* 贵操作：匿名一律不许触发重算。GitHub 同理 —— 写/重算必须认证。
-     带签名或 DPoP 的匿名请求视为"有身份"，放行。 */
+  /* 贵操作：匿名默认不许触发重算。但有两条口子 ——
+       ① 带签名 / DPoP（tier 会变成 signed，不走这里）
+       ② **算对一道分析题**（2026-11-16 新增）
+     ② 的取舍：匿名不该白拿 20~40 秒 CPU，但也不该被完全挡住 ——
+     游戏客户端没有 API Key（塞进去等于泄露），玩家想查一张没打过的谱时，
+     让他付 1~3 秒算力换一次重算，比「什么都看不到」有用。
+     真正的护栏不在 PoW（它只抬成本），在：一次性核销 + 按 IP 的日配额
+     + 已缓存则直接返回不消耗算力。 */
+  let powPassed = false;
   if (analysis && tier === 'anon') {
-    return { ok: false, status: 403, code: 'authentication_required',
-      message: 'analysis requires an API key or a signed request; anonymous read-only access is retained' };
+    const ch = mintAnalysisChallenge(subject, now);   /* 复用，不换题 */
+    const nonce = String(req.headers['x-phm-pow'] || '');
+    if (!powValidBits(ch.seed, nonce, CFG.analysisBits)) {
+      return { ok: false, status: 428, code: 'precondition_required',
+        message: 'analysis requires proof of work: solve sha256(seed:nonce) with ' + CFG.analysisBits + ' leading zero bits, then retry with the x-phm-pow header',
+        headers: { 'retry-after': '1' },
+        body: {
+          challenge: {
+            seed: ch.seed, bits: CFG.analysisBits,
+            expires_at: new Date(ch.exp).toISOString(), purpose: 'analyze',
+          },
+          reason: 'analysis_pow',
+        } };
+    }
+    analysisChallenges.delete(subject);   /* 一次性：核销即失效，不能一题多用 */
+    powPassed = true;
   }
 
   /* 层 5：只对匿名做软挑战，正常浏览完全无感。
      两个独立信号：行为熵（时序）+ 协议自洽（请求自己说不说得通）。
      任一可疑就要求 PoW —— 真人几毫秒过，伪装者每请求都要付成本。 */
-  if (tier === 'anon' && CFG.pow) {
+  /* ⚠ `!powPassed`：上面刚为分析核销过一道题，不能再要第二道 ——
+     客户端手里已经没有有效 nonce，再要就是死循环。 */
+  if (tier === 'anon' && CFG.pow && !powPassed) {
     const trust = trustSignals(req);
     const suspicious = (CFG.entropy && behaviorOdd(subject, now)) || trust.sus;
     const c = challenges.get(subject);
