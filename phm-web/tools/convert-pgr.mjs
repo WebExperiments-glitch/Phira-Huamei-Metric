@@ -235,6 +235,8 @@ if (process.argv[1] && process.argv[1].endsWith('convert-pgr.mjs')) {
     console.error('用法: node tools/convert-pgr.mjs <pgr.json> <outDir> [level] [charter] [composer] [name]');
     process.exit(1);
   }
+  const audioArg = (process.argv.find(a => a.startsWith('--audio=')) || '').slice(8);
+  const audioName = audioArg ? 'music' + path.extname(audioArg).toLowerCase() : 'music.wav';
   const pgr = JSON.parse(fs.readFileSync(srcJson, 'utf8'));
   const rpe = pgrToRpe(pgr, { level, charter, composer, name });
   fs.mkdirSync(outDir, { recursive: true });
@@ -247,7 +249,7 @@ if (process.argv[1] && process.argv[1].endsWith('convert-pgr.mjs')) {
     `composer: ${composer || ''}`,
     `illustrator: ''`,
     `chart: chart.json`,
-    `music: music.wav`,
+    `music: ${audioName}`,
     `illustration: ''`,
     `offset: 0`,
     `aspectRatio: 1.7777778`,
@@ -259,7 +261,10 @@ if (process.argv[1] && process.argv[1].endsWith('convert-pgr.mjs')) {
     { name: 'chart.json', data: chartJson },
     { name: 'info.yml', data: infoYml },
   ];
-  if (process.argv.includes('--silence')) {
+  if (audioArg) {
+    /* 真实音源：用户自备（本地使用，不分发） */
+    files.push({ name: audioName, data: fs.readFileSync(audioArg) });
+  } else if (process.argv.includes('--silence')) {
     files.push({ name: 'music.wav', data: silentWav(rpe.chartTime) });
   }
   const pez = buildZip(files);
