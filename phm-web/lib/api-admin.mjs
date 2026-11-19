@@ -59,7 +59,7 @@ export async function verifyAdmin2Hash(pw, line) {
    由 api-routes 在 identify 之前分发（这几个端点不走 API Key / 匿名配额）。
    返回 true 表示已处理。 */
 export function makeAdminRoutes(deps) {
-  const { json, apiErr, callApiRpc, isAdmin, readBody } = deps;
+  const { json, apiErr, callApiRpc, isAdmin, readBody, serviceVersion, engineVer } = deps;
 
   /* ⚠ 二级密码的哈希存数据库（phm_secrets.k='admin2'），不存文件：
      文件会被每次部署覆盖 —— 用户设了，下一次部署就丢，表现是"设了又变没设"。
@@ -131,6 +131,38 @@ export function makeAdminRoutes(deps) {
         return true;
       }
       json(res, 200, { ok: true });
+      return true;
+    }
+
+    /* GET /admin/overview —— 管理员登录后的第一屏。
+       只聚合**已有**的三条只读链路，不新增任何数据库查询：
+         · 站点版本 / 引擎版本（部署时注入）
+         · Key 列表（现成 RPC）
+         · 待处理申请（现成 RPC）
+       ⚠ 设计取舍：管理台是低频页面，多两个 RPC 比「写一条新的 count 查询」
+         更稳。之前试过给这里加 count=exact，要动 cloud.mjs 的 dbHeaders，
+         属于为一个 Dashboard 数字改核心数据层 —— 不值得。
+       公开状态（页面/接口/数据三条探针）由前端直接读 /api/status，不经过这里。 */
+    if (method === 'GET' && p === '/admin/overview') {
+      const [kr, qr] = await Promise.all([
+        callApiRpc('hm_admin_key_list', {}),
+        callApiRpc('hm_admin_tier_list', { p_status: 'pending' }),
+      ]);
+      const kd = readRpcJson(kr) || {}, qd = readRpcJson(qr) || {};
+      const keys = Array.isArray(kd.keys) ? kd.keys.filter(x => !x.revoked_at) : [];
+      const pending = Array.isArray(qd.requests) ? qd.requests.length : null;
+      json(res, 200, {
+        ok: true,
+        site: { version: serviceVersion || null, engine: engineVer || null },
+        ops: {
+          keysActive: kr.ok ? keys.length : null,
+          tierPremium: kr.ok ? keys.filter(x => x.plan === 'premium').length : null,
+          tierAdmin: kr.ok ? keys.filter(x => x.plan === 'admin').length : null,
+          pending: qr.ok ? pending : null,
+        },
+        degraded: !kr.ok || !qr.ok,
+        at: new Date().toISOString(),
+      });
       return true;
     }
 

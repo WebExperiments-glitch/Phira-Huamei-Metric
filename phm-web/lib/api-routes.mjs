@@ -204,7 +204,7 @@ export function makeApiRoutes(deps) {
 
   const handleVotes = makeVoteRoutes({ requireScope, gateApi, callApiRpc, logUsage, apiErr, json, readBody });
   const handleAdmin = makeAdminRoutes({
-    json, apiErr, readBody, isAdmin, callApiRpc,
+    json, apiErr, readBody, isAdmin, callApiRpc, serviceVersion, engineVer,
   });
 
   async function identify(req) {

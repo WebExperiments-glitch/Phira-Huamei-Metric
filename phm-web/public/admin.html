@@ -52,6 +52,18 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
   background:var(--card2);color:var(--fg2);border:1px solid var(--line)}
 .ad .tabs button.on{background:var(--brand-soft);color:var(--brand);border-color:var(--brand-line)}
 .ad .hide{display:none}
+/* 总览：数字卡片 + 状态灯。只用了令牌色，深浅主题都跟着走。 */
+.ad .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 16px}
+.ad .kpi{border:1px solid var(--line);border-radius:10px;background:var(--card2);padding:12px 14px}
+.ad .kpi .k{font-size:11.5px;color:var(--fg4);letter-spacing:.03em}
+.ad .kpi .v{font-size:23px;font-weight:700;margin:5px 0 2px;font-variant-numeric:tabular-nums;line-height:1.15}
+.ad .kpi .d{font-size:11px;color:var(--fg4)}
+.ad .kpi.good .v{color:var(--ok)}
+.ad .kpi.bad .v{color:var(--err)}
+.ad .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--fg4)}
+.ad .dot.up{background:var(--ok)}
+.ad .dot.down{background:var(--err)}
+.ad .sect{font-size:12px;color:var(--fg3);margin:2px 0 10px;font-weight:600;letter-spacing:.04em}
 </style>
 </head>
 <body>
@@ -88,13 +100,24 @@ d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
   <div class="hide" id="panel">
     <div class="card">
       <div class="tabs">
-        <button class="on" data-tab="keys">密钥</button>
+        <button class="on" data-tab="over">总览</button>
+        <button data-tab="keys">密钥</button>
         <button data-tab="reqs">升级申请</button>
         <button data-tab="eps">端点调用</button>
         <button class="ghost" id="btnReload" style="margin-left:auto">刷新</button>
         <button class="ghost" id="btnLogout">退出</button>
       </div>
-      <div id="tabKeys"><table><thead><tr>
+
+      <!-- 总览：登录第一屏。只读，不碰写密码。 -->
+      <div id="tabOver">
+        <div class="sect">站点状态</div>
+        <div class="kpis" id="kpiStatus"></div>
+        <div class="sect">运营</div>
+        <div class="kpis" id="kpiOps"></div>
+        <div class="muted" id="overNote">数字来自本页三个只读端点与公开状态页，无新增数据库查询。</div>
+      </div>
+
+      <div id="tabKeys" class="hide"><table><thead><tr>
         <th>owner</th><th>档位</th><th class="num">总调用</th><th class="num">24h</th>
         <th>最后状态</th><th>最后使用</th><th>掩码</th><th>操作</th>
       </tr></thead><tbody id="tbKeys"></tbody></table></div>
@@ -180,8 +203,48 @@ async function afterLogin() {
   await loadAll();
 }
 
+function kpi(label, value, detail, cls) {
+  return '<div class="kpi' + (cls ? ' ' + cls : '') + '">'
+    + '<div class="k">' + escA(label) + '</div>'
+    + '<div class="v">' + escA(value == null ? '—' : value) + '</div>'
+    + '<div class="d">' + escA(detail || '') + '</div></div>';
+}
+
+/* 总览：把散落的数字收进一屏。
+   ⚠ 状态页是公开端点，走公开 URL（带 sharecode）；运营数字走管理端点。 */
+async function loadOverview() {
+  const [ov, st] = await Promise.all([
+    adminCall('GET', '/admin/overview'),
+    fetch('/api/status?sharecode=NXNUI4YAVG', { signal: AbortSignal.timeout(15000) })
+      .then(r => r.ok ? r.json() : null).catch(() => null),
+  ]);
+  const site = (ov.body && ov.body.site) || {};
+  const ops = (ov.body && ov.body.ops) || {};
+  $('kpiStatus').innerHTML =
+    kpi('总状态', st ? (st.overallLabel || st.overall || '—') : '读取失败',
+      st ? ('更新于 ' + String(st.updatedAt || '').slice(11, 19)) : '状态端点不可达')
+    + (st ? (st.components || []).map(c => {
+        const up = c.status === 'operational';
+        return kpi(c.label || c.id, (up ? '● 正常' : '● 异常'),
+          (c.targets != null ? c.targets + ' 个探针' : ''), up ? 'good' : 'bad');
+      }).join('') : '');
+  $('kpiOps').innerHTML =
+    kpi('站点版本', site.version || '—', '线上运行版本')
+    + kpi('引擎版本', site.engine || '—', '当前定价引擎')
+    + kpi('活跃 Key', ops.keysActive, '未吊销')
+    + kpi('Premium', ops.tierPremium, '档位')
+    + kpi('管理员', ops.tierAdmin, '档位')
+    + kpi('待处理申请', ops.pending, '需要你处理', ops.pending > 0 ? 'bad' : '');
+  $('overNote').textContent = ov.status !== 200
+    ? ('总览读取失败：' + ov.status + ' —— 下面页签仍可用')
+    : (ov.body && ov.body.degraded
+        ? '部分运营数字读取失败（DB RPC 异常），已显示「—」；状态探针不受影响。'
+        : '数字来自本页只读端点与公开状态页，无新增数据库查询。');
+}
+
 async function loadAll() {
   err('panelErr', '');
+  await loadOverview();
   const [k, r] = await Promise.all([adminCall('GET', '/admin/keys'), adminCall('GET', '/admin/requests?status=pending')]);
   if (k.status !== 200 || r.status !== 200) {
     err('panelErr', '读取失败：' + ((k.body && k.body.error && k.body.error.code) || k.status));
@@ -317,6 +380,7 @@ $('btnLogout').onclick = () => { PW1 = ''; $('pw1').value = ''; $('pw2').value =
 for (const b of document.querySelectorAll('.tabs button[data-tab]')) {
   b.onclick = () => {
     for (const x of document.querySelectorAll('.tabs button[data-tab]')) x.classList.toggle('on', x === b);
+    $('tabOver').classList.toggle('hide', b.dataset.tab !== 'over');
     $('tabKeys').classList.toggle('hide', b.dataset.tab !== 'keys');
     $('tabReqs').classList.toggle('hide', b.dataset.tab !== 'reqs');
     $('tabEps').classList.toggle('hide', b.dataset.tab !== 'eps');
