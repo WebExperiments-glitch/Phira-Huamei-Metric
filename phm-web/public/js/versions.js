@@ -19,9 +19,17 @@
  * ============================================================ */
 
 /* 较早的版本见 versions-archive.js —— 拆开是为了不让这个文件无限增长。 */
-import { ARCHIVE } from './versions-archive.js?v=V0.31.4.0';
+import { ARCHIVE } from './versions-archive.js?v=V0.31.4.1';
 
 export const RELEASES = [
+  {
+    v: 'V0.31.4.1', date: '2026-11-22',
+    zh: ['<b>管理台有第一屏了。</b> 登录后先看总览：站点状态、三条探针、版本、活跃 Key 和待处理申请；'
+      + '原来的三张表格移到了后面。总览只读，一级密码即可，不动你的二级密码。'],
+    en: ['<b>The admin console now has a first screen.</b> Sign in to an overview of site state, '
+      + 'three probes, versions, active keys and pending requests; the old three tables moved behind it. '
+      + 'Read-only, first-level credentials only.'],
+  },
   {
     v: 'V0.31.4.0', date: '2026-11-16',
     zh: ['<b>游戏里可以直接查一张谱的定数了。</b> 新增一条「算一道题换一次分析」的通道：'
