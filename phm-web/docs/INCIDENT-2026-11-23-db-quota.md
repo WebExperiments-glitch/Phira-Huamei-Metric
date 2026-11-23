@@ -100,7 +100,34 @@ BetterStack 有 4 个探测区域（eu / us / as / au），7 个监控 × 每 30
 
 ---
 
-## 六、对外通告文案
+## 六、对外通告（已发布）
+
+状态页报告 **id=1133648**，`aggregate_state=downtime`，7 个组件全部标记为受损。
+
+标题（线上实际显示的这一句）：
+
+> 数据查询服务资源受限，搜索/统计/玩家查询暂不可用（算定数不受影响）
+
+### ⚠ 为什么只有标题、没有正文
+
+BetterStack 的 status-reports API **不保存正文**。实测：
+- `attributes` 只有 `title / report_type / starts_at / ends_at / status_page_id / affected_resources / aggregate_state`
+- POST 时传 `message` → 静默丢弃（201 创建成功，但字段不存在）
+- PATCH `message` → `422 invalid_attributes:["message"]`
+- `/status-reports/{id}/status-updates` → 404（端点不存在）
+
+所以**能写的只有标题**，结论必须一次说完。这也解释了 11-09 那两条历史通告
+为什么标题里带着「（服务未中断）」——不是啰嗦，是唯一能写的地方。
+
+### 恢复时
+
+```bash
+BETTERSTACK_TOKEN=xxx node tools/incident.mjs --resolve 1133648
+```
+
+---
+
+## 附录：原始通告草稿（未能写入，留档）
 
 > **标题**：数据查询服务资源受限，部分功能暂不可用
 >
