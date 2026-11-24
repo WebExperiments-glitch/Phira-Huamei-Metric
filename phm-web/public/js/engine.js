@@ -445,7 +445,7 @@ function extractDims(notes,ev,dur,bpm,nlines){
   const out={};
   const core=[]; for(let i=0;i<n;i++) if(types[i]===1||types[i]===2) core.push([ts[i],ticks[i]]);
   const coreT=core.map(a=>a[0]), coreK=core.map(a=>a[1]);
-  out.real_core_notes_per_second=core.length/ds;
+  out.real_core_notes_per_second=core.length/ds;   /* press 口径。2026-11-24 试过补节奏 4 维：ΔMAE +0.0075、CI 跨 0，无增益（见源码拆解 §十） */
   out.real_notes_per_second=n/ds;
   let effPeak=0; const effVals=[];
   if(core.length>5){
