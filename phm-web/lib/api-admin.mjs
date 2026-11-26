@@ -100,6 +100,38 @@ export function makeAdminRoutes(deps) {
       return true;
     };
 
+    /* GET /admin/egress —— 本站的**出站出口 IP**。
+       为什么要它：迁库到需要 IP 白名单的托管数据库（如阿里云 RDS）时，
+       必须知道本站从哪个 IP 出去，否则白名单没法配。
+       Cloud Studio 只公开了「拉取代码」的出口 IP，运行时的出站是否同一组
+       没有文档保证，只能自己量。
+       ⚠ 只在内网管理员可见，不公开：公开等于给外部一个「IP 回显代理」。
+       三个回显源依次尝试，任一成功即返回 —— 单一源被墙/超时会误判成"没有出网"。 */
+    if (method === 'GET' && p === '/admin/egress') {
+      const sources = [
+        'https://api.ipify.org?format=json',
+        'https://ipinfo.io/json',
+        'https://ifconfig.me/all.json',
+      ];
+      const out = { ok: false, ip: null, source: null, attempts: [] };
+      for (const url of sources) {
+        const t0 = Date.now();
+        try {
+          const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+          const txt = await r.text();
+          let ip = null;
+          try { const j = JSON.parse(txt); ip = j.ip || j.ip_addr || null; } catch { /* 纯文本 */ }
+          if (!ip && /^[0-9a-f.:]+$/i.test(txt.trim())) ip = txt.trim();
+          out.attempts.push({ url, status: r.status, ms: Date.now() - t0, ip });
+          if (ip) { out.ok = true; out.ip = ip; out.source = url; break; }
+        } catch (e) {
+          out.attempts.push({ url, status: 0, ms: Date.now() - t0, error: String(e.message || e).slice(0, 80) });
+        }
+      }
+      json(res, out.ok ? 200 : 502, out);
+      return true;
+    }
+
     /* GET /admin/state —— 页面用来决定显示"设置"还是"验证" */
     if (method === 'GET' && p === '/admin/state') {
       json(res, 200, { ok: true, admin2_set: !!(await store.get()) });
