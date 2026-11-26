@@ -88,7 +88,11 @@ def matrix(rows):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--chain', nargs='+', type=float, default=[17.0],
-                    help='分界点（递增）。默认 [17.0] = 双模型')
+                    help='向上分界点（递增）。默认 [17.0] = 双模型')
+    ap.add_argument('--down', type=float, default=None,
+                    help='向下分界点：标签 < 该值的样本训一个低段专家。'
+                         '2026-11-26 残差诊断发现 1-12 段 MAE 3.3~5.9、'
+                         '占总误差 31%，而原实现只做「向上」专家，低段无人负责。')
     ap.add_argument('--folds', type=int, default=5)
     ap.add_argument('--boot', type=int, default=10000)
     ap.add_argument('--seed', type=int, default=20261126)
@@ -116,6 +120,11 @@ def main():
         w = np.clip((pred - (center - BAND / 2)) / BAND, 0.0, 1.0)
         return (1.0 - w) * pred + w * new_pred
 
+    def soft_down(pred, new_pred, center):
+        """向下切换：预测值低于 center 时用低段专家，向上平滑退出。"""
+        w = 1.0 - np.clip((pred - (center - BAND / 2)) / BAND, 0.0, 1.0)
+        return (1.0 - w) * pred + w * new_pred
+
     n = len(y)
     p_single = np.full(n, np.nan)
     p_chain = np.full(n, np.nan)
@@ -130,6 +139,12 @@ def main():
         p_single[te] = p0
 
         cur = p0.copy()
+        # 向下专家：标签 < down 的样本单独训，预测值低时接管
+        if args.down is not None:
+            mask_low = y[tr] < args.down
+            if mask_low.sum() >= args.min_expert:
+                mk = Ridge(alpha=3.0).fit(Xtr[mask_low], y[tr][mask_low])
+                cur = soft_down(cur, mk.predict(Xte), args.down)
         for c in cuts:
             lo = c if c is not cuts[-1] else c
             mask = y[tr] >= lo
