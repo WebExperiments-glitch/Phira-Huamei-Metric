@@ -8,13 +8,13 @@
  * ⇒ 参照集不在本文件：官谱 1,037 张静态导入（ref-official.js），社区 9,509 张由
  *   调用方 fetch/fs 读好当参数传入 —— 引擎本身不认识 fetch，也不认识 fs。 */
 "use strict";
-import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.31.2.0';
+import { REF_OFFICIAL, REF_DIMS, ROW_LABELS } from './ref-official.js?v=V0.31.4.1';
 /* 技能分：把 39 个特征重组为四技能维度。
    ⚠ skills.js 是**纯函数、无副作用**，所以引擎可以安全 import 它 ——
       浏览器与 Node 服务端都走同一份，不存在两份实现漂移。
    ⚠ 它不改任何数值（不动 ENGINE_VER、不动 REF_DIMS），只做展示层重组。 */
-import { skillScores } from './skills.js?v=V0.31.2.0';
-import { pickRidge, seqFeatures20, pool142, withScreenCoords, handshape256 } from './engine-v3.mjs?v=V0.31.2.0';
+import { skillScores } from './skills.js?v=V0.31.4.1';
+import { pickRidge, seqFeatures20, pool142, withScreenCoords, handshape256 } from './engine-v3.mjs?v=V0.31.4.1';
 /* 再导出给 tools/verify-engine-v3.mjs 用（它直接 import 线上这份实现，不复制副本） */
 export { seqFeatures20, pool142, handshape256 };
 /* 引擎版本 —— 全站唯一来源。改打分/参照/维度/聚合方式都必须改它。
@@ -90,7 +90,8 @@ export function zipParse(buf){
              上面那道 `total += usize` 就形同虚设，浏览器标签页当场 OOM。
              这里按 4MB 上限硬顶（谱面 JSON 最大也就几 MB），超了立刻 cancel。
              2026-11-14 安全审计 P1-4 指出，此处已核实。 */
-          const MAX_UNCOMP = 4 * 1024 * 1024;
+          /* ⚠ 2026-11-16：4MB→16MB。谱面 1000 的 AT15.json 解压后 6.5MB 且合法；超限被 catch 吞掉后误报「没有可解析的谱面」。 */
+          const MAX_UNCOMP = 16 * 1024 * 1024;
           const reader = stream.getReader();
           const parts = [];
           let got = 0;
@@ -444,7 +445,7 @@ function extractDims(notes,ev,dur,bpm,nlines){
   const out={};
   const core=[]; for(let i=0;i<n;i++) if(types[i]===1||types[i]===2) core.push([ts[i],ticks[i]]);
   const coreT=core.map(a=>a[0]), coreK=core.map(a=>a[1]);
-  out.real_core_notes_per_second=core.length/ds;
+  out.real_core_notes_per_second=core.length/ds;   /* press 口径。2026-11-24 试过补节奏 4 维：ΔMAE +0.0075、CI 跨 0，无增益（见源码拆解 §十） */
   out.real_notes_per_second=n/ds;
   let effPeak=0; const effVals=[];
   if(core.length>5){

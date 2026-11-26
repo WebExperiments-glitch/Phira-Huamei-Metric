@@ -44,6 +44,7 @@ import { makeRksRoutes } from './lib/rks-routes.mjs';
 import { CLEAN, makePageRoutes } from './lib/pages.mjs';
 import { writeEnabled, CLOSED_PAGE } from './lib/write-scope.mjs';
 import { makeCodeRoutes } from './lib/hm-code-routes.mjs';
+import { tryTranslateRoute } from './lib/hm-translate.mjs';
 import { ENGINE_VER } from './public/js/engine.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -101,10 +102,8 @@ const hmWhoami = makeWhoami({
   claimsOwnIssuer,
 });
 
-
 /* 队列的写库细节在 lib/hm-queue.mjs 的 initWriter 里 —— 那边没有行数上限。 */
 hmQueue.initWriter(dbFetch, WRITE_SECRET);
-
 
 /* ── 云数据库访问 → 见 lib/cloud.mjs ──
  * 数据库地址、publishableKey、写入凭据、dbFetch / dbPutChart / dbPutScores
@@ -183,6 +182,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset
 /* 完整白名单；静态站按 RETIRED_HTML 减掉（同一份代码两个站，见 lib/retired.mjs） */
 const PUBLIC_FILES = new Set(['index.html', 'app.html', 'user.html', 'charter.html', 'data.html',
   'settings.html', 'robots.txt', 'favicon.ico', 'privacy.html', 'terms.html',
+  'privacy-game.html', 'privacy-game-children.html', 'privacy-game-collect.html', 'privacy-game-third-party.html', /* 客户端隐私四页，与 /privacy 网页端政策独立 */
   'test.html',   /* 只加 pages.mjs 的路由不加这里 = 404，见 CHANGELOG */
   '404.html', 'chart.html', 'og.png', 'version.html', 'download.html',
   'developers.html', 'platform.html', 'phm-api.html', 'rulechart.html',
@@ -268,9 +268,6 @@ const codeRoutes = makeCodeRoutes({
        要恢复强制验证：设 REQUIRE_EMAIL_CODE=1。 */
   requireCode: process.env.REQUIRE_EMAIL_CODE === '1',
 });
-
-
-
 
 function send(res, code, body, type) {
   res.writeHead(code, Object.assign({
@@ -507,6 +504,8 @@ const server = http.createServer(guardRequest(async (req, res) => {
         '尝试太频繁，请一分钟后再试（每邮箱每分钟最多 ' + RL.loginEmail + ' 次）'))) return;
     return codeRoutes.accountRoute(res, p, body, ip);
   }
+
+  if (await tryTranslateRoute(req, res, url, p, send)) return;
 
   if (await profileRoutes(req, res, p, url)) return;
 

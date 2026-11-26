@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.31.4.1">
+<title>第三方共享个人信息清单 · P.H.M. Standard</title>
+<meta name="description" content="Phira 话梅构建客户端与哪些第三方共享个人信息：接收方、域名、共享内容、目的与数据出境说明。">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.31.4.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.31.4.1">
+<link rel="stylesheet" href="/css/docs.css?v=V0.31.4.1">
+</head>
+<body>
+<div class="doc">
+
+  <div class="topbar">
+    <a class="back" href="/more" data-i18n="gp.back">← 返回更多</a>
+    <nav>
+      <a href="/privacy-game" data-i18n="gp.nav.privacy">游戏隐私政策</a>
+      <a href="/privacy-game/children" data-i18n="gp.nav.children">儿童隐私</a>
+      <a href="/privacy-game/collect" data-i18n="gp.nav.collect">收集清单</a>
+      <a href="/privacy-game/third-party" class="on" data-i18n="gp.nav.third">第三方共享</a>
+    </nav>
+  </div>
+
+  <h1 data-i18n="gt.h1">第三方共享个人信息清单</h1>
+  <div class="meta"><span data-i18n="gt.meta">版本 v1.0 · 生效日期 2026-11-16 · 只列代码里真实存在的网络请求</span><br><span data-i18n="gp.auth">本政策以简体中文版本为准；英文译本仅供参考。</span></div>
+
+  <div class="lead">
+    <p data-i18n="gt.lead">本清单只列代码里真实存在的网络请求。没有的一律不写——「可能存在的 SDK」不算披露，那是猜。</p>
+  </div>
+
+  <h2 data-i18n="gt.h2.1">汇总</h2>
+  <table>
+    <tr>
+      <th data-i18n="gt.th.no">#</th><th data-i18n="gt.th.who">第三方</th>
+      <th data-i18n="gt.th.domain">域名</th><th data-i18n="gt.th.share">共享什么</th>
+      <th data-i18n="gt.th.purpose">目的</th><th data-i18n="gt.th.pii">含个人信息</th>
+    </tr>
+    <tr>
+      <td>1</td><td data-i18n="gt.t.1.a">Phira 官方</td>
+      <td><code>phira.5wyxi.com</code> / <code>api.phira.cn</code></td>
+      <td data-i18n="gt.t.1.c">会话令牌（仅登录时）</td>
+      <td data-i18n="gt.t.1.d">验证身份、读公开资料</td>
+      <td data-i18n-html="gt.t.yes">是（令牌、UID）</td>
+    </tr>
+    <tr>
+      <td>2</td><td data-i18n="gt.t.2.a">云托管</td>
+      <td><code>phm.app.workbuddy.host</code></td>
+      <td data-i18n="gt.t.2.c">全部上报数据</td>
+      <td data-i18n="gt.t.2.d">服务端与存储入口</td>
+      <td data-i18n="gt.t.2.e">是（见收集清单）</td>
+    </tr>
+    <tr>
+      <td>3</td><td data-i18n="gt.t.3.a">云数据库</td>
+      <td><code>*.neon.tech</code>（ap-southeast-1）</td>
+      <td data-i18n="gt.t.2.c">全部上报数据</td>
+      <td data-i18n="gt.t.3.d">数据存储</td>
+      <td data-i18n="gt.t.2.e">是（见收集清单）</td>
+    </tr>
+    <tr>
+      <td>4</td><td data-i18n="gt.t.4.a">谱面 CDN</td>
+      <td><code>files.phira.cn</code> / <code>phira.5wyxi.com</code></td>
+      <td data-i18n="gt.t.no">无</td>
+      <td data-i18n="gt.t.4.d">下载谱面</td>
+      <td data-i18n="gt.t.no">否</td>
+    </tr>
+    <tr>
+      <td>5</td><td data-i18n="gt.t.5.a">谱面镜像</td>
+      <td><code>phira.mivik.cn</code></td>
+      <td data-i18n="gt.t.no">无</td>
+      <td data-i18n="gt.t.4.d">下载谱面</td>
+      <td data-i18n="gt.t.no">否</td>
+    </tr>
+    <tr>
+      <td>6</td><td data-i18n="gt.t.6.a">GitHub</td>
+      <td><code>raw.githubusercontent.com</code></td>
+      <td data-i18n="gt.t.no">无</td>
+      <td data-i18n="gt.t.6.d">下载资源/更新信息</td>
+      <td data-i18n="gt.t.no">否</td>
+    </tr>
+  </table>
+  <p data-i18n-html="gt.p.1.a"><b>不存在</b>：广告平台、统计 SDK、崩溃分析 SDK、社交分享 SDK、推送服务。</p>
+
+  <h2 data-i18n="gt.h2.2">分项说明</h2>
+  <h3 data-i18n="gt.h3.1">1. Phira 官方 API</h3>
+  <table>
+    <tr><td data-i18n="gt.t.1e.a">运营方</td><td data-i18n="gt.t.1e.b">TeamFlos / Phira 开发团队</td></tr>
+    <tr><td data-i18n="gt.t.1e.c">何时调用</td><td data-i18n="gt.t.1e.d">下载谱面文件；登录/刷新会话；每次上报时验证身份</td></tr>
+    <tr><td data-i18n="gt.t.1e.e">共享数据</td><td data-i18n="gt.t.1e.f">会话令牌（x-phira-token，仅在你登录 Phira 时）、谱面 ID</td></tr>
+    <tr><td data-i18n="gt.t.1e.g">返回数据</td><td data-i18n="gt.t.1e.h">Phira UID、用户名（我们存入数据库用于区分玩家）</td></tr>
+    <tr><td data-i18n="gt.t.1e.i">隐私政策</td><td data-i18n="gt.t.1e.j">见 Phira 官方公示</td></tr>
+  </table>
+  <p data-i18n-html="gt.p.2.a"><b>重要说明</b>：每次上报对局时，服务端会把你的 Phira 会话令牌转发给
+  <code>https://phira.5wyxi.com/me</code> 验证身份。这意味着 Phira 官方能感知到这个验证请求。
+  如果你不希望这样，请不登录 Phira 直接游玩（匿名上报仍然有效）。</p>
+
+  <h3 data-i18n="gt.h3.2">2. 云托管</h3>
+  <p data-i18n="gt.p.3.a">承载 phm.app.workbuddy.host 站点与服务端接口。全部上报数据经 HTTPS 传输。</p>
+
+  <h3 data-i18n="gt.h3.3">3. 云数据库（Neon）</h3>
+  <p data-i18n-html="gt.p.4.a">PostgreSQL 数据库托管，区域 <code>ap-southeast-1</code>（新加坡）。
+  存储全部上报数据与账号信息（邮箱、密码哈希）。数据库不对公网开放匿名读写，仅服务端凭据可写。</p>
+  <p data-i18n-html="gt.p.4.b"><b>跨境传输提示</b>：数据存储在新加坡。如果你在中国境内使用，
+  这构成个人信息出境。上线前需评估是否满足《个人信息保护法》第三十八条的出境条件
+  （如单独同意、安全评估等）。<b>这一项当前没有做，属于已知合规缺口。</b></p>
+
+  <h3 data-i18n="gt.h3.4">4–6. 纯内容分发（无个人信息）</h3>
+  <p data-i18n-html="gt.p.5.a">这些请求<b>不携带</b>你的账号、位置、设备标识。CDN 侧可能记录访问 IP
+  （这是任何 HTTP 请求的固有属性），但我们不向其提供任何额外信息。</p>
+
+  <h2 data-i18n="gt.h2.3">我们不会做的事</h2>
+  <table>
+    <tr><th data-i18n="gt.th.noitem">项目</th><th data-i18n="gt.th.status">状态</th></tr>
+    <tr><td data-i18n="gt.n.1">向第三方出售你的数据</td><td data-i18n="gt.n.1.s">从未，也不会</td></tr>
+    <tr><td data-i18n="gt.n.2">向广告平台共享</td><td data-i18n="gt.n.2.s">无广告 SDK</td></tr>
+    <tr><td data-i18n="gt.n.3">向数据分析平台共享</td><td data-i18n="gt.n.3.s">无此类集成</td></tr>
+    <tr><td data-i18n="gt.n.4">向第三方提供原始逐音符判定</td><td data-i18n="gt.n.4.s">仅存于我们自己的数据库</td></tr>
+  </table>
+
+  <h2 data-i18n="gt.h2.4">数据出境说明（诚实披露）</h2>
+  <table>
+    <tr><td data-i18n="gt.o.1">数据存储地</td><td data-i18n="gt.o.1.s">新加坡 ap-southeast-1</td></tr>
+    <tr><td data-i18n="gt.o.2">是否做了出境合规评估</td><td data-i18n-html="gt.o.2.s"><b>否</b></td></tr>
+    <tr><td data-i18n="gt.o.3">是否取得单独同意</td><td data-i18n-html="gt.o.3.s"><b>否</b>（仅靠总开关）</td></tr>
+  </table>
+  <p data-i18n="gt.p.6.a">这是当前实现的真实状态。在补齐合规手续前，
+  本客户端不应面向中国大陆的正式用户大规模分发。</p>
+
+</div>
+<script type="module">
+import { applyStatic, onLangChange, t } from '/js/ui.js?v=V0.31.4.1';
+import { installGuard } from '/js/guard.js?v=V0.31.4.1';
+try { installGuard(t); } catch (e) {}
+applyStatic();
+onLangChange(() => applyStatic());
+</script>
+</body>
+</html>

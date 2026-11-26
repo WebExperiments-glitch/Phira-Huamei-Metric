@@ -61,6 +61,10 @@
 | `/login` | `login.html` | **登录门面**：独立页，不挂全局导航（登录页挂导航等于分心）。双栏：左栏是 `public/js/particles.js` 的琥珀粒子群（Live2D 到位前的"角色位"占位，鼠标扫过会把粒子弹开），右栏是表单。**渐进式两步**：首屏只收邮箱，点「下一步」才出密码，注册 / 找回密码是同页的备选模式。登录逻辑复用 `public/js/auth.js` 的 `createAuth()`，页面只做编排 | 登录成功后跳 `?redirect=` 指定的页面（默认 `/app`），**但必须过 `public/js/redirect.js` 的站内相对路径白名单**（开放重定向 / XSS）；错误提示复用 `app.auth.err.*`，不另起一套键 |
 | `/status` | `status.html` | **运行状态**：20 个目标自检（页面/数据 60s，打 DB 的接口 5 分钟——见 `RL.apiAnonHour`），报可用率与真实处理耗时。探测在 `lib/status.mjs`，打**回环地址**（沙箱出站被网关限制，探外部只会全红）；近 24h 在内存、30 天在 DB `hm_status_hour`（迁移 `db/api-v2/16..19.sql`，未跑则优雅降级为仅 24h） |
 | `/privacy` `/terms` | `privacy.html` `terms.html` | 隐私政策 / 用户协议。法务静态页，不带版本 meta、不加载 ES module；版式用 `css/docs.css` |
+| `/privacy-game` | `privacy-game.html` | **客户端（游戏）隐私政策**：Phira 话梅构建采集什么、怎么关闭上报。⚠ 与 `/privacy` 不是一回事——那是**网页端**政策（拖谱面进浏览器），这里描述的是**客户端**采集面（逐音符判定、位置、陀螺仪）。四页共用 `css/docs.css`，导航互链 |
+| `/privacy-game/children` | `privacy-game-children.html` | **儿童隐私协议**：14 周岁以下用户的专项规则。诚实写明无年龄门、开关默认开启、无独立儿童数据删除通道 |
+| `/privacy-game/collect` | `privacy-game-collect.html` | **个人信息收集清单**：16 项逐条列「内容/目的/可否关闭/是否敏感」，附「明确不收集」对照表 |
+| `/privacy-game/third-party` | `privacy-game-third-party.html` | **第三方共享清单**：6 个真实存在的域名，逐项列共享内容与目的；含数据出境（新加坡）的诚实披露 |
 | `/test` | `test.html` | 人类难度标注（投票）：随机抽一张你没投过的谱 → 下载 zip 打一遍 → 给两个数（整数+小数）。**「打不过」也是有效答案** —— 不收这个信号的话，难谱永远没票、样本偏向简单谱。`noindex`，不进站点表导航 |
 | `/404` | `404.html` | 错误页（服务端对未命中路径下发，状态码仍是 404） |
 
@@ -278,6 +282,8 @@ js/i18n/settings.js ← 设置页（set.*）
 | 代码索引补丁 | `tools/patch-codebase-search.mjs` | 给 `@teknologika/mcp-codebase-search` 的语言映射加 `.mjs` / `.cjs` | 那个工具只认 .js/.jsx/.py/.ts/.tsx，而我们后端全是 .mjs —— 首次索引时 80 个文件被跳过。`.mjs` 与 `.js` 在 tree-sitter 眼里是同一套语法，加两个键即可。**改的是全局包，`npm update -g` 后必须重跑**（脚本幂等） |
 | 全站统计 | `lib/api-stats.mjs` | `GET /stats` 的处理（查库 + 60s 缓存 + 错误兜底） | 做成工厂函数是因为要用 api-routes 的 requireScope/gateApi/dbFetch 等闭包，显式注入比提升到全局干净；api-routes 已到 900 行上限，按职责切出来的 |
 | Cookie 与登录 token | `lib/cookies.mjs` | `readCookie` / `tokenFromRequest` / `tokenCookie` | 登录 token 正在从 localStorage 挪到 HttpOnly cookie —— 因为 CSP 有 `unsafe-inline`，两者凑一起等于「页面上只要注入脚本，账号就被拿走」。**分两步走**：① 服务端接受 Cookie 兜底（头优先），验证托管网关不会吃掉 Cookie 头；② 验证通过后才改前端、删 localStorage。⚠ 绝不回退 `Authorization` —— 那里只认 `sk-` API Key |
+| 分析端点 | `lib/api-analysis-routes.mjs` | `POST /api/v1/analyses` · `GET /api/v1/pow` | 两条语义完全不同的路径：**持 Key 同步**（调用方能等 20~40 秒）、**匿名 202 异步**（游戏客户端，网关 30 秒就断，同步必 504）。从这个文件拆出来是因为 api-routes 又撞到 900 行上限 |
+| 分析队列 | `lib/analysis-queue.mjs` | 后台串行 worker + 同谱去重 + 匿名日配额 | 一次分析 20~40 秒 CPU，**必须异步**；同一张谱被 N 个人同时点，只算一次（`inflight` 按 chart_id 去重），否则热门谱会把队列堵死。并发故意设 1：分析是纯 CPU 活，开 2 个只会一起变慢还拖累普通请求 |
 | 查询历史 | `lib/api-lookups.mjs` | `GET/POST/DELETE /api/v1/lookups` | **留存的地基**：现在用户查完一张谱就关掉，没有回来的理由。主体优先 `acct:<id>`，否则 `cid:<浏览器UUID>`（匿名也能用，绑账号后跨设备）。存 `chart_id / times / first_at / last_at / seen_ref`，**不存关键词、IP、UA**。`seen_ref` 是钩子核心 —— 下次能算「参考定数从 15.30 变成 15.42」。⚠ 匿名主体由前端上报、理论上可伪造，但能看到的只是公开的 chart_id，危害有限；账号路径由服务端从 token 派生，不可伪造。⚠ 新增了「你查了哪些谱」这类关联数据，隐私政策清单表里已同步一行 |
 | 难度投票 | `lib/api-votes.mjs` | `GET /votes/next` · `POST /votes` · `GET /votes/today` | 人类难度标注。表 `hm_votes`（subject/chart_id/value/verdict/played/band），三态 verdict：`rated` 给数值、`too_hard` 打不过、`too_easy` 太简单。⚠ **为什么要收「打不过」**：用户抽到超纲谱的真实反应是关页面，不把这个行为收成数据，结果就是难谱永远没票。⚠ `played` 只记「点过下载」，是质量权重不是防作弊 —— 浏览器管不到 Phira。 |
 | 结果缓存 | `lib/api-cache.mjs` | 内存 TTL 缓存，只给白名单端点：`/stats` 60s、`/reference` 30s、`/behavior` 30s、`/discrepancy` 60s、`/engines` 300s | 数据库在 AWS 新加坡，每查一次付 ~190ms 跨境；这些结果几分钟都不变。命中时连库都不碰，响应头带 `x-cache: hit/miss`，`/meta` 的 `load.cache` 暴露条目数。**白名单而非黑名单** —— 新端点默认不缓存，避免把带身份的数据缓存后发给别人。`?nocache=1` 强制穿透 |
@@ -286,6 +292,7 @@ js/i18n/settings.js ← 设置页（set.*）
 | 云端访问 | `lib/cloud.mjs` | 数据库地址、publishableKey、**写入凭据（三路加载）**、`dbFetch` / `dbPutChart` / `dbPutScores` / `dbListStale` | 不写业务逻辑 |
 | 参照集读取（Node） | `lib/refstore.mjs` | 服务端读 `ref-com.json` 供 `review.mjs` 使用 | 读不到就抛错，**不静默降级** |
 | 身份 / 账号 | `lib/hm.mjs` + `lib/hm-accounts.mjs` + `lib/hm-code-routes.mjs` | huamei 身份校验；自建账号（scrypt + 自签 HS256）；验证码路由（发码 / 验码 / 重置） | 不把平台 token 当可信身份；不用登录密码碰 Phira |
+| 搜索翻译 | `lib/hm-translate.mjs` | `/api/hm/translate`：把中文查询翻成日/英，供客户端做多语言搜索扩展（Phira 官方搜索只做字符串匹配，冷门曲只能按原语言标题搜到） | 失败返回 null 而非报错 —— 翻译是增强，不能让搜索变差 |
 | 邮件发送 | `lib/mail.mjs` + `lib/mail-tpl.mjs` | 注册/重置的验证码。三家免费服务商（SMTP2GO / Brevo / Resend）由 `PHM_MAIL_PROVIDER` 选，全是 HTTPS API（不引 nodemailer）。⚠ 原来靠平台的 auth 发信，2026-10-21 随数据库一起挂了 → 改成自己生成码、库里只存 HMAC、自己发。模板单独成文件是因为**邮件客户端不支持 CSS 变量**，颜色必须写字面值（lint-slop 有豁免） |
 | 数据库驱动适配 | `lib/db-pg.mjs` | 用 `pg` 直连 Postgres，但**对外保持 PostgREST 的调用形状**（`/rpc/x`、`/table?col=eq.v`）—— `lib/` 下 7 个模块一行都不用改。只翻译代码里真实用到的算子（eq/neq/gt/gte/lt/lte/in + order/limit/offset/select）。⚠ 三个坑：numeric 默认回**字符串**（不转会把 12.3 变成 "12.3"，前端算术得 NaN）；无参函数要拼 `fn()` 不是 `fn($1)`；超时定时器必须能取消（否则输的那半变成 unhandledRejection → 进程退出）|
 | 下线闸门 | `lib/retired.mjs` | 被撤的路径一律 410 Gone（页面/API 一张表 `RETIRED_PAGES`/`RETIRED_API`）；说明页 `/retired` 与「继续使用请到」的地址 `RETIRE_URL` 都只有这一处。⚠ 文件**不删**，只从 `PUBLIC_FILES` 移除 → 恢复就是加回去 |

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="app-version" content="V0.31.4.1">
+<title>儿童隐私协议 · P.H.M. Standard</title>
+<meta name="description" content="Phira 话梅构建客户端的儿童个人信息保护规则：监护人如何阻止上报、我们如何保护儿童信息。">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-size='19' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23f0b03f'%3EP%3C/text%3E%3C/svg%3E">
+<script>(function(){var d=document.documentElement,t="auto",f="serif",z="m";
+try{t=localStorage.getItem("phm_theme")||"auto";
+f=localStorage.getItem("phm_font")||"serif";
+z=localStorage.getItem("phm_size")||"m";}catch(e){}
+var dark=t==="dark"||(t==="auto"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+d.setAttribute("data-theme",dark?"dark":"light");
+d.setAttribute("data-theme-mode",t==="light"||t==="dark"?t:"auto");
+d.setAttribute("data-font",f==="sans"||f==="kai"?f:"serif");
+d.setAttribute("data-size",z==="s"||z==="l"?z:"m");})();</script>
+<link rel="stylesheet" href="/css/base.css?v=V0.31.4.1">
+<link rel="stylesheet" href="/css/ui-kit.css?v=V0.31.4.1">
+<link rel="stylesheet" href="/css/docs.css?v=V0.31.4.1">
+</head>
+<body>
+<div class="doc">
+
+  <div class="topbar">
+    <a class="back" href="/more" data-i18n="gp.back">← 返回更多</a>
+    <nav>
+      <a href="/privacy-game" data-i18n="gp.nav.privacy">游戏隐私政策</a>
+      <a href="/privacy-game/children" class="on" data-i18n="gp.nav.children">儿童隐私</a>
+      <a href="/privacy-game/collect" data-i18n="gp.nav.collect">收集清单</a>
+      <a href="/privacy-game/third-party" data-i18n="gp.nav.third">第三方共享</a>
+    </nav>
+  </div>
+
+  <h1 data-i18n="gc.h1">儿童个人信息保护规则</h1>
+  <div class="meta"><span data-i18n="gc.meta">版本 v1.0 · 生效日期 2026-11-16 · 适用：本客户端的 14 周岁以下用户</span><br><span data-i18n="gp.auth">本政策以简体中文版本为准；英文译本仅供参考。</span></div>
+
+  <div class="lead">
+    <p data-i18n-html="gc.lead"><b>一句话概括：</b>本客户端<b>不面向 14 周岁以下儿童单独提供服务</b>。
+    如果你是 14 周岁以下，请在父母或其他监护人陪同下阅读本规则，并在取得监护人同意后使用。</p>
+  </div>
+
+  <h2 data-i18n="gc.h2.1">1. 我们收集儿童信息吗</h2>
+  <p data-i18n-html="gc.p.1.a"><b>会，但依赖于监护人的设备授权。</b>这一点必须说清，不能含糊：
+  本客户端没有年龄验证，也无法识别用户年龄。因此只要设备在使用，
+  对局数据（含位置与陀螺仪摘要）就会按 <a href="/privacy-game">游戏隐私政策</a> 所述的规则上报。</p>
+  <p data-i18n="gc.p.1.b">我们不会因为你是儿童而收集更多信息，也不会收集少于成人——技术上无法区分，
+  这是当前实现的真实边界。</p>
+
+  <h2 data-i18n="gc.h2.2">2. 收集哪些信息</h2>
+  <p data-i18n-html="gc.p.2.a">与成人相同，逐项见 <a href="/privacy-game/collect">个人信息收集清单</a>。关键项：</p>
+  <table>
+    <tr><th data-i18n="gc.th.item">数据项</th><th data-i18n="gc.th.note">儿童场景下的说明</th></tr>
+    <tr><td data-i18n="gc.t.2.a1">逐音符判定</td><td data-i18n="gc.t.2.b1">不含任何身份信息，仅记录音符判定结果</td></tr>
+    <tr><td data-i18n="gc.t.2.a2">位置（约 1 公里）</td><td data-i18n-html="gc.t.2.b2"><b>敏感</b>。监护人应明确决定是否允许系统定位授权</td></tr>
+    <tr><td data-i18n="gc.t.2.a3">陀螺仪摘要</td><td data-i18n="gc.t.2.b3">三个统计量，不传原始采样</td></tr>
+    <tr><td data-i18n="gc.t.2.a4">设备型号</td><td data-i18n="gc.t.2.b4">用于分析机型与判定的关系</td></tr>
+  </table>
+  <p data-i18n-html="gc.p.2.b"><b>不收集</b>：姓名、头像、生日、学校、住址、通讯录、相册、任何设备唯一标识。</p>
+
+  <h2 data-i18n="gc.h2.3">3. 监护人如何阻止上报</h2>
+  <h3 data-i18n="gc.h3.3.1">方式一：关闭数据上报开关（推荐）</h3>
+  <p data-i18n-html="gc.p.3.a"><code>设置 → 账号 → 上报游玩数据</code> → 关闭。关闭后不发起任何上传，
+  此设置立即生效，无需联网。</p>
+
+  <h3 data-i18n="gc.h3.3.2">方式二：拒绝系统定位授权</h3>
+  <p data-i18n="gc.p.3.b">首次启动时 iOS 会弹出定位权限请求，选择「不允许」即可。
+  之后可在 <code>iOS 设置 → 隐私与安全性 → 定位服务</code> 中随时撤销。</p>
+
+  <h3 data-i18n="gc.h3.3.3">方式三：不使用本客户端</h3>
+  <p data-i18n="gc.p.3.c">本客户端为第三方构建，Phira 官方客户端不包含我们的数据上报逻辑。</p>
+
+  <h2 data-i18n="gc.h2.4">4. 我们如何保护儿童信息</h2>
+  <table>
+    <tr><th data-i18n="gc.th.measure">措施</th><th data-i18n="gc.th.how">具体做法</th></tr>
+    <tr><td data-i18n="gc.t.4.a1">最小化</td><td data-i18n="gc.t.4.b1">不采集姓名、位置精确坐标、设备唯一标识</td></tr>
+    <tr><td data-i18n="gc.t.4.a2">精度削减</td><td data-i18n="gc.t.4.b2">位置四舍五入到约 1 公里</td></tr>
+    <tr><td data-i18n="gc.t.4.a3">传输加密</td><td data-i18n="gc.t.4.b3">全站 HTTPS</td></tr>
+    <tr><td data-i18n="gc.t.4.a4">访问控制</td><td data-i18n="gc.t.4.b4">数据库不开放公网匿名读取，仅服务端凭据可写</td></tr>
+    <tr><td data-i18n="gc.t.4.a5">不做画像</td><td data-i18n="gc.t.4.b5">不用儿童数据做任何推荐、广告或用户画像</td></tr>
+  </table>
+  <p data-i18n-html="gc.p.4.a"><b>诚实说明</b>：本客户端为个人开发者项目，不具备专门面向儿童的合规体系
+  （如专门的儿童数据隔离存储、独立的儿童数据删除通道）。如果你的孩子使用本客户端，
+  建议直接关闭数据上报开关。</p>
+
+  <h2 data-i18n="gc.h2.5">5. 监护人的权利</h2>
+  <p data-i18n-html="gc.p.5.a">监护人可通过 <a href="/privacy-game">游戏隐私政策</a> 第 1 节的联系方式：
+  询问我们是否持有某条数据、要求删除（匿名数据无法定位，需提供谱面 ID 与大致时间）、
+  要求停止处理。我们在 15 个工作日内答复。</p>
+
+  <h2 data-i18n="gc.h2.6">6. 我们不做什么</h2>
+  <ul>
+    <li data-i18n="gc.li.6.1">不向儿童推送任何营销内容</li>
+    <li data-i18n="gc.li.6.2">不使用儿童数据做广告定向</li>
+    <li data-i18n="gc.li.6.3">不将儿童数据提供给任何第三方用于其自身目的</li>
+    <li data-i18n="gc.li.6.4">不基于儿童数据做出对其有重大影响的自动化决策</li>
+  </ul>
+
+  <h2 data-i18n="gc.h2.7">7. 已知不足（诚实披露）</h2>
+  <ul>
+    <li data-i18n-html="gc.li.7.1"><b>无年龄门</b>：客户端不询问年龄，无法区分儿童与成人用户</li>
+    <li data-i18n-html="gc.li.7.2"><b>开关默认开启</b>：监护人需主动关闭，而不是「默认不采集、主动开启」</li>
+    <li data-i18n-html="gc.li.7.3"><b>无独立儿童数据删除通道</b>：与成人共用同一套流程</li>
+  </ul>
+  <p data-i18n="gc.p.7.a">这几项是我们当前能力的真实边界。在补齐之前，我们不建议 14 周岁以下用户
+  在开启数据上报的状态下使用本客户端。</p>
+
+</div>
+<script type="module">
+import { applyStatic, onLangChange, t } from '/js/ui.js?v=V0.31.4.1';
+import { installGuard } from '/js/guard.js?v=V0.31.4.1';
+try { installGuard(t); } catch (e) {}
+applyStatic();
+onLangChange(() => applyStatic());
+</script>
+</body>
+</html>

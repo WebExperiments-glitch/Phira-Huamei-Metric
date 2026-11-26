@@ -1,13 +1,23 @@
-/* tools/fix-monitors.mjs —— 给 BetterStack 的监控 URL 补上 sharecode
+/* tools/fix-monitors.mjs —— 修 BetterStack 监控的两类问题
  *
- * 背景：平台把应用设成「需要分享码」后，所有请求（含 API）裸访问都 403。
- * BetterStack 的探针因此全部红了 —— 服务是好的，是探针被挡在门外。
+ * ① URL 缺 sharecode
+ *    平台把应用设成「需要分享码」后，裸访问一律 403。
+ *    BetterStack 的探针因此全红 —— 服务是好的，是探针被挡在门外。
+ *
+ * ② 探测频率高过匿名额度（2026-11-23 新增）
+ *    站点匿名额度 `apiAnonHour = 100` 次/小时，**按 subject（IP）计**。
+ *    BetterStack 有 us / eu / as 三个区域，7 个监控 × 每 60 秒
+ *    ⇒ 每个区域约 138 次/小时 > 100 ⇒ 6 个端点全变 429。
+ *    这个 429 会被状态页读成「站点挂了」，于是探针更急 —— 自己把自己打爆。
+ *    降到 600 秒后约 42 次/小时，留足余量给真实访客。
+ *    ⚠ 不改成带 API Key 的原因：key 会存到第三方控制台，且走 key 额度是
+ *      1000/h，为了 7 个探针占用一把长期凭据，不划算。
  *
  * 用法：
  *   node tools/fix-monitors.mjs            # 只看会改成什么（dry run）
  *   node tools/fix-monitors.mjs --apply    # 真的改
  *
- * token 从 .env 的 BETTERSTACK_TOKEN 读，不进仓库。
+ * token 从 .env 的 BETTERSTACK_TOKEN 读，不进仓库（.env 已 gitignore）。
  */
 import { readFileSync } from 'node:fs';
 
@@ -51,24 +61,39 @@ const list = await api('/monitors');
 const monitors = list.data || [];
 console.log('  共', monitors.length, '个监控\n');
 
+/* 目标频率：300 秒。见文件头 ② 的算术。 */
+const TARGET_FREQ = 600;
+
 let changed = 0;
 for (const m of monitors) {
   const a = m.attributes || {};
   const oldUrl = String(a.url || '');
   const newUrl = withSharecode(oldUrl);
+  const oldFreq = Number(a.check_frequency || 0);
+  const newFreq = TARGET_FREQ;
   const name = String(a.pronounceable_name || m.id);
+  const needUrl = newUrl !== oldUrl;
+  const needFreq = oldFreq !== newFreq;
 
-  if (newUrl === oldUrl) {
-    console.log('  = ' + name + '  （已带 sharecode，跳过）');
+  if (!needUrl && !needFreq) {
+    console.log('  = ' + name + '  （URL 与频率都已正确，跳过）');
     continue;
   }
   console.log('  · ' + name);
-  console.log('      旧 ' + oldUrl);
-  console.log('      新 ' + newUrl);
+  if (needUrl) {
+    console.log('      URL  旧 ' + oldUrl);
+    console.log('           新 ' + newUrl);
+  }
+  if (needFreq) {
+    console.log('      频率 旧 ' + oldFreq + 's → 新 ' + newFreq + 's');
+  }
 
   if (apply) {
     try {
-      await api('/monitors/' + m.id, { method: 'PATCH', body: JSON.stringify({ url: newUrl }) });
+      const patch = {};
+      if (needUrl) patch.url = newUrl;
+      if (needFreq) patch.check_frequency = newFreq;
+      await api('/monitors/' + m.id, { method: 'PATCH', body: JSON.stringify(patch) });
       console.log('      ✓ 已更新');
       changed++;
     } catch (e) {
